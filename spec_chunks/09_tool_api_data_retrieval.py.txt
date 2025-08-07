@@ -1,0 +1,9 @@
+Create file: app/agents/tools/api_data_retrieval.py
+
+External surf API integration:
+- Create APIDataRetrievalTool class
+- Main method: fetch_surf_data(website_url, api_key, location_data)
+- Handle HTTP requests with proper headers and authentication
+- Include robust error handling (timeouts, status codes)
+- Method: _standardize_surf_data() to convert different API responses
+- Support both paid and free API providers

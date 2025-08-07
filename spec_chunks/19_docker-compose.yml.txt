@@ -1,0 +1,10 @@
+Create file: docker-compose.yml
+
+Multi-container development environment:
+- backend service: build from Dockerfile, port 8000
+- db service: postgres:15 image, port 5432
+- redis service: redis:7-alpine image, port 6379
+- Configure environment variables
+- Set up networks for inter-service communication
+- Include volume mounts for database persistence
+- Add depends_on relationships

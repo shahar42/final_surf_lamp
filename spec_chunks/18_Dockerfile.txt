@@ -1,0 +1,11 @@
+Create file: Dockerfile
+
+Multi-stage Docker build:
+- Use python:3.11-slim base image
+- Install system dependencies (gcc for compilation)
+- Copy and install requirements.txt
+- Copy application code
+- Create non-root user for security
+- Expose port 8000
+- Add HEALTHCHECK instruction
+- Set CMD to run uvicorn app.main:app

@@ -1,0 +1,8 @@
+Create file: app/agents/surf_lamp_agent.py
+
+Main LangChain agent class:
+- Create SurfLampAgent class
+- Initialize all four tools (ArduinoCommunicationTool, APIDataRetrievalTool, DatabaseManagementTool, UserInputProcessingTool)
+- Primary method: get_lamp_configuration(lamp_id)
+- Use tools in sequence to fetch data and format response
+- Include comprehensive error handling

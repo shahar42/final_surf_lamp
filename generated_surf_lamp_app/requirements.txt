@@ -1,0 +1,57 @@
+```
+# requirements.txt
+
+# FastAPI framework for building APIs
+fastapi==0.104.1
+
+# Langchain for building applications with language models
+langchain==0.0.350
+
+# Uvicorn ASGI server for serving FastAPI applications
+uvicorn==0.24.0
+
+# Boto3 for AWS SDK to interact with AWS services
+boto3==1.34.0
+
+# Paho MQTT client for MQTT messaging
+paho-mqtt==1.6.1
+
+# Asyncpg for PostgreSQL database interaction
+asyncpg==0.29.0
+
+# SQLAlchemy for ORM and database management
+sqlalchemy==2.0.23
+
+# Alembic for database migrations
+alembic==1.13.1
+
+# Httpx for making HTTP requests
+httpx==0.25.2
+
+# Pydantic for data validation and settings management
+pydantic==2.5.0
+
+# Python Multipart for handling file uploads
+python-multipart==0.0.6
+
+# Structlog for structured logging
+structlog==23.2.0
+
+# Prometheus client for monitoring and metrics
+prometheus-client==0.19.0
+
+# Pydantic settings for managing environment variables
+pydantic-settings==2.1.0
+
+# APScheduler for scheduling jobs
+apscheduler==3.10.4
+
+# Redis client for caching and message brokering
+redis==5.0.1
+
+# Bcrypt for hashing passwords
+bcrypt==4.1.2
+
+# Python Dotenv for loading environment variables from .env files
+python-dotenv==1.0.0
+```

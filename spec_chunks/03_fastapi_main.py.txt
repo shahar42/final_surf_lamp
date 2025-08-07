@@ -1,0 +1,12 @@
+Create file: app/main.py
+
+FastAPI main application entry point that:
+- Sets up FastAPI app with title "Surfboard Lamp Backend"
+- Includes CORS middleware
+- Sets up lifespan context for startup/shutdown
+- Includes v1 API router with prefix "/api/v1"
+- Has health check endpoint at "/health"
+- Initializes database connection on startup
+- Starts background scheduler for surf data updates
+- Includes structured logging setup
+- Has graceful shutdown handling

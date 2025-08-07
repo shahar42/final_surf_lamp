@@ -56,10 +56,6 @@ Dockerfile.dockerignore
 ehthumbs.db
 Thumbs.db
 
-# Project specific
-generated_surf_lamp_app/
-spec_chunks/
-
 # Logs
 *.log
 logs/

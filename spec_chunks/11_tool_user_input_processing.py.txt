@@ -1,0 +1,9 @@
+Create file: app/agents/tools/user_input_processing.py
+
+User registration processing:
+- Create UserInputProcessingTool class
+- Main method: process_registration(registration_data)
+- Validate input data (email format, password strength)
+- Use PasswordHasher for secure password hashing
+- Convert location names to indices
+- Delegate database operations to DatabaseManagementTool

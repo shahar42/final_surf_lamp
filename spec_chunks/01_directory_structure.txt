@@ -1,0 +1,40 @@
+Create the complete directory structure for the surfboard-lamp-backend project:
+
+surfboard-lamp-backend/
+├── app/
+│   ├── __init__.py
+│   ├── main.py
+│   ├── config.py  
+│   ├── dependencies.py
+│   ├── api/
+│   │   ├── __init__.py
+│   │   └── v1/
+│   │       ├── __init__.py
+│   │       ├── router.py
+│   │       └── endpoints/
+│   │           ├── __init__.py
+│   │           ├── lamps.py
+│   │           ├── users.py
+│   │           └── health.py
+│   ├── agents/
+│   │   ├── __init__.py
+│   │   ├── surf_lamp_agent.py
+│   │   └── tools/
+│   │       ├── __init__.py
+│   │       ├── arduino_communication.py
+│   │       ├── api_data_retrieval.py
+│   │       ├── database_management.py
+│   │       └── user_input_processing.py
+│   ├── core/
+│   │   ├── __init__.py
+│   │   ├── database.py
+│   │   ├── cache.py
+│   │   └── scheduler.py
+│   └── db/
+│       ├── __init__.py
+│       └── models.py
+├── tests/
+│   ├── __init__.py
+│   └── test_main.py
+├── requirements.txt
+└── Dockerfile

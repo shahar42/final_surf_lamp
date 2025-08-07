@@ -1,0 +1,8 @@
+Create file: app/api/v1/endpoints/users.py
+
+Handle user registration from web interface:
+- Implement POST /api/v1/register endpoint
+- Accept user registration data (name, email, password, lamp_id, location)
+- Use UserInputProcessingTool to validate and process data
+- Return success or error message
+- Include proper HTTP status codes

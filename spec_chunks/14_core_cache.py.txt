@@ -1,0 +1,8 @@
+Create file: app/core/cache.py
+
+Redis caching for surf data:
+- Create CacheManager class using redis async client
+- Methods: get_surf_data_cache(location_index), set_surf_data_cache(location_index, data)
+- Set TTL of 30 minutes (1800 seconds) for cached data
+- Include cache key formatting and JSON serialization
+- Add cache miss/hit logging
