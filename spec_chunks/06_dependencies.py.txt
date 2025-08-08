@@ -1,0 +1,11 @@
+Create file: app/dependencies.py
+
+Dependency injection setup:
+- Import interfaces from shared.contracts
+- Import concrete implementations from respective domains
+- Create factory functions:
+  - get_lamp_service() -> ILampControlService
+  - get_input_validator() -> IInputValidator
+  - get_database_pool() -> connection pool
+- Wire up services with their dependencies
+- Handle service initialization and configuration

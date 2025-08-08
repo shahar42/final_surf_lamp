@@ -1,0 +1,14 @@
+Create file: app/main.py
+
+FastAPI main application entry point:
+- Import from shared.contracts: ILampControlService, IInputValidator
+- Set up FastAPI app with title "Surfboard Lamp Backend"
+- Include CORS middleware allowing all origins
+- Include all routers with proper prefixes:
+  - lamp_router: prefix="/api/v1/lamps"  
+  - user_router: prefix="/api/v1"
+  - health_router: prefix=""
+- Set up lifespan context for startup/shutdown
+- Initialize database connections on startup
+- Start background scheduler on startup
+- Include graceful shutdown handling

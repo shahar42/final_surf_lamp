@@ -1,7 +1,0 @@
-Create file: app/api/v1/endpoints/health.py
-
-Provide monitoring endpoints:
-- GET /health - simple "healthy" status response
-- GET /ready - check database connection for readiness
-- Include proper error handling for database check failures
-- Return appropriate HTTP status codes

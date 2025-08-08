@@ -1,0 +1,13 @@
+Create file: app/api/routers/lamp_router.py
+
+Arduino endpoint router:
+- Import from shared.contracts: ILampControlService, ArduinoResponse, validate_arduino_response, LampNotFoundError
+- Create APIRouter instance
+- Implement GET /lamps/{lamp_id}/config endpoint:
+  - Use dependency injection: lamp_service: ILampControlService = Depends()
+  - Call: await lamp_service.get_lamp_configuration_data(lamp_id)
+  - Validate response using validate_arduino_response()
+  - Return ArduinoResponse format EXACTLY
+  - Handle LampNotFoundError -> HTTP 404
+  - Handle other exceptions -> HTTP 500
+- Include comprehensive error handling and logging

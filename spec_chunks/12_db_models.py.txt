@@ -1,9 +1,0 @@
-Create file: app/db/models.py
-
-SQLAlchemy ORM models:
-- Define LampRegistry model mapping to lamp_registry table
-- Define APIConfiguration model mapping to api_configuration table
-- Define SystemConfiguration and ActivityLog models
-- Include all columns with correct data types (UUID, String, Integer, JSONB)
-- Set up relationships and constraints
-- Add __repr__ methods for debugging

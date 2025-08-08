@@ -1,9 +1,0 @@
-Create file: app/agents/tools/database_management.py
-
-Database operations tool:
-- Create DatabaseManagementTool class
-- Methods: get_lamp_configuration(lamp_id), register_new_user(user_data)
-- Additional methods: get_all_active_lamps(), get_lamp_status()
-- Use async database connection pool
-- Include proper transaction handling
-- Add comprehensive error logging

@@ -1,0 +1,15 @@
+Create file: app/data_layer/repositories/lamp_repository.py
+
+PostgreSQL lamp repository:
+- Import from shared.contracts: ILampRepository, LampConfig, DatabaseError
+- Implement ILampRepository interface
+- Use asyncpg for database operations
+- Method get_lamp_configuration(lamp_id) -> Optional[LampConfig]:
+  - Complex query joining lamp_registry with api_configuration
+  - Return complete lamp config with API settings
+- Method register_new_lamp(lamp_data) -> bool:
+  - Insert with transaction handling
+  - Include error handling and logging
+- Method get_all_active_lamps() -> List[LampConfig]:
+  - For background processing
+- Use connection pooling and proper error handling

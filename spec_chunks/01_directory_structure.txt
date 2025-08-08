@@ -1,40 +1,61 @@
 Create the complete directory structure for the surfboard-lamp-backend project:
 
 surfboard-lamp-backend/
+├── shared/
+│   └── contracts.py
 ├── app/
 │   ├── __init__.py
 │   ├── main.py
-│   ├── config.py  
 │   ├── dependencies.py
 │   ├── api/
 │   │   ├── __init__.py
-│   │   └── v1/
+│   │   ├── middleware.py
+│   │   ├── models.py
+│   │   └── routers/
 │   │       ├── __init__.py
-│   │       ├── router.py
-│   │       └── endpoints/
-│   │           ├── __init__.py
-│   │           ├── lamps.py
-│   │           ├── users.py
-│   │           └── health.py
-│   ├── agents/
+│   │       ├── lamp_router.py
+│   │       ├── user_router.py
+│   │       └── health_router.py
+│   ├── business_logic/
 │   │   ├── __init__.py
-│   │   ├── surf_lamp_agent.py
-│   │   └── tools/
+│   │   ├── services/
+│   │   │   ├── __init__.py
+│   │   │   ├── lamp_control_service.py
+│   │   │   └── background_scheduler.py
+│   │   └── agents/
 │   │       ├── __init__.py
-│   │       ├── arduino_communication.py
-│   │       ├── api_data_retrieval.py
-│   │       ├── database_management.py
-│   │       └── user_input_processing.py
-│   ├── core/
+│   │       └── surf_lamp_agent.py
+│   ├── data_layer/
 │   │   ├── __init__.py
-│   │   ├── database.py
-│   │   ├── cache.py
-│   │   └── scheduler.py
-│   └── db/
+│   │   ├── repositories/
+│   │   │   ├── __init__.py
+│   │   │   ├── lamp_repository.py
+│   │   │   ├── user_repository.py
+│   │   │   └── activity_logger.py
+│   │   ├── cache/
+│   │   │   ├── __init__.py
+│   │   │   └── cache_manager.py
+│   │   ├── models/
+│   │   │   ├── __init__.py
+│   │   │   └── database_models.py
+│   │   └── connection/
+│   │       ├── __init__.py
+│   │       └── database_manager.py
+│   └── infrastructure/
 │       ├── __init__.py
-│       └── models.py
+│       ├── external/
+│       │   ├── __init__.py
+│       │   └── surf_data_provider.py
+│       ├── security/
+│       │   ├── __init__.py
+│       │   ├── password_security.py
+│       │   └── input_validator.py
+│       └── config/
+│           ├── __init__.py
+│           └── settings.py
 ├── tests/
 │   ├── __init__.py
 │   └── test_main.py
 ├── requirements.txt
-└── Dockerfile
+├── Dockerfile
+└── docker-compose.yml

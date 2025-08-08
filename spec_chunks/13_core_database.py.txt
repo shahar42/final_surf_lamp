@@ -1,8 +1,0 @@
-Create file: app/core/database.py
-
-Database connection management:
-- Initialize asyncpg connection pool using settings.database_url
-- Define get_db_pool() FastAPI dependency function
-- Include database initialization logic
-- Add connection pool configuration (size, max connections)
-- Handle database connection errors gracefully

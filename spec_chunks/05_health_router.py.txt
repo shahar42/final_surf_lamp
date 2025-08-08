@@ -1,0 +1,12 @@
+Create file: app/api/routers/health_router.py
+
+Health check endpoints:
+- Create APIRouter instance
+- Implement GET /health:
+  - Return {"status": "healthy"} immediately
+  - No dependencies required
+- Implement GET /ready:
+  - Try to inject ILampControlService and IInputValidator
+  - Test basic functionality
+  - Return {"status": "ready"} or HTTP 503
+- Include proper error handling

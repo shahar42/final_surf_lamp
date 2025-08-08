@@ -1,0 +1,16 @@
+Create file: app/api/routers/user_router.py
+
+User registration router:
+- Import from shared.contracts: ILampControlService, IInputValidator, ValidationError
+- Create Pydantic model UserRegistrationRequest with fields:
+  - name: str (1-100 chars)
+  - email: EmailStr  
+  - password: str (min 8 chars)
+  - lamp_id: str (3-50 chars)
+  - location_index: int (0-4)
+- Implement POST /register endpoint:
+  - Use dependency injection for ILampControlService and IInputValidator
+  - Validate all inputs using validator methods (await calls)
+  - Delegate to lamp_service.process_user_registration()
+  - Handle ValidationError -> HTTP 400
+  - Return success/error responses

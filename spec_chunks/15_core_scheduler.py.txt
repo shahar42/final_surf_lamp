@@ -1,9 +1,0 @@
-Create file: app/core/scheduler.py
-
-Background task scheduler:
-- Create SurfDataScheduler class using apscheduler
-- Job that runs every 30 minutes: _update_cache_for_all_locations
-- Use DatabaseManagementTool to get active locations
-- Use APIDataRetrievalTool to fetch fresh surf data
-- Update cache via CacheManager
-- Include comprehensive error handling

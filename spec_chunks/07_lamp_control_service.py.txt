@@ -1,0 +1,15 @@
+Create file: app/business_logic/services/lamp_control_service.py
+
+Main business logic service:
+- Import from shared.contracts: ILampControlService, ILampRepository, ISurfDataProvider, ICacheManager, ArduinoResponse
+- Implement ILampControlService interface
+- Method get_lamp_configuration_data(lamp_id: str) -> ArduinoResponse:
+  - Get lamp config from repository
+  - Check cache for surf data (30min TTL)
+  - Fetch fresh data if cache miss
+  - Format ArduinoResponse exactly
+  - Handle all error scenarios gracefully
+- Method process_user_registration(data: Dict) -> Dict:
+  - Validate and process user registration
+  - Coordinate between validation, hashing, and storage
+- Use dependency injection for all services
