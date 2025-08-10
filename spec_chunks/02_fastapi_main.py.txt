@@ -1,14 +1,48 @@
 Create file: app/main.py
 
-FastAPI main application entry point:
-- Import from shared.contracts: ILampControlService, IInputValidator
-- Set up FastAPI app with title "Surfboard Lamp Backend"
-- Include CORS middleware allowing all origins
-- Include all routers with proper prefixes:
-  - lamp_router: prefix="/api/v1/lamps"  
-  - user_router: prefix="/api/v1"
-  - health_router: prefix=""
-- Set up lifespan context for startup/shutdown
-- Initialize database connections on startup
-- Start background scheduler on startup
-- Include graceful shutdown handling
+GENERATE ONLY THIS PYTHON CODE:
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+import logging
+
+# Import routers - these will be created by other chunks
+from app.api.routers import lamp_router, user_router, health_router
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    logger.info("Starting Surfboard Lamp Backend")
+    yield
+    # Shutdown
+    logger.info("Shutting down Surfboard Lamp Backend")
+
+app = FastAPI(
+    title="Surfboard Lamp Backend",
+    description="Backend API for surf data delivery to IoT lamps",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include routers
+app.include_router(lamp_router.router, prefix="/api/v1/lamps", tags=["lamps"])
+app.include_router(user_router.router, prefix="/api/v1", tags=["users"])
+app.include_router(health_router.router, tags=["health"])
+
+@app.get("/")
+async def root():
+    return {"message": "Surfboard Lamp Backend API", "version": "1.0.0"}

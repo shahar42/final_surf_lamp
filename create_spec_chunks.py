@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Script to create all 19 specification chunk files for the multi-agent system
+Script to create specification chunks that explicitly demand code generation
 """
 import os
 
 def create_all_spec_chunks():
-    """Create all specification chunk files"""
+    """Create specification chunks that force code generation"""
     
     # Create spec_chunks directory
     os.makedirs("spec_chunks", exist_ok=True)
@@ -14,292 +14,568 @@ def create_all_spec_chunks():
         "01_directory_structure.txt": """Create the complete directory structure for the surfboard-lamp-backend project:
 
 surfboard-lamp-backend/
+├── shared/
+│   └── contracts.py
 ├── app/
 │   ├── __init__.py
 │   ├── main.py
-│   ├── config.py  
 │   ├── dependencies.py
 │   ├── api/
 │   │   ├── __init__.py
-│   │   └── v1/
+│   │   ├── middleware.py
+│   │   ├── models.py
+│   │   └── routers/
 │   │       ├── __init__.py
-│   │       ├── router.py
-│   │       └── endpoints/
-│   │           ├── __init__.py
-│   │           ├── lamps.py
-│   │           ├── users.py
-│   │           └── health.py
-│   ├── agents/
+│   │       ├── lamp_router.py
+│   │       ├── user_router.py
+│   │       └── health_router.py
+│   ├── business_logic/
 │   │   ├── __init__.py
-│   │   ├── surf_lamp_agent.py
-│   │   └── tools/
+│   │   ├── services/
+│   │   │   ├── __init__.py
+│   │   │   ├── lamp_control_service.py
+│   │   │   └── background_scheduler.py
+│   │   └── agents/
 │   │       ├── __init__.py
-│   │       ├── arduino_communication.py
-│   │       ├── api_data_retrieval.py
-│   │       ├── database_management.py
-│   │       └── user_input_processing.py
-│   ├── core/
+│   │       └── surf_lamp_agent.py
+│   ├── data_layer/
 │   │   ├── __init__.py
-│   │   ├── database.py
-│   │   ├── cache.py
-│   │   └── scheduler.py
-│   └── db/
+│   │   ├── repositories/
+│   │   │   ├── __init__.py
+│   │   │   ├── lamp_repository.py
+│   │   │   ├── user_repository.py
+│   │   │   └── activity_logger.py
+│   │   ├── cache/
+│   │   │   ├── __init__.py
+│   │   │   └── cache_manager.py
+│   │   ├── models/
+│   │   │   ├── __init__.py
+│   │   │   └── database_models.py
+│   │   └── connection/
+│   │       ├── __init__.py
+│   │       └── database_manager.py
+│   └── infrastructure/
 │       ├── __init__.py
-│       └── models.py
+│       ├── external/
+│       │   ├── __init__.py
+│       │   └── surf_data_provider.py
+│       ├── security/
+│       │   ├── __init__.py
+│       │   ├── password_security.py
+│       │   └── input_validator.py
+│       └── config/
+│           ├── __init__.py
+│           └── settings.py
 ├── tests/
 │   ├── __init__.py
 │   └── test_main.py
 ├── requirements.txt
-└── Dockerfile""",
+├── Dockerfile
+└── docker-compose.yml""",
 
-        "02_database_schema.sql.txt": """Create file: app/db/schema.sql
+        "02_fastapi_main.py.txt": """Create file: app/main.py
 
-Complete PostgreSQL database schema for the surfboard lamp backend:
+GENERATE ONLY THIS PYTHON CODE:
 
--- Lamp Registry Table
-CREATE TABLE lamp_registry (
-    lamp_id UUID PRIMARY KEY,
-    email VARCHAR(255) NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    location_index INTEGER NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    is_active BOOLEAN DEFAULT true
-);
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+import logging
 
--- API Configuration Table  
-CREATE TABLE api_configuration (
-    id SERIAL PRIMARY KEY,
-    website_name VARCHAR(100) NOT NULL,
-    full_url VARCHAR(500) NOT NULL,
-    is_json BOOLEAN NOT NULL DEFAULT true,
-    is_metric BOOLEAN NOT NULL DEFAULT true,
-    api_key VARCHAR(255),
-    city JSONB NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    is_active BOOLEAN DEFAULT true
-);
+# Import routers - these will be created by other chunks
+from app.api.routers import lamp_router, user_router, health_router
 
--- System Configuration Table
-CREATE TABLE system_configuration (
-    id SERIAL PRIMARY KEY,
-    config_key VARCHAR(100) NOT NULL UNIQUE,
-    config_value JSONB NOT NULL,
-    description TEXT,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
--- Activity Log Table
-CREATE TABLE activity_log (
-    id SERIAL PRIMARY KEY,
-    lamp_id UUID REFERENCES lamp_registry(lamp_id),
-    activity_type VARCHAR(50) NOT NULL,
-    status VARCHAR(20) NOT NULL,
-    details JSONB,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    logger.info("Starting Surfboard Lamp Backend")
+    yield
+    # Shutdown
+    logger.info("Shutting down Surfboard Lamp Backend")
 
--- Performance indexes
-CREATE INDEX idx_lamp_registry_email ON lamp_registry(email);
-CREATE INDEX idx_lamp_registry_location ON lamp_registry(location_index);
-CREATE INDEX idx_activity_log_lamp_time ON activity_log(lamp_id, created_at);""",
+app = FastAPI(
+    title="Surfboard Lamp Backend",
+    description="Backend API for surf data delivery to IoT lamps",
+    version="1.0.0",
+    lifespan=lifespan
+)
 
-        "03_fastapi_main.py.txt": """Create file: app/main.py
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-FastAPI main application entry point that:
-- Sets up FastAPI app with title "Surfboard Lamp Backend"
-- Includes CORS middleware
-- Sets up lifespan context for startup/shutdown
-- Includes v1 API router with prefix "/api/v1"
-- Has health check endpoint at "/health"
-- Initializes database connection on startup
-- Starts background scheduler for surf data updates
-- Includes structured logging setup
-- Has graceful shutdown handling""",
+# Include routers
+app.include_router(lamp_router.router, prefix="/api/v1/lamps", tags=["lamps"])
+app.include_router(user_router.router, prefix="/api/v1", tags=["users"])
+app.include_router(health_router.router, tags=["health"])
 
-        "04_endpoint_lamps.py.txt": """Create file: app/api/v1/endpoints/lamps.py
+@app.get("/")
+async def root():
+    return {"message": "Surfboard Lamp Backend API", "version": "1.0.0"}""",
 
-Handle Arduino device requests:
-- Implement GET /api/v1/lamps/{lamp_id}/config endpoint
-- Use ArduinoCommunicationTool to fetch lamp configuration and surf data
-- Return exact JSON format expected by Arduino:
-{
-    "registered": bool,
-    "brightness": int,
-    "location_used": str,
-    "wave_height_m": float | None,
-    "wave_period_s": float | None,
-    "wind_speed_mps": float | None,
-    "wind_deg": int | None,
-    "error": str | None
-}""",
+        "03_lamp_router.py.txt": """Create file: app/api/routers/lamp_router.py
 
-        "05_endpoint_users.py.txt": """Create file: app/api/v1/endpoints/users.py
+GENERATE ONLY PYTHON CODE for Arduino endpoint that returns EXACT format:
 
-Handle user registration from web interface:
-- Implement POST /api/v1/register endpoint
-- Accept user registration data (name, email, password, lamp_id, location)
-- Use UserInputProcessingTool to validate and process data
-- Return success or error message
-- Include proper HTTP status codes""",
+from fastapi import APIRouter, Depends, HTTPException
+from shared.contracts import ILampControlService, ArduinoResponse, LampNotFoundError, ValidationError, validate_arduino_response
+from app.dependencies import get_lamp_service
+import logging
 
-        "06_endpoint_health.py.txt": """Create file: app/api/v1/endpoints/health.py
+logger = logging.getLogger(__name__)
+router = APIRouter()
 
-Provide monitoring endpoints:
-- GET /health - simple "healthy" status response
-- GET /ready - check database connection for readiness
-- Include proper error handling for database check failures
-- Return appropriate HTTP status codes""",
+@router.get("/{lamp_id}/config", response_model=dict)
+async def get_lamp_config(
+    lamp_id: str,
+    lamp_service: ILampControlService = Depends(get_lamp_service)
+):
+    '''Get lamp configuration for Arduino device - MUST return exact Arduino format'''
+    try:
+        logger.info(f"Lamp config request for: {lamp_id}")
+        
+        # Get configuration from service
+        response = await lamp_service.get_lamp_configuration_data(lamp_id)
+        
+        # Validate response format
+        if not validate_arduino_response(response):
+            logger.error("Invalid Arduino response format")
+            raise HTTPException(status_code=500, detail="Response format error")
+        
+        return response
+        
+    except LampNotFoundError:
+        logger.warning(f"Lamp not found: {lamp_id}")
+        raise HTTPException(status_code=404, detail="Lamp not found")
+    except ValidationError as e:
+        logger.warning(f"Validation error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")""",
 
-        "07_langchain_agent.py.txt": """Create file: app/agents/surf_lamp_agent.py
+        "04_user_router.py.txt": """Create file: app/api/routers/user_router.py
 
-Main LangChain agent class:
-- Create SurfLampAgent class
-- Initialize all four tools (ArduinoCommunicationTool, APIDataRetrievalTool, DatabaseManagementTool, UserInputProcessingTool)
-- Primary method: get_lamp_configuration(lamp_id)
-- Use tools in sequence to fetch data and format response
-- Include comprehensive error handling""",
+GENERATE ONLY PYTHON CODE for user registration:
 
-        "08_tool_arduino_communication.py.txt": """Create file: app/agents/tools/arduino_communication.py
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, EmailStr, Field
+from shared.contracts import ILampControlService, IInputValidator, ValidationError
+from app.dependencies import get_lamp_service, get_input_validator
+from typing import Optional, List
+import logging
 
-Arduino HTTP communication tool:
-- Create ArduinoCommunicationTool class
-- Main method: handle_lamp_config_request(lamp_id)
-- Helper methods for different response states:
-  - _create_unregistered_response()
-  - _create_data_error_response()
-  - _create_server_error_response()
-- Format responses exactly as Arduino expects
-- Include activity logging""",
+logger = logging.getLogger(__name__)
+router = APIRouter()
 
-        "09_tool_api_data_retrieval.py.txt": """Create file: app/agents/tools/api_data_retrieval.py
+class UserRegistrationRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    email: EmailStr
+    password: str = Field(min_length=8)
+    lamp_id: str = Field(min_length=3, max_length=50)
+    location_index: int = Field(ge=0, le=4)
 
-External surf API integration:
-- Create APIDataRetrievalTool class
-- Main method: fetch_surf_data(website_url, api_key, location_data)
-- Handle HTTP requests with proper headers and authentication
-- Include robust error handling (timeouts, status codes)
-- Method: _standardize_surf_data() to convert different API responses
-- Support both paid and free API providers""",
+class UserRegistrationResponse(BaseModel):
+    success: bool
+    message: str
+    errors: Optional[List[str]] = None
 
-        "10_tool_database_management.py.txt": """Create file: app/agents/tools/database_management.py
+@router.post("/register", response_model=UserRegistrationResponse)
+async def register_user(
+    request: UserRegistrationRequest,
+    lamp_service: ILampControlService = Depends(get_lamp_service),
+    validator: IInputValidator = Depends(get_input_validator)
+):
+    '''Register new user and lamp'''
+    try:
+        # Validate inputs
+        is_valid_email = await validator.validate_email(request.email)
+        is_valid_lamp = await validator.validate_lamp_id(request.lamp_id)
+        is_valid_location = await validator.validate_location_index(request.location_index)
+        
+        if not all([is_valid_email, is_valid_lamp, is_valid_location]):
+            return UserRegistrationResponse(
+                success=False,
+                message="Validation failed",
+                errors=["Invalid input data"]
+            )
+        
+        # Process registration
+        result = await lamp_service.process_user_registration(request.dict())
+        
+        return UserRegistrationResponse(
+            success=result.get("success", False),
+            message=result.get("message", "Registration processed"),
+            errors=result.get("errors")
+        )
+        
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Registration error: {e}")
+        raise HTTPException(status_code=500, detail="Registration failed")""",
 
-Database operations tool:
-- Create DatabaseManagementTool class
-- Methods: get_lamp_configuration(lamp_id), register_new_user(user_data)
-- Additional methods: get_all_active_lamps(), get_lamp_status()
-- Use async database connection pool
-- Include proper transaction handling
-- Add comprehensive error logging""",
+        "05_health_router.py.txt": """Create file: app/api/routers/health_router.py
 
-        "11_tool_user_input_processing.py.txt": """Create file: app/agents/tools/user_input_processing.py
+GENERATE ONLY PYTHON CODE for health checks:
 
-User registration processing:
-- Create UserInputProcessingTool class
-- Main method: process_registration(registration_data)
-- Validate input data (email format, password strength)
-- Use PasswordHasher for secure password hashing
-- Convert location names to indices
-- Delegate database operations to DatabaseManagementTool""",
+from fastapi import APIRouter, Depends, HTTPException
+from shared.contracts import ILampControlService, IInputValidator
+from app.dependencies import get_lamp_service, get_input_validator
+from pydantic import BaseModel
+from typing import Optional
+from datetime import datetime
 
-        "12_db_models.py.txt": """Create file: app/db/models.py
+router = APIRouter()
 
-SQLAlchemy ORM models:
-- Define LampRegistry model mapping to lamp_registry table
-- Define APIConfiguration model mapping to api_configuration table
-- Define SystemConfiguration and ActivityLog models
-- Include all columns with correct data types (UUID, String, Integer, JSONB)
-- Set up relationships and constraints
-- Add __repr__ methods for debugging""",
+class HealthCheckResponse(BaseModel):
+    status: str
+    timestamp: Optional[str] = None
 
-        "13_core_database.py.txt": """Create file: app/core/database.py
+@router.get("/health", response_model=HealthCheckResponse)
+async def health():
+    '''Simple health check'''
+    return HealthCheckResponse(
+        status="healthy",
+        timestamp=datetime.utcnow().isoformat()
+    )
 
-Database connection management:
-- Initialize asyncpg connection pool using settings.database_url
-- Define get_db_pool() FastAPI dependency function
-- Include database initialization logic
-- Add connection pool configuration (size, max connections)
-- Handle database connection errors gracefully""",
+@router.get("/ready", response_model=HealthCheckResponse)
+async def ready(
+    lamp_service: ILampControlService = Depends(get_lamp_service),
+    validator: IInputValidator = Depends(get_input_validator)
+):
+    '''Readiness check with dependency validation'''
+    try:
+        # Test that services can be injected
+        if lamp_service is None or validator is None:
+            raise HTTPException(status_code=503, detail="Services not ready")
+        
+        return HealthCheckResponse(
+            status="ready",
+            timestamp=datetime.utcnow().isoformat()
+        )
+    except Exception as e:
+        logger.error(f"Readiness check failed: {e}")
+        raise HTTPException(status_code=503, detail="Service not ready")""",
 
-        "14_core_cache.py.txt": """Create file: app/core/cache.py
+        "06_lamp_control_service.py.txt": """Create file: app/business_logic/services/lamp_control_service.py
 
-Redis caching for surf data:
-- Create CacheManager class using redis async client
-- Methods: get_surf_data_cache(location_index), set_surf_data_cache(location_index, data)
-- Set TTL of 30 minutes (1800 seconds) for cached data
-- Include cache key formatting and JSON serialization
-- Add cache miss/hit logging""",
+GENERATE PYTHON CODE implementing ILampControlService from shared.contracts:
 
-        "15_core_scheduler.py.txt": """Create file: app/core/scheduler.py
+from shared.contracts import (
+    ILampControlService, ILampRepository, ISurfDataProvider, 
+    ICacheManager, IActivityLogger, IPasswordSecurity, IInputValidator,
+    ArduinoResponse, LampConfig, SurfData,
+    LampNotFoundError, ValidationError
+)
+from typing import Dict, Any, Optional
+import logging
+import time
 
-Background task scheduler:
-- Create SurfDataScheduler class using apscheduler
-- Job that runs every 30 minutes: _update_cache_for_all_locations
-- Use DatabaseManagementTool to get active locations
-- Use APIDataRetrievalTool to fetch fresh surf data
-- Update cache via CacheManager
-- Include comprehensive error handling""",
+logger = logging.getLogger(__name__)
 
-        "16_config_config.py.txt": """Create file: app/config.py
+class LampControlService(ILampControlService):
+    def __init__(
+        self,
+        lamp_repo: ILampRepository,
+        surf_provider: ISurfDataProvider,
+        cache_manager: ICacheManager,
+        activity_logger: IActivityLogger,
+        password_security: IPasswordSecurity,
+        validator: IInputValidator
+    ):
+        self.lamp_repo = lamp_repo
+        self.surf_provider = surf_provider
+        self.cache_manager = cache_manager
+        self.activity_logger = activity_logger
+        self.password_security = password_security
+        self.validator = validator
 
-Application configuration:
-- Create Settings class using pydantic_settings.BaseSettings
-- Define all configuration variables:
-  - database_url, database_pool_size
-  - surfline_api_key, weather_api_key
-  - secret_key, log_level
-  - surf_update_interval_minutes
-- Load values from .env file
-- Include validation and defaults""",
+    async def get_lamp_configuration_data(self, lamp_id: str) -> ArduinoResponse:
+        '''Get lamp config and surf data, return Arduino format'''
+        try:
+            # Validate lamp_id
+            if not await self.validator.validate_lamp_id(lamp_id):
+                raise ValidationError(f"Invalid lamp ID: {lamp_id}")
+            
+            # Get lamp configuration
+            lamp_config = await self.lamp_repo.get_lamp_configuration(lamp_id)
+            
+            if not lamp_config:
+                # Return unregistered response
+                response = ArduinoResponse()
+                response.update({
+                    "registered": False,
+                    "brightness": 50,
+                    "location_used": "",
+                    "wave_height_m": None,
+                    "wave_period_s": None,
+                    "wind_speed_mps": None,
+                    "wind_deg": None,
+                    "error": "Lamp not registered. Visit setup portal."
+                })
+                await self.activity_logger.log_activity(
+                    lamp_id, "config_request", "unregistered", None
+                )
+                return response
+            
+            # Get surf data
+            location_index = lamp_config.get("location_index", 0)
+            surf_data = await self._get_surf_data_with_cache(location_index)
+            
+            # Create response
+            response = ArduinoResponse()
+            response.update({
+                "registered": True,
+                "brightness": lamp_config.get("brightness", 100),
+                "location_used": lamp_config.get("location_name", ""),
+                "wave_height_m": surf_data.get("wave_height_m") if surf_data else None,
+                "wave_period_s": surf_data.get("wave_period_s") if surf_data else None,
+                "wind_speed_mps": surf_data.get("wind_speed_mps") if surf_data else None,
+                "wind_deg": surf_data.get("wind_deg") if surf_data else None,
+                "error": None if surf_data else "Surf data temporarily unavailable"
+            })
+            
+            await self.activity_logger.log_activity(
+                lamp_id, "config_request", "success", 
+                {"location": lamp_config.get("location_name")}
+            )
+            
+            return response
+            
+        except ValidationError:
+            raise
+        except Exception as e:
+            logger.error(f"Error getting lamp config: {e}")
+            response = ArduinoResponse()
+            response["error"] = "System error occurred"
+            return response
+    
+    async def _get_surf_data_with_cache(self, location_index: int) -> Optional[SurfData]:
+        '''Get surf data with caching'''
+        # Check cache first
+        cached_data = await self.cache_manager.get_surf_data_cache(location_index)
+        
+        if cached_data and self._is_data_fresh(cached_data):
+            logger.info(f"Cache hit for location {location_index}")
+            return cached_data
+        
+        # Fetch fresh data
+        try:
+            fresh_data = await self.surf_provider.fetch_surf_data(location_index)
+            if fresh_data:
+                await self.cache_manager.set_surf_data_cache(
+                    location_index, fresh_data, ttl_seconds=1800
+                )
+                return fresh_data
+        except Exception as e:
+            logger.error(f"Failed to fetch fresh data: {e}")
+        
+        # Return stale cache if available
+        return cached_data
+    
+    def _is_data_fresh(self, data: SurfData, max_age_minutes: int = 30) -> bool:
+        '''Check if cached data is fresh'''
+        if not data or "timestamp" not in data:
+            return False
+        age = (time.time() - data["timestamp"]) / 60
+        return age < max_age_minutes
+    
+    async def process_user_registration(self, registration_data: Dict[str, Any]) -> Dict[str, Any]:
+        '''Process user registration'''
+        try:
+            # Validate all inputs
+            is_valid = all([
+                await self.validator.validate_email(registration_data.get("email", "")),
+                await self.validator.validate_lamp_id(registration_data.get("lamp_id", "")),
+                await self.validator.validate_location_index(registration_data.get("location_index", -1))
+            ])
+            
+            if not is_valid:
+                return {"success": False, "message": "Validation failed"}
+            
+            # Hash password
+            password_hash = await self.password_security.hash_password(
+                registration_data["password"]
+            )
+            
+            # Register lamp
+            registration_data["password_hash"] = password_hash
+            success = await self.lamp_repo.register_new_lamp(registration_data)
+            
+            return {
+                "success": success,
+                "message": "Registration successful" if success else "Registration failed"
+            }
+            
+        except Exception as e:
+            logger.error(f"Registration error: {e}")
+            return {"success": False, "message": str(e)}""",
 
-        "17_requirements.txt.txt": """Create file: requirements.txt
+        "07_dependencies.py.txt": """Create file: app/dependencies.py
 
-Complete Python dependencies list:
+GENERATE ONLY PYTHON CODE for dependency injection:
+
+from shared.contracts import ILampControlService, IInputValidator
+from typing import Optional
+import os
+
+# Cached instances
+_lamp_service: Optional[ILampControlService] = None
+_input_validator: Optional[IInputValidator] = None
+
+def get_lamp_service() -> ILampControlService:
+    '''Get or create lamp control service'''
+    global _lamp_service
+    if _lamp_service is None:
+        # Import implementations
+        from app.business_logic.services.lamp_control_service import LampControlService
+        from app.data_layer.repositories.lamp_repository import PostgresLampRepository
+        from app.data_layer.cache.cache_manager import RedisCacheManager
+        from app.infrastructure.external.surf_data_provider import MultiProviderSurfDataService
+        from app.data_layer.repositories.activity_logger import PostgresActivityLogger
+        from app.infrastructure.security.password_security import BCryptPasswordSecurity
+        from app.infrastructure.security.input_validator import SecurityInputValidator
+        
+        # Initialize dependencies
+        lamp_repo = PostgresLampRepository()
+        cache_manager = RedisCacheManager()
+        surf_provider = MultiProviderSurfDataService()
+        activity_logger = PostgresActivityLogger()
+        password_security = BCryptPasswordSecurity()
+        validator = SecurityInputValidator()
+        
+        # Create service
+        _lamp_service = LampControlService(
+            lamp_repo=lamp_repo,
+            surf_provider=surf_provider,
+            cache_manager=cache_manager,
+            activity_logger=activity_logger,
+            password_security=password_security,
+            validator=validator
+        )
+    
+    return _lamp_service
+
+def get_input_validator() -> IInputValidator:
+    '''Get or create input validator'''
+    global _input_validator
+    if _input_validator is None:
+        from app.infrastructure.security.input_validator import SecurityInputValidator
+        _input_validator = SecurityInputValidator()
+    return _input_validator
+
+def get_database_url() -> str:
+    '''Get database URL from environment'''
+    return os.getenv("DATABASE_URL", "postgresql://user:pass@localhost/surflamp")
+
+def get_redis_url() -> str:
+    '''Get Redis URL from environment'''
+    return os.getenv("REDIS_URL", "redis://localhost:6379")""",
+
+        "08_requirements.txt": """Create file: requirements.txt
+
+GENERATE ONLY THIS CONTENT:
 fastapi==0.104.1
-langchain==0.0.350
 uvicorn==0.24.0
-boto3==1.34.0
-paho-mqtt==1.6.1
 asyncpg==0.29.0
 sqlalchemy==2.0.23
-alembic==1.13.1
+redis==5.0.1
 httpx==0.25.2
 pydantic==2.5.0
-python-multipart==0.0.6
-structlog==23.2.0
-prometheus-client==0.19.0
 pydantic-settings==2.1.0
-apscheduler==3.10.4
-redis==5.0.1
 bcrypt==4.1.2
-python-dotenv==1.0.0""",
+python-multipart==0.0.6
+python-dotenv==1.0.0
+structlog==23.2.0
+apscheduler==3.10.4
+langchain==0.0.350
+email-validator==2.1.0""",
 
-        "18_Dockerfile.txt": """Create file: Dockerfile
+        "09_Dockerfile.txt": """Create file: Dockerfile
 
-Multi-stage Docker build:
-- Use python:3.11-slim base image
-- Install system dependencies (gcc for compilation)
-- Copy and install requirements.txt
-- Copy application code
-- Create non-root user for security
-- Expose port 8000
-- Add HEALTHCHECK instruction
-- Set CMD to run uvicorn app.main:app""",
+GENERATE ONLY THIS DOCKERFILE CONTENT:
+FROM python:3.11-slim AS builder
 
-        "19_docker-compose.yml.txt": """Create file: docker-compose.yml
+RUN apt-get update && apt-get install -y gcc && apt-get clean
 
-Multi-container development environment:
-- backend service: build from Dockerfile, port 8000
-- db service: postgres:15 image, port 5432
-- redis service: redis:7-alpine image, port 6379
-- Configure environment variables
-- Set up networks for inter-service communication
-- Include volume mounts for database persistence
-- Add depends_on relationships"""
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY . .
+
+RUN useradd -m nonrootuser
+USER nonrootuser
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 CMD curl -f http://localhost:8000/health || exit 1
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]""",
+
+        "10_docker-compose.yml.txt": """Create file: docker-compose.yml
+
+GENERATE ONLY THIS DOCKER-COMPOSE CONTENT:
+version: '3.8'
+
+services:
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@db:5432/surflamp
+      - REDIS_URL=redis://redis:6379
+      - SURFLINE_API_KEY=${SURFLINE_API_KEY}
+      - WEATHER_API_KEY=${WEATHER_API_KEY}
+      - SECRET_KEY=${SECRET_KEY}
+      - DEBUG=true
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - .:/app
+    restart: unless-stopped
+
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=surflamp
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:"""
     }
     
-    print("🌊 Creating Multi-Agent Specification Chunks")
+    print("🌊 Creating Enhanced Specification Chunks")
     print("=" * 50)
     
     # Write all chunk files
@@ -311,10 +587,10 @@ Multi-container development environment:
     
     print(f"\n🎉 Successfully created {len(chunks)} specification chunks!")
     print(f"📁 All chunks saved in: spec_chunks/")
-    print("\n🚀 Ready for multi-agent code generation!")
+    print("\nThese chunks explicitly instruct LLMs to generate ONLY code.")
     
     return len(chunks)
 
 if __name__ == "__main__":
     chunk_count = create_all_spec_chunks()
-    print(f"\n📊 Summary: {chunk_count} chunks ready for processing")
+    print(f"\n📊 Summary: {chunk_count} chunks ready for code generation")

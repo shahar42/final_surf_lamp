@@ -1,12 +1,43 @@
 Create file: app/api/routers/health_router.py
 
-Health check endpoints:
-- Create APIRouter instance
-- Implement GET /health:
-  - Return {"status": "healthy"} immediately
-  - No dependencies required
-- Implement GET /ready:
-  - Try to inject ILampControlService and IInputValidator
-  - Test basic functionality
-  - Return {"status": "ready"} or HTTP 503
-- Include proper error handling
+GENERATE ONLY PYTHON CODE for health checks:
+
+from fastapi import APIRouter, Depends, HTTPException
+from shared.contracts import ILampControlService, IInputValidator
+from app.dependencies import get_lamp_service, get_input_validator
+from pydantic import BaseModel
+from typing import Optional
+from datetime import datetime
+
+router = APIRouter()
+
+class HealthCheckResponse(BaseModel):
+    status: str
+    timestamp: Optional[str] = None
+
+@router.get("/health", response_model=HealthCheckResponse)
+async def health():
+    '''Simple health check'''
+    return HealthCheckResponse(
+        status="healthy",
+        timestamp=datetime.utcnow().isoformat()
+    )
+
+@router.get("/ready", response_model=HealthCheckResponse)
+async def ready(
+    lamp_service: ILampControlService = Depends(get_lamp_service),
+    validator: IInputValidator = Depends(get_input_validator)
+):
+    '''Readiness check with dependency validation'''
+    try:
+        # Test that services can be injected
+        if lamp_service is None or validator is None:
+            raise HTTPException(status_code=503, detail="Services not ready")
+        
+        return HealthCheckResponse(
+            status="ready",
+            timestamp=datetime.utcnow().isoformat()
+        )
+    except Exception as e:
+        logger.error(f"Readiness check failed: {e}")
+        raise HTTPException(status_code=503, detail="Service not ready")
