@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surf Lamp - Register</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #00c6ff, #0072ff);
+        }
+        .form-container {
+            background-color: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .form-input {
+            background-color: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+        }
+        .form-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        .form-input:focus {
+            background-color: rgba(255, 255, 255, 0.3);
+            outline: none;
+            box-shadow: 0 0 0 2px #ff007f;
+        }
+        .submit-btn {
+            background-color: #ff007f;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        .submit-btn:hover {
+            background-color: #e60073;
+            transform: translateY(-2px);
+        }
+        .flash-message {
+            position: fixed;
+            top: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 50;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash-message px-6 py-3 rounded-lg text-white font-semibold {{ 'bg-green-500' if category == 'success' else 'bg-red-500' }} shadow-lg">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="form-container w-full max-w-md p-8 rounded-2xl shadow-2xl">
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-white">Surf Lamp</h1>
+            <p class="text-white/80 mt-2">Get real-time surf conditions, right on your desk.</p>
+        </div>
+
+        <form action="{{ url_for('register') }}" method="POST" class="space-y-6">
+            {{ form.hidden_tag() }}
+            {{ form.name(class="form-input w-full px-4 py-3 rounded-lg", placeholder="Your Name (becomes username)") }}
+            {{ form.email(class="form-input w-full px-4 py-3 rounded-lg", placeholder="Email Address") }}
+            {{ form.password(class="form-input w-full px-4 py-3 rounded-lg", placeholder="Password (8+ chars, mixed case, number, symbol)") }}
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {{ form.lamp_id(class="form-input w-full px-4 py-3 rounded-lg", placeholder="Lamp ID (1-999999)") }}
+                {{ form.arduino_id(class="form-input w-full px-4 py-3 rounded-lg", placeholder="Arduino ID (1-999999)") }}
+            </div>
+
+            {{ form.location(class="form-input w-full px-4 py-3 rounded-lg appearance-none") }}
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-white">
+                <div>
+                    <label class="block mb-2 font-semibold">Theme</label>
+                    <div class="flex space-x-4">
+                        {% for subfield in form.theme %}
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                {{ subfield(class="form-radio h-4 w-4 text-pink-500") }}
+                                <span>{{ subfield.label.text }}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div>
+                    <label class="block mb-2 font-semibold">Units</label>
+                    <div class="flex space-x-4">
+                        {% for subfield in form.units %}
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                {{ subfield(class="form-radio h-4 w-4 text-pink-500") }}
+                                <span>{{ subfield.label.text }}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="submit-btn w-full text-white font-bold py-3 px-4 rounded-lg shadow-lg">Create Account</button>
+        </form>
+
+        <p class="text-center text-white/70 mt-6">
+            Already have an account? <a href="{{ url_for('login') }}" class="font-semibold text-white hover:text-pink-300">Sign In</a>
+        </p>
+    </div>
+
+</body>
+</html>

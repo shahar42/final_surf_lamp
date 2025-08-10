@@ -1,0 +1,10 @@
+Flask==2.3.3
+Flask-Bcrypt==1.0.1
+Flask-WTF==1.1.1
+Flask-Limiter==3.5.0
+WTForms==3.0.1
+SQLAlchemy==2.0.21
+psycopg2-binary==2.9.7
+email-validator==2.0.0
+bleach==6.0.0
+redis==5.0.0
