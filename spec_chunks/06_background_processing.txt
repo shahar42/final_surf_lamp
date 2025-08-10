@@ -1,0 +1,25 @@
+Create files:
+- background/lamp_processor.py
+- background/scheduler.py
+
+GENERATE ONLY PYTHON CODE:
+
+lamp_processor.py should contain:
+- LampProcessor class that implements the main processing loop
+- process_all_lamps() method that calls get_all_lamp_ids() and processes each
+- process_single_lamp(lamp_id) method that:
+  1. Calls get_lamp_details(lamp_id) to get Arduino IP and websites
+  2. For each website: calls fetch_website_data(api_key, endpoint)
+  3. Formats surf data and sends via HTTP POST to Arduino IP using send_to_arduino(arduino_id, data, format)
+  4. Calls update_lamp_timestamp(lamp_id)
+- Error handling for failed API calls, Arduino communication
+- Logging for each step of the process
+
+scheduler.py should contain:
+- Flask CLI command to run lamp processing manually
+- Option for cron job scheduling (30-minute intervals)
+- Graceful shutdown handling
+- Process status monitoring and health checks
+
+Use the agent tools from tools/agent_tools.py.
+Include proper logging using logging_config.py setup.

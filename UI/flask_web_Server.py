@@ -1,0 +1,852 @@
+#!/usr/bin/env python3
+"""
+Surfboard Lamp Web Interface Server
+===================================
+
+Serves the web UI and provides API endpoints for the Surfboard Lamp system.
+Integrates with the backend agent tools for lamp management.
+
+Run with: python web_server.py
+"""
+
+from flask import Flask, render_template_string, request, jsonify, send_from_directory
+import os
+import json
+from datetime import datetime
+
+app = Flask(__name__)
+app.secret_key = 'your-secret-key-here'  # Change this in production
+
+# Location Configuration (flexible and easy to modify)
+LOCATIONS = [
+    {
+        "name": "Hadera", 
+        "country": "Israel", 
+        "coordinates": {"lat": 32.434, "lon": 34.919},
+        "description": "Popular surfing beach north of Tel Aviv"
+    },
+    {
+        "name": "Ashdod", 
+        "country": "Israel", 
+        "coordinates": {"lat": 31.804, "lon": 34.655},
+        "description": "Southern coastal city with consistent waves"
+    },
+    {
+        "name": "Naharia", 
+        "country": "Israel", 
+        "coordinates": {"lat": 33.007, "lon": 35.094},
+        "description": "Northern coastal town near Lebanon border"
+    }
+]
+
+# HTML Template (from the previous artifact)
+HTML_TEMPLATE = """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surfboard Lamp - IoT Surf Conditions</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0077be 0%, #00a8cc 50%, #0288d1 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            padding: 30px;
+            margin: 20px 0;
+            animation: slideUp 0.6s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .nav {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .nav-btn {
+            background: #0077be;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+            background: #005a8b;
+            transform: translateY(-2px);
+        }
+
+        .nav-btn.active {
+            background: #00a8cc;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #0077be;
+        }
+
+        .btn {
+            background: #0077be;
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background: #005a8b;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .status-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            border-left: 4px solid #0077be;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .status-online {
+            background: #28a745;
+        }
+
+        .status-offline {
+            background: #dc3545;
+        }
+
+        .status-warning {
+            background: #ffc107;
+        }
+
+        .surf-data {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .surf-metric {
+            background: linear-gradient(45deg, #0077be, #00a8cc);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .surf-metric h3 {
+            font-size: 2rem;
+            margin-bottom: 5px;
+        }
+
+        .surf-metric p {
+            opacity: 0.9;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+        }
+
+        .alert.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #0077be;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+            
+            .nav {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌊 Surfboard Lamp</h1>
+            <p>IoT Surf Conditions Display System</p>
+        </div>
+
+        <div class="card">
+            <div class="nav">
+                <button class="nav-btn active" onclick="showPage('home')">Home</button>
+                <button class="nav-btn" onclick="showPage('register')">Register</button>
+                <button class="nav-btn" onclick="showPage('dashboard')">Dashboard</button>
+                <button class="nav-btn" onclick="showPage('status')">System Status</button>
+            </div>
+
+            <!-- Home Page -->
+            <div id="home" class="page active">
+                <h2>Welcome to Surfboard Lamp</h2>
+                <p>Connect your Arduino-based IoT lamp to receive real-time surf conditions from Israeli beaches. Your lamp will display wave height, wind conditions, and surf quality through beautiful LED patterns.</p>
+                
+                <div class="status-grid">
+                    <div class="status-card">
+                        <h3>🏄‍♂️ Surf Locations</h3>
+                        <p>{{ locations_text }}</p>
+                    </div>
+                    <div class="status-card">
+                        <h3>📡 Data Sources</h3>
+                        <p>Surfline, WeatherAPI</p>
+                    </div>
+                    <div class="status-card">
+                        <h3>🔄 Updates</h3>
+                        <p>Every 30 minutes</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Register Page -->
+            <div id="register" class="page">
+                <h2>Register Your Lamp</h2>
+                <p>Set up your Arduino lamp to receive surf data from your local Israeli beach.</p>
+                
+                <div class="alert" id="registerAlert"></div>
+                
+                <form id="registerForm">
+                    <div class="form-group">
+                        <label for="username">Username:</label>
+                        <input type="text" id="username" name="username" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">Email:</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">Password:</label>
+                        <input type="password" id="password" name="password" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="location">Beach Location:</label>
+                        <select id="location" name="location" required>
+                            <option value="">Select your beach...</option>
+                            {% for location in locations %}
+                            <option value="{{ location.name }}">{{ location.name }} Beach - {{ location.description }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="lampId">Lamp ID:</label>
+                        <input type="number" id="lampId" name="lamp_id" required placeholder="e.g. 12345">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="arduinoId">Arduino ID:</label>
+                        <input type="number" id="arduinoId" name="arduino_id" required placeholder="e.g. 67890">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="arduinoIp">Arduino IP Address:</label>
+                        <input type="text" id="arduinoIp" name="arduino_ip" required placeholder="e.g. 192.168.1.100" pattern="^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$">
+                    </div>
+                    
+                    <button type="submit" class="btn" id="registerBtn">
+                        Register Lamp
+                    </button>
+                </form>
+            </div>
+
+            <!-- Dashboard Page -->
+            <div id="dashboard" class="page">
+                <h2>Lamp Dashboard</h2>
+                <p>Monitor your lamp status and current surf conditions.</p>
+                
+                <div class="alert" id="dashboardAlert"></div>
+                
+                <div class="status-grid">
+                    <div class="status-card">
+                        <h3><span class="status-indicator status-online"></span>Lamp Status</h3>
+                        <p id="lampStatus">Online</p>
+                        <small id="lastUpdate">Last update: Never</small>
+                    </div>
+                    
+                    <div class="status-card">
+                        <h3>Current Location</h3>
+                        <p id="currentLocation">Not configured</p>
+                        <small id="arduinoInfo">Arduino: Not connected</small>
+                    </div>
+                </div>
+                
+                <div class="surf-data">
+                    <div class="surf-metric">
+                        <h3 id="waveHeight">-</h3>
+                        <p>Wave Height (m)</p>
+                    </div>
+                    <div class="surf-metric">
+                        <h3 id="wavePeriod">-</h3>
+                        <p>Wave Period (s)</p>
+                    </div>
+                    <div class="surf-metric">
+                        <h3 id="windSpeed">-</h3>
+                        <p>Wind Speed (m/s)</p>
+                    </div>
+                    <div class="surf-metric">
+                        <h3 id="windDirection">-</h3>
+                        <p>Wind Direction (°)</p>
+                    </div>
+                </div>
+                
+                <button class="btn" onclick="refreshDashboard()" style="margin-top: 20px;">
+                    <span id="refreshSpinner"></span>
+                    Refresh Data
+                </button>
+            </div>
+
+            <!-- Status Page -->
+            <div id="status" class="page">
+                <h2>System Status</h2>
+                <p>Backend system health and API status.</p>
+                
+                <div class="status-grid">
+                    <div class="status-card">
+                        <h3><span class="status-indicator" id="backendIndicator"></span>Backend API</h3>
+                        <p id="backendStatus">Checking...</p>
+                    </div>
+                    
+                    <div class="status-card">
+                        <h3><span class="status-indicator" id="dbIndicator"></span>Database</h3>
+                        <p id="dbStatus">Checking...</p>
+                    </div>
+                    
+                    <div class="status-card">
+                        <h3><span class="status-indicator" id="apiIndicator"></span>External APIs</h3>
+                        <p id="apiStatus">Checking...</p>
+                    </div>
+                </div>
+                
+                <button class="btn" onclick="checkSystemHealth()" style="margin-top: 20px;">
+                    Check System Health
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration - Locations loaded from server
+        const API_BASE = '/api';
+        const LOCATIONS = {{ locations_json | safe }};
+
+        // Page Navigation
+        function showPage(pageId) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            
+            // Remove active from all nav buttons
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected page
+            document.getElementById(pageId).classList.add('active');
+            
+            // Activate nav button
+            event.target.classList.add('active');
+            
+            // Load page-specific data
+            if (pageId === 'dashboard') {
+                loadDashboard();
+            } else if (pageId === 'status') {
+                checkSystemHealth();
+            }
+        }
+
+        // Registration Form
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData);
+            
+            const registerBtn = document.getElementById('registerBtn');
+            const alert = document.getElementById('registerAlert');
+            
+            // Validate IP address
+            if (!isValidIP(data.arduino_ip)) {
+                showAlert('registerAlert', 'Please enter a valid IP address (e.g., 192.168.1.100)', 'error');
+                return;
+            }
+            
+            registerBtn.disabled = true;
+            registerBtn.innerHTML = '<span class="loading"></span> Registering...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showAlert('registerAlert', 'Registration successful! Your lamp is now configured.', 'success');
+                    e.target.reset();
+                    setTimeout(() => showPage('dashboard'), 2000);
+                } else {
+                    showAlert('registerAlert', result.error || 'Registration failed. Please try again.', 'error');
+                }
+            } catch (error) {
+                showAlert('registerAlert', 'Connection error. Please check if the backend server is running.', 'error');
+            } finally {
+                registerBtn.disabled = false;
+                registerBtn.innerHTML = 'Register Lamp';
+            }
+        });
+
+        // Dashboard Functions
+        async function loadDashboard() {
+            try {
+                // Try to load real lamp data from the API
+                const response = await fetch(`${API_BASE}/lamp/config?id=12345`);
+                if (response.ok) {
+                    const data = await response.json();
+                    updateDashboardData({
+                        lamp_status: data.registered ? 'online' : 'offline',
+                        location: 'Hadera', // This would come from user data
+                        arduino_id: '67890',
+                        last_update: new Date().toLocaleString(),
+                        surf_data: {
+                            wave_height_m: 1.2,
+                            wave_period_s: 8,
+                            wind_speed_mps: 5.5,
+                            wind_deg: 180
+                        }
+                    });
+                } else {
+                    // Show demo data
+                    updateDashboardData({
+                        lamp_status: 'demo',
+                        location: 'Hadera',
+                        arduino_id: 'Demo Mode',
+                        last_update: new Date().toLocaleString(),
+                        surf_data: {
+                            wave_height_m: 1.2,
+                            wave_period_s: 8,
+                            wind_speed_mps: 5.5,
+                            wind_deg: 180
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Dashboard load error:', error);
+                updateDashboardData({
+                    lamp_status: 'error',
+                    location: 'Connection Error',
+                    arduino_id: 'N/A',
+                    last_update: 'Never',
+                    surf_data: null
+                });
+            }
+        }
+
+        function updateDashboardData(data) {
+            document.getElementById('lampStatus').textContent = data.lamp_status || 'Unknown';
+            document.getElementById('currentLocation').textContent = data.location || 'Not configured';
+            document.getElementById('arduinoInfo').textContent = `Arduino: ${data.arduino_id || 'Not connected'}`;
+            document.getElementById('lastUpdate').textContent = `Last update: ${data.last_update || 'Never'}`;
+            
+            if (data.surf_data) {
+                document.getElementById('waveHeight').textContent = data.surf_data.wave_height_m || '-';
+                document.getElementById('wavePeriod').textContent = data.surf_data.wave_period_s || '-';
+                document.getElementById('windSpeed').textContent = data.surf_data.wind_speed_mps || '-';
+                document.getElementById('windDirection').textContent = data.surf_data.wind_deg || '-';
+            }
+        }
+
+        async function refreshDashboard() {
+            const spinner = document.getElementById('refreshSpinner');
+            spinner.innerHTML = '<span class="loading"></span>';
+            
+            try {
+                await loadDashboard();
+                showAlert('dashboardAlert', 'Dashboard data refreshed successfully!', 'success');
+            } catch (error) {
+                showAlert('dashboardAlert', 'Failed to refresh data. Please try again.', 'error');
+            } finally {
+                spinner.innerHTML = '';
+            }
+        }
+
+        // System Health Check
+        async function checkSystemHealth() {
+            const indicators = {
+                backend: document.getElementById('backendIndicator'),
+                db: document.getElementById('dbIndicator'),
+                api: document.getElementById('apiIndicator')
+            };
+            
+            const statuses = {
+                backend: document.getElementById('backendStatus'),
+                db: document.getElementById('dbStatus'),
+                api: document.getElementById('apiStatus')
+            };
+            
+            // Reset indicators
+            Object.values(indicators).forEach(indicator => {
+                indicator.className = 'status-indicator status-warning';
+            });
+            
+            try {
+                // Check backend health
+                const healthResponse = await fetch('/health');
+                if (healthResponse.ok) {
+                    indicators.backend.className = 'status-indicator status-online';
+                    statuses.backend.textContent = 'Online';
+                } else {
+                    indicators.backend.className = 'status-indicator status-offline';
+                    statuses.backend.textContent = 'Offline';
+                }
+            } catch (error) {
+                indicators.backend.className = 'status-indicator status-offline';
+                statuses.backend.textContent = 'Connection Failed';
+            }
+            
+            // Simulate other checks
+            setTimeout(() => {
+                indicators.db.className = 'status-indicator status-online';
+                statuses.db.textContent = 'Connected';
+                
+                indicators.api.className = 'status-indicator status-online';
+                statuses.api.textContent = 'All APIs Online';
+            }, 1000);
+        }
+
+        // Utility Functions
+        function isValidIP(ip) {
+            const ipRegex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
+            return ipRegex.test(ip);
+        }
+
+        function showAlert(alertId, message, type) {
+            const alert = document.getElementById(alertId);
+            alert.textContent = message;
+            alert.className = `alert ${type}`;
+            alert.style.display = 'block';
+            
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 5000);
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Surfboard Lamp UI loaded');
+            console.log('Available locations:', LOCATIONS);
+            
+            // Check system health on startup
+            setTimeout(checkSystemHealth, 500);
+        });
+    </script>
+</body>
+</html>"""
+
+
+# Routes
+@app.route('/')
+def index():
+    """Serve the main web interface"""
+    locations_text = ", ".join([loc["name"] for loc in LOCATIONS])
+    
+    return render_template_string(
+        HTML_TEMPLATE,
+        locations=LOCATIONS,
+        locations_text=locations_text,
+        locations_json=json.dumps(LOCATIONS)
+    )
+
+
+@app.route('/api/locations')
+def get_locations():
+    """API endpoint to get available locations"""
+    return jsonify({
+        "locations": LOCATIONS,
+        "count": len(LOCATIONS)
+    })
+
+
+@app.route('/api/register', methods=['POST'])
+def register_lamp():
+    """Handle lamp registration from the web interface"""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['username', 'email', 'password', 'location', 'lamp_id', 'arduino_id', 'arduino_ip']
+        missing_fields = [field for field in required_fields if field not in data]
+        
+        if missing_fields:
+            return jsonify({
+                "error": f"Missing required fields: {', '.join(missing_fields)}"
+            }), 400
+        
+        # Validate location
+        valid_locations = [loc["name"] for loc in LOCATIONS]
+        if data['location'] not in valid_locations:
+            return jsonify({
+                "error": f"Invalid location. Must be one of: {', '.join(valid_locations)}"
+            }), 400
+        
+        # Here you would integrate with your agent tools
+        # For now, we'll simulate the registration
+        
+        # In a real implementation, this would call:
+        # from tools.agent_tools import register_user
+        # success = register_user(data)
+        
+        print(f"📝 Registration request received:")
+        print(f"   Username: {data['username']}")
+        print(f"   Email: {data['email']}")
+        print(f"   Location: {data['location']}")
+        print(f"   Lamp ID: {data['lamp_id']}")
+        print(f"   Arduino ID: {data['arduino_id']}")
+        print(f"   Arduino IP: {data['arduino_ip']}")
+        
+        # Simulate successful registration
+        return jsonify({
+            "success": True,
+            "message": "Registration successful! Your lamp is now configured.",
+            "lamp_id": data['lamp_id'],
+            "location": data['location']
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "error": f"Registration failed: {str(e)}"
+        }), 500
+
+
+@app.route('/api/lamp/config')
+def get_lamp_config():
+    """Arduino endpoint for lamp configuration"""
+    lamp_id = request.args.get('id')
+    
+    if not lamp_id:
+        return jsonify({
+            "error": "Missing lamp_id parameter"
+        }), 400
+    
+    # Here you would integrate with your agent tools
+    # For now, we'll return a demo response
+    
+    # In a real implementation, this would call:
+    # from tools.agent_tools import get_lamp_details
+    # config = get_lamp_details(lamp_id)
+    
+    print(f"🔧 Lamp config request for ID: {lamp_id}")
+    
+    return jsonify({
+        "registered": True,
+        "lamp_id": int(lamp_id),
+        "update_interval": 30,
+        "status": "active",
+        "error": None
+    })
+
+
+@app.route('/health')
+def health_check():
+    """System health check endpoint"""
+    return jsonify({
+        "status": "ok",
+        "timestamp": datetime.now().isoformat(),
+        "service": "surfboard-lamp-web",
+        "locations": len(LOCATIONS)
+    })
+
+
+@app.route('/api/dashboard/<int:lamp_id>')
+def get_dashboard_data(lamp_id):
+    """Get dashboard data for a specific lamp"""
+    # Here you would integrate with your agent tools to get real data
+    # For now, we'll return demo data
+    
+    print(f"📊 Dashboard data request for lamp: {lamp_id}")
+    
+    return jsonify({
+        "lamp_id": lamp_id,
+        "status": "online",
+        "location": "Hadera",
+        "arduino_ip": "192.168.1.100",
+        "last_update": datetime.now().isoformat(),
+        "surf_data": {
+            "wave_height_m": 1.2,
+            "wave_period_s": 8,
+            "wind_speed_mps": 5.5,
+            "wind_deg": 180,
+            "location": "Hadera",
+            "timestamp": int(datetime.now().timestamp())
+        }
+    })
+
+
+def print_startup_info():
+    """Print startup information"""
+    print("\n🌊 Surfboard Lamp Web Interface")
+    print("=" * 40)
+    print(f"🚀 Server starting on http://localhost:5000")
+    print(f"📍 Available locations: {', '.join([loc['name'] for loc in LOCATIONS])}")
+    print(f"🔗 API endpoints:")
+    print(f"   • GET  /                    - Web interface")
+    print(f"   • GET  /api/locations       - Get locations")
+    print(f"   • POST /api/register        - Register lamp")
+    print(f"   • GET  /api/lamp/config     - Arduino config")
+    print(f"   • GET  /health              - Health check")
+    print(f"\n💡 To modify locations, edit the LOCATIONS list in this file")
+    print("=" * 40)
+
+
+if __name__ == '__main__':
+    print_startup_info()
+    
+    # Run the Flask development server
+    app.run(
+        host='0.0.0.0',  # Accept connections from any IP
+        port=5000,
+        debug=True,
+        use_reloader=True
+    )

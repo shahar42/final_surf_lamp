@@ -1,7 +1,16 @@
+#!/usr/bin/env python3
 """
-Enhanced Multi-Agent Build System with Contract Validation
-==========================================================
-This version ensures LLMs generate actual code, not instructions
+Flask Database-First Multi-Agent Build System
+============================================
+
+Builds the Surfboard Lamp Flask backend using the Database-First approach:
+1. Database LLM creates schema + tools contract
+2. Tools LLM implements agent tools  
+3. Flask LLM creates web application
+4. Infrastructure LLM handles config
+5. Background processing for lamp updates
+
+Dependencies flow: Database → Contract → Tools → Flask → Config → Background
 """
 
 import os
@@ -9,7 +18,6 @@ import asyncio
 from dotenv import load_dotenv
 from file_system_tools import create_directory, create_or_write_file, read_document_chunk
 from llm_gate import query_gemini_flash, query_grok, query_openai, query_gemini_pro
-from contract_validator import ContractValidator
 import logging
 
 # Set up logging
@@ -18,292 +26,328 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-# Initialize contract validator
-validator = ContractValidator()
 
-
-async def run_orchestrator(chunk_content: str) -> str:
-    """Asks Gemini Flash to choose a specialist."""
-    system_prompt = """You are an expert project manager agent. Your job is to analyze a chunk of a technical document and decide which specialist agent should handle the task.
-
-The specialists are:
-- 'Grok': Use for generating Python code (.py files).
-- 'ChatGPT': Use for generating infrastructure or config files (Dockerfile, .yml, .gitignore, etc.).
-- 'Gemini': Use for generating database schemas (SQL), data files (JSON), and documentation (Markdown).
-- 'FileSystem': Use ONLY for creating directories.
-
-Based on the user's prompt, which contains the content of a document chunk, you must respond with ONLY one of the following words: "Grok", "ChatGPT", "Gemini", or "FileSystem".
-
-DO NOT add any explanation. Output ONLY the specialist name."""
+class FlaskOrchestrator:
+    """Orchestrator for Flask Database-First architecture"""
     
-    try:
-        choice = await query_gemini_flash(system_prompt, chunk_content)
-        # Clean the response to ensure it's just the specialist name
-        choice = choice.strip().split('\n')[0].strip()
-        # Remove any quotes or extra characters
-        choice = choice.replace('"', '').replace("'", '').strip()
+    def __init__(self):
+        # LLM assignments for Flask chunks
+        self.chunk_assignments = {
+            "01_database_foundation.txt": "Gemini",   # Database + contract specialist
+            "02_agent_tools.txt": "Grok",             # Tools implementation specialist  
+            "03_flask_app.txt": "ChatGPT",            # Web framework specialist
+            "04_config_setup.txt": "ChatGPT",         # Infrastructure specialist
+            "05_database_setup.txt": "Gemini",        # Database operations specialist
+            "06_background_processing.txt": "Grok"    # Background services specialist
+        }
+    
+    async def run_specialist(self, specialist: str, chunk_content: str, chunk_name: str, project_context: str = "") -> str:
+        """Generate code using the appropriate LLM specialist with project context"""
         
-        # Validate it's one of our specialists
-        valid_specialists = ["Grok", "ChatGPT", "Gemini", "FileSystem"]
-        if choice not in valid_specialists:
-            logger.warning(f"Invalid specialist choice: {choice}, defaulting to Grok")
-            choice = "Grok"
-        
-        return choice
-    except Exception as e:
-        logger.warning(f"⚠️  Orchestrator fallback mode: {e}")
-        # Fallback to local logic if API fails
-        content_lower = chunk_content.lower()
-        
-        if 'directory' in content_lower or 'folder' in content_lower:
-            return "FileSystem"
-        elif ('dockerfile' in content_lower or 'docker-compose' in content_lower or 
-              '.yml' in chunk_content or '.yaml' in chunk_content):
-            return "ChatGPT"
-        elif ('.sql' in chunk_content or 'database' in content_lower or 
-              'schema' in content_lower):
-            return "Gemini"
-        elif '.py' in chunk_content or 'python' in content_lower:
-            return "Grok"
+        # Prepend project context to chunk content for better LLM understanding
+        if project_context:
+            enhanced_content = f"""PROJECT CONTEXT (for your reference):
+{project_context}
+
+YOUR SPECIFIC TASK:
+{chunk_content}"""
         else:
-            return "Grok"  # Default to Python specialist
-
-
-async def run_specialist(specialist: str, chunk_content: str, file_path: str) -> str:
-    """Calls the chosen specialist to generate the file content."""
-    
-    # Get required interfaces for this file
-    required_interfaces = validator.get_required_interfaces(file_path)
-    interface_info = ""
-    if required_interfaces:
-        interface_info = f"\n\nThis file MUST implement these interfaces from shared.contracts: {', '.join(required_interfaces)}"
-    
-    if specialist == "Grok":
-        system_prompt = f"""You are an expert Python developer. You MUST generate ONLY executable Python code.
-
-CRITICAL REQUIREMENTS:
-1. Output ONLY Python code - no explanations, no markdown, no comments outside the code
-2. Start your response with imports or the shebang line
-3. The code must be syntactically correct and ready to run
-4. Import all interfaces from shared.contracts at the top of the file
-5. Implement all required methods from the interfaces{interface_info}
-6. Include proper error handling and logging
-7. DO NOT include any text before or after the code
-8. DO NOT use markdown code blocks like ```python
-9. DO NOT add explanations or instructions
-10. OUTPUT ONLY THE PYTHON CODE
-
-For Arduino endpoints, the response MUST be EXACTLY this format:
-{{
-    "registered": bool,
-    "brightness": int,
-    "location_used": str,
-    "wave_height_m": float | None,
-    "wave_period_s": float | None,
-    "wind_speed_mps": float | None,
-    "wind_deg": int | None,
-    "error": str | None
-}}
-
-REMEMBER: OUTPUT ONLY CODE. NO EXPLANATIONS. NO MARKDOWN."""
+            enhanced_content = chunk_content
         
-        response = await query_grok(system_prompt, chunk_content)
+        # Create domain-specific prompts that demand code generation
+        if specialist == "Gemini":
+            if "overview" in chunk_name:
+                system_prompt = """You are a technical documentation specialist. Generate ONLY markdown documentation files.
+
+CRITICAL: Your response must be valid markdown that can be saved directly to .md files.
+
+REQUIREMENTS:
+- Create clear, comprehensive documentation
+- Include setup instructions, architecture diagrams, API docs
+- Use proper markdown formatting
+- NO code blocks unless showing examples
+- Start immediately with markdown content
+
+Generate ONLY markdown documentation now:"""
+            else:
+                system_prompt = """You are a database specialist. Generate ONLY executable SQL/Python code.
+
+CRITICAL: Your response must be valid SQL and Python code that can be saved and executed.
+
+REQUIREMENTS:
+- Create SQLAlchemy models with proper relationships
+- Generate PostgreSQL schema with constraints
+- Include database connection and setup code
+- Include tools contract interface definitions
+- NO markdown formatting, NO explanations
+- Start immediately with imports or SQL statements
+
+Generate ONLY executable database code now:"""
         
-    elif specialist == "ChatGPT":
-        system_prompt = f"""You are an expert DevOps engineer. You MUST generate ONLY the configuration/infrastructure file content.
+        elif specialist == "Grok":
+            system_prompt = """You are a Python backend specialist. Generate ONLY executable Python code.
 
-CRITICAL REQUIREMENTS:
-1. Output ONLY the file content - no explanations, no markdown
-2. Include comments within the file as needed
-3. Use environment variables for configuration
-4. Include health checks and production best practices{interface_info}
-5. DO NOT include any text before or after the file content
-6. DO NOT use markdown code blocks
-7. DO NOT add explanations
-8. OUTPUT ONLY THE FILE CONTENT
+CRITICAL: Your response must be valid Python code that can be saved to .py files and executed.
 
-REMEMBER: OUTPUT ONLY THE FILE CONTENT. NO EXPLANATIONS."""
+REQUIREMENTS:
+- Import all necessary libraries (requests, SQLAlchemy, logging, etc.)
+- Implement all required functions with proper error handling
+- Use synchronous patterns (Flask-compatible, not async)
+- Include proper logging and exception handling
+- NO markdown formatting, NO explanations
+- Start immediately with imports and class definitions
+
+Generate ONLY executable Python code now:"""
         
-        response = await query_openai(system_prompt, chunk_content)
+        elif specialist == "ChatGPT":
+            system_prompt = """You are a Flask web development specialist. Generate ONLY executable code/config files.
 
-    elif specialist == "Gemini":
-        system_prompt = f"""You are an expert data architect. You MUST generate ONLY the code/schema content.
+CRITICAL: Your response must be valid Flask Python code or configuration files.
 
-CRITICAL REQUIREMENTS:
-1. Output ONLY the code/SQL/JSON - no explanations, no markdown
-2. For Python files, follow the same rules as Grok specialist
-3. Include proper relationships, constraints, and indexes for SQL
-4. Use async patterns for database operations{interface_info}
-5. DO NOT include any text before or after the code
-6. DO NOT use markdown code blocks
-7. DO NOT add explanations
-8. OUTPUT ONLY THE CODE/SCHEMA
+REQUIREMENTS:
+- Create Flask applications with proper route definitions
+- Include error handling, logging, CORS setup
+- Generate configuration files (requirements.txt, .env.example)
+- Use Flask patterns and best practices
+- NO markdown formatting, NO explanations  
+- Start immediately with imports or configuration content
 
-REMEMBER: OUTPUT ONLY CODE. NO EXPLANATIONS."""
+Generate ONLY executable Flask code/config now:"""
         
-        response = await query_gemini_pro(system_prompt, chunk_content)
-    
-    else:
-        return ""
-    
-    # Extract pure code from response
-    clean_code = validator.extract_pure_code(response)
-    
-    # Validate if it's Python code with required interfaces
-    if specialist in ["Grok", "Gemini"] and '.py' in file_path and required_interfaces:
-        for interface in required_interfaces:
-            is_valid, errors = validator.validate_implementation(clean_code, interface)
-            if not is_valid:
-                logger.warning(f"⚠️  Generated code doesn't properly implement {interface}")
-                for error in errors:
-                    logger.warning(f"   - {error}")
-                
-                # Try to fix by generating a stub and asking for completion
-                stub = validator.generate_interface_stub(interface)
-                if stub:
-                    logger.info(f"   🔧 Requesting specialist to complete interface implementation...")
-                    
-                    fix_prompt = f"""The following code needs to properly implement {interface} from shared.contracts.
-
-Here's a stub with the required methods:
-
-{stub}
-
-Now complete this implementation based on these requirements:
-{chunk_content}
-
-OUTPUT ONLY THE COMPLETE PYTHON CODE. NO EXPLANATIONS."""
-                    
-                    if specialist == "Grok":
-                        clean_code = await query_grok(system_prompt, fix_prompt)
-                    else:
-                        clean_code = await query_gemini_pro(system_prompt, fix_prompt)
-                    
-                    clean_code = validator.extract_pure_code(clean_code)
-    
-    # Special validation for Arduino response format
-    if 'lamp' in file_path.lower() and 'config' in chunk_content.lower():
-        is_valid, errors = validator.validate_arduino_response(clean_code)
-        if not is_valid:
-            logger.warning("⚠️  Arduino response validation failed:")
-            for error in errors:
-                logger.warning(f"   - {error}")
-    
-    return clean_code
-
-
-def parse_target_filename(chunk_filename: str, chunk_content: str) -> str:
-    """Extract target filename from chunk name and content."""
-    # Remove numeric prefix and .txt extension
-    base_name = chunk_filename.split('_', 1)[-1].replace('.txt', '')
-    
-    # Check content for specific filename hints
-    lines = chunk_content.split('\n')[:10]  # Check first 10 lines
-    for line in lines:
-        if 'create file:' in line.lower():
-            # Extract the file path
-            parts = line.split(':', 1)
-            if len(parts) > 1:
-                file_path = parts[1].strip()
-                if '/' in file_path:
-                    # Return just the path after 'app/'
-                    if 'app/' in file_path:
-                        return file_path.split('app/', 1)[1]
-                    return file_path
-        elif 'file:' in line.lower():
-            words = line.split()
-            for word in words:
-                if '.' in word and len(word.split('.')) == 2:
-                    return word
-    
-    # Handle special cases
-    if 'dockerfile' in chunk_filename.lower():
-        return 'Dockerfile'
-    elif 'docker-compose' in chunk_filename.lower():
-        return 'docker-compose.yml'
-    elif 'requirements' in chunk_filename.lower():
-        return 'requirements.txt'
-    
-    return base_name
-
-
-async def validate_generated_code(file_path: str, content: str) -> bool:
-    """
-    Final validation before writing to file
-    """
-    # Check if it looks like actual code vs instructions
-    instruction_indicators = [
-        "Create file:", "Create a file", "This file should",
-        "Implement the following", "Here's how to", "You should",
-        "The file needs to", "Make sure to", "Follow these",
-        "Generate the", "Build a", "Design a"
-    ]
-    
-    first_lines = content[:500].lower()
-    for indicator in instruction_indicators:
-        if indicator.lower() in first_lines:
-            logger.error(f"❌ Generated content appears to be instructions, not code!")
-            logger.error(f"   First 200 chars: {content[:200]}...")
-            return False
-    
-    # For Python files, try to compile
-    if file_path.endswith('.py'):
         try:
-            compile(content, file_path, 'exec')
-            logger.info(f"   ✅ Python syntax validation passed")
-            return True
-        except SyntaxError as e:
-            logger.error(f"❌ Python syntax error in generated code: {e}")
-            logger.error(f"   Line {e.lineno}: {e.text}")
-            return False
+            print(f"   🤖 Generating code using {specialist}...")
+            
+            if specialist == "Gemini":
+                response = await query_gemini_pro(system_prompt, enhanced_content)
+            elif specialist == "Grok":
+                response = await query_grok(system_prompt, enhanced_content)
+            elif specialist == "ChatGPT":
+                response = await query_openai(system_prompt, enhanced_content)
+            else:
+                raise ValueError(f"Unknown specialist: {specialist}")
+            
+            # Clean and validate response
+            clean_code = self._clean_llm_response(response, chunk_name)
+            return clean_code
+            
+        except Exception as e:
+            logger.error(f"Error with {specialist}: {e}")
+            return self._create_error_placeholder(chunk_name, str(e))
     
-    return True
+    def _clean_llm_response(self, response: str, chunk_name: str) -> str:
+        """Clean LLM response and validate it's actual code/content"""
+        
+        # Remove common markdown artifacts
+        response = response.replace('```python', '').replace('```sql', '').replace('```', '')
+        response = response.replace('```markdown', '').replace('```md', '')
+        
+        # Remove leading/trailing whitespace
+        response = response.strip()
+        
+        # Check for specification indicators (bad responses)
+        spec_indicators = [
+            'Create files:', 'GENERATE ONLY', 'REQUIREMENTS:', 'CRITICAL:',
+            'Based on the following', 'Implementation should', 'You should create'
+        ]
+        
+        has_spec_text = any(indicator in response[:200] for indicator in spec_indicators)
+        if has_spec_text:
+            logger.warning(f"⚠️  {chunk_name}: Response contains specification text")
+        
+        return response
+    
+    def _create_error_placeholder(self, chunk_name: str, error: str) -> str:
+        """Create placeholder when generation fails"""
+        return f'''"""
+ERROR: Failed to generate {chunk_name}
+Error: {error}
+
+This is a placeholder - manually implement or regenerate.
+"""
+
+print("GENERATION FAILED FOR {chunk_name}")
+print("Error: {error}")
+'''
+
+    def _determine_output_files(self, chunk_name: str, content: str) -> dict:
+        """Determine what files should be created from a chunk"""
+        
+        # Extract file paths from chunk content
+        files = {}
+        lines = content.split('\n')
+        
+        for line in lines[:20]:  # Check first 20 lines
+            if 'Create file:' in line or 'Create files:' in line:
+                # Extract file paths
+                if ':' in line:
+                    paths_part = line.split(':', 1)[1].strip()
+                    # Handle multiple files
+                    if '\n-' in paths_part or ',' in paths_part:
+                        # Multiple files listed
+                        for path in paths_part.replace('\n-', ',').split(','):
+                            path = path.strip().replace('-', '').strip()
+                            if path and '.' in path:
+                                files[path] = f"Generated from {chunk_name}"
+                    else:
+                        # Single file
+                        if paths_part and '.' in paths_part:
+                            files[paths_part] = f"Generated from {chunk_name}"
+        
+        # Fallback based on chunk name
+        if not files:
+            if "database" in chunk_name:
+                files = {"database/models.py": "Database models", "database/schema.sql": "Database schema"}
+            elif "tools" in chunk_name:
+                files = {"tools/agent_tools.py": "Agent tools implementation"}
+            elif "flask" in chunk_name:
+                files = {"app.py": "Flask application"}
+            elif "config" in chunk_name:
+                files = {"requirements.txt": "Dependencies", "config.py": "Configuration"}
+            elif "background" in chunk_name:
+                files = {"background/lamp_processor.py": "Background processor"}
+            else:
+                files = {f"generated_{chunk_name.replace('.txt', '.py')}": "Generated file"}
+        
+        return files
+
+    async def validate_generated_content(self, content: str, file_path: str) -> bool:
+        """Validate that generated content is appropriate for the file type"""
+        
+        if not content.strip():
+            logger.error(f"❌ {file_path}: Empty content generated")
+            return False
+        
+        # Python file validation
+        if file_path.endswith('.py'):
+            # Check for basic Python indicators
+            python_indicators = ['import ', 'from ', 'class ', 'def ', '@', '=', 'if ', 'try:']
+            has_python = any(indicator in content for indicator in python_indicators)
+            
+            if not has_python:
+                logger.error(f"❌ {file_path}: Doesn't look like Python code")
+                return False
+            
+            # Try to compile (basic syntax check)
+            try:
+                compile(content, file_path, 'exec')
+                logger.info(f"✅ {file_path}: Valid Python syntax")
+            except SyntaxError as e:
+                logger.error(f"❌ {file_path}: Python syntax error - {e}")
+                return False
+        
+        # SQL file validation
+        elif file_path.endswith('.sql'):
+            sql_indicators = ['CREATE TABLE', 'INSERT INTO', 'SELECT', 'ALTER TABLE']
+            has_sql = any(indicator in content.upper() for indicator in sql_indicators)
+            
+            if not has_sql:
+                logger.error(f"❌ {file_path}: Doesn't look like SQL")
+                return False
+        
+        # Markdown file validation
+        elif file_path.endswith('.md'):
+            md_indicators = ['#', '##', '```', '*', '-', '[', ']']
+            has_markdown = any(indicator in content for indicator in md_indicators)
+            
+            if not has_markdown:
+                logger.warning(f"⚠️  {file_path}: Doesn't use markdown formatting")
+        
+        return True
 
 
 async def main():
-    """Main function to build the application."""
-    spec_dir = "spec_chunks/"
-    output_dir = "generated_surf_lamp_app/"
+    """Main build process for Flask Database-First architecture"""
     
-    print("🌊 Enhanced Multi-Agent Surfboard Lamp Backend Builder")
-    print("   WITH CONTRACT VALIDATION & CODE ENFORCEMENT")
+    print("🌊 Flask Database-First Multi-Agent Build System")
     print("=" * 60)
     
-    # Check if contracts file exists
-    contracts_file = os.path.join(output_dir, "shared", "contracts.py")
-    if os.path.exists(contracts_file):
-        print(f"✅ Found shared/contracts.py")
-        print(f"🔍 Contract validator loaded with {len(validator.interfaces)} interfaces")
-    else:
-        print("⚠️  Warning: shared/contracts.py not found")
-        print("   Contract validation will be skipped")
+    orchestrator = FlaskOrchestrator()
     
-    # Create output directory
+    # Setup directories
+    spec_dir = "spec_chunks/"
+    output_dir = "generated_flask_app/"
+    
+    print(f"📁 Setting up build environment...")
     create_directory(output_dir)
     
-    # Get all chunk files
+    # Create project documentation that LLMs will use as context
+    project_context = """
+# Surfboard Lamp Flask Backend - Architecture Overview
+
+## System Overview
+Flask-based backend that fetches surf data from APIs and pushes it to Arduino devices via HTTP POST.
+
+## Database Schema (5 tables):
+- users: user_id(PK), username, password_hash, email, location, theme, preferred_output
+- lamps: lamp_id(PK), user_id(FK), arduino_id, arduino_ip, last_updated  
+- daily_usage: usage_id(PK), website_url, last_updated
+- location_websites: location(PK), usage_id(FK)
+- usage_lamps: usage_id+lamp_id(composite PK), api_key, http_endpoint
+
+## Agent Tools Workflow:
+1. get_all_lamp_ids() → List[int] 
+2. get_lamp_details(lamp_id) → {arduino_id, arduino_ip, websites[]}
+3. fetch_website_data(api_key, endpoint) → {wave_height_m, wave_period_s, wind_speed_mps, wind_deg, location, timestamp}
+4. send_to_arduino(arduino_id, data, format) → HTTP POST to http://{arduino_ip}/api/update
+5. update_lamp_timestamp(lamp_id) → bool
+
+## Arduino Communication:
+- PUSH-based (not polling)
+- HTTP POST to Arduino's local IP address
+- Endpoint: POST http://{arduino_ip}/api/update
+- Payload: {wave_height_m, wave_period_s, wind_speed_mps, wind_deg, location, timestamp}
+
+## Flask Routes:
+- GET /api/lamp/config?id={lamp_id} → {registered, lamp_id, update_interval, status, error}
+- POST /api/register → Register user+lamp with {username, email, password, location, lamp_id, arduino_id, arduino_ip}
+- GET /health → {status: "ok"}
+
+## Technology Stack:
+- Flask (synchronous, not async)
+- PostgreSQL + SQLAlchemy + psycopg2
+- Requests for HTTP calls
+- Background processing with scheduled jobs
+"""
+    
+    # Check for spec chunks
     if not os.path.exists(spec_dir):
         print(f"❌ Error: {spec_dir} directory not found!")
-        print("Please create spec chunks first.")
+        print("Please run: python create_flask_specs.py")
         return
     
-    chunk_files = sorted([f for f in os.listdir(spec_dir) if f.endswith('.txt')])
+    # Get chunks in dependency order
+    chunk_order = [
+        "01_database_foundation.txt", 
+        "02_agent_tools.txt",
+        "03_flask_app.txt",
+        "04_config_setup.txt",
+        "05_database_setup.txt",
+        "06_background_processing.txt"
+    ]
     
-    if not chunk_files:
-        print(f"❌ No .txt files found in {spec_dir}")
+    print(f"\n🔍 Checking for required chunks...")
+    missing_chunks = []
+    for chunk in chunk_order:
+        if not os.path.exists(os.path.join(spec_dir, chunk)):
+            missing_chunks.append(chunk)
+        else:
+            print(f"   ✅ Found: {chunk}")
+    
+    if missing_chunks:
+        print(f"\n❌ Missing chunks: {missing_chunks}")
+        print("Please run: python create_flask_specs.py")
         return
     
-    print(f"📁 Found {len(chunk_files)} specification chunks")
-    print()
+    print(f"\n🚀 Processing {len(chunk_order)} chunks in dependency order...")
     
     success_count = 0
     failure_count = 0
     
-    for chunk_file in chunk_files:
-        print(f"🔄 Processing: {chunk_file}")
+    for chunk_name in chunk_order:
+        print(f"\n🔄 Processing: {chunk_name}")
         
         # Read chunk content
-        chunk_path = os.path.join(spec_dir, chunk_file)
+        chunk_path = os.path.join(spec_dir, chunk_name)
         chunk_content = read_document_chunk(chunk_path)
         
         if "Error" in chunk_content:
@@ -311,71 +355,59 @@ async def main():
             failure_count += 1
             continue
         
-        # Get orchestrator decision
-        chosen_specialist = await run_orchestrator(chunk_content)
-        print(f"   🎯 Orchestrator → {chosen_specialist}")
+        # Get specialist assignment
+        specialist = orchestrator.chunk_assignments[chunk_name]
+        print(f"   🎯 Specialist: {specialist}")
         
-        # Handle directory creation
-        if chosen_specialist == "FileSystem":
-            print(f"   📁 Creating directory structure...")
-            # Parse directory paths from content
-            lines = chunk_content.split('\n')
-            dir_count = 0
-            for line in lines:
-                if '/' in line and not line.strip().startswith('#'):
-                    # Extract directory path from tree structure
-                    if '├──' in line or '└──' in line:
-                        cleaned_line = line.replace('├──', '').replace('└──', '').replace('│', '').strip()
-                        if cleaned_line and '.' not in cleaned_line:  # Skip files, only create directories
-                            dir_path = cleaned_line.rstrip('/')
-                            if dir_path and not dir_path.startswith('─'):
-                                result = create_directory(os.path.join(output_dir, dir_path))
-                                if "Successfully" in result:
-                                    dir_count += 1
+        # Generate content
+        generated_content = await orchestrator.run_specialist(specialist, chunk_content, chunk_name, project_context)
+        
+        # Determine output files
+        output_files = orchestrator._determine_output_files(chunk_name, chunk_content)
+        print(f"   📝 Will create: {list(output_files.keys())}")
+        
+        # Handle multiple files in single response
+        if len(output_files) == 1:
+            # Single file output
+            file_path = list(output_files.keys())[0]
+            full_path = os.path.join(output_dir, file_path)
             
-            print(f"      Created {dir_count} directories")
-            success_count += 1
-        else:
-            # Generate file content
-            target_filename = parse_target_filename(chunk_file, chunk_content)
-            output_path = os.path.join(output_dir, target_filename)
-            
-            print(f"   🔧 Generating: {target_filename}")
-            
-            # Get required interfaces for validation
-            required_interfaces = validator.get_required_interfaces(target_filename)
-            if required_interfaces:
-                print(f"   📋 Must implement: {', '.join(required_interfaces)}")
-            
-            try:
-                generated_content = await run_specialist(chosen_specialist, chunk_content, target_filename)
-                
-                # Validate before writing
-                if await validate_generated_code(target_filename, generated_content):
-                    result = create_or_write_file(output_path, generated_content)
-                    print(f"   ✅ {result}")
-                    success_count += 1
-                else:
-                    print(f"   ❌ Validation failed, skipping file write")
-                    failure_count += 1
-            except Exception as e:
-                logger.error(f"   ❌ Error generating {target_filename}: {e}")
+            if await orchestrator.validate_generated_content(generated_content, file_path):
+                result = create_or_write_file(full_path, generated_content)
+                print(f"   ✅ {result}")
+                success_count += 1
+            else:
+                print(f"   ❌ Validation failed for {file_path}")
                 failure_count += 1
-        
-        print()
+        else:
+            # Multiple files - split content
+            # For now, save as combined file with comment headers
+            combined_path = os.path.join(output_dir, f"combined_{chunk_name.replace('.txt', '.py')}")
+            result = create_or_write_file(combined_path, generated_content)
+            print(f"   ✅ {result} (combined - split manually)")
+            success_count += 1
     
-    print("=" * 60)
-    print("🎉 Multi-agent build process completed!")
-    print(f"📊 Results: {success_count} succeeded, {failure_count} failed")
+    # Final summary
+    total = success_count + failure_count
+    print(f"\n🎉 Flask build completed!")
     print(f"📂 Output directory: {output_dir}")
+    print(f"📊 Results: {success_count}/{total} successful, {failure_count} failed")
+    
+    if success_count > 0:
+        print(f"\n📝 Next steps:")
+        print(f"   1. Review generated files in {output_dir}")
+        print(f"   2. Set up your PostgreSQL database")
+        print(f"   3. Update .env with your database credentials")
+        print(f"   4. Run: pip install -r requirements.txt")
+        print(f"   5. Run: python setup_database.py")
+        print(f"   6. Run: python app.py")
     
     if failure_count > 0:
-        print(f"⚠️  Warning: {failure_count} files failed validation")
-        print("   Check the logs above for details")
+        print(f"\n⚠️  {failure_count} chunks failed - check logs above for details")
 
 
 def sync_main():
-    """Synchronous wrapper for the async main function."""
+    """Synchronous wrapper for async main"""
     asyncio.run(main())
 
 

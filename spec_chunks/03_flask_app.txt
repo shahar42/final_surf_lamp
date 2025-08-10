@@ -1,0 +1,31 @@
+Create file: app.py
+
+GENERATE ONLY PYTHON CODE for Flask application:
+
+Import tools from tools/agent_tools.py and create these routes:
+
+1. GET /api/lamp/config?id={lamp_id}
+   Arduino registration/configuration endpoint  
+   Return JSON: {
+     "registered": bool,
+     "lamp_id": int,
+     "update_interval": int,  
+     "status": str,
+     "error": str or null
+   }
+   Used for Arduino to confirm registration and get configuration settings
+
+2. POST /api/register  
+   User registration endpoint
+   Accept: {username, email, password, location, lamp_id, arduino_id, arduino_ip}
+   Use flask_bcrypt for password hashing
+
+3. GET /health
+   Health check endpoint returning {"status": "ok"}
+
+4. Background processing function that:
+   - Calls get_all_lamp_ids()
+   - For each lamp: get_lamp_details(), fetch_website_data(), send_to_arduino(), update_lamp_timestamp()
+
+Use Flask, flask_bcrypt, python-dotenv for configuration.
+Include proper error handling, logging, CORS headers.
