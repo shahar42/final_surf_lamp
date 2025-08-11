@@ -7,7 +7,17 @@ import datetime
 
 # --- Database Setup ---
 # Get the database URL from environment variables. This is crucial for deployment on Render.
-DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://user:password@localhost/surfboard_lamp')
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if not DATABASE_URL:
+    DB_USER = os.environ.get('DB_USER')
+    DB_PASS = os.environ.get('DB_PASS')
+    DB_HOST = os.environ.get('DB_HOST')
+    DB_PORT = os.environ.get('DB_PORT')
+    DB_NAME = os.environ.get('DB_NAME')
+    if all([DB_USER, DB_PASS, DB_HOST, DB_PORT, DB_NAME]):
+        DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    else:
+        DATABASE_URL = 'postgresql://user:password@localhost/surfboard_lamp'
 
 # Create the SQLAlchemy engine
 engine = create_engine(DATABASE_URL)
