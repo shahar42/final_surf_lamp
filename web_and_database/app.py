@@ -7,6 +7,7 @@ from flask_limiter.util import get_remote_address
 
 # Import the database function and models
 from data_base import add_user_and_lamp, SessionLocal, User
+from forms import RegistrationForm, LoginForm
 
 # --- Configuration ---
 app = Flask(__name__)
@@ -40,15 +41,6 @@ SURF_LOCATIONS = [
     "Santa Cruz, California, USA"
 ]
 
-# --- Helper Functions ---
-def is_valid_email(email):
-    """A basic email validation."""
-    return "@" in email and "." in email
-
-def is_valid_id(id_value):
-    """Checks if an ID is a positive integer."""
-    return id_value.isdigit() and int(id_value) > 0
-
 # --- Routes ---
 
 @app.route("/")
@@ -60,29 +52,19 @@ def index():
 @limiter.limit("10/minute") # Add rate limiting to registration
 def register():
     """Handles user registration by collecting form data and calling the database handler."""
-    if request.method == 'POST':
+    form = RegistrationForm()
+    form.location.choices = [(loc, loc) for loc in SURF_LOCATIONS]
+
+    if form.validate_on_submit():
         # Get Form Data
-        name = request.form.get('name')
-        email = request.form.get('email')
-        password = request.form.get('password')
-        lamp_id = request.form.get('lamp_id')
-        arduino_id = request.form.get('arduino_id')
-        location = request.form.get('location')
-        theme = request.form.get('theme')
-        units = request.form.get('units')
-
-        # Server-side Validation
-        if not all([name, email, password, lamp_id, arduino_id, location, theme, units]):
-            flash('Please fill out all fields.', 'error')
-            return redirect(url_for('register'))
-
-        if not is_valid_email(email):
-            flash('Invalid email address.', 'error')
-            return redirect(url_for('register'))
-
-        if not is_valid_id(lamp_id) or not is_valid_id(arduino_id):
-            flash('Lamp ID and Arduino ID must be valid numbers.', 'error')
-            return redirect(url_for('register'))
+        name = form.name.data
+        email = form.email.data
+        password = form.password.data
+        lamp_id = form.lamp_id.data
+        arduino_id = form.arduino_id.data
+        location = form.location.data
+        theme = form.theme.data
+        units = form.units.data
 
         # Process and Store Data
         hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
@@ -103,21 +85,19 @@ def register():
             return redirect(url_for('login'))
         else:
             flash(message, 'error')
-            return redirect(url_for('register'))
+            # We redirect to register, but the form will be populated with the previous data
+            return render_template('register.html', form=form, locations=SURF_LOCATIONS)
 
-    return render_template('register.html', locations=SURF_LOCATIONS)
+    return render_template('register.html', form=form, locations=SURF_LOCATIONS)
 
 @app.route("/login", methods=['GET', 'POST'])
 @limiter.limit("10/minute") # Add rate limiting to login
 def login():
     """Handles user login by querying the database."""
-    if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
-
-        if not email or not password:
-            flash('Please enter both email and password.', 'error')
-            return redirect(url_for('login'))
+    form = LoginForm()
+    if form.validate_on_submit():
+        email = form.email.data
+        password = form.password.data
 
         db = SessionLocal()
         try:
@@ -131,7 +111,7 @@ def login():
         finally:
             db.close()
 
-    return render_template('login.html')
+    return render_template('login.html', form=form)
 
 @app.route("/dashboard")
 def dashboard():
