@@ -188,7 +188,7 @@ def add_user_and_lamp(name, email, password_hash, lamp_id, arduino_id, location,
     except Exception as e:
         logger.error(f"Unexpected error during registration: {e}")
         db.rollback()
-        return False, "An unexpected error occurred during registration."
+        return False, f"Database error: {str(e)}"
     finally:
         logger.info("Closing database session")
         db.close()
