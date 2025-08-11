@@ -121,45 +121,82 @@ def dashboard():
 
 @app.route("/debug/users")
 def debug_users():
-    """Show all users in a simple table"""
+    """Show all tables in the database"""
     db = SessionLocal()
     try:
+        # Import all the models
+        from data_base import User, Lamp, DailyUsage, LocationWebsites, UsageLamps
+        
         users = db.query(User).all()
         lamps = db.query(Lamp).all()
+        daily_usage = db.query(DailyUsage).all()
+        location_websites = db.query(LocationWebsites).all()
+        usage_lamps = db.query(UsageLamps).all()
         
         html = """
         <style>
-            table { border-collapse: collapse; width: 100%; }
+            table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
             th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
             th { background-color: #f2f2f2; }
+            .empty { color: #999; font-style: italic; }
         </style>
-        <h1>Database Contents</h1>
-        
-        <h2>Users</h2>
-        <table>
-            <tr><th>ID</th><th>Username</th><th>Email</th><th>Location</th><th>Theme</th><th>Units</th></tr>
+        <h1>All Database Tables</h1>
         """
         
-        for user in users:
-            html += f"<tr><td>{user.user_id}</td><td>{user.username}</td><td>{user.email}</td><td>{user.location}</td><td>{user.theme}</td><td>{user.preferred_output}</td></tr>"
+        # Users table
+        html += f"<h2>1. Users ({len(users)} records)</h2>"
+        if users:
+            html += "<table><tr><th>ID</th><th>Username</th><th>Email</th><th>Location</th><th>Theme</th><th>Units</th></tr>"
+            for user in users:
+                html += f"<tr><td>{user.user_id}</td><td>{user.username}</td><td>{user.email}</td><td>{user.location}</td><td>{user.theme}</td><td>{user.preferred_output}</td></tr>"
+            html += "</table>"
+        else:
+            html += "<p class='empty'>No users found</p>"
         
-        html += """
-        </table>
+        # Lamps table
+        html += f"<h2>2. Lamps ({len(lamps)} records)</h2>"
+        if lamps:
+            html += "<table><tr><th>Lamp ID</th><th>User ID</th><th>Arduino ID</th><th>Last Updated</th></tr>"
+            for lamp in lamps:
+                html += f"<tr><td>{lamp.lamp_id}</td><td>{lamp.user_id}</td><td>{lamp.arduino_id}</td><td>{lamp.last_updated}</td></tr>"
+            html += "</table>"
+        else:
+            html += "<p class='empty'>No lamps found</p>"
         
-        <h2>Lamps</h2>
-        <table>
-            <tr><th>Lamp ID</th><th>User ID</th><th>Arduino ID</th><th>Last Updated</th></tr>
-        """
+        # Daily Usage table
+        html += f"<h2>3. Daily Usage ({len(daily_usage)} records)</h2>"
+        if daily_usage:
+            html += "<table><tr><th>Usage ID</th><th>Website URL</th><th>Last Updated</th></tr>"
+            for usage in daily_usage:
+                html += f"<tr><td>{usage.usage_id}</td><td>{usage.website_url}</td><td>{usage.last_updated}</td></tr>"
+            html += "</table>"
+        else:
+            html += "<p class='empty'>No daily usage records found</p>"
         
-        for lamp in lamps:
-            html += f"<tr><td>{lamp.lamp_id}</td><td>{lamp.user_id}</td><td>{lamp.arduino_id}</td><td>{lamp.last_updated}</td></tr>"
+        # Location Websites table
+        html += f"<h2>4. Location Websites ({len(location_websites)} records)</h2>"
+        if location_websites:
+            html += "<table><tr><th>Location</th><th>Usage ID</th></tr>"
+            for loc in location_websites:
+                html += f"<tr><td>{loc.location}</td><td>{loc.usage_id}</td></tr>"
+            html += "</table>"
+        else:
+            html += "<p class='empty'>No location website mappings found</p>"
         
-        html += "</table>"
+        # Usage Lamps table
+        html += f"<h2>5. Usage Lamps ({len(usage_lamps)} records)</h2>"
+        if usage_lamps:
+            html += "<table><tr><th>Usage ID</th><th>Lamp ID</th><th>API Key</th><th>HTTP Endpoint</th></tr>"
+            for ul in usage_lamps:
+                html += f"<tr><td>{ul.usage_id}</td><td>{ul.lamp_id}</td><td>{ul.api_key}</td><td>{ul.http_endpoint}</td></tr>"
+            html += "</table>"
+        else:
+            html += "<p class='empty'>No usage lamp configurations found</p>"
+        
         return html
         
     finally:
         db.close()
-
 if __name__ == '__main__':
     # For production on Render, use a WSGI server like Gunicorn.
     # The start command should be: gunicorn app:app
