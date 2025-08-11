@@ -175,6 +175,19 @@ def add_user_and_lamp(name, email, password_hash, lamp_id, arduino_id, location,
         db.add(usage_lamp_link)
         logger.info(f"Created UsageLamps link: usage_id={website.usage_id}, lamp_id={new_lamp.lamp_id}")
 
+        # 4.5. Create or get LocationWebsites mapping
+        location_website = db.query(LocationWebsites).filter(LocationWebsites.location == location).first()
+        if not location_website:
+            logger.info("Creating LocationWebsites mapping")
+            location_website = LocationWebsites(
+                location=location,
+                usage_id=website.usage_id
+            )
+            db.add(location_website)
+            logger.info(f"Created LocationWebsites mapping: {location} -> usage_id={website.usage_id}")
+        else:
+            logger.info(f"Found existing LocationWebsites mapping for {location}")
+
         # 5. Commit the entire transaction
         logger.info("Committing transaction")
         db.commit()
