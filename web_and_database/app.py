@@ -118,6 +118,47 @@ def dashboard():
     """A placeholder for a logged-in user's dashboard."""
     return "<h1>Welcome to your Dashboard!</h1><p>Your surf lamp is now active and configured.</p>"
 
+@app.route("/debug/users")
+def debug_users():
+    """Show all users in a simple table"""
+    db = SessionLocal()
+    try:
+        users = db.query(User).all()
+        lamps = db.query(Lamp).all()
+        
+        html = """
+        <style>
+            table { border-collapse: collapse; width: 100%; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; }
+        </style>
+        <h1>Database Contents</h1>
+        
+        <h2>Users</h2>
+        <table>
+            <tr><th>ID</th><th>Username</th><th>Email</th><th>Location</th><th>Theme</th><th>Units</th></tr>
+        """
+        
+        for user in users:
+            html += f"<tr><td>{user.user_id}</td><td>{user.username}</td><td>{user.email}</td><td>{user.location}</td><td>{user.theme}</td><td>{user.preferred_output}</td></tr>"
+        
+        html += """
+        </table>
+        
+        <h2>Lamps</h2>
+        <table>
+            <tr><th>Lamp ID</th><th>User ID</th><th>Arduino ID</th><th>Last Updated</th></tr>
+        """
+        
+        for lamp in lamps:
+            html += f"<tr><td>{lamp.lamp_id}</td><td>{lamp.user_id}</td><td>{lamp.arduino_id}</td><td>{lamp.last_updated}</td></tr>"
+        
+        html += "</table>"
+        return html
+        
+    finally:
+        db.close()
+
 if __name__ == '__main__':
     # For production on Render, use a WSGI server like Gunicorn.
     # The start command should be: gunicorn app:app
