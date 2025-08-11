@@ -6,7 +6,8 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
 # Import the database function and models
-from data_base import add_user_and_lamp, SessionLocal, User
+from data_base import add_user_and_lamp, SessionLocal, User, Lamp
+
 from forms import RegistrationForm, LoginForm
 
 # --- Configuration ---
