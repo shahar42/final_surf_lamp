@@ -32,23 +32,9 @@
             outline: none;
             box-shadow: 0 0 0 2px #ff007f; /* Bright pink focus */
         }
-        /* Fix for Chrome dropdown options */
-        .form-input option {
-            background-color: #ffffff;
-            color: #000000;
-            padding: 8px;
-        }
-        .form-input option:hover {
-            background-color: #f0f0f0;
-        }
-        /* Fix for Chrome dropdown options */
-        .form-input option {
-            background-color: #ffffff;
-            color: #000000;
-            padding: 8px;
-        }
-        .form-input option:hover {
-            background-color: #f0f0f0;
+        .form-input.error {
+            border: 1px solid #ef4444;
+            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.3);
         }
         .submit-btn {
             background-color: #ff007f; /* Bright pink */
@@ -64,6 +50,11 @@
             left: 50%;
             transform: translateX(-50%);
             z-index: 50;
+        }
+        .field-error {
+            color: #fca5a5;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
         }
     </style>
 </head>
@@ -88,11 +79,30 @@
 
         <form action="{{ url_for('login') }}" method="POST" class="space-y-6">
             {{ form.hidden_tag() }}
-            <!-- Email -->
-            {{ form.email(class="form-input w-full px-4 py-3 rounded-lg", placeholder="Email Address") }}
+            
+            <!-- Email Field -->
+            <div>
+                {{ form.email(class="form-input w-full px-4 py-3 rounded-lg" + (" error" if form.email.errors else ""), placeholder="Email Address") }}
+                {% if form.email.errors %}
+                    <div class="field-error">
+                        {% for error in form.email.errors %}
+                            <div>• {{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
 
-            <!-- Password -->
-            {{ form.password(class="form-input w-full px-4 py-3 rounded-lg", placeholder="Password") }}
+            <!-- Password Field -->
+            <div>
+                {{ form.password(class="form-input w-full px-4 py-3 rounded-lg" + (" error" if form.password.errors else ""), placeholder="Password") }}
+                {% if form.password.errors %}
+                    <div class="field-error">
+                        {% for error in form.password.errors %}
+                            <div>• {{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
 
             <!-- Submit Button -->
             <button type="submit" class="submit-btn w-full text-white font-bold py-3 px-4 rounded-lg shadow-lg">Sign In</button>

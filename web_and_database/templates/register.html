@@ -31,14 +31,9 @@
             outline: none;
             box-shadow: 0 0 0 2px #ff007f;
         }
-        /* Fix for Chrome dropdown options */
-        .form-input option {
-            background-color: #ffffff;
-            color: #000000;
-            padding: 8px;
-        }
-        .form-input option:hover {
-            background-color: #f0f0f0;
+        .form-input.error {
+            border: 1px solid #ef4444;
+            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.3);
         }
         .submit-btn {
             background-color: #ff007f;
@@ -54,6 +49,11 @@
             left: 50%;
             transform: translateX(-50%);
             z-index: 50;
+        }
+        .field-error {
+            color: #fca5a5;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
         }
     </style>
 </head>
@@ -78,17 +78,81 @@
 
         <form action="{{ url_for('register') }}" method="POST" class="space-y-6">
             {{ form.hidden_tag() }}
-            {{ form.name(class="form-input w-full px-4 py-3 rounded-lg", placeholder="Your Name (becomes username)") }}
-            {{ form.email(class="form-input w-full px-4 py-3 rounded-lg", placeholder="Email Address") }}
-            {{ form.password(class="form-input w-full px-4 py-3 rounded-lg", placeholder="Password (8+ chars, mixed case, number, symbol)") }}
             
+            <!-- Name Field -->
+            <div>
+                {{ form.name(class="form-input w-full px-4 py-3 rounded-lg" + (" error" if form.name.errors else ""), placeholder="Your Name (becomes username)") }}
+                {% if form.name.errors %}
+                    <div class="field-error">
+                        {% for error in form.name.errors %}
+                            <div>• {{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- Email Field -->
+            <div>
+                {{ form.email(class="form-input w-full px-4 py-3 rounded-lg" + (" error" if form.email.errors else ""), placeholder="Email Address") }}
+                {% if form.email.errors %}
+                    <div class="field-error">
+                        {% for error in form.email.errors %}
+                            <div>• {{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- Password Field -->
+            <div>
+                {{ form.password(class="form-input w-full px-4 py-3 rounded-lg" + (" error" if form.password.errors else ""), placeholder="Password (8+ chars, mixed case, number, symbol)") }}
+                {% if form.password.errors %}
+                    <div class="field-error">
+                        {% for error in form.password.errors %}
+                            <div>• {{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- Lamp ID and Arduino ID -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {{ form.lamp_id(class="form-input w-full px-4 py-3 rounded-lg", placeholder="Lamp ID (1-999999)") }}
-                {{ form.arduino_id(class="form-input w-full px-4 py-3 rounded-lg", placeholder="Arduino ID (1-999999)") }}
+                <div>
+                    {{ form.lamp_id(class="form-input w-full px-4 py-3 rounded-lg" + (" error" if form.lamp_id.errors else ""), placeholder="Lamp ID (1-999999)") }}
+                    {% if form.lamp_id.errors %}
+                        <div class="field-error">
+                            {% for error in form.lamp_id.errors %}
+                                <div>• {{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div>
+                    {{ form.arduino_id(class="form-input w-full px-4 py-3 rounded-lg" + (" error" if form.arduino_id.errors else ""), placeholder="Arduino ID (1-999999)") }}
+                    {% if form.arduino_id.errors %}
+                        <div class="field-error">
+                            {% for error in form.arduino_id.errors %}
+                                <div>• {{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
             </div>
 
-            {{ form.location(class="form-input w-full px-4 py-3 rounded-lg appearance-none") }}
+            <!-- Location Field -->
+            <div>
+                {{ form.location(class="form-input w-full px-4 py-3 rounded-lg appearance-none" + (" error" if form.location.errors else "")) }}
+                {% if form.location.errors %}
+                    <div class="field-error">
+                        {% for error in form.location.errors %}
+                            <div>• {{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
 
+            <!-- Theme and Units -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-white">
                 <div>
                     <label class="block mb-2 font-semibold">Theme</label>
@@ -100,7 +164,15 @@
                             </label>
                         {% endfor %}
                     </div>
+                    {% if form.theme.errors %}
+                        <div class="field-error">
+                            {% for error in form.theme.errors %}
+                                <div>• {{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                 </div>
+                
                 <div>
                     <label class="block mb-2 font-semibold">Units</label>
                     <div class="flex space-x-4">
@@ -111,6 +183,13 @@
                             </label>
                         {% endfor %}
                     </div>
+                    {% if form.units.errors %}
+                        <div class="field-error">
+                            {% for error in form.units.errors %}
+                                <div>• {{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                 </div>
             </div>
 
