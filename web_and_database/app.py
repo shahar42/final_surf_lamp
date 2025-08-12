@@ -1,5 +1,6 @@
 import os
 import redis
+import logging
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_bcrypt import Bcrypt
 from flask_limiter import Limiter
@@ -7,8 +8,14 @@ from flask_limiter.util import get_remote_address
 
 # Import the database function and models
 from data_base import add_user_and_lamp, SessionLocal, User, Lamp
-
 from forms import RegistrationForm, LoginForm
+
+# --- Enhanced Logging Setup ---
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # --- Configuration ---
 app = Flask(__name__)
@@ -16,20 +23,15 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'a_very_secret_key_for_d
 bcrypt = Bcrypt(app)
 
 # --- Redis and Rate Limiter Setup ---
-# Use the REDIS_URL from environment variables provided by Render.
-# Fallback to localhost for local development.
 redis_url = os.environ.get('REDIS_URL', 'redis://localhost:6379')
 
-# Initialize the limiter with the correct storage URI
 limiter = Limiter(
     key_func=get_remote_address,
     storage_uri=redis_url,
     storage_options={"socket_connect_timeout": 30},
     strategy="fixed-window",
 )
-# Then, associate it with your app
 limiter.init_app(app)
-
 
 # --- Static Data ---
 SURF_LOCATIONS = [
@@ -50,65 +52,102 @@ def index():
     return redirect(url_for('register'))
 
 @app.route("/register", methods=['GET', 'POST'])
-@limiter.limit("10/minute") # Add rate limiting to registration
+@limiter.limit("10/minute")
 def register():
     """Handles user registration by collecting form data and calling the database handler."""
+    logger.info(f"Registration attempt - Method: {request.method}, IP: {request.remote_addr}")
+    
     form = RegistrationForm()
     form.location.choices = [(loc, loc) for loc in SURF_LOCATIONS]
 
-    if form.validate_on_submit():
-        # Get Form Data
-        name = form.name.data
-        email = form.email.data
-        password = form.password.data
-        lamp_id = form.lamp_id.data
-        arduino_id = form.arduino_id.data
-        location = form.location.data
-        theme = form.theme.data
-        units = form.units.data
-
-        # Process and Store Data
-        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+    if request.method == 'POST':
+        logger.info(f"POST data received: {list(request.form.keys())}")
         
-        success, message = add_user_and_lamp(
-            name=name,
-            email=email,
-            password_hash=hashed_password,
-            lamp_id=int(lamp_id),
-            arduino_id=int(arduino_id),
-            location=location,
-            theme=theme,
-            units=units
-        )
+        if form.validate_on_submit():
+            logger.info("Form validation passed, attempting database registration")
+            
+            # Get Form Data
+            name = form.name.data
+            email = form.email.data
+            password = form.password.data
+            lamp_id = form.lamp_id.data
+            arduino_id = form.arduino_id.data
+            location = form.location.data
+            theme = form.theme.data
+            units = form.units.data
 
-        if success:
-            flash(message, 'success')
-            return redirect(url_for('login'))
+            logger.info(f"Registration data - Email: {email}, Lamp ID: {lamp_id}, Arduino ID: {arduino_id}, Location: {location}")
+
+            # Process and Store Data
+            try:
+                hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+                logger.info("Password hashed successfully")
+                
+                success, message = add_user_and_lamp(
+                    name=name,
+                    email=email,
+                    password_hash=hashed_password,
+                    lamp_id=int(lamp_id),
+                    arduino_id=int(arduino_id),
+                    location=location,
+                    theme=theme,
+                    units=units
+                )
+
+                logger.info(f"Database operation result - Success: {success}, Message: {message}")
+
+                if success:
+                    flash(message, 'success')
+                    logger.info(f"Registration successful for {email}, redirecting to login")
+                    return redirect(url_for('login'))
+                else:
+                    flash(message, 'error')
+                    logger.warning(f"Registration failed for {email}: {message}")
+                    return render_template('register.html', form=form, locations=SURF_LOCATIONS)
+                    
+            except Exception as e:
+                logger.error(f"Unexpected error during registration for {email}: {str(e)}")
+                flash("An unexpected error occurred. Please try again.", 'error')
+                return render_template('register.html', form=form, locations=SURF_LOCATIONS)
         else:
-            flash(message, 'error')
-            # We redirect to register, but the form will be populated with the previous data
-            return render_template('register.html', form=form, locations=SURF_LOCATIONS)
+            # Form validation failed
+            logger.warning(f"Form validation failed for IP {request.remote_addr}")
+            logger.warning(f"Form errors: {form.errors}")
+            # Flash the first error for each field
+            for field, errors in form.errors.items():
+                for error in errors:
+                    flash(f"{field}: {error}", 'error')
+                    logger.warning(f"Validation error - {field}: {error}")
 
     return render_template('register.html', form=form, locations=SURF_LOCATIONS)
 
 @app.route("/login", methods=['GET', 'POST'])
-@limiter.limit("10/minute") # Add rate limiting to login
+@limiter.limit("10/minute")
 def login():
     """Handles user login by querying the database."""
+    logger.info(f"Login attempt - Method: {request.method}, IP: {request.remote_addr}")
+    
     form = LoginForm()
     if form.validate_on_submit():
         email = form.email.data
         password = form.password.data
+        
+        logger.info(f"Login attempt for email: {email}")
 
         db = SessionLocal()
         try:
             user = db.query(User).filter(User.email == email).first()
             if user and bcrypt.check_password_hash(user.password_hash, password):
+                logger.info(f"Successful login for {email}")
                 flash(f"Welcome back, {user.username}!", 'success')
                 return redirect(url_for('dashboard'))
             else:
+                logger.warning(f"Failed login attempt for {email}")
                 flash('Invalid email or password. Please try again.', 'error')
                 return redirect(url_for('login'))
+        except Exception as e:
+            logger.error(f"Database error during login for {email}: {str(e)}")
+            flash('A database error occurred. Please try again.', 'error')
         finally:
             db.close()
 
@@ -122,6 +161,8 @@ def dashboard():
 @app.route("/debug/users")
 def debug_users():
     """Show all tables in the database"""
+    logger.info(f"Debug users page accessed from IP: {request.remote_addr}")
+    
     db = SessionLocal()
     try:
         # Import all the models
@@ -132,6 +173,8 @@ def debug_users():
         daily_usage = db.query(DailyUsage).all()
         location_websites = db.query(LocationWebsites).all()
         usage_lamps = db.query(UsageLamps).all()
+        
+        logger.info(f"Debug query results - Users: {len(users)}, Lamps: {len(lamps)}, Daily Usage: {len(daily_usage)}")
         
         html = """
         <style>
@@ -195,8 +238,12 @@ def debug_users():
         
         return html
         
+    except Exception as e:
+        logger.error(f"Error in debug_users: {str(e)}")
+        return f"<h1>Database Error</h1><p>{str(e)}</p>"
     finally:
         db.close()
+
 if __name__ == '__main__':
     # For production on Render, use a WSGI server like Gunicorn.
     # The start command should be: gunicorn app:app
