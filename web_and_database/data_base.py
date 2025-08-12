@@ -1,6 +1,6 @@
 import os
 import logging
-from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, TIMESTAMP, MetaData
+from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, TIMESTAMP, MetaData, Float
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import func
@@ -73,6 +73,18 @@ class Lamp(Base):
     
     user = relationship("User", back_populates="lamp")
     usage_configs = relationship("UsageLamps", back_populates="lamp", cascade="all, delete-orphan")
+    current_conditions = relationship("CurrentConditions", back_populates="lamp", uselist=False, cascade="all, delete-orphan")
+
+class CurrentConditions(Base):
+    __tablename__ = 'current_conditions'
+    lamp_id = Column(Integer, ForeignKey('lamps.lamp_id'), primary_key=True)
+    wave_height_m = Column(Float, nullable=True)
+    wave_period_s = Column(Float, nullable=True)
+    wind_speed_mps = Column(Float, nullable=True)
+    wind_direction_deg = Column(Integer, nullable=True)
+    last_updated = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+    
+    lamp = relationship("Lamp", back_populates="current_conditions")
 
 class DailyUsage(Base):
     __tablename__ = 'daily_usage'
@@ -205,6 +217,39 @@ def add_user_and_lamp(name, email, password_hash, lamp_id, arduino_id, location,
     finally:
         logger.info("Closing database session")
         db.close()
+
+
+def get_user_lamp_data(email):
+    """
+    Get user and lamp data with current surf conditions for dashboard.
+    Returns (user_data, lamp_data, conditions_data) or (None, None, None) if not found.
+    """
+    logger.info(f"Fetching lamp data for user: {email}")
+    
+    db = SessionLocal()
+    try:
+        # Query user -> lamp -> current_conditions with LEFT JOIN
+        result = db.query(User, Lamp, CurrentConditions).select_from(User)\
+            .join(Lamp, User.user_id == Lamp.user_id)\
+            .outerjoin(CurrentConditions, Lamp.lamp_id == CurrentConditions.lamp_id)\
+            .filter(User.email == email)\
+            .first()
+        
+        if not result:
+            logger.warning(f"No user found with email: {email}")
+            return None, None, None
+        
+        user, lamp, conditions = result
+        logger.info(f"Found user {user.username} with lamp {lamp.lamp_id}")
+        
+        return user, lamp, conditions
+        
+    except Exception as e:
+        logger.error(f"Error fetching user lamp data: {e}")
+        return None, None, None
+    finally:
+        db.close()
+
 
 # --- Main execution block to create tables ---
 if __name__ == '__main__':

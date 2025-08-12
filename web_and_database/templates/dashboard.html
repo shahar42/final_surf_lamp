@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surf Lamp - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #00c6ff, #0072ff);
+        }
+        .card {
+            background-color: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .flash-message {
+            position: fixed;
+            top: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 50;
+        }
+        .logout-btn {
+            background-color: #ff007f;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        .logout-btn:hover {
+            background-color: #e60073;
+            transform: translateY(-1px);
+        }
+        .status-online {
+            color: #10b981;
+        }
+        .status-offline {
+            color: #ef4444;
+        }
+        .wave-icon {
+            color: #00c6ff;
+        }
+        .wind-icon {
+            color: #0072ff;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4">
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash-message px-6 py-3 rounded-lg text-white font-semibold {{ 'bg-green-500' if category == 'success' else 'bg-red-500' }} shadow-lg">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- Header -->
+    <div class="max-w-6xl mx-auto mb-8">
+        <div class="card rounded-2xl p-6 shadow-2xl">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-white">Surf Lamp Dashboard</h1>
+                    <p class="text-white/80 mt-1">Welcome back, {{ data.user.username }}!</p>
+                </div>
+                <a href="{{ url_for('logout') }}" class="logout-btn text-white font-semibold py-2 px-4 rounded-lg shadow-lg">
+                    Logout
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard Content -->
+    <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        <!-- Lamp Information Card -->
+        <div class="card rounded-2xl p-6 shadow-2xl">
+            <h2 class="text-2xl font-bold text-white mb-4">🏄‍♂️ Your Surf Lamp</h2>
+            
+            <div class="space-y-3 text-white">
+                <div class="flex justify-between">
+                    <span class="text-white/80">Lamp ID:</span>
+                    <span class="font-semibold">#{{ data.lamp.lamp_id }}</span>
+                </div>
+                
+                <div class="flex justify-between">
+                    <span class="text-white/80">Arduino ID:</span>
+                    <span class="font-semibold">#{{ data.lamp.arduino_id }}</span>
+                </div>
+                
+                <div class="flex justify-between">
+                    <span class="text-white/80">Location:</span>
+                    <span class="font-semibold">{{ data.user.location }}</span>
+                </div>
+                
+                <div class="flex justify-between">
+                    <span class="text-white/80">Theme:</span>
+                    <span class="font-semibold capitalize">{{ data.user.theme }}</span>
+                </div>
+                
+                <div class="flex justify-between">
+                    <span class="text-white/80">Units:</span>
+                    <span class="font-semibold capitalize">{{ data.user.preferred_output }}</span>
+                </div>
+                
+                <div class="flex justify-between items-center pt-2 border-t border-white/20">
+                    <span class="text-white/80">Status:</span>
+                    {% if data.conditions %}
+                        <span class="status-online font-semibold">● Online</span>
+                    {% else %}
+                        <span class="status-offline font-semibold">● No Data</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Current Surf Conditions Card -->
+        <div class="card rounded-2xl p-6 shadow-2xl">
+            <h2 class="text-2xl font-bold text-white mb-4">🌊 Current Surf Conditions</h2>
+            
+            {% if data.conditions %}
+                <div class="space-y-4">
+                    <!-- Wave Data -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="text-center">
+                            <div class="wave-icon text-3xl mb-2">🌊</div>
+                            <div class="text-white/80 text-sm">Wave Height</div>
+                            <div class="text-white font-bold text-xl">
+                                {% if data.conditions.wave_height_m %}
+                                    {{ "%.1f"|format(data.conditions.wave_height_m) }}m
+                                {% else %}
+                                    --
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="text-center">
+                            <div class="wave-icon text-3xl mb-2">⏱️</div>
+                            <div class="text-white/80 text-sm">Wave Period</div>
+                            <div class="text-white font-bold text-xl">
+                                {% if data.conditions.wave_period_s %}
+                                    {{ "%.1f"|format(data.conditions.wave_period_s) }}s
+                                {% else %}
+                                    --
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Wind Data -->
+                    <div class="grid grid-cols-2 gap-4 pt-4 border-t border-white/20">
+                        <div class="text-center">
+                            <div class="wind-icon text-3xl mb-2">💨</div>
+                            <div class="text-white/80 text-sm">Wind Speed</div>
+                            <div class="text-white font-bold text-xl">
+                                {% if data.conditions.wind_speed_mps %}
+                                    {{ "%.1f"|format(data.conditions.wind_speed_mps) }} m/s
+                                {% else %}
+                                    --
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="text-center">
+                            <div class="wind-icon text-3xl mb-2">🧭</div>
+                            <div class="text-white/80 text-sm">Wind Direction</div>
+                            <div class="text-white font-bold text-xl">
+                                {% if data.conditions.wind_direction_deg %}
+                                    {{ data.conditions.wind_direction_deg }}°
+                                {% else %}
+                                    --
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Last Updated -->
+                    <div class="pt-4 border-t border-white/20 text-center">
+                        <div class="text-white/80 text-sm">Last Updated</div>
+                        <div class="text-white font-semibold">
+                            {{ data.conditions.last_updated.strftime('%Y-%m-%d %H:%M:%S') }} UTC
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <!-- No Data Available -->
+                <div class="text-center py-8">
+                    <div class="text-6xl mb-4 opacity-50">📡</div>
+                    <h3 class="text-xl font-semibold text-white mb-2">No Current Data</h3>
+                    <p class="text-white/80 mb-4">
+                        Your lamp hasn't received surf data yet. This could be because:
+                    </p>
+                    <ul class="text-white/70 text-sm space-y-1">
+                        <li>• Your lamp was recently registered</li>
+                        <li>• The monitoring system is updating</li>
+                        <li>• There's a temporary connection issue</li>
+                    </ul>
+                    <p class="text-white/80 text-sm mt-4">
+                        Data updates every 30 minutes. Please check back soon!
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- System Information -->
+    <div class="max-w-6xl mx-auto mt-8">
+        <div class="card rounded-2xl p-6 shadow-2xl">
+            <h2 class="text-xl font-bold text-white mb-4">📊 System Information</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-white/80 text-sm">
+                <div>
+                    <span class="text-white/60">Lamp Last Updated:</span><br>
+                    <span class="text-white">{{ data.lamp.last_updated.strftime('%Y-%m-%d %H:%M:%S') }} UTC</span>
+                </div>
+                
+                <div>
+                    <span class="text-white/60">Account Email:</span><br>
+                    <span class="text-white">{{ data.user.email }}</span>
+                </div>
+                
+                <div>
+                    <span class="text-white/60">Update Frequency:</span><br>
+                    <span class="text-white">Every 30 minutes</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
