@@ -5,32 +5,77 @@ from flask_bcrypt import Bcrypt
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from functools import wraps
+import logging
 
 # Import the database function and models
 from data_base import add_user_and_lamp, get_user_lamp_data, SessionLocal, User, Lamp
-
 from forms import RegistrationForm, LoginForm
+
+# --- Production Logging Setup ---
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # --- Configuration ---
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'a_very_secret_key_for_development_12345')
+
+# Production-ready session configuration
+app.config.update(
+    SECRET_KEY=os.environ.get('SECRET_KEY', 'a_very_secret_key_for_development_12345'),
+    SESSION_COOKIE_SECURE=True if os.environ.get('FLASK_ENV') == 'production' else False,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+    PERMANENT_SESSION_LIFETIME=3600  # 1 hour
+)
+
 bcrypt = Bcrypt(app)
 
-# --- Redis and Rate Limiter Setup ---
-# Use the REDIS_URL from environment variables provided by Render.
-# Fallback to localhost for local development.
-redis_url = os.environ.get('REDIS_URL', 'redis://localhost:6379')
+# --- Redis and Rate Limiter Setup with Error Handling ---
+def setup_rate_limiter():
+    """Setup rate limiter with fallback for Redis failures"""
+    try:
+        redis_url = os.environ.get('REDIS_URL')
+        
+        if redis_url:
+            # Test Redis connection
+            redis_client = redis.from_url(redis_url, socket_connect_timeout=5, socket_timeout=5)
+            redis_client.ping()  # Test connection
+            logger.info("Redis connection successful")
+            
+            limiter = Limiter(
+                key_func=get_remote_address,
+                storage_uri=redis_url,
+                storage_options={"socket_connect_timeout": 30},
+                strategy="fixed-window",
+            )
+            return limiter
+        else:
+            logger.warning("No REDIS_URL provided, using memory storage")
+            # Fallback to memory storage
+            limiter = Limiter(
+                key_func=get_remote_address,
+                storage_uri="memory://",
+                strategy="fixed-window",
+            )
+            return limiter
+            
+    except Exception as e:
+        logger.error(f"Redis connection failed: {e}")
+        logger.info("Falling back to memory storage for rate limiting")
+        
+        # Fallback to memory storage if Redis fails
+        limiter = Limiter(
+            key_func=get_remote_address,
+            storage_uri="memory://",
+            strategy="fixed-window",
+        )
+        return limiter
 
-# Initialize the limiter with the correct storage URI
-limiter = Limiter(
-    key_func=get_remote_address,
-    storage_uri=redis_url,
-    storage_options={"socket_connect_timeout": 30},
-    strategy="fixed-window",
-)
-# Then, associate it with your app
+# Initialize rate limiter
+limiter = setup_rate_limiter()
 limiter.init_app(app)
-
 
 # --- Static Data ---
 SURF_LOCATIONS = [
@@ -44,154 +89,258 @@ SURF_LOCATIONS = [
 ]
 
 # --- Helper Functions ---
+def safe_rate_limit(limit_string):
+    """Decorator that safely applies rate limiting with fallback"""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            try:
+                # Apply rate limiting if available
+                if limiter:
+                    return limiter.limit(limit_string)(f)(*args, **kwargs)
+                else:
+                    return f(*args, **kwargs)
+            except Exception as e:
+                logger.error(f"Rate limiting error: {e}")
+                # Continue without rate limiting if it fails
+                return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
 def login_required(f):
     """Decorator to require login for certain routes"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_email' not in session:
+            logger.info("User not logged in, redirecting to login")
             flash('Please log in to access this page.', 'error')
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
 
+def test_database_connection():
+    """Test database connection and log any issues"""
+    try:
+        db = SessionLocal()
+        result = db.execute("SELECT 1").fetchone()
+        db.close()
+        logger.info("Database connection test successful")
+        return True
+    except Exception as e:
+        logger.error(f"Database connection test failed: {e}")
+        return False
+
 # --- Routes ---
 
 @app.route("/")
 def index():
-    """Redirects to the dashboard if logged in, otherwise to registration."""
-    if 'user_email' in session:
-        return redirect(url_for('dashboard'))
-    return redirect(url_for('register'))
+    """Root route with proper error handling"""
+    try:
+        logger.info(f"Index route accessed. Session data: {dict(session)}")
+        
+        # Test database connection
+        if not test_database_connection():
+            flash('Database connection issue. Please try again later.', 'error')
+            return render_template('login.html', form=LoginForm())
+        
+        if 'user_email' in session:
+            logger.info(f"User {session['user_email']} already logged in, redirecting to dashboard")
+            return redirect(url_for('dashboard'))
+        else:
+            logger.info("No user session, redirecting to login")
+            return redirect(url_for('login'))
+            
+    except Exception as e:
+        logger.error(f"Error in index route: {e}")
+        flash('An error occurred. Please try again.', 'error')
+        return render_template('login.html', form=LoginForm())
 
 @app.route("/register", methods=['GET', 'POST'])
-@limiter.limit("10/minute") # Add rate limiting to registration
+@safe_rate_limit("5/minute")
 def register():
-    """Handles user registration by collecting form data and calling the database handler."""
-    if 'user_email' in session:
-        return redirect(url_for('dashboard'))
+    """Handles user registration with comprehensive error handling"""
+    try:
+        logger.info("Register route accessed")
         
-    form = RegistrationForm()
-    form.location.choices = [(loc, loc) for loc in SURF_LOCATIONS]
+        if 'user_email' in session:
+            logger.info("User already logged in, redirecting to dashboard")
+            return redirect(url_for('dashboard'))
+            
+        form = RegistrationForm()
+        form.location.choices = [(loc, loc) for loc in SURF_LOCATIONS]
 
-    if form.validate_on_submit():
-        # Get Form Data
-        name = form.name.data
-        email = form.email.data
-        password = form.password.data
-        lamp_id = form.lamp_id.data
-        arduino_id = form.arduino_id.data
-        location = form.location.data
-        theme = form.theme.data
-        units = form.units.data
+        if form.validate_on_submit():
+            logger.info(f"Registration form submitted for email: {form.email.data}")
+            
+            # Get Form Data
+            name = form.name.data
+            email = form.email.data
+            password = form.password.data
+            lamp_id = form.lamp_id.data
+            arduino_id = form.arduino_id.data
+            location = form.location.data
+            theme = form.theme.data
+            units = form.units.data
 
-        # Process and Store Data
-        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+            # Process and Store Data
+            try:
+                hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+                
+                success, message = add_user_and_lamp(
+                    name=name,
+                    email=email,
+                    password_hash=hashed_password,
+                    lamp_id=int(lamp_id),
+                    arduino_id=int(arduino_id),
+                    location=location,
+                    theme=theme,
+                    units=units
+                )
+
+                if success:
+                    logger.info(f"User registration successful: {email}")
+                    flash(message, 'success')
+                    return redirect(url_for('login'))
+                else:
+                    logger.warning(f"User registration failed: {message}")
+                    flash(message, 'error')
+                    
+            except Exception as e:
+                logger.error(f"Registration processing error: {e}")
+                flash('Registration failed due to a system error. Please try again.', 'error')
+
+        return render_template('register.html', form=form, locations=SURF_LOCATIONS)
         
-        success, message = add_user_and_lamp(
-            name=name,
-            email=email,
-            password_hash=hashed_password,
-            lamp_id=int(lamp_id),
-            arduino_id=int(arduino_id),
-            location=location,
-            theme=theme,
-            units=units
-        )
-
-        if success:
-            flash(message, 'success')
-            return redirect(url_for('login'))
-        else:
-            flash(message, 'error')
-            # We redirect to register, but the form will be populated with the previous data
-            return render_template('register.html', form=form, locations=SURF_LOCATIONS)
-
-    return render_template('register.html', form=form, locations=SURF_LOCATIONS)
+    except Exception as e:
+        logger.error(f"Error in register route: {e}")
+        flash('An error occurred during registration. Please try again.', 'error')
+        return render_template('register.html', form=RegistrationForm(), locations=SURF_LOCATIONS)
 
 @app.route("/login", methods=['GET', 'POST'])
-@limiter.limit("10/minute") # Add rate limiting to login
+@safe_rate_limit("5/minute")
 def login():
-    """Handles user login by querying the database."""
-    if 'user_email' in session:
-        return redirect(url_for('dashboard'))
+    """Handles user login with comprehensive error handling"""
+    try:
+        logger.info("Login route accessed")
         
-    form = LoginForm()
-    if form.validate_on_submit():
-        email = form.email.data
-        password = form.password.data
+        if 'user_email' in session:
+            logger.info("User already logged in, redirecting to dashboard")
+            return redirect(url_for('dashboard'))
+            
+        form = LoginForm()
+        
+        if form.validate_on_submit():
+            email = form.email.data
+            password = form.password.data
+            logger.info(f"Login attempt for email: {email}")
 
-        db = SessionLocal()
-        try:
-            user = db.query(User).filter(User.email == email).first()
-            if user and bcrypt.check_password_hash(user.password_hash, password):
-                # Set session data
-                session['user_email'] = user.email
-                session['user_id'] = user.user_id
-                session['username'] = user.username
-                flash(f"Welcome back, {user.username}!", 'success')
-                return redirect(url_for('dashboard'))
-            else:
-                flash('Invalid email or password. Please try again.', 'error')
-                return redirect(url_for('login'))
-        finally:
-            db.close()
+            try:
+                db = SessionLocal()
+                user = db.query(User).filter(User.email == email).first()
+                
+                if user and bcrypt.check_password_hash(user.password_hash, password):
+                    # Set session data
+                    session['user_email'] = user.email
+                    session['user_id'] = user.user_id
+                    session['username'] = user.username
+                    session.permanent = True
+                    
+                    logger.info(f"Login successful for user: {email}")
+                    flash(f"Welcome back, {user.username}!", 'success')
+                    
+                    db.close()
+                    return redirect(url_for('dashboard'))
+                else:
+                    logger.warning(f"Login failed for email: {email}")
+                    flash('Invalid email or password. Please try again.', 'error')
+                    
+                db.close()
+                
+            except Exception as e:
+                logger.error(f"Database error during login: {e}")
+                flash('Login failed due to a system error. Please try again.', 'error')
 
-    return render_template('login.html', form=form)
+        return render_template('login.html', form=form)
+        
+    except Exception as e:
+        logger.error(f"Error in login route: {e}")
+        flash('An error occurred during login. Please try again.', 'error')
+        return render_template('login.html', form=LoginForm())
 
 @app.route("/logout")
 def logout():
     """Log out the current user"""
-    session.clear()
-    flash('You have been logged out.', 'success')
-    return redirect(url_for('login'))
+    try:
+        user_email = session.get('user_email', 'unknown')
+        session.clear()
+        logger.info(f"User logged out: {user_email}")
+        flash('You have been logged out.', 'success')
+        return redirect(url_for('login'))
+    except Exception as e:
+        logger.error(f"Error during logout: {e}")
+        return redirect(url_for('login'))
 
 @app.route("/dashboard")
 @login_required
 def dashboard():
     """Dashboard showing user's lamp and current surf conditions."""
-    user_email = session.get('user_email')
-    
-    # Get user, lamp, and conditions data
-    user, lamp, conditions = get_user_lamp_data(user_email)
-    
-    if not user or not lamp:
-        flash('Error loading your lamp data. Please contact support.', 'error')
-        return redirect(url_for('login'))
-    
-    # Prepare data for template
-    dashboard_data = {
-        'user': {
-            'username': user.username,
-            'email': user.email,
-            'location': user.location,
-            'theme': user.theme,
-            'preferred_output': user.preferred_output
-        },
-        'lamp': {
-            'lamp_id': lamp.lamp_id,
-            'arduino_id': lamp.arduino_id,
-            'last_updated': lamp.last_updated
-        },
-        'conditions': None
-    }
-    
-    # Add surf conditions if available
-    if conditions:
-        dashboard_data['conditions'] = {
-            'wave_height_m': conditions.wave_height_m,
-            'wave_period_s': conditions.wave_period_s,
-            'wind_speed_mps': conditions.wind_speed_mps,
-            'wind_direction_deg': conditions.wind_direction_deg,
-            'last_updated': conditions.last_updated
+    try:
+        user_email = session.get('user_email')
+        logger.info(f"Dashboard accessed by: {user_email}")
+        
+        # Get user, lamp, and conditions data
+        user, lamp, conditions = get_user_lamp_data(user_email)
+        
+        if not user or not lamp:
+            logger.error(f"No lamp data found for user: {user_email}")
+            flash('Error loading your lamp data. Please contact support.', 'error')
+            session.clear()  # Clear invalid session
+            return redirect(url_for('login'))
+        
+        # Prepare data for template
+        dashboard_data = {
+            'user': {
+                'username': user.username,
+                'email': user.email,
+                'location': user.location,
+                'theme': user.theme,
+                'preferred_output': user.preferred_output
+            },
+            'lamp': {
+                'lamp_id': lamp.lamp_id,
+                'arduino_id': lamp.arduino_id,
+                'last_updated': lamp.last_updated
+            },
+            'conditions': None
         }
-    
-    return render_template('dashboard.html', data=dashboard_data)
+        
+        # Add surf conditions if available
+        if conditions:
+            dashboard_data['conditions'] = {
+                'wave_height_m': conditions.wave_height_m,
+                'wave_period_s': conditions.wave_period_s,
+                'wind_speed_mps': conditions.wind_speed_mps,
+                'wind_direction_deg': conditions.wind_direction_deg,
+                'last_updated': conditions.last_updated
+            }
+        
+        return render_template('dashboard.html', data=dashboard_data)
+        
+    except Exception as e:
+        logger.error(f"Error in dashboard route: {e}")
+        flash('Error loading dashboard. Please try logging in again.', 'error')
+        session.clear()
+        return redirect(url_for('login'))
 
 @app.route("/debug/users")
 def debug_users():
-    """Show all tables in the database"""
-    db = SessionLocal()
+    """Show all tables in the database - only for development"""
+    if os.environ.get('FLASK_ENV') != 'development':
+        logger.warning("Debug route accessed in production")
+        return "Debug routes disabled in production", 403
+        
     try:
+        db = SessionLocal()
         # Import all the models
         from data_base import User, Lamp, DailyUsage, LocationWebsites, UsageLamps, CurrentConditions
         
@@ -272,12 +421,28 @@ def debug_users():
         else:
             html += "<p class='empty'>No usage lamp configurations found</p>"
         
+        db.close()
         return html
         
-    finally:
-        db.close()
+    except Exception as e:
+        logger.error(f"Error in debug route: {e}")
+        return f"Debug error: {str(e)}", 500
+
+# --- Error Handlers ---
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    logger.warning(f"Rate limit exceeded: {request.remote_addr}")
+    flash('Too many requests. Please try again later.', 'error')
+    return redirect(url_for('login')), 429
+
+@app.errorhandler(500)
+def internal_error(error):
+    logger.error(f"Internal server error: {error}")
+    flash('An internal error occurred. Please try again.', 'error')
+    return redirect(url_for('login')), 500
 
 if __name__ == '__main__':
     # For production on Render, use a WSGI server like Gunicorn.
     # The start command should be: gunicorn app:app
+    logger.info("Starting Flask application")
     app.run(debug=True, port=5001)
