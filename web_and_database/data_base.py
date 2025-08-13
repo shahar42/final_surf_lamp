@@ -130,10 +130,8 @@ def add_user_and_lamp(name, email, password_hash, lamp_id, arduino_id, location,
     
     # Define which locations map to which website/API provider.
     LOCATIONS_WEBSITE_1 = [
-        "Bondi Beach, Australia",
-        "Pipeline, Hawaii, USA",
-        "Jeffreys Bay, South Africa",
-s    ]
+        "Hadera, Israel"
+    ]
     
     # Only support configured locations, no arbitrary fallbacks
     if location == "Hadera, Israel":
