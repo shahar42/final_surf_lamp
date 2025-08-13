@@ -1,0 +1,78 @@
+# endpoint_configs.py
+"""
+Field mapping configurations for different surf data API endpoints.
+Maps API-specific field names to our standardized surf data format.
+"""
+
+FIELD_MAPPINGS = {
+    # OpenWeatherMap API
+    "openweathermap.org": {
+        "wind_speed_mps": ["wind", "speed"],
+        "wind_direction_deg": ["wind", "deg"], 
+        "location": ["name"],
+        "temperature_c": ["main", "temp"],
+        "humidity_percent": ["main", "humidity"],
+        "fallbacks": {
+            "wave_height_m": 0.0,  # OpenWeatherMap doesn't provide wave data
+            "wave_period_s": 0.0,
+            "wind_speed_mps": 0.0,
+            "wind_direction_deg": 0
+        },
+        "conversions": {
+            "temperature_c": lambda x: x - 273.15  # Kelvin to Celsius
+        }
+    },
+    
+    # Israeli Marine Data (Isramar)
+    "isramar.ocean.org.il": {
+        "wave_height_m": ["Hs"],
+        "wave_period_s": ["Per"],
+        "fallbacks": {
+            "wind_speed_mps": 0.0,  # Isramar focuses on wave data
+            "wind_direction_deg": 0,
+            "wave_height_m": 0.0,
+            "wave_period_s": 0.0
+        }
+    },
+    
+}
+
+def get_endpoint_config(endpoint_url):
+    """
+    Get the field mapping configuration for a given endpoint URL.
+    
+    Args:
+        endpoint_url (str): The API endpoint URL
+        
+    Returns:
+        dict: Field mapping configuration or None if not found
+    """
+    for endpoint_key, config in FIELD_MAPPINGS.items():
+        if endpoint_key in endpoint_url:
+            return config
+    return None
+
+def list_supported_endpoints():
+    """
+    Get a list of all supported endpoint domains.
+    
+    Returns:
+        list: List of supported endpoint domain strings
+    """
+    return list(FIELD_MAPPINGS.keys())
+
+# Example usage and testing
+if __name__ == "__main__":
+    # Test endpoint matching
+    test_urls = [
+        "http://api.openweathermap.org/data/2.5/weather?q=Hadera",
+        "https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json",
+        "https://unknown-api.com/data"
+    ]
+    
+    for url in test_urls:
+        config = get_endpoint_config(url)
+        if config:
+            print(f"✅ {url} -> Found config with {len(config)} mappings")
+        else:
+            print(f"❌ {url} -> No config found")

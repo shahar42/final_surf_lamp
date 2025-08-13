@@ -40,13 +40,7 @@ limiter.init_app(app)
 
 # --- Static Data ---
 SURF_LOCATIONS = [
-    "Bondi Beach, Australia",
-    "Pipeline, Hawaii, USA",
-    "Jeffreys Bay, South Africa",
-    "Uluwatu, Bali, Indonesia",
-    "Hossegor, France",
-    "Tofino, British Columbia, Canada",
-    "Santa Cruz, California, USA"
+    "Hadera, Israel"
 ]
 
 # --- Helper Functions ---

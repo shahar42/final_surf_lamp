@@ -117,7 +117,20 @@ Response: {"status": "ok"}
 ⏰ Updating timestamp for lamp 12345
 🎉 ======= CYCLE COMPLETED ======= (4.2 seconds)
 ```
-
+## query sql
+SELECT 
+    lw.location,
+    du.website_url as endpoint,
+    ul.api_key,
+    ul.lamp_id,
+    l.arduino_ip
+FROM location_websites lw
+JOIN daily_usage du ON lw.usage_id = du.usage_id  
+JOIN usage_lamps ul ON du.usage_id = ul.usage_id
+JOIN lamps l ON ul.lamp_id = l.lamp_id
+JOIN users u ON l.user_id = u.user_id
+WHERE lw.location = 'Bondi Beach, Australia';
+this query should get all the information needed inorder to send surf data to the arduino
 ## API Configuration Examples
 ```sql
 -- Public API (no auth)

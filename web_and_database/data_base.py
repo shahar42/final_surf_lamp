@@ -69,6 +69,7 @@ class Lamp(Base):
     lamp_id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
     arduino_id = Column(Integer, unique=True, nullable=True)
+    arduino_ip = Column(String(15), unique=True, nullable=False)
     last_updated = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
     
     user = relationship("User", back_populates="lamp")

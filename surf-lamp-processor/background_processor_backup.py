@@ -1,7 +1,7 @@
 # background_processor.py
 """
 Background service for Surf Lamp processing
-- Fetches surf data from APIs using configurable field mappings
+- Fetches surf data from APIs
 - Sends data to Arduino devices via HTTP POST
 - Extensive logging for debugging
 """
@@ -13,11 +13,7 @@ import logging
 from sqlalchemy import create_engine, text
 from datetime import datetime
 import json
-from dotenv import load_dotenv
-# Import the endpoint configuration system
-# Import the endpoint configuration system
-from endpoint_configs import FIELD_MAPPINGS, get_endpoint_config
-load_dotenv()
+
 # Configure detailed logging
 logging.basicConfig(
     level=logging.INFO,
@@ -41,113 +37,6 @@ try:
 except Exception as e:
     logger.error(f"Failed to create database engine: {e}")
     exit(1)
-
-def extract_field_value(data, field_path):
-    """
-    Navigate nested JSON using field path like ['wind', 'speed'] or ['data', 0, 'value']
-    
-    Args:
-        data: JSON data (dict or list)
-        field_path: List of keys/indices to navigate
-        
-    Returns:
-        Extracted value or None if not found
-    """
-    try:
-        value = data
-        for key in field_path:
-            if isinstance(value, list) and isinstance(key, int):
-                value = value[key]
-            elif isinstance(value, dict):
-                value = value[key]
-            else:
-                return None
-        return value
-    except (KeyError, TypeError, IndexError):
-        return None
-
-def apply_conversions(value, conversions, field_name):
-    """
-    Apply conversion functions to extracted field values.
-    
-    Args:
-        value: Raw value from API
-        conversions: Dict of conversion functions
-        field_name: Name of the field being converted
-        
-    Returns:
-        Converted value or original value if no conversion
-    """
-    if value is None or conversions is None:
-        return value
-        
-    conversion_func = conversions.get(field_name)
-    if conversion_func and callable(conversion_func):
-        try:
-            return conversion_func(value)
-        except Exception as e:
-            logger.warning(f"Conversion failed for {field_name}: {e}")
-            return value
-    
-    return value
-
-def standardize_surf_data(raw_data, endpoint_url):
-    """
-    Extract standardized fields using endpoint-specific configuration.
-    
-    Args:
-        raw_data: Raw JSON response from API
-        endpoint_url: The API endpoint URL
-        
-    Returns:
-        Dict with standardized surf data fields
-    """
-    logger.info(f"🔧 Standardizing data from: {endpoint_url}")
-    
-    # Get configuration for this endpoint
-    config = get_endpoint_config(endpoint_url)
-    if not config:
-        logger.error(f"❌ No field mapping config found for {endpoint_url}")
-        logger.error(f"   Supported endpoints: {list(FIELD_MAPPINGS.keys())}")
-        return None
-    
-    logger.info(f"✅ Found config with {len(config)} field mappings")
-    
-    standardized = {}
-    conversions = config.get('conversions', {})
-    fallbacks = config.get('fallbacks', {})
-    
-    # Extract each configured field
-    for standard_field, field_path in config.items():
-        if standard_field in ['fallbacks', 'conversions']:
-            continue
-            
-        # Extract the raw value
-        raw_value = extract_field_value(raw_data, field_path)
-        logger.debug(f"   {standard_field}: {field_path} -> {raw_value}")
-        
-        # Apply conversions if configured
-        converted_value = apply_conversions(raw_value, conversions, standard_field)
-        
-        # Use fallback if value is None
-        if converted_value is None:
-            converted_value = fallbacks.get(standard_field)
-            logger.debug(f"   {standard_field}: Using fallback -> {converted_value}")
-        
-        standardized[standard_field] = converted_value
-    
-    # Add required fields with fallbacks if not present
-    required_fields = ['wave_height_m', 'wave_period_s', 'wind_speed_mps', 'wind_direction_deg']
-    for field in required_fields:
-        if field not in standardized:
-            standardized[field] = fallbacks.get(field, 0.0)
-    
-    # Add metadata
-    standardized['timestamp'] = int(time.time())
-    standardized['source_endpoint'] = endpoint_url
-    
-    logger.info(f"✅ Standardized data: {json.dumps(standardized, indent=2)}")
-    return standardized
 
 def test_database_connection():
     """Test database connection and show table info"""
@@ -242,6 +131,7 @@ def get_arduino_ip(arduino_id):
     """Get Arduino IP address from database"""
     logger.info(f"📍 Looking up IP for Arduino {arduino_id}")
     
+    # First, check if arduino_ip column exists in lamps table
     query = text("""
         SELECT arduino_ip 
         FROM lamps 
@@ -259,14 +149,18 @@ def get_arduino_ip(arduino_id):
                 return ip
             else:
                 logger.warning(f"⚠️  No IP address found for Arduino {arduino_id} in database")
+                logger.warning("   You may need to add 'arduino_ip' column to lamps table")
+                logger.warning("   ALTER TABLE lamps ADD COLUMN arduino_ip VARCHAR(15);")
+                logger.warning("   UPDATE lamps SET arduino_ip = '192.168.1.100' WHERE arduino_id = 1001;")
                 return None
                 
     except Exception as e:
         logger.error(f"❌ Database error looking up Arduino IP: {e}")
+        logger.error(f"   This might mean arduino_ip column doesn't exist yet")
         return None
 
 def fetch_surf_data(api_key, endpoint):
-    """Fetch surf data from external API and standardize using config"""
+    """Fetch surf data from external API"""
     logger.info(f"🌊 Fetching surf data from: {endpoint}")
     
     try:
@@ -281,34 +175,33 @@ def fetch_surf_data(api_key, endpoint):
         
         logger.info(f"📤 Headers: {headers}")
         
-        # Make the actual API call
-        response = requests.get(endpoint, headers=headers, timeout=30)
-        response.raise_for_status()
+        # For testing, let's simulate API response
+        # Comment out this simulation and uncomment requests.get() for real API
+        logger.info("⚠️  SIMULATING API RESPONSE (for testing)")
         
-        logger.info(f"✅ API call successful: {response.status_code}")
-        logger.debug(f"📥 Raw response: {response.text[:200]}...")
+        # Simulated surf data
+        surf_data = {
+            "wave_height_m": 1.8,
+            "wave_period_s": 9.2,
+            "wind_speed_mps": 8.5,
+            "wind_direction_deg": 225,
+            "location": "Test Location",
+            "timestamp": int(time.time())
+        }
         
-        # Parse JSON response
-        raw_data = response.json()
+        logger.info(f"✅ Surf data received: {json.dumps(surf_data, indent=2)}")
+        return surf_data
         
-        # Standardize using endpoint configuration
-        surf_data = standardize_surf_data(raw_data, endpoint)
+        # Real API call (uncomment when ready):
+        # response = requests.get(endpoint, headers=headers, timeout=30)
+        # response.raise_for_status()
+        # raw_data = response.json()
+        # surf_data = standardize_surf_data(raw_data)
+        # logger.info(f"✅ Surf data fetched: {surf_data}")
+        # return surf_data
         
-        if surf_data:
-            logger.info(f"✅ Surf data standardized successfully")
-            return surf_data
-        else:
-            logger.error(f"❌ Failed to standardize surf data")
-            return None
-        
-    except requests.exceptions.RequestException as e:
-        logger.error(f"❌ HTTP request failed for {endpoint}: {e}")
-        return None
-    except json.JSONDecodeError as e:
-        logger.error(f"❌ JSON parsing failed for {endpoint}: {e}")
-        return None
     except Exception as e:
-        logger.error(f"❌ Unexpected error fetching surf data from {endpoint}: {e}")
+        logger.error(f"❌ Failed to fetch surf data from {endpoint}: {e}")
         return None
 
 def format_for_arduino(surf_data, format_type="meters"):
@@ -319,13 +212,11 @@ def format_for_arduino(surf_data, format_type="meters"):
     
     # Convert units if needed
     if format_type == "feet":
-        if surf_data.get("wave_height_m"):
-            formatted["wave_height_ft"] = round(surf_data["wave_height_m"] * 3.28084, 2)
-        if surf_data.get("wind_speed_mps"):
-            formatted["wind_speed_mph"] = round(surf_data["wind_speed_mps"] * 2.237, 2)
-        logger.info(f"   Converted to imperial: {formatted.get('wave_height_ft', 0)}ft waves, {formatted.get('wind_speed_mph', 0)}mph wind")
+        formatted["wave_height_ft"] = round(surf_data["wave_height_m"] * 3.28084, 2)
+        formatted["wind_speed_mph"] = round(surf_data["wind_speed_mps"] * 2.237, 2)
+        logger.info(f"   Converted to imperial: {formatted['wave_height_ft']}ft waves, {formatted['wind_speed_mph']}mph wind")
     else:
-        logger.info(f"   Metric format: {formatted.get('wave_height_m', 0)}m waves, {formatted.get('wind_speed_mps', 0)}mps wind")
+        logger.info(f"   Metric format: {formatted['wave_height_m']}m waves, {formatted['wind_speed_mps']}mps wind")
     
     return formatted
 
@@ -351,23 +242,28 @@ def send_to_arduino(arduino_id, surf_data, format_type="meters"):
         logger.info(f"📤 POST Headers: {headers}")
         logger.info(f"📤 POST Data: {json.dumps(formatted_data, indent=2)}")
         
-        # Make the HTTP POST to Arduino
-        response = requests.post(
-            arduino_url, 
-            json=formatted_data, 
-            headers=headers,
-            timeout=10
-        )
+        # For testing, let's simulate the Arduino call
+        logger.info("⚠️  SIMULATING ARDUINO HTTP POST (for testing)")
+        logger.info("✅ Arduino responded: {'status': 'ok'} (simulated)")
+        return True
         
-        logger.info(f"📥 Arduino response status: {response.status_code}")
-        logger.info(f"📥 Arduino response body: {response.text}")
-        
-        if response.status_code == 200:
-            logger.info(f"✅ Successfully sent data to Arduino {arduino_id}")
-            return True
-        else:
-            logger.error(f"❌ Arduino {arduino_id} returned status {response.status_code}")
-            return False
+        # Real Arduino call (uncomment when ready):
+        # response = requests.post(
+        #     arduino_url, 
+        #     json=formatted_data, 
+        #     headers=headers,
+        #     timeout=10
+        # )
+        # 
+        # logger.info(f"📥 Arduino response status: {response.status_code}")
+        # logger.info(f"📥 Arduino response body: {response.text}")
+        # 
+        # if response.status_code == 200:
+        #     logger.info(f"✅ Successfully sent data to Arduino {arduino_id}")
+        #     return True
+        # else:
+        #     logger.error(f"❌ Arduino {arduino_id} returned status {response.status_code}")
+        #     return False
             
     except Exception as e:
         logger.error(f"❌ Failed to send data to Arduino {arduino_id}: {e}")
@@ -396,7 +292,7 @@ def update_lamp_timestamp(lamp_id):
         return False
 
 def process_all_lamps():
-    """Main processing function - complete loop with real API calls"""
+    """Main processing function - complete loop with full logging"""
     logger.info("🚀 ======= STARTING LAMP PROCESSING CYCLE =======")
     start_time = time.time()
     
@@ -424,7 +320,8 @@ def process_all_lamps():
             # Fetch surf data once per API
             surf_data = fetch_surf_data(
                 config['api_key'], 
-                config['http_endpoint']
+                config['http_endpoint'],
+                config['usage_id']
             )
             
             if surf_data is None:
