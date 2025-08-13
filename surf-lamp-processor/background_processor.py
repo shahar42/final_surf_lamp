@@ -395,6 +395,45 @@ def update_lamp_timestamp(lamp_id):
         logger.error(f"❌ Failed to update timestamp for lamp {lamp_id}: {e}")
         return False
 
+def update_current_conditions(lamp_id, surf_data):
+    """Update current_conditions table with latest surf data"""
+    logger.info(f" Updating current conditions for lamp {lamp_id}")
+    
+    query = text("""
+        INSERT INTO current_conditions (
+            lamp_id, wave_height_m, wave_period_s, 
+            wind_speed_mps, wind_direction_deg, last_updated
+        ) VALUES (
+            :lamp_id, :wave_height_m, :wave_period_s,
+            :wind_speed_mps, :wind_direction_deg, CURRENT_TIMESTAMP
+        )
+        ON CONFLICT (lamp_id) 
+        DO UPDATE SET
+            wave_height_m = EXCLUDED.wave_height_m,
+            wave_period_s = EXCLUDED.wave_period_s,
+            wind_speed_mps = EXCLUDED.wind_speed_mps,
+            wind_direction_deg = EXCLUDED.wind_direction_deg,
+            last_updated = CURRENT_TIMESTAMP
+    """)
+    
+    try:
+        with engine.connect() as conn:
+            conn.execute(query, {
+                "lamp_id": lamp_id,
+                "wave_height_m": surf_data.get('wave_height_m', 0.0),
+                "wave_period_s": surf_data.get('wave_period_s', 0.0),
+                "wind_speed_mps": surf_data.get('wind_speed_mps', 0.0),
+                "wind_direction_deg": surf_data.get('wind_direction_deg', 0)
+            })
+            conn.commit()
+            
+        logger.info(f"✅ Current conditions updated for lamp {lamp_id}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to update current conditions for lamp {lamp_id}: {e}")
+        return False
+
 def process_all_lamps():
     """Main processing function - complete loop with real API calls"""
     logger.info("🚀 ======= STARTING LAMP PROCESSING CYCLE =======")
@@ -451,6 +490,9 @@ def process_all_lamps():
                 # Update timestamp regardless of Arduino success
                 # (we fetched the data successfully)
                 update_success = update_lamp_timestamp(target['lamp_id'])
+
+                # Update current conditions table with surf data
+                conditions_updated = update_current_conditions(target['lamp_id'], surf_data)
                 
                 if success and update_success:
                     total_arduinos_updated += 1

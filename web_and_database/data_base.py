@@ -133,13 +133,14 @@ def add_user_and_lamp(name, email, password_hash, lamp_id, arduino_id, location,
         "Bondi Beach, Australia",
         "Pipeline, Hawaii, USA",
         "Jeffreys Bay, South Africa",
-    ]
+s    ]
     
-    target_website_url = "https://api.website2.com/surf"
-    if location in LOCATIONS_WEBSITE_1:
-        target_website_url = "https://api.website1.com/surf"
-    
-    logger.info(f"Location '{location}' mapped to website: {target_website_url}")
+    # Only support configured locations, no arbitrary fallbacks
+    if location == "Hadera, Israel":
+        target_website_url = "https://isramar.ocean.org.il"
+    else:
+        logger.error(f"Unsupported location for registration: {location}")
+        return False, f"Location '{location}' is not supported yet. Currently supported: Hadera, Israel"
 
     try:
         # 1. Get or create the DailyUsage record for the target website
