@@ -6,6 +6,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from functools import wraps
 from sqlalchemy import text
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Import the database function and models
 from data_base import add_user_and_lamp, get_user_lamp_data, SessionLocal, User, Lamp
@@ -14,6 +15,10 @@ from forms import RegistrationForm, LoginForm
 
 # --- Configuration ---
 app = Flask(__name__)
+
+# Fix for Render's reverse proxy - prevents redirect loops
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'a_very_secret_key_for_development_12345')
 bcrypt = Bcrypt(app)
 
