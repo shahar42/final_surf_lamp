@@ -58,9 +58,45 @@ def login_required(f):
 
 @app.route("/")
 def index():
-    """Redirects to the dashboard if logged in, otherwise to registration."""
+    """Shows surf data for logged-in users, otherwise redirects to registration."""
     if 'user_email' in session:
-        return redirect(url_for('dashboard'))
+        # Get user's surf data (same logic as dashboard)
+        user_email = session.get('user_email')
+        user, lamp, conditions = get_user_lamp_data(user_email)
+        
+        if not user or not lamp:
+            flash('Error loading your lamp data. Please contact support.', 'error')
+            return redirect(url_for('login'))
+        
+        # Prepare surf data for display
+        dashboard_data = {
+            'user': {
+                'username': user.username,
+                'email': user.email,
+                'location': user.location,
+                'theme': user.theme,
+                'preferred_output': user.preferred_output
+            },
+            'lamp': {
+                'lamp_id': lamp.lamp_id,
+                'arduino_id': lamp.arduino_id,
+                'last_updated': lamp.last_updated
+            },
+            'conditions': None
+        }
+        
+        # Add surf conditions if available
+        if conditions:
+            dashboard_data['conditions'] = {
+                'wave_height_m': conditions.wave_height_m,
+                'wave_period_s': conditions.wave_period_s,
+                'wind_speed_mps': conditions.wind_speed_mps,
+                'wind_direction_deg': conditions.wind_direction_deg,
+                'last_updated': conditions.last_updated
+            }
+        
+        return render_template('dashboard.html', data=dashboard_data)
+    
     return redirect(url_for('register'))
 
 @app.route("/register", methods=['GET', 'POST'])
