@@ -6,6 +6,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from functools import wraps
 import logging
+from sqlalchemy import text
 
 # Import the database function and models
 from data_base import add_user_and_lamp, get_user_lamp_data, SessionLocal, User, Lamp
@@ -122,7 +123,7 @@ def test_database_connection():
     """Test database connection and log any issues"""
     try:
         db = SessionLocal()
-        result = db.execute("SELECT 1").fetchone()
+        result = db.execute(text("SELECT 1")).fetchone()
         db.close()
         logger.info("Database connection test successful")
         return True
