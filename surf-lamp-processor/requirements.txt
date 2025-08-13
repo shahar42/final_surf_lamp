@@ -1,0 +1,14 @@
+# requirements.txt - Minimal dependencies for background processor service
+
+# Database connectivity
+sqlalchemy==2.0.21
+psycopg2-binary==2.9.7
+
+# HTTP requests for API calls and Arduino communication
+requests==2.31.0
+
+# Task scheduling (every 30 minutes)
+schedule==1.2.0
+
+# Optional: Better logging and error handling
+python-dateutil==2.8.2
