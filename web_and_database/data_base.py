@@ -50,7 +50,7 @@ except Exception as e:
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-# --- SQLAlchemy Models (based on your provided schema) ---
+# --- SQLAlchemy Models (updated to match current database schema) ---
 
 class User(Base):
     __tablename__ = 'users'
@@ -68,7 +68,7 @@ class Lamp(Base):
     __tablename__ = 'lamps'
     lamp_id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
-    arduino_id = Column(Integer, unique=True, nullable=False)
+    arduino_id = Column(Integer, unique=True, nullable=True)
     last_updated = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
     
     user = relationship("User", back_populates="lamp")
@@ -108,6 +108,7 @@ class UsageLamps(Base):
     lamp_id = Column(Integer, ForeignKey('lamps.lamp_id'), primary_key=True)
     api_key = Column(Text, nullable=True)
     http_endpoint = Column(Text, nullable=False)
+    arduino_ip = Column(String(15), nullable=True)  # UPDATED: Added arduino_ip column
     
     lamp = relationship("Lamp", back_populates="usage_configs")
     website = relationship("DailyUsage", back_populates="lamp_configs")
@@ -182,7 +183,8 @@ def add_user_and_lamp(name, email, password_hash, lamp_id, arduino_id, location,
             usage_id=website.usage_id,
             lamp_id=new_lamp.lamp_id,
             api_key=os.environ.get('DEFAULT_API_KEY', 'your_api_key_here'), # Get key from environment
-            http_endpoint=f"{target_website_url}/{location.replace(' ', '_').lower()}"
+            http_endpoint=f"{target_website_url}/{location.replace(' ', '_').lower()}",
+            arduino_ip=None  # Will be populated later when Arduino IP is known
         )
         db.add(usage_lamp_link)
         logger.info(f"Created UsageLamps link: usage_id={website.usage_id}, lamp_id={new_lamp.lamp_id}")
