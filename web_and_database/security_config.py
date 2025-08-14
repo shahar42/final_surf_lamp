@@ -12,7 +12,9 @@ class SecurityConfig:
     
     # CSRF Protection
     CSRF_ENABLED = True
-    CSRF_SESSION_KEY = os.environ.get('CSRF_SESSION_KEY', 'super-secret-csrf-key')
+    CSRF_SESSION_KEY = os.environ.get('CSRF_SESSION_KEY')
+    if not CSRF_SESSION_KEY:
+        raise ValueError("CSRF_SESSION_KEY environment variable is required")
     
     # Rate Limiting Settings
     RATELIMIT_STORAGE_URL = os.environ.get('REDIS_URL', 'memory://')

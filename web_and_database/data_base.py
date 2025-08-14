@@ -69,7 +69,7 @@ class Lamp(Base):
     lamp_id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
     arduino_id = Column(Integer, unique=True, nullable=True)
-    arduino_ip = Column(String(15), unique=True, nullable=False)
+    arduino_ip = Column(String(15), unique=True, nullable=True)  # Allow NULL initially
     last_updated = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
     
     user = relationship("User", back_populates="lamp")
@@ -117,7 +117,7 @@ class UsageLamps(Base):
 
 # --- Database Interaction Function ---
 
-def add_user_and_lamp(name, email, password_hash, lamp_id, arduino_id, location, theme, units):
+def add_user_and_lamp(name, email, password_hash, lamp_id, arduino_id, arduino_ip, location, theme, units):
     """
     Creates a new user, registers their lamp, and links it to the correct 
     data source based on location.
@@ -128,17 +128,24 @@ def add_user_and_lamp(name, email, password_hash, lamp_id, arduino_id, location,
     db = SessionLocal()
     logger.info("Database session created")
     
-    # Define which locations map to which website/API provider.
-    LOCATIONS_WEBSITE_1 = [
-        "Hadera, Israel"
-    ]
-    
-    # Only support configured locations, no arbitrary fallbacks
-    if location == "Hadera, Israel":
-        target_website_url = "https://isramar.ocean.org.il"
-    else:
+    # Location to API endpoint mapping - only real supported locations
+    LOCATION_API_MAPPING = {
+        # Israeli locations - real API endpoints
+        "Hadera, Israel": "http://api.openweathermap.org/data/2.5/weather",
+        
+        # Add more real locations here as you expand:
+        # "Tel Aviv, Israel": "http://api.openweathermap.org/data/2.5/weather",
+        # "Ashdod, Israel": "https://isramar.ocean.org.il/isramar2009/station",
+    }
+
+    # Get the appropriate API for this location
+    target_website_url = LOCATION_API_MAPPING.get(location)
+
+    if not target_website_url:
         logger.error(f"Unsupported location for registration: {location}")
-        return False, f"Location '{location}' is not supported yet. Currently supported: Hadera, Israel"
+        return False, f"Location '{location}' is not supported yet. Currently supported: {', '.join(LOCATION_API_MAPPING.keys())}"
+
+    logger.info(f"Location '{location}' mapped to API: {target_website_url}")
 
     try:
         # 1. Get or create the DailyUsage record for the target website
@@ -172,7 +179,8 @@ def add_user_and_lamp(name, email, password_hash, lamp_id, arduino_id, location,
         new_lamp = Lamp(
             lamp_id=lamp_id,
             user_id=new_user.user_id,
-            arduino_id=arduino_id
+            arduino_id=arduino_id,
+            arduino_ip=arduino_ip
         )
         db.add(new_lamp)
         logger.info(f"Created Lamp record with lamp_id: {new_lamp.lamp_id}")
@@ -182,9 +190,9 @@ def add_user_and_lamp(name, email, password_hash, lamp_id, arduino_id, location,
         usage_lamp_link = UsageLamps(
             usage_id=website.usage_id,
             lamp_id=new_lamp.lamp_id,
-            api_key=os.environ.get('DEFAULT_API_KEY', 'your_api_key_here'), # Get key from environment
+            api_key=os.environ.get('DEFAULT_API_KEY'), # Get key from environment
             http_endpoint=f"{target_website_url}/{location.replace(' ', '_').lower()}",
-            arduino_ip=None  # Will be populated later when Arduino IP is known
+            arduino_ip=arduino_ip
         )
         db.add(usage_lamp_link)
         logger.info(f"Created UsageLamps link: usage_id={website.usage_id}, lamp_id={new_lamp.lamp_id}")

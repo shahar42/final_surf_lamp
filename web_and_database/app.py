@@ -19,7 +19,9 @@ app = Flask(__name__)
 # Fix for Render's reverse proxy - prevents redirect loops
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'a_very_secret_key_for_development_12345')
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
+if not app.config['SECRET_KEY']:
+    raise ValueError("SECRET_KEY environment variable is required")
 bcrypt = Bcrypt(app)
 
 # --- Redis and Rate Limiter Setup ---
