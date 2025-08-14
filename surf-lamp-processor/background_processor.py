@@ -344,7 +344,7 @@ def send_to_arduino(arduino_id, surf_data, format_type="meters"):
         # Get Arduino IP address
         arduino_ip = get_arduino_ip(arduino_id)
         if not arduino_ip:
-            logger.error(f"❌ No IP address found for Arduino {arduino_id}")
+            logger.warning(f"⚠️  No IP address found for Arduino {arduino_id}, skipping device update")
             return False
         
         # Format data based on user preferences
@@ -358,12 +358,12 @@ def send_to_arduino(arduino_id, surf_data, format_type="meters"):
         logger.info(f"📤 POST Headers: {headers}")
         logger.info(f"📤 POST Data: {json.dumps(formatted_data, indent=2)}")
         
-        # Make the HTTP POST to Arduino
+        # Make the HTTP POST to Arduino with shorter timeout
         response = requests.post(
             arduino_url, 
             json=formatted_data, 
             headers=headers,
-            timeout=10
+            timeout=5  # Reduced from 10 to 5 seconds
         )
         
         logger.info(f"📥 Arduino response status: {response.status_code}")
@@ -373,11 +373,17 @@ def send_to_arduino(arduino_id, surf_data, format_type="meters"):
             logger.info(f"✅ Successfully sent data to Arduino {arduino_id}")
             return True
         else:
-            logger.error(f"❌ Arduino {arduino_id} returned status {response.status_code}")
+            logger.warning(f"⚠️  Arduino {arduino_id} returned status {response.status_code}")
             return False
             
+    except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+        logger.warning(f"⚠️  Arduino {arduino_id} connection failed: {e}")
+        return False
+    except requests.exceptions.RequestException as e:
+        logger.warning(f"⚠️  Arduino {arduino_id} request failed: {e}")
+        return False
     except Exception as e:
-        logger.error(f"❌ Failed to send data to Arduino {arduino_id}: {e}")
+        logger.warning(f"⚠️  Unexpected error sending to Arduino {arduino_id}: {e}")
         return False
 
 def update_lamp_timestamp(lamp_id):
@@ -461,7 +467,9 @@ def process_all_lamps():
         logger.info(f"📊 Processing {len(api_configs)} unique API configurations...")
         
         # Step 3: Process each API configuration
-        total_arduinos_updated = 0
+        total_database_updates = 0
+        total_arduino_updates = 0
+        failed_arduino_updates = 0
         
         for i, config in enumerate(api_configs, 1):
             logger.info(f"\n--- Processing API {i}/{len(api_configs)} ---")
@@ -486,26 +494,36 @@ def process_all_lamps():
             
             # Send to all relevant Arduino devices
             for j, target in enumerate(arduino_targets, 1):
-                logger.info(f"\n  Sending to Arduino {j}/{len(arduino_targets)}")
+                logger.info(f"\n  Processing target {j}/{len(arduino_targets)}")
                 
-                success = send_to_arduino(
-                    target['arduino_id'], 
-                    surf_data, 
-                    target['format']
-                )
-                
-                # Update timestamp regardless of Arduino success
-                # (we fetched the data successfully)
-                update_success = update_lamp_timestamp(target['lamp_id'])
-
-                # Update current conditions table with surf data
+                # Always update database first (dashboard guaranteed)
+                timestamp_updated = update_lamp_timestamp(target['lamp_id'])
                 conditions_updated = update_current_conditions(target['lamp_id'], surf_data)
                 
-                if success and update_success:
-                    total_arduinos_updated += 1
-                    logger.info(f"✅ Arduino {target['arduino_id']} processed successfully")
+                if timestamp_updated and conditions_updated:
+                    total_database_updates += 1
+                    logger.info(f"✅ Database updated for lamp {target['lamp_id']}")
                 else:
-                    logger.error(f"❌ Issues processing Arduino {target['arduino_id']}")
+                    logger.error(f"❌ Database update failed for lamp {target['lamp_id']}")
+                
+                # Separately try to send to Arduino (can fail independently)
+                try:
+                    arduino_success = send_to_arduino(
+                        target['arduino_id'], 
+                        surf_data, 
+                        target['format']
+                    )
+                    
+                    if arduino_success:
+                        total_arduino_updates += 1
+                        logger.info(f"✅ Arduino {target['arduino_id']} updated successfully")
+                    else:
+                        failed_arduino_updates += 1
+                        logger.warning(f"⚠️  Arduino {target['arduino_id']} update failed, but dashboard data is still available")
+                        
+                except Exception as e:
+                    failed_arduino_updates += 1
+                    logger.warning(f"⚠️  Arduino {target['arduino_id']} communication failed: {e}, but dashboard data is still available")
         
         # Final summary
         end_time = time.time()
@@ -514,11 +532,14 @@ def process_all_lamps():
         logger.info(f"\n🎉 ======= LAMP PROCESSING CYCLE COMPLETED =======")
         logger.info(f"📊 Summary:")
         logger.info(f"   - APIs processed: {len(api_configs)}")
-        logger.info(f"   - Arduinos updated: {total_arduinos_updated}")
+        logger.info(f"   - Database updates: {total_database_updates}")
+        logger.info(f"   - Arduino updates: {total_arduino_updates}")
+        logger.info(f"   - Failed Arduino updates: {failed_arduino_updates}")
         logger.info(f"   - Duration: {duration} seconds")
-        logger.info(f"   - Status: SUCCESS")
+        logger.info(f"   - Status: {'SUCCESS' if total_database_updates > 0 else 'FAILED'}")
         
-        return True
+        # Return True if dashboard was updated (regardless of Arduino status)
+        return total_database_updates > 0
         
     except Exception as e:
         logger.error(f"💥 CRITICAL ERROR in lamp processing cycle: {e}")
