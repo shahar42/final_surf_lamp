@@ -1,0 +1,106 @@
+[
+  {
+    "location": "Hadera",
+    "coordinates": {
+      "lat": 32.4365,
+      "lon": 34.9196
+    },
+    "apis_tested": {
+      "openweather": {
+        "location": "Hadera",
+        "api_source": "OpenWeatherMap",
+        "timestamp": 1755213241,
+        "wave_height_m": 0.0,
+        "wave_period_s": 0.0,
+        "wind_speed_mps": 1.31,
+        "wind_direction_deg": 237
+      },
+      "open_meteo": null,
+      "isramar": {
+        "location": "Hadera",
+        "api_source": "ISRAMAR (Israeli Marine Research)",
+        "timestamp": 1755213241,
+        "wave_height_m": 0.4318,
+        "wave_period_s": 3.5,
+        "wind_speed_mps": 0.0,
+        "wind_direction_deg": 0
+      }
+    }
+  },
+  {
+    "location": "Tel Aviv",
+    "coordinates": {
+      "lat": 32.0853,
+      "lon": 34.7818
+    },
+    "apis_tested": {
+      "openweather": {
+        "location": "Tel Aviv",
+        "api_source": "OpenWeatherMap",
+        "timestamp": 1755213243,
+        "wave_height_m": 0.0,
+        "wave_period_s": 0.0,
+        "wind_speed_mps": 3.09,
+        "wind_direction_deg": 160
+      },
+      "open_meteo": null
+    }
+  },
+  {
+    "location": "Ashdod",
+    "coordinates": {
+      "lat": 31.7939,
+      "lon": 34.6328
+    },
+    "apis_tested": {
+      "openweather": {
+        "location": "Ashdod",
+        "api_source": "OpenWeatherMap",
+        "timestamp": 1755213244,
+        "wave_height_m": 0.0,
+        "wave_period_s": 0.0,
+        "wind_speed_mps": 1.83,
+        "wind_direction_deg": 292
+      },
+      "open_meteo": null
+    }
+  },
+  {
+    "location": "Haifa",
+    "coordinates": {
+      "lat": 32.794,
+      "lon": 34.9896
+    },
+    "apis_tested": {
+      "openweather": {
+        "location": "Haifa",
+        "api_source": "OpenWeatherMap",
+        "timestamp": 1755213246,
+        "wave_height_m": 0.0,
+        "wave_period_s": 0.0,
+        "wind_speed_mps": 1.41,
+        "wind_direction_deg": 274
+      },
+      "open_meteo": null
+    }
+  },
+  {
+    "location": "Netanya",
+    "coordinates": {
+      "lat": 32.3215,
+      "lon": 34.8532
+    },
+    "apis_tested": {
+      "openweather": {
+        "location": "Netanya",
+        "api_source": "OpenWeatherMap",
+        "timestamp": 1755213247,
+        "wave_height_m": 0.0,
+        "wave_period_s": 0.0,
+        "wind_speed_mps": 1.21,
+        "wind_direction_deg": 235
+      },
+      "open_meteo": null
+    }
+  }
+]

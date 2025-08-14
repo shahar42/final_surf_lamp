@@ -42,7 +42,11 @@ limiter.init_app(app)
 
 # --- Static Data ---
 SURF_LOCATIONS = [
-    "Hadera, Israel"
+    "Hadera, Israel",
+    "Tel Aviv, Israel", 
+    "Ashdod, Israel",
+    "Haifa, Israel",
+    "Netanya, Israel"
 ]
 
 # --- Helper Functions ---

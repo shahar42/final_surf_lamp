@@ -30,9 +30,7 @@ class RegistrationForm(FlaskForm):
     # Strong password requirements
     password = PasswordField('Password', validators=[
         DataRequired(message="Password is required"),
-        Length(min=8, max=128, message="Password must be between 8 and 128 characters"),
-        Regexp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]',
-               message="Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character")
+        Length(min=8, max=128, message="Password must be between 8 and 128 characters")
     ])
     
     # Lamp ID - positive integer only

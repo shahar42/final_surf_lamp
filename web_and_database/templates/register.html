@@ -105,7 +105,7 @@
             
             <!-- Password Field -->
             <div>
-                {{ form.password(class="form-input w-full px-4 py-3 rounded-lg" + (" error" if form.password.errors else ""), placeholder="Password (8+ chars, mixed case, number, symbol)") }}
+                {{ form.password(class="form-input w-full px-4 py-3 rounded-lg" + (" error" if form.password.errors else ""), placeholder="Password (8+ characters minimum)") }}
                 {% if form.password.errors %}
                     <div class="field-error">
                         {% for error in form.password.errors %}

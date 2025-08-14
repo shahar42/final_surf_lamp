@@ -131,11 +131,11 @@ def add_user_and_lamp(name, email, password_hash, lamp_id, arduino_id, location,
     # Location to API endpoint mapping - only real supported locations
     LOCATION_API_MAPPING = {
         # Israeli locations - real API endpoints
-        "Hadera, Israel": "https://isramar.ocean.org.il/isramar2009/station/data",
-        
-        # Add more real locations here as you expand:
-        # "Tel Aviv, Israel": "http://api.openweathermap.org/data/2.5/weather",
-        # "Ashdod, Israel": "https://isramar.ocean.org.il/isramar2009/station",
+        "Hadera, Israel": "http://api.openweathermap.org/data/2.5/weather",
+        "Tel Aviv, Israel": "http://api.openweathermap.org/data/2.5/weather",
+        "Ashdod, Israel": "http://api.openweathermap.org/data/2.5/weather",
+        "Haifa, Israel": "http://api.openweathermap.org/data/2.5/weather",
+        "Netanya, Israel": "http://api.openweathermap.org/data/2.5/weather",
     }
 
     # Get the appropriate API for this location
