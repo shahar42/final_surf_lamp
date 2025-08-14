@@ -2,8 +2,8 @@
 
 # Database connectivity
 sqlalchemy>=2.0.25
-psycopg2-binary==2.9.7
 
+psycopg2-binary>=2.9.9 
 # HTTP requests for API calls and Arduino communication
 requests==2.31.0
 
