@@ -12,3 +12,5 @@ schedule==1.2.0
 
 # Optional: Better logging and error handling
 python-dateutil==2.8.2
+
+python-dotenv==1.0.0
