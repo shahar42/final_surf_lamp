@@ -117,7 +117,7 @@ class UsageLamps(Base):
 
 # --- Database Interaction Function ---
 
-def add_user_and_lamp(name, email, password_hash, lamp_id, arduino_id, arduino_ip, location, theme, units):
+def add_user_and_lamp(name, email, password_hash, lamp_id, arduino_id, location, theme, units):
     """
     Creates a new user, registers their lamp, and links it to the correct 
     data source based on location.
@@ -180,7 +180,7 @@ def add_user_and_lamp(name, email, password_hash, lamp_id, arduino_id, arduino_i
             lamp_id=lamp_id,
             user_id=new_user.user_id,
             arduino_id=arduino_id,
-            arduino_ip=arduino_ip
+            arduino_ip=None
         )
         db.add(new_lamp)
         logger.info(f"Created Lamp record with lamp_id: {new_lamp.lamp_id}")
@@ -192,7 +192,7 @@ def add_user_and_lamp(name, email, password_hash, lamp_id, arduino_id, arduino_i
             lamp_id=new_lamp.lamp_id,
             api_key=os.environ.get('DEFAULT_API_KEY'), # Get key from environment
             http_endpoint=f"{target_website_url}/{location.replace(' ', '_').lower()}",
-            arduino_ip=arduino_ip
+            arduino_ip=None
         )
         db.add(usage_lamp_link)
         logger.info(f"Created UsageLamps link: usage_id={website.usage_id}, lamp_id={new_lamp.lamp_id}")
