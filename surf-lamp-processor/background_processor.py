@@ -113,34 +113,41 @@ def standardize_surf_data(raw_data, endpoint_url):
     
     logger.info(f"✅ Found config with {len(config)} field mappings")
     
-    standardized = {}
-    conversions = config.get('conversions', {})
-    fallbacks = config.get('fallbacks', {})
-    
-    # Extract each configured field
-    for standard_field, field_path in config.items():
-        if standard_field in ['fallbacks', 'conversions']:
-            continue
+    # Handle custom extraction for Isramar
+    if config.get('custom_extraction'):
+        logger.info("🔧 Using custom extraction for Isramar")
+        from endpoint_configs import extract_isramar_data
+        standardized = extract_isramar_data(raw_data)
+    else:
+        # Standard field path extraction (for OpenWeatherMap etc.)
+        standardized = {}
+        conversions = config.get('conversions', {})
+        fallbacks = config.get('fallbacks', {})
+        
+        # Extract each configured field
+        for standard_field, field_path in config.items():
+            if standard_field in ['fallbacks', 'conversions']:
+                continue
+                
+            # Extract the raw value
+            raw_value = extract_field_value(raw_data, field_path)
+            logger.debug(f"   {standard_field}: {field_path} -> {raw_value}")
             
-        # Extract the raw value
-        raw_value = extract_field_value(raw_data, field_path)
-        logger.debug(f"   {standard_field}: {field_path} -> {raw_value}")
+            # Apply conversions if configured
+            converted_value = apply_conversions(raw_value, conversions, standard_field)
+            
+            # Use fallback if value is None
+            if converted_value is None:
+                converted_value = fallbacks.get(standard_field)
+                logger.debug(f"   {standard_field}: Using fallback -> {converted_value}")
+            
+            standardized[standard_field] = converted_value
         
-        # Apply conversions if configured
-        converted_value = apply_conversions(raw_value, conversions, standard_field)
-        
-        # Use fallback if value is None
-        if converted_value is None:
-            converted_value = fallbacks.get(standard_field)
-            logger.debug(f"   {standard_field}: Using fallback -> {converted_value}")
-        
-        standardized[standard_field] = converted_value
-    
-    # Add required fields with fallbacks if not present
-    required_fields = ['wave_height_m', 'wave_period_s', 'wind_speed_mps', 'wind_direction_deg']
-    for field in required_fields:
-        if field not in standardized:
-            standardized[field] = fallbacks.get(field, 0.0)
+        # Add required fields with fallbacks if not present
+        required_fields = ['wave_height_m', 'wave_period_s', 'wind_speed_mps', 'wind_direction_deg']
+        for field in required_fields:
+            if field not in standardized:
+                standardized[field] = fallbacks.get(field, 0.0)
     
     # Add metadata
     standardized['timestamp'] = int(time.time())

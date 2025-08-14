@@ -23,10 +23,10 @@ FIELD_MAPPINGS = {
         }
     },
     
-    # Israeli Marine Data (Isramar)
+    # Israeli Marine Data (Isramar) - FIXED STRUCTURE
     "isramar.ocean.org.il": {
-        "wave_height_m": ["Hs"],
-        "wave_period_s": ["Per"],
+        # Custom extraction function for complex structure
+        "custom_extraction": True,
         "fallbacks": {
             "wind_speed_mps": 0.0,  # Isramar focuses on wave data
             "wind_direction_deg": 0,
@@ -34,8 +34,46 @@ FIELD_MAPPINGS = {
             "wave_period_s": 0.0
         }
     },
-    
 }
+
+def extract_isramar_data(raw_data):
+    """
+    Custom extraction function for Isramar's complex JSON structure.
+    
+    Expected structure:
+    {
+      "parameters": [
+        {"name": "Significant wave height", "units": "m", "values": [0.41]},
+        {"name": "Peak wave period", "units": "s", "values": [3.5]}
+      ]
+    }
+    """
+    extracted = {
+        "wave_height_m": 0.0,
+        "wave_period_s": 0.0,
+        "wind_speed_mps": 0.0,
+        "wind_direction_deg": 0
+    }
+    
+    if "parameters" not in raw_data:
+        return extracted
+    
+    for param in raw_data["parameters"]:
+        name = param.get("name", "")
+        values = param.get("values", [])
+        
+        if not values:  # Skip if no values
+            continue
+            
+        # Extract wave height
+        if "Significant wave height" in name:
+            extracted["wave_height_m"] = float(values[0])
+        
+        # Extract wave period  
+        elif "Peak wave period" in name:
+            extracted["wave_period_s"] = float(values[0])
+    
+    return extracted
 
 def get_endpoint_config(endpoint_url):
     """
@@ -76,3 +114,17 @@ if __name__ == "__main__":
             print(f"✅ {url} -> Found config with {len(config)} mappings")
         else:
             print(f"❌ {url} -> No config found")
+    
+    # Test Isramar extraction
+    test_data = {
+        "datetime": "2025-08-14 17:00 UTC",
+        "parameters": [
+            {"name": "Significant wave height", "units": "m", "values": [0.41]},
+            {"name": "Peak wave period", "units": "s", "values": [3.5]}
+        ]
+    }
+    
+    result = extract_isramar_data(test_data)
+    print(f"\n✅ Isramar extraction test:")
+    print(f"   Wave height: {result['wave_height_m']}m")
+    print(f"   Wave period: {result['wave_period_s']}s")
