@@ -25,6 +25,9 @@
             font-family: 'Poppins', sans-serif;
             background: linear-gradient(135deg, #00c6ff, #0072ff);
         }
+        .text-white, .text-white\/80, .text-white\/60 {
+            color: #FFFCDE !important;
+        }
         .card {
             background-color: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
@@ -73,7 +76,7 @@
         }
         #locationSelect option {
             background-color: #1f2937;
-            color: #ffffff;
+            color: #FFFCDE;
             padding: 4px 8px;
         }
     </style>
@@ -243,10 +246,7 @@
                     <span class="text-white">{{ data.lamp.last_updated.strftime('%Y-%m-%d %H:%M:%S') }} UTC</span>
                 </div>
                 
-                <div>
-                    <span class="text-white/60">Account Email:</span><br>
-                    <span class="text-white">{{ data.user.email }}</span>
-                </div>
+                
                 
                 <div>
                     <span class="text-white/60">Update Frequency:</span><br>
@@ -267,7 +267,7 @@
         // Disable dropdown during update
         this.disabled = true;
         statusDiv.textContent = 'Updating...';
-        statusDiv.style.color = '#ffffff';
+        statusDiv.style.color = '#FFFCDE';
         
         fetch('/update-location', {
             method: 'POST',
@@ -307,7 +307,7 @@
     function updateTheme(newTheme) {
         const statusDiv = document.getElementById('theme-status');
         statusDiv.textContent = 'Updating theme...';
-        statusDiv.style.color = '#ffffff';
+        statusDiv.style.color = '#FFFCDE';
 
         fetch('/update-theme', {
             method: 'POST',
