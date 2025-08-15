@@ -156,7 +156,7 @@ def index():
                 'last_updated': conditions.last_updated
             }
         
-        return render_template('dashboard.html', data=dashboard_data)
+        return render_template('dashboard.html', data=dashboard_data, locations=SURF_LOCATIONS)
     
     return redirect(url_for('register'))
 
