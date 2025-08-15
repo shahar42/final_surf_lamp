@@ -9,19 +9,19 @@
       "openweather": {
         "location": "Hadera",
         "api_source": "OpenWeatherMap",
-        "timestamp": 1755246483,
+        "timestamp": 1755266890,
         "wave_height_m": 0.0,
         "wave_period_s": 0.0,
-        "wind_speed_mps": 4.21,
-        "wind_direction_deg": 300
+        "wind_speed_mps": 6.05,
+        "wind_direction_deg": 316
       },
       "open_meteo": null,
       "isramar": {
         "location": "Hadera",
         "api_source": "ISRAMAR (Israeli Marine Research)",
-        "timestamp": 1755246483,
-        "wave_height_m": 0.7239,
-        "wave_period_s": 5.9,
+        "timestamp": 1755266891,
+        "wave_height_m": 0.8255,
+        "wave_period_s": 5.0,
         "wind_speed_mps": 0.0,
         "wind_direction_deg": 0
       }
@@ -37,11 +37,11 @@
       "openweather": {
         "location": "Tel Aviv",
         "api_source": "OpenWeatherMap",
-        "timestamp": 1755246484,
+        "timestamp": 1755266892,
         "wave_height_m": 0.0,
         "wave_period_s": 0.0,
-        "wind_speed_mps": 4.12,
-        "wind_direction_deg": 310
+        "wind_speed_mps": 6.69,
+        "wind_direction_deg": 320
       },
       "open_meteo": null
     }
@@ -56,11 +56,11 @@
       "openweather": {
         "location": "Ashdod",
         "api_source": "OpenWeatherMap",
-        "timestamp": 1755246486,
+        "timestamp": 1755266893,
         "wave_height_m": 0.0,
         "wave_period_s": 0.0,
-        "wind_speed_mps": 3.85,
-        "wind_direction_deg": 327
+        "wind_speed_mps": 5.72,
+        "wind_direction_deg": 338
       },
       "open_meteo": null
     }
@@ -75,11 +75,11 @@
       "openweather": {
         "location": "Haifa",
         "api_source": "OpenWeatherMap",
-        "timestamp": 1755246488,
+        "timestamp": 1755266895,
         "wave_height_m": 0.0,
         "wave_period_s": 0.0,
         "wind_speed_mps": 4.12,
-        "wind_direction_deg": 310
+        "wind_direction_deg": 320
       },
       "open_meteo": null
     }
@@ -94,11 +94,11 @@
       "openweather": {
         "location": "Netanya",
         "api_source": "OpenWeatherMap",
-        "timestamp": 1755246489,
+        "timestamp": 1755266896,
         "wave_height_m": 0.0,
         "wave_period_s": 0.0,
-        "wind_speed_mps": 3.72,
-        "wind_direction_deg": 299
+        "wind_speed_mps": 5.65,
+        "wind_direction_deg": 320
       },
       "open_meteo": null
     }
