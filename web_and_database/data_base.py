@@ -1,4 +1,5 @@
-"This module handles all database interactions for the Surf Lamp web application.
+"""
+This module handles all database interactions for the Surf Lamp web application.
 
 It defines the database schema using SQLAlchemy ORM, provides functions for creating,
 reading, and updating data, and manages the database connection.
