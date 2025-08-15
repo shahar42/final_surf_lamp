@@ -186,13 +186,15 @@ class UsageLamps(Base):
         api_key (str): The API key for the data source, if required.
         http_endpoint (str): The full, specific URL for the API call.
         arduino_ip (str): The IP address of the Arduino (denormalized for the background processor).
+        endpoint_priority (int): Priority order for multiple endpoints (1 = highest priority).
     """
     __tablename__ = 'usage_lamps'
     usage_id = Column(Integer, ForeignKey('daily_usage.usage_id'), primary_key=True)
     lamp_id = Column(Integer, ForeignKey('lamps.lamp_id'), primary_key=True)
     api_key = Column(Text, nullable=True)
     http_endpoint = Column(Text, nullable=False)
-    arduino_ip = Column(String(15), nullable=True)  # UPDATED: Added arduino_ip column
+    arduino_ip = Column(String(15), nullable=True)
+    endpoint_priority = Column(Integer, nullable=False, default=1)
     
     lamp = relationship("Lamp", back_populates="usage_configs")
     website = relationship("DailyUsage", back_populates="lamp_configs")
@@ -241,106 +243,100 @@ def get_api_endpoints_for_location(location):
     """Get all available API endpoints for a given location"""
     endpoints = []
     
-    # Location to API endpoint mapping - only real supported locations
-    LOCATION_API_MAPPING = {
-        # Israeli locations - REAL SURF DATA with wave heights!
-        "Tel Aviv, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=32.0853&longitude=34.7818&hourly=wave_height,wave_period,wave_direction",
-        "Hadera, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=32.4365&longitude=34.9196&hourly=wave_height,wave_period,wave_direction",
-        "Ashdod, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=31.7939&longitude=34.6328&hourly=wave_height,wave_period,wave_direction",
-        "Haifa, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=32.794&longitude=34.9896&hourly=wave_height,wave_period,wave_direction",
-        "Netanya, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=32.3215&longitude=34.8532&hourly=wave_height,wave_period,wave_direction",
-    }
-    
-    # Get base API URL for this location
-    base_url = LOCATION_API_MAPPING.get(location)
-    if not base_url:
-        return endpoints
-    
-    # For OpenWeatherMap locations, always add OpenWeatherMap
-    if base_url == "http://api.openweathermap.org/data/2.5/weather":
-        api_key = os.environ.get('DEFAULT_API_KEY', 'd6ef64df6585b7e88e51c221bbd41c2b')
-        owm_endpoint = generate_api_endpoint("openweathermap", base_url, location, api_key)
-        endpoints.append({
-            "api_type": "openweathermap",
-            "base_url": base_url,
-            "endpoint": owm_endpoint,
-            "api_key": api_key
-        })
-    
-    # For Hadera, also add ISRAMAR if available
-    if location == "Hadera, Israel":
-        isramar_base = "https://isramar.ocean.org.il/isramar2009"
-        isramar_endpoint = generate_api_endpoint("isramar", isramar_base, location)
-        if isramar_endpoint:
-            endpoints.append({
-                "api_type": "isramar", 
-                "base_url": isramar_base,
-                "endpoint": isramar_endpoint,
-                "api_key": None
-            })
+# Multi-source locations (require multiple API calls)
+MULTI_SOURCE_LOCATIONS = {
+    "Tel Aviv, Israel": [
+        {
+            "url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.0853&longitude=34.7818&hourly=wave_height,wave_period,wave_direction",
+            "priority": 1,
+            "type": "wave"
+        },
+        {
+            "url": "https://api.open-meteo.com/v1/forecast?latitude=32.0853&longitude=34.7818&hourly=wind_speed_10m,wind_direction_10m",
+            "priority": 2,
+            "type": "wind"
+        }
+    ],
+    "Hadera, Israel": [
+        {
+            "url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.4365&longitude=34.9196&hourly=wave_height,wave_period,wave_direction",
+            "priority": 1,
+            "type": "wave"
+        },
+        {
+            "url": "https://api.open-meteo.com/v1/forecast?latitude=32.4365&longitude=34.9196&hourly=wind_speed_10m,wind_direction_10m",
+            "priority": 2,
+            "type": "wind"
+        }
+    ],
+    "Ashdod, Israel": [
+        {
+            "url": "https://marine-api.open-meteo.com/v1/marine?latitude=31.7939&longitude=34.6328&hourly=wave_height,wave_period,wave_direction",
+            "priority": 1,
+            "type": "wave"
+        },
+        {
+            "url": "https://api.open-meteo.com/v1/forecast?latitude=31.7939&longitude=34.6328&hourly=wind_speed_10m,wind_direction_10m",
+            "priority": 2,
+            "type": "wind"
+        }
+    ],
+    "Haifa, Israel": [
+        {
+            "url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.7940&longitude=34.9896&hourly=wave_height,wave_period,wave_direction",
+            "priority": 1,
+            "type": "wave"
+        },
+        {
+            "url": "https://api.open-meteo.com/v1/forecast?latitude=32.7940&longitude=34.9896&hourly=wind_speed_10m,wind_direction_10m",
+            "priority": 2,
+            "type": "wind"
+        }
+    ],
+    "Netanya, Israel": [
+        {
+            "url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.3215&longitude=34.8532&hourly=wave_height,wave_period,wave_direction",
+            "priority": 1,
+            "type": "wave"
+        },
+        {
+            "url": "https://api.open-meteo.com/v1/forecast?latitude=32.3215&longitude=34.8532&hourly=wind_speed_10m,wind_direction_10m",
+            "priority": 2,
+            "type": "wind"
+        }
+    ]
+}
+
+# Single-source locations (one API provides everything)
+SINGLE_SOURCE_LOCATIONS = {
+    # Future locations that provide wave + wind in one API
+}
     
     return endpoints
 
 def add_user_and_lamp(name, email, password_hash, lamp_id, arduino_id, location, theme, units):
     """
-    Creates a new user and registers their lamp in a single database transaction.
-
-    This function orchestrates the creation of a new user, their lamp, and the
-    necessary links to the correct data sources based on the user's chosen location.
-    It ensures data integrity by rolling back the transaction if any step fails.
-
-    Args:
-        name (str): The user's full name or username.
-        email (str): The user's email address.
-        password_hash (str): The user's hashed password.
-        lamp_id (int): The unique ID of the lamp.
-        arduino_id (int): The unique ID of the Arduino in the lamp.
-        location (str): The surf location selected by the user.
-        theme (str): The user's preferred UI theme.
-        units (str): The user's preferred measurement units.
-
-    Returns:
-        tuple: A tuple containing:
-            - bool: True for success, False for failure.
-            - str: A message indicating the result.
+    Creates a new user and registers their lamp with appropriate API sources.
+    Supports both single-source and multi-source locations.
     """
     logger.info(f"Starting user registration for email: {email}, lamp_id: {lamp_id}, arduino_id: {arduino_id}")
     
     db = SessionLocal()
     logger.info("Database session created")
-    
-    # Location to API endpoint mapping - only real supported locations
-    LOCATION_API_MAPPING = {
-        "Tel Aviv, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=32.0853&longitude=34.7818&hourly=wave_height,wave_period,wave_direction",
-        "Hadera, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=32.4365&longitude=34.9196&hourly=wave_height,wave_period,wave_direction", 
-        "Ashdod, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=31.7939&longitude=34.6328&hourly=wave_height,wave_period,wave_direction",
-        "Haifa, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=32.794&longitude=34.9896&hourly=wave_height,wave_period,wave_direction",
-        "Netanya, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=32.3215&longitude=34.8532&hourly=wave_height,wave_period,wave_direction",
-    }
-
-    # Get the appropriate API for this location
-    target_website_url = LOCATION_API_MAPPING.get(location)
-
-    if not target_website_url:
-        logger.error(f"Unsupported location for registration: {location}")
-        return False, f"Location '{location}' is not supported yet. Currently supported: {', '.join(LOCATION_API_MAPPING.keys())}"
-
-    logger.info(f"Location '{location}' mapped to API: {target_website_url}")
 
     try:
-        # 1. Get or create the DailyUsage record for the target website
-        logger.info(f"Looking for existing DailyUsage record for: {target_website_url}")
-        website = db.query(DailyUsage).filter(DailyUsage.website_url == target_website_url).first()
-        if not website:
-            logger.info("Creating new DailyUsage record")
-            website = DailyUsage(website_url=target_website_url)
-            db.add(website)
-            db.flush()
-            logger.info(f"Created DailyUsage record with usage_id: {website.usage_id}")
+        # Determine if location is single-source or multi-source
+        if location in MULTI_SOURCE_LOCATIONS:
+            api_sources = MULTI_SOURCE_LOCATIONS[location]
+            logger.info(f"Location '{location}' uses {len(api_sources)} API sources")
+        elif location in SINGLE_SOURCE_LOCATIONS:
+            api_sources = SINGLE_SOURCE_LOCATIONS[location]
+            logger.info(f"Location '{location}' uses 1 API source")
         else:
-            logger.info(f"Found existing DailyUsage record with usage_id: {website.usage_id}")
+            logger.error(f"Unsupported location for registration: {location}")
+            return False, f"Location '{location}' is not supported yet."
 
-        # 2. Create the new User
+        # 1. Create the new User
         logger.info("Creating new User record")
         new_user = User(
             username=name,
@@ -354,7 +350,7 @@ def add_user_and_lamp(name, email, password_hash, lamp_id, arduino_id, location,
         db.flush()
         logger.info(f"Created User record with user_id: {new_user.user_id}")
 
-        # 3. Create the new Lamp and link it to the user
+        # 2. Create the new Lamp
         logger.info("Creating new Lamp record")
         new_lamp = Lamp(
             lamp_id=lamp_id,
@@ -365,41 +361,46 @@ def add_user_and_lamp(name, email, password_hash, lamp_id, arduino_id, location,
         db.add(new_lamp)
         logger.info(f"Created Lamp record with lamp_id: {new_lamp.lamp_id}")
         
-        # 4. Link the Lamp to Website(s) via UsageLamps - Professional API handling
-        logger.info("Creating UsageLamps links for all available APIs")
+        # 3. Create API sources for this location
+        for source in api_sources:
+            logger.info(f"Processing {source['type']} API source")
+            
+            # Get or create DailyUsage record for this API URL
+            website = db.query(DailyUsage).filter(DailyUsage.website_url == source['url']).first()
+            if not website:
+                logger.info(f"Creating new DailyUsage record for {source['type']}")
+                website = DailyUsage(website_url=source['url'])
+                db.add(website)
+                db.flush()
+                logger.info(f"Created DailyUsage record with usage_id: {website.usage_id}")
+            else:
+                logger.info(f"Found existing DailyUsage record with usage_id: {website.usage_id}")
 
-        # Get all available API endpoints for this location
-        available_endpoints = get_api_endpoints_for_location(location)
-
-        if not available_endpoints:
-            logger.error(f"No API endpoints available for location: {location}")
-            return False, f"Location '{location}' has no configured API endpoints"
-
-        # Create UsageLamps entry for each available API
-        for endpoint_config in available_endpoints:
+            # Create UsageLamps link with priority
             usage_lamp_link = UsageLamps(
                 usage_id=website.usage_id,
                 lamp_id=new_lamp.lamp_id,
-                api_key=endpoint_config["api_key"],
-                http_endpoint=endpoint_config["endpoint"],
-                arduino_ip=None
+                api_key=None,
+                http_endpoint=source['url'],
+                arduino_ip=None,
+                endpoint_priority=source['priority']
             )
             db.add(usage_lamp_link)
-            logger.info(f"Created UsageLamps link: {endpoint_config['api_type']} for {location}")
-            logger.info(f"  Endpoint: {endpoint_config['endpoint']}")
+            logger.info(f"Created UsageLamps link: {source['type']} (priority {source['priority']})")
 
-        # 4.5. Create or get LocationWebsites mapping
+        # 4. Create LocationWebsites mapping (use first source for mapping)
+        first_source = api_sources[0]
+        first_website = db.query(DailyUsage).filter(DailyUsage.website_url == first_source['url']).first()
+        
         location_website = db.query(LocationWebsites).filter(LocationWebsites.location == location).first()
         if not location_website:
             logger.info("Creating LocationWebsites mapping")
             location_website = LocationWebsites(
                 location=location,
-                usage_id=website.usage_id
+                usage_id=first_website.usage_id
             )
             db.add(location_website)
-            logger.info(f"Created LocationWebsites mapping: {location} -> usage_id={website.usage_id}")
-        else:
-            logger.info(f"Found existing LocationWebsites mapping for {location}")
+            logger.info(f"Created LocationWebsites mapping: {location} -> usage_id={first_website.usage_id}")
 
         # 5. Commit the entire transaction
         logger.info("Committing transaction")
@@ -463,83 +464,70 @@ def get_user_lamp_data(email):
         db.close()
 
 def update_user_location(user_id, new_location):
-    """
-    Update user's location and reconfigure their lamp's API endpoint.
-    Returns (True, "Success") on success, (False, "Error message") on failure.
-    """
+    """Update user's location and reconfigure their lamp's API endpoints."""
     logger.info(f"Updating location for user_id: {user_id} to: {new_location}")
     
     db = SessionLocal()
     
-    # Location to API endpoint mapping (same as registration)
-    LOCATION_API_MAPPING = {
-        "Tel Aviv, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=32.0853&longitude=34.7818&hourly=wave_height,wave_period,wave_direction",
-        "Hadera, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=32.4365&longitude=34.9196&hourly=wave_height,wave_period,wave_direction",
-        "Ashdod, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=31.7939&longitude=34.6328&hourly=wave_height,wave_period,wave_direction",
-        "Haifa, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=32.794&longitude=34.9896&hourly=wave_height,wave_period,wave_direction",
-        "Netanya, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=32.3215&longitude=34.8532&hourly=wave_height,wave_period,wave_direction",
-    }
-    
-    target_website_url = LOCATION_API_MAPPING.get(new_location)
-    if not target_website_url:
+    # Determine API sources for new location
+    if new_location in MULTI_SOURCE_LOCATIONS:
+        api_sources = MULTI_SOURCE_LOCATIONS[new_location]
+    elif new_location in SINGLE_SOURCE_LOCATIONS:
+        api_sources = SINGLE_SOURCE_LOCATIONS[new_location]
+    else:
         logger.error(f"No API mapping found for location: {new_location}")
         return False, f"Location '{new_location}' is not supported"
     
     try:
-        # 1. Get or create DailyUsage record for target location
-        logger.info(f"Finding DailyUsage for: {target_website_url}")
-        target_website = db.query(DailyUsage).filter(DailyUsage.website_url == target_website_url).first()
-        
-        if not target_website:
-            logger.info("Creating new DailyUsage record")
-            target_website = DailyUsage(website_url=target_website_url)
-            db.add(target_website)
-            db.flush()
-            logger.info(f"Created DailyUsage with usage_id: {target_website.usage_id}")
-        
-        target_usage_id = target_website.usage_id
-        
-        # 2. Update user's location
-        logger.info(f"Updating user location to: {new_location}")
+        # 1. Update user's location
         user = db.query(User).filter(User.user_id == user_id).first()
         if not user:
-            logger.error(f"User not found: {user_id}")
             return False, "User not found"
         
         old_location = user.location
         user.location = new_location
-        logger.info(f"Changed location from '{old_location}' to '{new_location}'")
         
-        # 3. Update lamp's usage_lamps record
-        logger.info(f"Updating usage_lamps for user's lamp")
+        # 2. Get user's lamp
         lamp = db.query(Lamp).filter(Lamp.user_id == user_id).first()
         if not lamp:
-            logger.error(f"No lamp found for user: {user_id}")
             return False, "No lamp found for user"
         
-        usage_lamp = db.query(UsageLamps).filter(UsageLamps.lamp_id == lamp.lamp_id).first()
-        if not usage_lamp:
-            logger.error(f"No usage_lamps record found for lamp: {lamp.lamp_id}")
-            return False, "Lamp configuration not found"
+        # 3. Delete existing UsageLamps records for this lamp
+        db.query(UsageLamps).filter(UsageLamps.lamp_id == lamp.lamp_id).delete()
+        logger.info(f"Deleted old UsageLamps records for lamp {lamp.lamp_id}")
         
-        old_usage_id = usage_lamp.usage_id
-        usage_lamp.usage_id = target_usage_id
-        usage_lamp.http_endpoint = target_website_url
-        logger.info(f"Updated usage_lamps: usage_id {old_usage_id} -> {target_usage_id}")
+        # 4. Create new UsageLamps records for new location
+        for source in api_sources:
+            # Get or create DailyUsage record
+            website = db.query(DailyUsage).filter(DailyUsage.website_url == source['url']).first()
+            if not website:
+                website = DailyUsage(website_url=source['url'])
+                db.add(website)
+                db.flush()
+            
+            # Create new UsageLamps record
+            usage_lamp = UsageLamps(
+                usage_id=website.usage_id,
+                lamp_id=lamp.lamp_id,
+                api_key=None,
+                http_endpoint=source['url'],
+                arduino_ip=None,
+                endpoint_priority=source['priority']
+            )
+            db.add(usage_lamp)
+            logger.info(f"Added {source['type']} API source (priority {source['priority']})")
         
-        # 4. Create/update LocationWebsites mapping
+        # 5. Update LocationWebsites mapping
+        first_website = db.query(DailyUsage).filter(DailyUsage.website_url == api_sources[0]['url']).first()
         location_website = db.query(LocationWebsites).filter(LocationWebsites.location == new_location).first()
         if not location_website:
-            logger.info("Creating LocationWebsites mapping")
             location_website = LocationWebsites(
                 location=new_location,
-                usage_id=target_usage_id
+                usage_id=first_website.usage_id
             )
             db.add(location_website)
-            logger.info(f"Created LocationWebsites: {new_location} -> {target_usage_id}")
         
-        # 5. Commit all changes
-        logger.info("Committing location update transaction")
+        # 6. Commit changes
         db.commit()
         logger.info(f"Successfully updated location from '{old_location}' to '{new_location}'")
         return True, "Location updated successfully"
@@ -549,7 +537,6 @@ def update_user_location(user_id, new_location):
         db.rollback()
         return False, f"Database error: {str(e)}"
     finally:
-        logger.info("Closing database session")
         db.close()
 
 # --- Main execution block to create tables ---

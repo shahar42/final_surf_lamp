@@ -47,6 +47,19 @@ FIELD_MAPPINGS = {
             "wind_direction_deg": 0
         }
     },
+
+    # ADD THIS NEW MAPPING:
+    "api.open-meteo.com": {
+        "wind_speed_mps": ["hourly", "wind_speed_10m", 0],
+        "wind_direction_deg": ["hourly", "wind_direction_10m", 0],
+        "fallbacks": {
+            "wave_height_m": 0.0,
+            "wave_period_s": 0.0,
+            "wave_direction_deg": 0,
+            "wind_speed_mps": 0.0,
+            "wind_direction_deg": 0
+        }
+    },
 }
 
 def extract_isramar_data(raw_data):
