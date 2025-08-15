@@ -281,7 +281,7 @@
         .then(({ok, status, body}) => {
             if (ok) {
                 statusDiv.textContent = body.message;
-                statusDiv.style.color = '#10b981'; // Green for success
+                statusDiv.style.color = '#4dff00'; // Green for success
                 // Update the display
                 document.querySelector("#locationSelect option[value='"+originalLocation+"']").removeAttribute('selected');
                 document.querySelector("#locationSelect option[value='"+newLocation+"']").setAttribute('selected', 'selected');
