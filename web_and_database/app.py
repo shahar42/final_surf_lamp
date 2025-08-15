@@ -34,8 +34,20 @@ from data_base import add_user_and_lamp, get_user_lamp_data, SessionLocal, User,
 
 from forms import RegistrationForm, LoginForm
 
+def convert_wind_direction(degrees):
+    """Convert wind direction from degrees to compass direction"""
+    if degrees is None:
+        return "--"
+    
+    directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+                 "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
+    index = round(degrees / 22.5) % 16
+    return directions[index]
+
 # --- Configuration ---
 app = Flask(__name__)
+
+app.jinja_env.filters['wind_direction'] = convert_wind_direction
 
 # Fix for Render's reverse proxy - prevents redirect loops
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)

@@ -203,11 +203,7 @@
                             <div class="wind-icon text-3xl mb-2">🧭</div>
                             <div class="text-white/80 text-sm">Wind Direction</div>
                             <div class="text-white font-bold text-xl">
-                                {% if data.conditions.wind_direction_deg %}
-                                    {{ data.conditions.wind_direction_deg }}°
-                                {% else %}
-                                    --
-                                {% endif %}
+                                {{ data.conditions.wind_direction_deg | wind_direction }}
                             </div>
                         </div>
                     </div>
