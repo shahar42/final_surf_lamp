@@ -19,16 +19,17 @@ Key Features:
 
 import os
 import redis
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_bcrypt import Bcrypt
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from functools import wraps
+from datetime import datetime, timedelta
 from sqlalchemy import text
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Import the database function and models
-from data_base import add_user_and_lamp, get_user_lamp_data, SessionLocal, User, Lamp
+from data_base import add_user_and_lamp, get_user_lamp_data, SessionLocal, User, Lamp, update_user_location
 
 from forms import RegistrationForm, LoginForm
 
@@ -58,6 +59,9 @@ limiter = Limiter(
 # Then, associate it with your app
 limiter.init_app(app)
 
+# Location change rate limiting storage
+location_changes = {}  # {user_id: [timestamp1, timestamp2, ...]}
+
 
 # --- Static Data ---
 SURF_LOCATIONS = [
@@ -83,6 +87,28 @@ def login_required(f):
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
+
+def check_location_change_limit(user_id):
+    """Check if user has exceeded 5 location changes per day"""
+    now = datetime.now()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    if user_id not in location_changes:
+        location_changes[user_id] = []
+    
+    # Remove old entries (older than 24 hours)
+    location_changes[user_id] = [
+        timestamp for timestamp in location_changes[user_id] 
+        if timestamp > today_start
+    ]
+    
+    # Check if limit exceeded
+    if len(location_changes[user_id]) >= 5:
+        return False, "Maximum 5 location changes per day reached"
+    
+    # Add current timestamp
+    location_changes[user_id].append(now)
+    return True, "OK"
 
 # --- Routes ---
 
@@ -275,7 +301,121 @@ def dashboard():
             'last_updated': conditions.last_updated
         }
     
-    return render_template('dashboard.html', data=dashboard_data)
+    return render_template('dashboard.html', data=dashboard_data, locations=SURF_LOCATIONS)
+
+@app.route("/dashboard/<view_type>")
+@login_required
+def dashboard_view(view_type):
+    """
+    Displays the user's personalized dashboard with a specific view.
+
+    Requires the user to be logged in. It fetches the user's lamp data and
+    the latest surf conditions and renders them in the specified template.
+    """
+    user_email = session.get('user_email')
+    
+    # Get user, lamp, and conditions data
+    user, lamp, conditions = get_user_lamp_data(user_email)
+    
+    if not user or not lamp:
+        flash('Error loading your lamp data. Please contact support.', 'error')
+        return redirect(url_for('login'))
+    
+    # Prepare data for template
+    dashboard_data = {
+        'user': {
+            'username': user.username,
+            'email': user.email,
+            'location': user.location,
+            'theme': user.theme,
+            'preferred_output': user.preferred_output
+        },
+        'lamp': {
+            'lamp_id': lamp.lamp_id,
+            'arduino_id': lamp.arduino_id,
+            'last_updated': lamp.last_updated
+        },
+        'conditions': None
+    }
+    
+    # Add surf conditions if available
+    if conditions:
+        dashboard_data['conditions'] = {
+            'wave_height_m': conditions.wave_height_m,
+            'wave_period_s': conditions.wave_period_s,
+            'wind_speed_mps': conditions.wind_speed_mps,
+            'wind_direction_deg': conditions.wind_direction_deg,
+            'last_updated': conditions.last_updated
+        }
+    
+    if view_type == 'experimental':
+        return render_template('experimental_dashboard.html', data=dashboard_data, locations=SURF_LOCATIONS)
+    else:
+        return render_template('dashboard.html', data=dashboard_data, locations=SURF_LOCATIONS)
+
+@app.route("/update-location", methods=['POST'])
+@login_required
+@limiter.limit("10/minute")
+def update_location():
+    """Update user's lamp location"""
+    try:
+        data = request.get_json()
+        new_location = data.get('location')
+        user_id = session.get('user_id')
+        
+        # Validate location
+        if new_location not in SURF_LOCATIONS:
+            return {'success': False, 'message': 'Invalid location selected'}, 400
+        
+        # Check rate limit
+        can_change, rate_message = check_location_change_limit(user_id)
+        if not can_change:
+            return {'success': False, 'message': rate_message}, 429
+        
+        # Import the update function
+        from data_base import update_user_location
+        
+        # Update location in database
+        success, message = update_user_location(user_id, new_location)
+        
+        if success:
+            # Update session
+            session['user_location'] = new_location
+            return {'success': True, 'message': 'Location updated successfully'}
+        else:
+            return {'success': False, 'message': message}, 500
+            
+    except Exception as e:
+        return {'success': False, 'message': f'Server error: {str(e)}'}, 500
+
+@app.route("/update-theme", methods=['POST'])
+@login_required
+def update_theme():
+    """Update user's theme"""
+    try:
+        data = request.get_json()
+        new_theme = data.get('theme')
+        user_id = session.get('user_id')
+
+        # Validate theme
+        if new_theme not in ['dark', 'light']:
+            return {'success': False, 'message': 'Invalid theme selected'}, 400
+
+        db = SessionLocal()
+        try:
+            user = db.query(User).filter(User.user_id == user_id).first()
+            if user:
+                user.theme = new_theme
+                db.commit()
+                session['theme'] = new_theme
+                return {'success': True, 'message': 'Theme updated successfully'}
+            else:
+                return {'success': False, 'message': 'User not found'}, 404
+        finally:
+            db.close()
+            
+    except Exception as e:
+        return {'success': False, 'message': f'Server error: {str(e)}'}, 500
 
 @app.route("/debug/users")
 def debug_users():

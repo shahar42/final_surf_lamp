@@ -1,5 +1,4 @@
-"""
-This module handles all database interactions for the Surf Lamp web application.
+"This module handles all database interactions for the Surf Lamp web application.
 
 It defines the database schema using SQLAlchemy ORM, provides functions for creating,
 reading, and updating data, and manages the database connection.
@@ -14,7 +13,7 @@ Key Components:
     in multiple tables within a single transaction.
   - `get_user_lamp_data`: Retrieves a user's profile, lamp details, and the
     latest surf conditions for the dashboard.
-"""
+"
 
 import os
 import logging
@@ -311,9 +310,8 @@ def add_user_and_lamp(name, email, password_hash, lamp_id, arduino_id, location,
     
     # Location to API endpoint mapping - only real supported locations
     LOCATION_API_MAPPING = {
-        # Israeli locations - REAL SURF DATA with wave heights!
         "Tel Aviv, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=32.0853&longitude=34.7818&hourly=wave_height,wave_period,wave_direction",
-        "Hadera, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=32.4365&longitude=34.9196&hourly=wave_height,wave_period,wave_direction",
+        "Hadera, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=32.4365&longitude=34.9196&hourly=wave_height,wave_period,wave_direction", 
         "Ashdod, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=31.7939&longitude=34.6328&hourly=wave_height,wave_period,wave_direction",
         "Haifa, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=32.794&longitude=34.9896&hourly=wave_height,wave_period,wave_direction",
         "Netanya, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=32.3215&longitude=34.8532&hourly=wave_height,wave_period,wave_direction",
@@ -463,6 +461,95 @@ def get_user_lamp_data(email):
     finally:
         db.close()
 
+def update_user_location(user_id, new_location):
+    """
+    Update user's location and reconfigure their lamp's API endpoint.
+    Returns (True, "Success") on success, (False, "Error message") on failure.
+    """
+    logger.info(f"Updating location for user_id: {user_id} to: {new_location}")
+    
+    db = SessionLocal()
+    
+    # Location to API endpoint mapping (same as registration)
+    LOCATION_API_MAPPING = {
+        "Tel Aviv, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=32.0853&longitude=34.7818&hourly=wave_height,wave_period,wave_direction",
+        "Hadera, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=32.4365&longitude=34.9196&hourly=wave_height,wave_period,wave_direction",
+        "Ashdod, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=31.7939&longitude=34.6328&hourly=wave_height,wave_period,wave_direction",
+        "Haifa, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=32.794&longitude=34.9896&hourly=wave_height,wave_period,wave_direction",
+        "Netanya, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=32.3215&longitude=34.8532&hourly=wave_height,wave_period,wave_direction",
+    }
+    
+    target_website_url = LOCATION_API_MAPPING.get(new_location)
+    if not target_website_url:
+        logger.error(f"No API mapping found for location: {new_location}")
+        return False, f"Location '{new_location}' is not supported"
+    
+    try:
+        # 1. Get or create DailyUsage record for target location
+        logger.info(f"Finding DailyUsage for: {target_website_url}")
+        target_website = db.query(DailyUsage).filter(DailyUsage.website_url == target_website_url).first()
+        
+        if not target_website:
+            logger.info("Creating new DailyUsage record")
+            target_website = DailyUsage(website_url=target_website_url)
+            db.add(target_website)
+            db.flush()
+            logger.info(f"Created DailyUsage with usage_id: {target_website.usage_id}")
+        
+        target_usage_id = target_website.usage_id
+        
+        # 2. Update user's location
+        logger.info(f"Updating user location to: {new_location}")
+        user = db.query(User).filter(User.user_id == user_id).first()
+        if not user:
+            logger.error(f"User not found: {user_id}")
+            return False, "User not found"
+        
+        old_location = user.location
+        user.location = new_location
+        logger.info(f"Changed location from '{old_location}' to '{new_location}'")
+        
+        # 3. Update lamp's usage_lamps record
+        logger.info(f"Updating usage_lamps for user's lamp")
+        lamp = db.query(Lamp).filter(Lamp.user_id == user_id).first()
+        if not lamp:
+            logger.error(f"No lamp found for user: {user_id}")
+            return False, "No lamp found for user"
+        
+        usage_lamp = db.query(UsageLamps).filter(UsageLamps.lamp_id == lamp.lamp_id).first()
+        if not usage_lamp:
+            logger.error(f"No usage_lamps record found for lamp: {lamp.lamp_id}")
+            return False, "Lamp configuration not found"
+        
+        old_usage_id = usage_lamp.usage_id
+        usage_lamp.usage_id = target_usage_id
+        usage_lamp.http_endpoint = target_website_url
+        logger.info(f"Updated usage_lamps: usage_id {old_usage_id} -> {target_usage_id}")
+        
+        # 4. Create/update LocationWebsites mapping
+        location_website = db.query(LocationWebsites).filter(LocationWebsites.location == new_location).first()
+        if not location_website:
+            logger.info("Creating LocationWebsites mapping")
+            location_website = LocationWebsites(
+                location=new_location,
+                usage_id=target_usage_id
+            )
+            db.add(location_website)
+            logger.info(f"Created LocationWebsites: {new_location} -> {target_usage_id}")
+        
+        # 5. Commit all changes
+        logger.info("Committing location update transaction")
+        db.commit()
+        logger.info(f"Successfully updated location from '{old_location}' to '{new_location}'")
+        return True, "Location updated successfully"
+        
+    except Exception as e:
+        logger.error(f"Error updating location: {e}")
+        db.rollback()
+        return False, f"Database error: {str(e)}"
+    finally:
+        logger.info("Closing database session")
+        db.close()
 
 # --- Main execution block to create tables ---
 if __name__ == '__main__':

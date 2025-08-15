@@ -68,9 +68,14 @@
                     <h1 class="text-3xl font-bold text-white">Surf Lamp Dashboard</h1>
                     <p class="text-white/80 mt-1">Welcome back, {{ data.user.username }}!</p>
                 </div>
-                <a href="{{ url_for('logout') }}" class="logout-btn text-white font-semibold py-2 px-4 rounded-lg shadow-lg">
-                    Logout
-                </a>
+                <div class="flex items-center space-x-4">
+                    <a href="{{ url_for('dashboard_view', view_type='experimental') }}" class="bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg shadow-lg">
+                        Experimental View
+                    </a>
+                    <a href="{{ url_for('logout') }}" class="logout-btn text-white font-semibold py-2 px-4 rounded-lg shadow-lg">
+                        Logout
+                    </a>
+                </div>
             </div>
         </div>
     </div>
@@ -93,15 +98,26 @@
                     <span class="font-semibold">#{{ data.lamp.arduino_id }}</span>
                 </div>
                 
-                <div class="flex justify-between">
+                <div class="flex justify-between items-center">
                     <span class="text-white/80">Location:</span>
-                    <span class="font-semibold">{{ data.user.location }}</span>
+                    <select id="locationSelect" class="bg-white/20 text-white rounded px-2 py-1 border border-white/30 text-sm font-semibold">
+                        {% for location in locations %}
+                            <option value="{{ location }}" {% if location == data.user.location %}selected{% endif %}>
+                                {{ location.replace(', Israel', '') }}
+                            </option>
+                        {% endfor %}
+                    </select>
                 </div>
+                <div id="location-status" class="text-sm text-white/80 mt-2"></div>
                 
-                <div class="flex justify-between">
+                <div class="flex justify-between items-center">
                     <span class="text-white/80">Theme:</span>
-                    <span class="font-semibold capitalize">{{ data.user.theme }}</span>
+                    <div class="flex items-center space-x-2">
+                        <button id="theme-light-btn" class="px-2 py-1 rounded-md text-sm font-semibold border {% if data.user.theme == 'light' %}bg-white text-blue-600 border-white{% else %}bg-white/20 text-white border-white/30{% endif %}">Light</button>
+                        <button id="theme-dark-btn" class="px-2 py-1 rounded-md text-sm font-semibold border {% if data.user.theme == 'dark' %}bg-white text-blue-600 border-white{% else %}bg-white/20 text-white border-white/30{% endif %}">Dark</button>
+                    </div>
                 </div>
+                <div id="theme-status" class="text-sm text-white/80 mt-2"></div>
                 
                 <div class="flex justify-between">
                     <span class="text-white/80">Units:</span>
@@ -185,6 +201,9 @@
                         <div class="text-white font-semibold">
                             {{ data.conditions.last_updated.strftime('%Y-%m-%d %H:%M:%S') }} UTC
                         </div>
+                        <div class="text-white/60 text-xs mt-1">
+                            Surf data updates every 30 minutes
+                        </div>
                     </div>
                 </div>
             {% else %}
@@ -232,5 +251,99 @@
         </div>
     </div>
 
+    <script>
+    document.getElementById('locationSelect').addEventListener('change', function() {
+        const newLocation = this.value;
+        const originalLocation = '{{ data.user.location }}';
+        const statusDiv = document.getElementById('location-status');
+        
+        if (newLocation === originalLocation) return;
+        
+        // Disable dropdown during update
+        this.disabled = true;
+        statusDiv.textContent = 'Updating...';
+        statusDiv.style.color = '#ffffff';
+        
+        fetch('/update-location', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                // Note: CSRF token might be needed depending on your setup
+            },
+            body: JSON.stringify({ location: newLocation })
+        })
+        .then(response => response.json().then(data => ({ok: response.ok, status: response.status, body: data})))
+        .then(({ok, status, body}) => {
+            if (ok) {
+                statusDiv.textContent = body.message;
+                statusDiv.style.color = '#10b981'; // Green for success
+                // Update the display
+                document.querySelector("#locationSelect option[value='"+originalLocation+"']").removeAttribute('selected');
+                document.querySelector("#locationSelect option[value='"+newLocation+"']").setAttribute('selected', 'selected');
+            } else {
+                statusDiv.textContent = 'Error: ' + body.message;
+                statusDiv.style.color = '#ef4444'; // Red for error
+                this.value = originalLocation; // Reset dropdown
+            }
+        })
+        .catch(error => {
+            statusDiv.textContent = 'Network error. Please try again.';
+            statusDiv.style.color = '#ef4444';
+            this.value = originalLocation; // Reset dropdown
+        })
+        .finally(() => {
+            this.disabled = false; // Re-enable dropdown
+        });
+    });
+
+    document.getElementById('theme-light-btn').addEventListener('click', () => updateTheme('light'));
+    document.getElementById('theme-dark-btn').addEventListener('click', () => updateTheme('dark'));
+
+    function updateTheme(newTheme) {
+        const statusDiv = document.getElementById('theme-status');
+        statusDiv.textContent = 'Updating theme...';
+        statusDiv.style.color = '#ffffff';
+
+        fetch('/update-theme', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ theme: newTheme })
+        })
+        .then(response => response.json().then(data => ({ok: response.ok, body: data})))
+        .then(({ok, body}) => {
+            if (ok) {
+                statusDiv.textContent = body.message;
+                statusDiv.style.color = '#10b981';
+                updateThemeButtons(newTheme);
+            } else {
+                statusDiv.textContent = 'Error: ' + body.message;
+                statusDiv.style.color = '#ef4444';
+            }
+        })
+        .catch(error => {
+            statusDiv.textContent = 'Network error. Please try again.';
+            statusDiv.style.color = '#ef4444';
+        });
+    }
+
+    function updateThemeButtons(activeTheme) {
+        const lightBtn = document.getElementById('theme-light-btn');
+        const darkBtn = document.getElementById('theme-dark-btn');
+
+        if (activeTheme === 'light') {
+            lightBtn.classList.add('bg-white', 'text-blue-600', 'border-white');
+            lightBtn.classList.remove('bg-white/20', 'text-white', 'border-white/30');
+            darkBtn.classList.add('bg-white/20', 'text-white', 'border-white/30');
+            darkBtn.classList.remove('bg-white', 'text-blue-600', 'border-white');
+        } else {
+            darkBtn.classList.add('bg-white', 'text-blue-600', 'border-white');
+            darkBtn.classList.remove('bg-white/20', 'text-white', 'border-white/30');
+            lightBtn.classList.add('bg-white/20', 'text-white', 'border-white/30');
+            lightBtn.classList.remove('bg-white', 'text-blue-600', 'border-white');
+        }
+    }
+    </script>
 </body>
 </html>
