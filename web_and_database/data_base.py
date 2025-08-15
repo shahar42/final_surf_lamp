@@ -14,7 +14,7 @@ Key Components:
     in multiple tables within a single transaction.
   - `get_user_lamp_data`: Retrieves a user's profile, lamp details, and the
     latest surf conditions for the dashboard.
-"
+"""
 
 import os
 import logging
