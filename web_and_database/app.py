@@ -18,6 +18,7 @@ Key Features:
 """
 
 import os
+import logging
 import redis
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_bcrypt import Bcrypt
@@ -440,6 +441,154 @@ def trigger_processor():
         flash(f'Error running processor: {str(e)}', 'error')
     
     return redirect(url_for('dashboard'))
+
+@app.route("/api/arduino/callback", methods=['POST'])
+def handle_arduino_callback():
+    """
+    Handle callbacks from Arduino devices confirming surf data receipt and processing.
+    
+    Expected JSON format from Arduino:
+    {
+        "arduino_id": 4433,
+        "status": "received", 
+        "wave_height_m": 0.64,
+        "wave_period_s": 5.0,
+        "wind_speed_mps": 4.2,
+        "wind_direction_deg": 160,
+        "local_ip": "192.168.1.123",
+        "timestamp": 12345678,
+        "free_memory": 245760
+    }
+    """
+    try:
+        # Get JSON data from Arduino
+        data = request.get_json()
+        
+        if not data:
+            logger.error("No JSON data received in Arduino callback")
+            return {'success': False, 'message': 'No JSON data provided'}, 400
+        
+        # Extract required fields
+        arduino_id = data.get('arduino_id')
+        status = data.get('status', 'unknown')
+        
+        if not arduino_id:
+            logger.error("Arduino callback missing arduino_id")
+            return {'success': False, 'message': 'arduino_id is required'}, 400
+        
+        logger.info(f"📥 Arduino Callback - ID: {arduino_id}, Status: {status}")
+        logger.info(f"   Data: Wave {data.get('wave_height_m', 0)}m, Wind {data.get('wind_speed_mps', 0)}m/s")
+        logger.info(f"   Arduino IP: {data.get('local_ip', 'unknown')}, Memory: {data.get('free_memory', 0)} bytes")
+        
+        # Update database with confirmed delivery
+        db = SessionLocal()
+        try:
+            # Find the lamp by arduino_id
+            lamp = db.query(Lamp).filter(Lamp.arduino_id == arduino_id).first()
+            
+            if not lamp:
+                logger.warning(f"⚠️  Arduino {arduino_id} not found in database")
+                return {'success': False, 'message': f'Arduino {arduino_id} not found'}, 404
+            
+            # Update lamp timestamp (confirms delivery)
+            lamp.last_updated = datetime.now()
+            logger.info(f"✅ Updated lamp {lamp.lamp_id} timestamp")
+            
+            # Update or create current conditions with CONFIRMED values from Arduino
+            conditions = db.query(CurrentConditions).filter(
+                CurrentConditions.lamp_id == lamp.lamp_id
+            ).first()
+            
+            if not conditions:
+                # Create new conditions record
+                conditions = CurrentConditions(lamp_id=lamp.lamp_id)
+                db.add(conditions)
+                logger.info(f"🆕 Created new conditions record for lamp {lamp.lamp_id}")
+            
+            # Update with the ACTUAL values that Arduino processed and displayed
+            conditions.wave_height_m = data.get('wave_height_m', 0.0)
+            conditions.wave_period_s = data.get('wave_period_s', 0.0)
+            conditions.wind_speed_mps = data.get('wind_speed_mps', 0.0)
+            conditions.wind_direction_deg = data.get('wind_direction_deg', 0)
+            conditions.last_updated = datetime.now()
+            
+            # Commit all changes
+            db.commit()
+            
+            logger.info(f"✅ Database updated successfully for Arduino {arduino_id}")
+            logger.info(f"   Lamp ID: {lamp.lamp_id}, Conditions updated: {conditions.last_updated}")
+            
+            # Return success response to Arduino
+            response_data = {
+                'success': True,
+                'message': 'Callback processed successfully',
+                'lamp_id': lamp.lamp_id,
+                'arduino_id': arduino_id,
+                'timestamp': datetime.now().isoformat(),
+                'database_updated': True
+            }
+            
+            return response_data, 200
+            
+        except Exception as db_error:
+            db.rollback()
+            logger.error(f"❌ Database error in Arduino callback: {db_error}")
+            return {'success': False, 'message': f'Database error: {str(db_error)}'}, 500
+            
+        finally:
+            db.close()
+            
+    except Exception as e:
+        logger.error(f"❌ Error processing Arduino callback: {e}")
+        return {'success': False, 'message': f'Server error: {str(e)}'}, 500
+
+@app.route("/api/arduino/status", methods=['GET'])
+def arduino_status_overview():
+    """
+    Optional: Get overview of all Arduino devices and their last callback times.
+    Useful for monitoring and debugging.
+    """
+    try:
+        db = SessionLocal()
+        try:
+            # Query all lamps with their current conditions
+            results = db.query(Lamp, CurrentConditions).outerjoin(
+                CurrentConditions, Lamp.lamp_id == CurrentConditions.lamp_id
+            ).all()
+            
+            arduino_status = []
+            for lamp, conditions in results:
+                status_info = {
+                    'arduino_id': lamp.arduino_id,
+                    'lamp_id': lamp.lamp_id,
+                    'last_updated': lamp.last_updated.isoformat() if lamp.last_updated else None,
+                    'has_conditions': conditions is not None,
+                    'conditions_updated': conditions.last_updated.isoformat() if conditions and conditions.last_updated else None
+                }
+                
+                if conditions:
+                    status_info.update({
+                        'wave_height_m': conditions.wave_height_m,
+                        'wave_period_s': conditions.wave_period_s,
+                        'wind_speed_mps': conditions.wind_speed_mps,
+                        'wind_direction_deg': conditions.wind_direction_deg
+                    })
+                
+                arduino_status.append(status_info)
+            
+            return {
+                'success': True,
+                'arduino_count': len(arduino_status),
+                'devices': arduino_status,
+                'timestamp': datetime.now().isoformat()
+            }, 200
+            
+        finally:
+            db.close()
+            
+    except Exception as e:
+        logger.error(f"❌ Error getting Arduino status overview: {e}")
+        return {'success': False, 'message': str(e)}, 500
 
 @app.route("/debug/users")
 def debug_users():
