@@ -91,67 +91,46 @@ def apply_conversions(value, conversions, field_name):
     
     return value
 
+# In surf-lamp-processor/background_processor.py
+
 def standardize_surf_data(raw_data, endpoint_url):
     """
     Extract standardized fields using endpoint-specific configuration.
-    
-    Args:
-        raw_data: Raw JSON response from API
-        endpoint_url: The API endpoint URL
-        
-    Returns:
-        Dict with standardized surf data fields
+    Only returns fields that are actually found in the API response.
     """
     logger.info(f"🔧 Standardizing data from: {endpoint_url}")
     
-    # Get configuration for this endpoint
     config = get_endpoint_config(endpoint_url)
     if not config:
         logger.error(f"❌ No field mapping config found for {endpoint_url}")
-        logger.error(f"   Supported endpoints: {list(FIELD_MAPPINGS.keys())}")
         return None
     
     logger.info(f"✅ Found config with {len(config)} field mappings")
     
-    # Handle custom extraction for Isramar
+    # Start with an empty dictionary
+    standardized = {}
+    
     if config.get('custom_extraction'):
-        logger.info("🔧 Using custom extraction for Isramar")
         from endpoint_configs import extract_isramar_data
         standardized = extract_isramar_data(raw_data)
     else:
-        # Standard field path extraction (for OpenWeatherMap etc.)
-        standardized = {}
         conversions = config.get('conversions', {})
-        fallbacks = config.get('fallbacks', {})
         
-        # Extract each configured field
         for standard_field, field_path in config.items():
-            if standard_field in ['fallbacks', 'conversions']:
+            if standard_field in ['fallbacks', 'conversions', 'custom_extraction']:
                 continue
-                
-            # Extract the raw value
+            
             raw_value = extract_field_value(raw_data, field_path)
-            logger.debug(f"   {standard_field}: {field_path} -> {raw_value}")
             
-            # Apply conversions if configured
-            converted_value = apply_conversions(raw_value, conversions, standard_field)
-            
-            # Use fallback if value is None
-            if converted_value is None:
-                converted_value = fallbacks.get(standard_field)
-                logger.debug(f"   {standard_field}: Using fallback -> {converted_value}")
-            
-            standardized[standard_field] = converted_value
-        
-        # Add required fields with fallbacks if not present
-        required_fields = ['wave_height_m', 'wave_period_s', 'wind_speed_mps', 'wind_direction_deg']
-        for field in required_fields:
-            if field not in standardized:
-                standardized[field] = fallbacks.get(field, 0.0)
-    
-    # Add metadata
-    standardized['timestamp'] = int(time.time())
-    standardized['source_endpoint'] = endpoint_url
+            # IMPORTANT: Only add the field if a value was actually found
+            if raw_value is not None:
+                converted_value = apply_conversions(raw_value, conversions, standard_field)
+                standardized[standard_field] = converted_value
+
+    # Only add metadata if some data was actually extracted
+    if standardized:
+        standardized['timestamp'] = int(time.time())
+        standardized['source_endpoint'] = endpoint_url
     
     logger.info(f"✅ Standardized data: {json.dumps(standardized, indent=2)}")
     return standardized
