@@ -12,7 +12,7 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #3a6073 0%, #16222a 100%);
+            background: linear-gradient(160deg, #f6d365 0%, #fda085 100%);
             min-height: 100vh;
         }
         .glass-card {
@@ -61,9 +61,6 @@
             background: rgba(255, 255, 255, 0.12);
             border-left: 3px solid #4db6ac;
         }
-        select, button {
-            outline: none;
-        }
     </style>
 </head>
 <body class="text-white">
@@ -78,95 +75,14 @@
     {% endwith %}
 
     <div class="flex h-screen">
-        <!-- Sidebar -->
-        <div class="sidebar w-64 p-6 fixed h-full">
-            <div class="mb-8">
-                <h1 class="text-2xl font-semibold mb-1">Surf Lamp</h1>
-                <p class="text-white/60 text-sm">Executive Dashboard</p>
-            </div>
-
-            <nav class="space-y-2">
-                <a href="#" class="nav-item active flex items-center px-4 py-3">
-                    <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
-                    </svg>
-                    Overview
-                </a>
-                <a href="#" class="nav-item flex items-center px-4 py-3 text-white/70 hover:text-white">
-                    <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
-                    </svg>
-                    Analytics
-                </a>
-                <a href="#" class="nav-item flex items-center px-4 py-3 text-white/70 hover:text-white">
-                    <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    Monitoring
-                </a>
-                <a href="#" class="nav-item flex items-center px-4 py-3 text-white/70 hover:text-white">
-                    <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"/>
-                    </svg>
-                    Settings
-                </a>
-            </nav>
-        </div>
+        {% include 'sidebar.html' %}
 
         <!-- Main Content -->
         <div class="flex-1 ml-64 p-8 overflow-y-auto">
-            <div class="flex justify-between items-center mb-8">
-                <div>
-                    <h1 class="text-3xl font-semibold mb-1">Dashboard Overview</h1>
-                    <p class="text-white/70">Real-time surf monitoring and analytics</p>
-                </div>
-                <div class="flex space-x-4">
-                    <button class="glass-card px-5 py-2 rounded-lg text-sm font-medium">Export Data</button>
-                    <a href="{{ url_for('logout') if url_for else '#' }}" class="bg-teal-500 px-5 py-2 rounded-lg text-sm font-medium hover:bg-teal-600 transition-colors">Logout</a>
-                </div>
-            </div>
-
-            <!-- Metrics -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
-                <div class="metric-card rounded-lg p-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-white/80 font-medium">Active Lamps</h3>
-                        <div class="status-indicator w-3 h-3 bg-green-400 rounded-full"></div>
-                    </div>
-                    <div class="text-3xl font-semibold mb-2">{{ data.total_lamps if data else '1,247' }}</div>
-                    <div class="text-green-400 text-sm">+12% from last month</div>
-                </div>
-                <!-- repeat for other metric cards -->
-            </div>
-
-            <!-- Charts -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                <div class="glass-card rounded-lg p-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-medium">Wave Height Trends</h3>
-                        <select class="bg-white/5 text-white border border-white/20 rounded px-3 py-1 text-sm">
-                            <option>Last 24 Hours</option>
-                            <option>Last 7 Days</option>
-                            <option>Last 30 Days</option>
-                        </select>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="waveChart"></canvas>
-                    </div>
-                </div>
-                <div class="glass-card rounded-lg p-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-medium">Wind Conditions</h3>
-                        <div class="flex space-x-2">
-                            <span class="px-3 py-1 bg-teal-500/20 text-teal-300 rounded-full text-xs">Speed</span>
-                            <span class="px-3 py-1 bg-cyan-500/20 text-cyan-300 rounded-full text-xs">Direction</span>
-                        </div>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="windChart"></canvas>
-                    </div>
-                </div>
-            </div>
+            {% include 'header.html' %}
+            {% include 'metrics.html' %}
+            {% include 'charts.html' %}
+            {% include 'live_conditions.html' %}
         </div>
     </div>
 </body>
