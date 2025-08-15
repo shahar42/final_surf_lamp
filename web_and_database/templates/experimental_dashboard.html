@@ -8,21 +8,16 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <!-- Primary Van Gogh favicon from GitHub -->
-    <link rel="icon" href="https://raw.githubusercontent.com/shahar42/final_surf_lamp/master/web_and_database/static/favicon.ico" type="image/x-icon">
-    <link rel="shortcut icon" href="https://raw.githubusercontent.com/shahar42/final_surf_lamp/master/web_and_database/static/favicon.ico" type="image/x-icon">
+    <!-- Primary Van Gogh favicon with cache-busting -->
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}?v=1" sizes="32x32">
 
-    <!-- Local fallback if GitHub is unavailable -->
-    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <!-- Apple Touch Icon (iOS home screen) -->
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.ico') }}?v=1">
 
-    <!-- Apple Touch Icon (will use same Van Gogh style) -->
-    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/shahar42/final_surf_lamp/master/web_and_database/static/favicon.ico">
+    <!-- Web App Manifest (Android/PWA) -->
+    <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
 
-    <!-- Android/Chrome -->
-    <link rel="icon" type="image/png" sizes="32x32" href="https://raw.githubusercontent.com/shahar42/final_surf_lamp/master/web_and_database/static/favicon.ico">
-    <link rel="icon" type="image/png" sizes="16x16" href="https://raw.githubusercontent.com/shahar42/final_surf_lamp/master/web_and_database/static/favicon.ico">
-
-    <!-- Browser theme color (matches your blue gradient) -->
+    <!-- Theme colors matching your blue gradient -->
     <meta name="theme-color" content="#00c6ff">
     <meta name="msapplication-TileColor" content="#00c6ff">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
