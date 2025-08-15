@@ -1,3 +1,22 @@
+"""
+This module implements the main Flask web application for the Surf Lamp project.
+
+It provides user-facing routes for registration, login, and viewing the dashboard.
+The application handles user authentication, session management, and serves as the
+primary interface for users to interact with their Surf Lamp data.
+
+Key Features:
+- **User Authentication:** Handles user registration, login, and logout functionality.
+- **Session Management:** Uses Flask sessions to maintain user login state.
+- **Dashboard Display:** Fetches and displays user-specific data, including lamp
+  details and the latest surf conditions.
+- **Rate Limiting:** Implements rate limiting on authentication routes to prevent abuse.
+- **Database Integration:** Interacts with the database via functions defined in
+  the `data_base` module.
+- **Environment-based Configuration:** Configured via environment variables for
+  seamless deployment.
+"""
+
 import os
 import redis
 from flask import Flask, render_template, request, redirect, url_for, flash, session
@@ -51,7 +70,12 @@ SURF_LOCATIONS = [
 
 # --- Helper Functions ---
 def login_required(f):
-    """Decorator to require login for certain routes"""
+    """
+    Decorator to ensure a user is logged in before accessing a route.
+
+    If the user is not logged in (i.e., 'user_email' not in session), it flashes
+    an error message and redirects them to the login page.
+    """
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_email' not in session:
@@ -64,7 +88,12 @@ def login_required(f):
 
 @app.route("/")
 def index():
-    """Shows surf data for logged-in users, otherwise redirects to registration."""
+    """
+    Serves the main page.
+
+    If the user is logged in, it displays their personalized dashboard.
+    Otherwise, it redirects to the registration page.
+    """
     if 'user_email' in session:
         # Get user's surf data (same logic as dashboard)
         user_email = session.get('user_email')
@@ -108,7 +137,13 @@ def index():
 @app.route("/register", methods=['GET', 'POST'])
 @limiter.limit("10/minute") # Add rate limiting to registration
 def register():
-    """Handles user registration by collecting form data and calling the database handler."""
+    """
+    Handles user registration.
+
+    On GET, it displays the registration form.
+    On POST, it validates the form data, creates a new user and lamp via
+    `add_user_and_lamp`, and redirects to the login page upon success.
+    """
     if 'user_email' in session:
         return redirect(url_for('dashboard'))
         
@@ -153,7 +188,13 @@ def register():
 @app.route("/login", methods=['GET', 'POST'])
 @limiter.limit("10/minute") # Add rate limiting to login
 def login():
-    """Handles user login by querying the database."""
+    """
+    Handles user login.
+
+    On GET, it displays the login form.
+    On POST, it validates credentials against the database. On success,
+    it creates a user session and redirects to the dashboard.
+    """
     if 'user_email' in session:
         return redirect(url_for('dashboard'))
         
@@ -182,7 +223,9 @@ def login():
 
 @app.route("/logout")
 def logout():
-    """Log out the current user"""
+    """
+    Logs out the current user by clearing the session.
+    """
     session.clear()
     flash('You have been logged out.', 'success')
     return redirect(url_for('login'))
@@ -190,7 +233,12 @@ def logout():
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    """Dashboard showing user's lamp and current surf conditions."""
+    """
+    Displays the user's personalized dashboard.
+
+    Requires the user to be logged in. It fetches the user's lamp data and
+    the latest surf conditions and renders them in the dashboard template.
+    """
     user_email = session.get('user_email')
     
     # Get user, lamp, and conditions data
@@ -231,7 +279,13 @@ def dashboard():
 
 @app.route("/debug/users")
 def debug_users():
-    """Show all tables in the database"""
+    """
+    A debug route to display the contents of all database tables.
+
+    This provides a raw, unstyled view of the data in the `users`, `lamps`,
+    `current_conditions`, `daily_usage`, `location_websites`, and `usage_lamps`
+    tables for easy debugging.
+    """
     db = SessionLocal()
     try:
         # Import all the models

@@ -34,6 +34,19 @@ FIELD_MAPPINGS = {
             "wave_period_s": 0.0
         }
     },
+    
+    # Open-Meteo Marine API
+    "open-meteo.com": {
+        "wave_height_m": ["hourly", "wave_height", 0],
+        "wave_period_s": ["hourly", "wave_period", 0], 
+        "wave_direction_deg": ["hourly", "wave_direction", 0],
+        "wind_speed_mps": 0.0,  # Fallback - Open-Meteo Marine doesn't provide wind in this config
+        "wind_direction_deg": 0,  # Fallback
+        "fallbacks": {
+            "wind_speed_mps": 0.0,
+            "wind_direction_deg": 0
+        }
+    },
 }
 
 def extract_isramar_data(raw_data):

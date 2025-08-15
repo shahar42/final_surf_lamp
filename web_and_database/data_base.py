@@ -1,3 +1,21 @@
+"""
+This module handles all database interactions for the Surf Lamp web application.
+
+It defines the database schema using SQLAlchemy ORM, provides functions for creating,
+reading, and updating data, and manages the database connection.
+
+Key Components:
+- **SQLAlchemy Engine and Session:** Configured using environment variables for
+  portability between local development and production environments (e.g., Render).
+- **ORM Models:** Defines the `User`, `Lamp`, `CurrentConditions`, `DailyUsage`,
+  `LocationWebsites`, and `UsageLamps` tables.
+- **Database Interaction Functions:**
+  - `add_user_and_lamp`: Handles the user registration process, creating records
+    in multiple tables within a single transaction.
+  - `get_user_lamp_data`: Retrieves a user's profile, lamp details, and the
+    latest surf conditions for the dashboard.
+"""
+
 import os
 import logging
 from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, TIMESTAMP, MetaData, Float
@@ -53,6 +71,18 @@ Base = declarative_base()
 # --- SQLAlchemy Models (updated to match current database schema) ---
 
 class User(Base):
+    """
+    Represents a user of the application.
+
+    Attributes:
+        user_id (int): Primary key.
+        username (str): User's chosen username.
+        password_hash (str): Hashed password for security.
+        email (str): User's email address, used for login.
+        location (str): User's selected surf location.
+        theme (str): Preferred visual theme (e.g., 'dark', 'light').
+        preferred_output (str): Preferred unit system (e.g., 'metric', 'imperial').
+    """
     __tablename__ = 'users'
     user_id = Column(Integer, primary_key=True, autoincrement=True)
     username = Column(String(255), unique=True, nullable=False)
@@ -65,6 +95,16 @@ class User(Base):
     lamp = relationship("Lamp", back_populates="user", uselist=False, cascade="all, delete-orphan")
 
 class Lamp(Base):
+    """
+    Represents a physical Surf Lamp device.
+
+    Attributes:
+        lamp_id (int): Primary key, the unique ID of the lamp.
+        user_id (int): Foreign key linking to the User who owns the lamp.
+        arduino_id (int): The unique ID of the Arduino microcontroller in the lamp.
+        arduino_ip (str): The IP address of the Arduino, used by the background processor.
+        last_updated (datetime): Timestamp of the last successful data sync.
+    """
     __tablename__ = 'lamps'
     lamp_id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
@@ -77,6 +117,19 @@ class Lamp(Base):
     current_conditions = relationship("CurrentConditions", back_populates="lamp", uselist=False, cascade="all, delete-orphan")
 
 class CurrentConditions(Base):
+    """
+    Stores the latest surf conditions fetched for a specific lamp.
+
+    This table is updated by the background processor.
+
+    Attributes:
+        lamp_id (int): Foreign key linking to the Lamp.
+        wave_height_m (float): Wave height in meters.
+        wave_period_s (float): Wave period in seconds.
+        wind_speed_mps (float): Wind speed in meters per second.
+        wind_direction_deg (int): Wind direction in degrees.
+        last_updated (datetime): Timestamp of when this data was fetched.
+    """
     __tablename__ = 'current_conditions'
     lamp_id = Column(Integer, ForeignKey('lamps.lamp_id'), primary_key=True)
     wave_height_m = Column(Float, nullable=True)
@@ -88,6 +141,17 @@ class CurrentConditions(Base):
     lamp = relationship("Lamp", back_populates="current_conditions")
 
 class DailyUsage(Base):
+    """
+    Represents a unique data source API endpoint.
+
+    This table helps deduplicate API calls. If multiple lamps use the same
+    API endpoint, the background processor will only fetch the data once.
+
+    Attributes:
+        usage_id (int): Primary key.
+        website_url (str): The base URL of the data source API.
+        last_updated (datetime): Timestamp of the last fetch from this source.
+    """
     __tablename__ = 'daily_usage'
     usage_id = Column(Integer, primary_key=True, autoincrement=True)
     website_url = Column(String(255), unique=True, nullable=False)
@@ -97,6 +161,13 @@ class DailyUsage(Base):
     lamp_configs = relationship("UsageLamps", back_populates="website")
 
 class LocationWebsites(Base):
+    """
+    Maps a surf location to a specific data source (DailyUsage).
+
+    Attributes:
+        location (str): The name of the surf location (e.g., "Hadera, Israel").
+        usage_id (int): Foreign key linking to the DailyUsage record.
+    """
     __tablename__ = 'location_websites'
     location = Column(String(255), primary_key=True)
     usage_id = Column(Integer, ForeignKey('daily_usage.usage_id'), unique=True, nullable=False)
@@ -104,6 +175,18 @@ class LocationWebsites(Base):
     website = relationship("DailyUsage", back_populates="locations")
 
 class UsageLamps(Base):
+    """
+    Links a Lamp to a data source (DailyUsage), creating a specific API configuration.
+
+    This is a many-to-many join table between lamps and data sources.
+
+    Attributes:
+        usage_id (int): Foreign key to DailyUsage.
+        lamp_id (int): Foreign key to Lamp.
+        api_key (str): The API key for the data source, if required.
+        http_endpoint (str): The full, specific URL for the API call.
+        arduino_ip (str): The IP address of the Arduino (denormalized for the background processor).
+    """
     __tablename__ = 'usage_lamps'
     usage_id = Column(Integer, ForeignKey('daily_usage.usage_id'), primary_key=True)
     lamp_id = Column(Integer, ForeignKey('lamps.lamp_id'), primary_key=True)
@@ -117,11 +200,109 @@ class UsageLamps(Base):
 
 # --- Database Interaction Function ---
 
+def detect_api_type(base_url):
+    """Detect API type from base URL"""
+    if "openweathermap.org" in base_url:
+        return "openweathermap"
+    elif "isramar.ocean.org.il" in base_url:
+        return "isramar"
+    else:
+        return "unknown"
+
+def generate_api_endpoint(api_type, base_url, location, api_key=None):
+    """Generate proper API endpoint based on API type and location"""
+    
+    if api_type == "openweathermap":
+        # Extract city name (remove country)
+        city_name = location.split(',')[0].strip()
+        return f"{base_url}?q={city_name}&appid={api_key}"
+    
+    elif api_type == "isramar":
+        # ISRAMAR station mapping
+        station_mapping = {
+            "Hadera, Israel": "Hadera_Hs_Per.json",
+            # Add more stations as they become available
+            # "Tel Aviv, Israel": "TelAviv_Station.json",  # When available
+        }
+        
+        station_file = station_mapping.get(location)
+        if station_file:
+            return f"{base_url.rstrip('/')}/station/data/{station_file}"
+        else:
+            # Location not supported by ISRAMAR
+            return None
+    
+    else:
+        # Unknown API type - fallback to simple concatenation
+        logger.warning(f"Unknown API type: {api_type} for URL: {base_url}")
+        return f"{base_url}&appid={os.environ.get('DEFAULT_API_KEY')}"
+
+def get_api_endpoints_for_location(location):
+    """Get all available API endpoints for a given location"""
+    endpoints = []
+    
+    # Location to API endpoint mapping - only real supported locations
+    LOCATION_API_MAPPING = {
+        # Israeli locations - REAL SURF DATA with wave heights!
+        "Tel Aviv, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=32.0853&longitude=34.7818&hourly=wave_height,wave_period,wave_direction",
+        "Hadera, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=32.4365&longitude=34.9196&hourly=wave_height,wave_period,wave_direction",
+        "Ashdod, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=31.7939&longitude=34.6328&hourly=wave_height,wave_period,wave_direction",
+        "Haifa, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=32.794&longitude=34.9896&hourly=wave_height,wave_period,wave_direction",
+        "Netanya, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=32.3215&longitude=34.8532&hourly=wave_height,wave_period,wave_direction",
+    }
+    
+    # Get base API URL for this location
+    base_url = LOCATION_API_MAPPING.get(location)
+    if not base_url:
+        return endpoints
+    
+    # For OpenWeatherMap locations, always add OpenWeatherMap
+    if base_url == "http://api.openweathermap.org/data/2.5/weather":
+        api_key = os.environ.get('DEFAULT_API_KEY', 'd6ef64df6585b7e88e51c221bbd41c2b')
+        owm_endpoint = generate_api_endpoint("openweathermap", base_url, location, api_key)
+        endpoints.append({
+            "api_type": "openweathermap",
+            "base_url": base_url,
+            "endpoint": owm_endpoint,
+            "api_key": api_key
+        })
+    
+    # For Hadera, also add ISRAMAR if available
+    if location == "Hadera, Israel":
+        isramar_base = "https://isramar.ocean.org.il/isramar2009"
+        isramar_endpoint = generate_api_endpoint("isramar", isramar_base, location)
+        if isramar_endpoint:
+            endpoints.append({
+                "api_type": "isramar", 
+                "base_url": isramar_base,
+                "endpoint": isramar_endpoint,
+                "api_key": None
+            })
+    
+    return endpoints
+
 def add_user_and_lamp(name, email, password_hash, lamp_id, arduino_id, location, theme, units):
     """
-    Creates a new user, registers their lamp, and links it to the correct 
-    data source based on location.
-    Returns (True, "Success") on success, (False, "Error message") on failure.
+    Creates a new user and registers their lamp in a single database transaction.
+
+    This function orchestrates the creation of a new user, their lamp, and the
+    necessary links to the correct data sources based on the user's chosen location.
+    It ensures data integrity by rolling back the transaction if any step fails.
+
+    Args:
+        name (str): The user's full name or username.
+        email (str): The user's email address.
+        password_hash (str): The user's hashed password.
+        lamp_id (int): The unique ID of the lamp.
+        arduino_id (int): The unique ID of the Arduino in the lamp.
+        location (str): The surf location selected by the user.
+        theme (str): The user's preferred UI theme.
+        units (str): The user's preferred measurement units.
+
+    Returns:
+        tuple: A tuple containing:
+            - bool: True for success, False for failure.
+            - str: A message indicating the result.
     """
     logger.info(f"Starting user registration for email: {email}, lamp_id: {lamp_id}, arduino_id: {arduino_id}")
     
@@ -130,12 +311,12 @@ def add_user_and_lamp(name, email, password_hash, lamp_id, arduino_id, location,
     
     # Location to API endpoint mapping - only real supported locations
     LOCATION_API_MAPPING = {
-        # Israeli locations - real API endpoints
-        "Hadera, Israel": "http://api.openweathermap.org/data/2.5/weather",
-        "Tel Aviv, Israel": "http://api.openweathermap.org/data/2.5/weather",
-        "Ashdod, Israel": "http://api.openweathermap.org/data/2.5/weather",
-        "Haifa, Israel": "http://api.openweathermap.org/data/2.5/weather",
-        "Netanya, Israel": "http://api.openweathermap.org/data/2.5/weather",
+        # Israeli locations - REAL SURF DATA with wave heights!
+        "Tel Aviv, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=32.0853&longitude=34.7818&hourly=wave_height,wave_period,wave_direction",
+        "Hadera, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=32.4365&longitude=34.9196&hourly=wave_height,wave_period,wave_direction",
+        "Ashdod, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=31.7939&longitude=34.6328&hourly=wave_height,wave_period,wave_direction",
+        "Haifa, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=32.794&longitude=34.9896&hourly=wave_height,wave_period,wave_direction",
+        "Netanya, Israel": "https://marine-api.open-meteo.com/v1/marine?latitude=32.3215&longitude=34.8532&hourly=wave_height,wave_period,wave_direction",
     }
 
     # Get the appropriate API for this location
@@ -185,17 +366,28 @@ def add_user_and_lamp(name, email, password_hash, lamp_id, arduino_id, location,
         db.add(new_lamp)
         logger.info(f"Created Lamp record with lamp_id: {new_lamp.lamp_id}")
         
-        # 4. Link the Lamp to the Website via UsageLamps
-        logger.info("Creating UsageLamps link")
-        usage_lamp_link = UsageLamps(
-            usage_id=website.usage_id,
-            lamp_id=new_lamp.lamp_id,
-            api_key=os.environ.get('DEFAULT_API_KEY'), # Get key from environment
-            http_endpoint=f"{target_website_url}/{location.replace(' ', '_').lower()}",
-            arduino_ip=None
-        )
-        db.add(usage_lamp_link)
-        logger.info(f"Created UsageLamps link: usage_id={website.usage_id}, lamp_id={new_lamp.lamp_id}")
+        # 4. Link the Lamp to Website(s) via UsageLamps - Professional API handling
+        logger.info("Creating UsageLamps links for all available APIs")
+
+        # Get all available API endpoints for this location
+        available_endpoints = get_api_endpoints_for_location(location)
+
+        if not available_endpoints:
+            logger.error(f"No API endpoints available for location: {location}")
+            return False, f"Location '{location}' has no configured API endpoints"
+
+        # Create UsageLamps entry for each available API
+        for endpoint_config in available_endpoints:
+            usage_lamp_link = UsageLamps(
+                usage_id=website.usage_id,
+                lamp_id=new_lamp.lamp_id,
+                api_key=endpoint_config["api_key"],
+                http_endpoint=endpoint_config["endpoint"],
+                arduino_ip=None
+            )
+            db.add(usage_lamp_link)
+            logger.info(f"Created UsageLamps link: {endpoint_config['api_type']} for {location}")
+            logger.info(f"  Endpoint: {endpoint_config['endpoint']}")
 
         # 4.5. Create or get LocationWebsites mapping
         location_website = db.query(LocationWebsites).filter(LocationWebsites.location == location).first()
@@ -231,8 +423,19 @@ def add_user_and_lamp(name, email, password_hash, lamp_id, arduino_id, location,
 
 def get_user_lamp_data(email):
     """
-    Get user and lamp data with current surf conditions for dashboard.
-    Returns (user_data, lamp_data, conditions_data) or (None, None, None) if not found.
+    Retrieves all relevant data for the user dashboard.
+
+    This function fetches the user's profile, their lamp's details, and the
+    most recent surf conditions recorded for that lamp. It uses a LEFT JOIN
+    to ensure that user and lamp data are returned even if no surf conditions
+    have been recorded yet.
+
+    Args:
+        email (str): The email address of the logged-in user.
+
+    Returns:
+        tuple: A tuple containing (User, Lamp, CurrentConditions) objects.
+               If the user is not found, returns (None, None, None).
     """
     logger.info(f"Fetching lamp data for user: {email}")
     
