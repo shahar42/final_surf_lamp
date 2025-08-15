@@ -13,6 +13,7 @@ import logging
 from sqlalchemy import create_engine, text
 from datetime import datetime
 import json
+from arduino_transport import get_arduino_transport
 from dotenv import load_dotenv
 # Import the endpoint configuration system
 # Import the endpoint configuration system
@@ -28,6 +29,7 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+arduino_transport = get_arduino_transport()
 
 # Database connection (same as your Flask app)
 DATABASE_URL = os.environ.get('DATABASE_URL')
@@ -341,55 +343,41 @@ def format_for_arduino(surf_data, format_type="meters"):
     return formatted
 
 def send_to_arduino(arduino_id, surf_data, format_type="meters"):
-    """Send surf data to Arduino device via HTTP POST"""
+    """Send surf data to Arduino device via configurable transport"""
     logger.info(f"📡 Sending data to Arduino {arduino_id}...")
     
     try:
-        # Get Arduino IP address
+        # Get Arduino IP address (existing logic)
         arduino_ip = get_arduino_ip(arduino_id)
         if not arduino_ip:
-            logger.warning(f"⚠️  No IP address found for Arduino {arduino_id}, skipping device update")
-            return False
+            logger.warning(f"⚠️  No IP address found for Arduino {arduino_id}")
+            # In mock mode, we can still simulate with a placeholder IP
+            if os.environ.get('ARDUINO_TRANSPORT', 'http').lower() == 'mock':
+                arduino_ip = "192.168.1.100"  # Placeholder for mock demonstration
+                logger.info(f"🧪 Using placeholder IP for mock: {arduino_ip}")
+            else:
+                return False
         
-        # Format data based on user preferences
+        # Format data based on user preferences (existing logic)
         formatted_data = format_for_arduino(surf_data, format_type)
-        
-        # Prepare HTTP POST
-        arduino_url = f"http://{arduino_ip}/api/update"
         headers = {'Content-Type': 'application/json'}
         
-        logger.info(f"📤 POST URL: {arduino_url}")
-        logger.info(f"📤 POST Headers: {headers}")
-        logger.info(f"📤 POST Data: {json.dumps(formatted_data, indent=2)}")
-        
-        # Make the HTTP POST to Arduino with shorter timeout
-        response = requests.post(
-            arduino_url, 
-            json=formatted_data, 
-            headers=headers,
-            timeout=5  # Reduced from 10 to 5 seconds
+        # Use transport abstraction
+        success, status_code, response_text = arduino_transport.send_data(
+            arduino_id, arduino_ip, formatted_data, headers
         )
         
-        logger.info(f"📥 Arduino response status: {response.status_code}")
-        logger.info(f"📥 Arduino response body: {response.text}")
-        
-        if response.status_code == 200:
+        if success:
             logger.info(f"✅ Successfully sent data to Arduino {arduino_id}")
             return True
         else:
-            logger.warning(f"⚠️  Arduino {arduino_id} returned status {response.status_code}")
+            logger.warning(f"⚠️  Arduino {arduino_id} returned status {status_code}: {response_text}")
             return False
             
-    except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
-        logger.warning(f"⚠️  Arduino {arduino_id} connection failed: {e}")
-        return False
-    except requests.exceptions.RequestException as e:
-        logger.warning(f"⚠️  Arduino {arduino_id} request failed: {e}")
-        return False
     except Exception as e:
-        logger.warning(f"⚠️  Unexpected error sending to Arduino {arduino_id}: {e}")
+        logger.warning(f"⚠️  Error sending to Arduino {arduino_id}: {e}")
         return False
-
+    
 def update_lamp_timestamp(lamp_id):
     """Update lamp's last_updated timestamp"""
     logger.info(f"⏰ Updating timestamp for lamp {lamp_id}")

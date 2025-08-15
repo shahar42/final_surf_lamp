@@ -200,49 +200,7 @@ class UsageLamps(Base):
     website = relationship("DailyUsage", back_populates="lamp_configs")
 
 
-# --- Database Interaction Function ---
 
-def detect_api_type(base_url):
-    """Detect API type from base URL"""
-    if "openweathermap.org" in base_url:
-        return "openweathermap"
-    elif "isramar.ocean.org.il" in base_url:
-        return "isramar"
-    else:
-        return "unknown"
-
-def generate_api_endpoint(api_type, base_url, location, api_key=None):
-    """Generate proper API endpoint based on API type and location"""
-    
-    if api_type == "openweathermap":
-        # Extract city name (remove country)
-        city_name = location.split(',')[0].strip()
-        return f"{base_url}?q={city_name}&appid={api_key}"
-    
-    elif api_type == "isramar":
-        # ISRAMAR station mapping
-        station_mapping = {
-            "Hadera, Israel": "Hadera_Hs_Per.json",
-            # Add more stations as they become available
-            # "Tel Aviv, Israel": "TelAviv_Station.json",  # When available
-        }
-        
-        station_file = station_mapping.get(location)
-        if station_file:
-            return f"{base_url.rstrip('/')}/station/data/{station_file}"
-        else:
-            # Location not supported by ISRAMAR
-            return None
-    
-    else:
-        # Unknown API type - fallback to simple concatenation
-        logger.warning(f"Unknown API type: {api_type} for URL: {base_url}")
-        return f"{base_url}&appid={os.environ.get('DEFAULT_API_KEY')}"
-
-def get_api_endpoints_for_location(location):
-    """Get all available API endpoints for a given location"""
-    endpoints = []
-    
 # Multi-source locations (require multiple API calls)
 MULTI_SOURCE_LOCATIONS = {
     "Tel Aviv, Israel": [
@@ -259,7 +217,7 @@ MULTI_SOURCE_LOCATIONS = {
     ],
     "Hadera, Israel": [
         {
-            "url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.4365&longitude=34.9196&hourly=wave_height,wave_period,wave_direction",
+            "url": "https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json",
             "priority": 1,
             "type": "wave"
         },
