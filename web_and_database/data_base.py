@@ -311,8 +311,6 @@ MULTI_SOURCE_LOCATIONS = {
 SINGLE_SOURCE_LOCATIONS = {
     # Future locations that provide wave + wind in one API
 }
-    
-    return endpoints
 
 def add_user_and_lamp(name, email, password_hash, lamp_id, arduino_id, location, theme, units):
     """
