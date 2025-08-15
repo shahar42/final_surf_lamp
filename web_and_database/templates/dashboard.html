@@ -7,11 +7,12 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #2193b0, #6dd5ed);
+            background: linear-gradient(135deg, #00c6ff, #0072ff);
         }
         .card {
             background-color: rgba(255, 255, 255, 0.1);
@@ -190,9 +191,9 @@
                         <div class="text-center">
                             <div class="wind-icon text-3xl mb-2">🧭</div>
                             <div class="text-white/80 text-sm">Wind Direction</div>
-                            <div class="text-white font-bold text-xl" id="wind-direction-display">
+                            <div class="text-white font-bold text-xl">
                                 {% if data.conditions.wind_direction_deg %}
-                                    {{ data.conditions.wind_direction_deg }}
+                                    {{ data.conditions.wind_direction_deg }}°
                                 {% else %}
                                     --
                                 {% endif %}
@@ -332,22 +333,6 @@
             statusDiv.style.color = '#ef4444';
         });
     }
-
-    function degreesToCompass(degrees) {
-        const directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
-        const index = Math.round(degrees / 22.5) % 16;
-        return directions[index];
-    }
-
-    // Convert wind direction on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        const windDegElement = document.getElementById('wind-direction-display');
-        if (windDegElement && windDegElement.textContent !== '--') {
-            const degrees = parseInt(windDegElement.textContent);
-            const compass = degreesToCompass(degrees);
-            windDegElement.textContent = compass;
-        }
-    });
 
     function updateThemeButtons(activeTheme) {
         const lightBtn = document.getElementById('theme-light-btn');
