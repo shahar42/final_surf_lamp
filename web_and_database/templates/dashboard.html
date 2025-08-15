@@ -45,6 +45,10 @@
             background-color: #e60073;
             transform: translateY(-1px);
         }
+        @keyframes softPulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
         .status-online {
             color: #10b981;
         }
@@ -56,6 +60,16 @@
         }
         .wind-icon {
             color: #0072ff;
+        }
+        .lamp-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background-color: #00c6ff; /* A bright blue */
+            border-radius: 50%;
+            margin-left: 8px;
+            animation: softPulse 4s ease-in-out infinite; /* Assuming softPulse is defined or will be */
+            vertical-align: middle; /* Align with text */
         }
         #locationSelect option {
             background-color: #1f2937;
@@ -82,7 +96,7 @@
         <div class="card rounded-2xl p-6 shadow-2xl">
             <div class="flex justify-between items-center">
                 <div>
-                    <h1 class="text-3xl font-bold text-white">Surf Lamp Dashboard</h1>
+                    <h1 class="text-3xl font-bold text-white">Surf Lamp Dashboard <span class="lamp-indicator"></span></h1>
                     <p class="text-white/80 mt-1">Welcome back, {{ data.user.username }}!</p>
                 </div>
                 <div class="flex items-center space-x-4">
