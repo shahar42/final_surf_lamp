@@ -417,6 +417,30 @@ def update_theme():
     except Exception as e:
         return {'success': False, 'message': f'Server error: {str(e)}'}, 500
 
+@app.route("/admin/trigger-processor")
+@login_required  # Only logged-in users can trigger
+def trigger_processor():
+    """Manually trigger the background processor once"""
+    try:
+        # Import the processor function
+        import sys
+        import os
+        sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'surf-lamp-processor'))
+        from background_processor import run_once
+        
+        # Run the processor once
+        success = run_once()
+        
+        if success:
+            flash('Background processor completed successfully! Check your dashboard for updated data.', 'success')
+        else:
+            flash('Background processor encountered errors. Check logs for details.', 'error')
+            
+    except Exception as e:
+        flash(f'Error running processor: {str(e)}', 'error')
+    
+    return redirect(url_for('dashboard'))
+
 @app.route("/debug/users")
 def debug_users():
     """
