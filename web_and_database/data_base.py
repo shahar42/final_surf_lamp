@@ -193,7 +193,6 @@ class UsageLamps(Base):
     lamp_id = Column(Integer, ForeignKey('lamps.lamp_id'), primary_key=True)
     api_key = Column(Text, nullable=True)
     http_endpoint = Column(Text, nullable=False)
-    arduino_ip = Column(String(15), nullable=True)
     endpoint_priority = Column(Integer, nullable=False, default=1)
     
     lamp = relationship("Lamp", back_populates="usage_configs")
@@ -338,7 +337,6 @@ def add_user_and_lamp(name, email, password_hash, lamp_id, arduino_id, location,
                 lamp_id=new_lamp.lamp_id,
                 api_key=None,
                 http_endpoint=source['url'],
-                arduino_ip=None,
                 endpoint_priority=source['priority']
             )
             db.add(usage_lamp_link)
@@ -467,7 +465,6 @@ def update_user_location(user_id, new_location):
                 lamp_id=lamp.lamp_id,
                 api_key=None,
                 http_endpoint=source['url'],
-                arduino_ip=None,
                 endpoint_priority=source['priority']
             )
             db.add(usage_lamp)
