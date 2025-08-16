@@ -193,22 +193,39 @@ void performLEDTest() {
     Serial.println("✅ LED test completed");
 }
 
-void updateSurfDisplay(float waveHeight, float wavePeriod, float windSpeed, int windDirection) {
+void updateSurfDisplay(float waveHeight, float wavePeriod, float windSpeed, int windDirection, float waveThreshold = 1.0) {
     // Calculate LED counts based on surf data
     int windSpeedLEDs = constrain(static_cast<int>(windSpeed * 1.3) + 1, 0, NUM_LEDS_CENTER - 1);
     int waveHeightLEDs = constrain(static_cast<int>((waveHeight * 100) / 25) + 1, 0, NUM_LEDS_RIGHT);
     int wavePeriodLEDs = constrain(static_cast<int>(wavePeriod), 0, NUM_LEDS_LEFT);
     
-    // Update LED arrays
+    // Set wind direction and wind speed (always normal)
     setWindDirection(windDirection);
     updateLEDs(windSpeedLEDs, NUM_LEDS_CENTER - 1, leds_center, colorMapWind);
-    updateLEDs(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, colorMapWave);
     updateLEDs(wavePeriodLEDs, NUM_LEDS_LEFT, leds_side_left, colorMap);
+    
+    // THRESHOLD LOGIC FOR WAVE HEIGHT LEDs ONLY
+    if (waveHeight >= waveThreshold) {
+        // ALERT MODE: 60% brighter wave height LEDs
+        for (int i = 0; i < NUM_LEDS_RIGHT; i++) {
+            int colorIndex = map(i, 0, NUM_LEDS_RIGHT - 1, 0, 23);
+            if (i < waveHeightLEDs) {
+                CHSV color = colorMapWave[colorIndex];
+                color.val = min(255, color.val * 1.6); // 60% brighter
+                leds_side_right[i] = color;
+            } else {
+                leds_side_right[i] = CRGB::Black;
+            }
+        }
+    } else {
+        // NORMAL MODE: Standard wave height visualization
+        updateLEDs(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, colorMapWave);
+    }
     
     FastLED.show();
     
-    Serial.printf("🎨 LEDs Updated - Wind: %d, Wave: %d, Period: %d, Direction: %d°\n", 
-                  windSpeedLEDs, waveHeightLEDs, wavePeriodLEDs, windDirection);
+    Serial.printf("🎨 LEDs Updated - Wind: %d, Wave: %d, Period: %d, Direction: %d° [Threshold: %.1fm]\n", 
+                  windSpeedLEDs, waveHeightLEDs, wavePeriodLEDs, windDirection, waveThreshold);
 }
 
 // ---------------------------- WiFi Functions ----------------------------
@@ -474,15 +491,17 @@ bool processSurfData(const String &jsonData) {
     float wavePeriod = doc["wave_period_s"] | 0.0;
     float windSpeed = doc["wind_speed_mps"] | 0.0;
     int windDirection = doc["wind_direction_deg"] | 0;
+    float waveThreshold = doc["wave_threshold_m"] | 1.0;
     
     Serial.printf("🌊 Surf Data Received:\n");
     Serial.printf("   Wave Height: %.2f m\n", waveHeight);
     Serial.printf("   Wave Period: %.1f s\n", wavePeriod);
     Serial.printf("   Wind Speed: %.1f m/s\n", windSpeed);
     Serial.printf("   Wind Direction: %d°\n", windDirection);
+    Serial.printf("   Wave Threshold: %.1f m\n", waveThreshold);
     
-    // Update LEDs
-    updateSurfDisplay(waveHeight, wavePeriod, windSpeed, windDirection);
+    // Update LEDs with threshold
+    updateSurfDisplay(waveHeight, wavePeriod, windSpeed, windDirection, waveThreshold);
     
     // Store data for status reporting
     lastSurfData.waveHeight = waveHeight;

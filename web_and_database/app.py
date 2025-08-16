@@ -149,7 +149,8 @@ def index():
                 'email': user.email,
                 'location': user.location,
                 'theme': user.theme,
-                'preferred_output': user.preferred_output
+                'preferred_output': user.preferred_output,
+                'wave_threshold_m': user.wave_threshold_m or 1.0
             },
             'lamp': {
                 'lamp_id': lamp.lamp_id,
@@ -294,7 +295,8 @@ def dashboard():
             'email': user.email,
             'location': user.location,
             'theme': user.theme,
-            'preferred_output': user.preferred_output
+            'preferred_output': user.preferred_output,
+            'wave_threshold_m': user.wave_threshold_m or 1.0
         },
         'lamp': {
             'lamp_id': lamp.lamp_id,
@@ -341,7 +343,8 @@ def dashboard_view(view_type):
             'email': user.email,
             'location': user.location,
             'theme': user.theme,
-            'preferred_output': user.preferred_output
+            'preferred_output': user.preferred_output,
+            'wave_threshold_m': user.wave_threshold_m or 1.0
         },
         'lamp': {
             'lamp_id': lamp.lamp_id,
