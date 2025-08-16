@@ -430,6 +430,32 @@ def update_theme():
     except Exception as e:
         return {'success': False, 'message': f'Server error: {str(e)}'}, 500
 
+@app.route("/update-threshold", methods=['POST'])
+@login_required
+def update_threshold():
+    try:
+        data = request.get_json()
+        threshold = float(data.get('threshold', 1.0))
+        user_id = session.get('user_id')
+        
+        if threshold < 0.1 or threshold > 10.0:
+            return {'success': False, 'message': 'Threshold must be between 0.1 and 10.0 meters'}, 400
+        
+        db = SessionLocal()
+        try:
+            user = db.query(User).filter(User.user_id == user_id).first()
+            if user:
+                user.wave_threshold_m = threshold
+                db.commit()
+                return {'success': True, 'message': 'Wave threshold updated successfully'}
+            else:
+                return {'success': False, 'message': 'User not found'}, 404
+        finally:
+            db.close()
+            
+    except Exception as e:
+        return {'success': False, 'message': f'Server error: {str(e)}'}, 500
+
 @app.route("/admin/trigger-processor")
 @login_required  # Only logged-in users can trigger
 def trigger_processor():

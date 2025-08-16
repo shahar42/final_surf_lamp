@@ -342,6 +342,24 @@ def format_for_arduino(surf_data, format_type="meters"):
     
     return formatted
 
+def get_user_threshold_for_arduino(arduino_id):
+    """Get user's wave threshold for this Arduino"""
+    query = text("""
+        SELECT u.wave_threshold_m 
+        FROM users u
+        JOIN lamps l ON u.user_id = l.user_id
+        WHERE l.arduino_id = :arduino_id
+    """)
+    
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(query, {"arduino_id": arduino_id})
+            row = result.fetchone()
+            return row[0] if row and row[0] else 1.0
+    except Exception as e:
+        logger.error(f"Failed to get threshold for Arduino {arduino_id}: {e}")
+        return 1.0  # Safe default
+
 def send_to_arduino(arduino_id, surf_data, format_type="meters"):
     """Send surf data to Arduino device via configurable transport"""
     logger.info(f"📡 Sending data to Arduino {arduino_id}...")
@@ -358,8 +376,15 @@ def send_to_arduino(arduino_id, surf_data, format_type="meters"):
             else:
                 return False
         
+        # Get user's wave threshold
+        user_threshold = get_user_threshold_for_arduino(arduino_id)
+        
         # Format data based on user preferences (existing logic)
         formatted_data = format_for_arduino(surf_data, format_type)
+        
+        # Add threshold to Arduino payload
+        formatted_data['wave_threshold_m'] = user_threshold
+        
         headers = {'Content-Type': 'application/json'}
         
         # Use transport abstraction

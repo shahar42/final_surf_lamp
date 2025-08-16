@@ -91,6 +91,7 @@ class User(Base):
     location = Column(String(255), nullable=False)
     theme = Column(String(50), nullable=False)
     preferred_output = Column(String(50), nullable=False)
+    wave_threshold_m = Column(Float, nullable=True, default=1.0)
     
     lamp = relationship("Lamp", back_populates="user", uselist=False, cascade="all, delete-orphan")
 
