@@ -83,8 +83,8 @@ SURF_LOCATIONS = [
     "Ashdod, Israel",
     "Haifa, Israel",
     "Netanya, Israel",
-    "Netanya, Israel",
-    "Nahariya, Isral"
+    "Ashkelon, Israel",
+    "Nahariya, Israel"
 ]
 
 # --- Helper Functions ---
