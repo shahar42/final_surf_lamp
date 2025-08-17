@@ -262,6 +262,30 @@ MULTI_SOURCE_LOCATIONS = {
             "priority": 2,
             "type": "wind"
         }
+    ],
+    "Nahariya, Israel": [
+    {
+        "url": "https://marine-api.open-meteo.com/v1/marine?latitude=33.006&longitude=35.094&hourly=wave_height,wave_period,wave_direction",
+        "priority": 1,
+        "type": "wave"
+    },
+    {
+        "url": "https://api.open-meteo.com/v1/forecast?latitude=33.006&longitude=35.094&hourly=wind_speed_10m,wind_direction_10m",
+        "priority": 2,
+        "type": "wind"
+    }
+    ],
+    "Ashkelon, Israel": [
+        {
+            "url": "https://marine-api.open-meteo.com/v1/marine?latitude=31.6699&longitude=34.5738&hourly=wave_height,wave_period,wave_direction",
+            "priority": 1,
+            "type": "wave"
+        },
+        {
+            "url": "https://api.open-meteo.com/v1/forecast?latitude=31.6699&longitude=34.5738&hourly=wind_speed_10m,wind_direction_10m",
+            "priority": 2,
+            "type": "wind"
+        }
     ]
 }
 
