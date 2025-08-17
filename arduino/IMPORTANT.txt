@@ -1,0 +1,2 @@
+the wave height and wave threashold are sent in centimeters
+and the wind speed os an int type
