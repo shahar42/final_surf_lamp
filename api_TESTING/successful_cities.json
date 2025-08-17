@@ -1,0 +1,542 @@
+[
+    {
+        "apis": [
+            "https://marine-api.open-meteo.com/v1/marine?latitude=37.7749&longitude=-122.4194&hourly=wave_height,wave_period",
+            "https://api.open-meteo.com/v1/forecast?latitude=37.7749&longitude=-122.4194&hourly=wind_speed_10m,wind_direction_10m"
+        ],
+        "parameters_covered": [
+            "wind_speed",
+            "wind_direction",
+            "wave_height",
+            "wave_period"
+        ],
+        "sample_data": {
+            "wave_height": 1.06,
+            "wave_period": 6.7,
+            "wind_speed": 28.2,
+            "wind_direction": 280
+        }
+    },
+    {
+        "apis": [
+            "https://marine-api.open-meteo.com/v1/marine?latitude=37.7749&longitude=-122.4194&hourly=wave_height,wave_period",
+            "https://api.open-meteo.com/v1/forecast?latitude=37.7749&longitude=-122.4194&hourly=wind_speed_10m,wind_direction_10m"
+        ],
+        "parameters_covered": [
+            "wind_speed",
+            "wind_direction",
+            "wave_height",
+            "wave_period"
+        ],
+        "sample_data": {
+            "wave_height": 1.06,
+            "wave_period": 6.7,
+            "wind_speed": 28.2,
+            "wind_direction": 280
+        }
+    },
+    {
+        "apis": [
+            "https://marine-api.open-meteo.com/v1/marine?latitude=34.0522&longitude=-118.2437&hourly=wave_height,wave_period",
+            "https://api.open-meteo.com/v1/forecast?latitude=34.0522&longitude=-118.2437&hourly=wind_speed_10m,wind_direction_10m"
+        ],
+        "parameters_covered": [
+            "wind_speed",
+            "wind_direction",
+            "wave_height",
+            "wave_period"
+        ],
+        "sample_data": {
+            "wave_height": 0.56,
+            "wave_period": 8.6,
+            "wind_speed": 16.2,
+            "wind_direction": 258
+        }
+    },
+    {
+        "apis": [
+            "https://marine-api.open-meteo.com/v1/marine?latitude=34.0522&longitude=-118.2437&hourly=wave_height,wave_period",
+            "https://api.open-meteo.com/v1/forecast?latitude=34.0522&longitude=-118.2437&hourly=wind_speed_10m,wind_direction_10m"
+        ],
+        "parameters_covered": [
+            "wind_speed",
+            "wind_direction",
+            "wave_height",
+            "wave_period"
+        ],
+        "sample_data": {
+            "wave_height": 0.56,
+            "wave_period": 8.6,
+            "wind_speed": 16.2,
+            "wind_direction": 258
+        }
+    },
+    {
+        "apis": [
+            "https://marine-api.open-meteo.com/v1/marine?latitude=32.7157&longitude=-117.1611&hourly=wave_height,wave_period",
+            "https://api.open-meteo.com/v1/forecast?latitude=32.7157&longitude=-117.1611&hourly=wind_speed_10m,wind_direction_10m"
+        ],
+        "parameters_covered": [
+            "wind_speed",
+            "wind_direction",
+            "wave_height",
+            "wave_period"
+        ],
+        "sample_data": {
+            "wave_height": 0.66,
+            "wave_period": 8.65,
+            "wind_speed": 10.9,
+            "wind_direction": 226
+        }
+    },
+    {
+        "apis": [
+            "https://marine-api.open-meteo.com/v1/marine?latitude=32.7157&longitude=-117.1611&hourly=wave_height,wave_period",
+            "https://api.open-meteo.com/v1/forecast?latitude=32.7157&longitude=-117.1611&hourly=wind_speed_10m,wind_direction_10m"
+        ],
+        "parameters_covered": [
+            "wind_speed",
+            "wind_direction",
+            "wave_height",
+            "wave_period"
+        ],
+        "sample_data": {
+            "wave_height": 0.66,
+            "wave_period": 8.65,
+            "wind_speed": 10.9,
+            "wind_direction": 226
+        }
+    },
+    {
+        "apis": [
+            "https://marine-api.open-meteo.com/v1/marine?latitude=34.4208&longitude=-119.6982&hourly=wave_height,wave_period",
+            "https://api.open-meteo.com/v1/forecast?latitude=34.4208&longitude=-119.6982&hourly=wind_speed_10m,wind_direction_10m"
+        ],
+        "parameters_covered": [
+            "wind_speed",
+            "wind_direction",
+            "wave_height",
+            "wave_period"
+        ],
+        "sample_data": {
+            "wave_height": 0.88,
+            "wave_period": 6.7,
+            "wind_speed": 9.7,
+            "wind_direction": 207
+        }
+    },
+    {
+        "apis": [
+            "https://marine-api.open-meteo.com/v1/marine?latitude=34.4208&longitude=-119.6982&hourly=wave_height,wave_period",
+            "https://api.open-meteo.com/v1/forecast?latitude=34.4208&longitude=-119.6982&hourly=wind_speed_10m,wind_direction_10m"
+        ],
+        "parameters_covered": [
+            "wind_speed",
+            "wind_direction",
+            "wave_height",
+            "wave_period"
+        ],
+        "sample_data": {
+            "wave_height": 0.88,
+            "wave_period": 6.7,
+            "wind_speed": 9.7,
+            "wind_direction": 207
+        }
+    },
+    {
+        "apis": [
+            "https://marine-api.open-meteo.com/v1/marine?latitude=36.6002&longitude=-121.8947&hourly=wave_height,wave_period",
+            "https://api.open-meteo.com/v1/forecast?latitude=36.6002&longitude=-121.8947&hourly=wind_speed_10m,wind_direction_10m"
+        ],
+        "parameters_covered": [
+            "wind_speed",
+            "wind_direction",
+            "wave_height",
+            "wave_period"
+        ],
+        "sample_data": {
+            "wave_height": 0.92,
+            "wave_period": 7.45,
+            "wind_speed": 16.1,
+            "wind_direction": 290
+        }
+    },
+    {
+        "apis": [
+            "https://marine-api.open-meteo.com/v1/marine?latitude=36.6002&longitude=-121.8947&hourly=wave_height,wave_period",
+            "https://api.open-meteo.com/v1/forecast?latitude=36.6002&longitude=-121.8947&hourly=wind_speed_10m,wind_direction_10m"
+        ],
+        "parameters_covered": [
+            "wind_speed",
+            "wind_direction",
+            "wave_height",
+            "wave_period"
+        ],
+        "sample_data": {
+            "wave_height": 0.92,
+            "wave_period": 7.45,
+            "wind_speed": 16.1,
+            "wind_direction": 290
+        }
+    },
+    {
+        "apis": [
+            "https://marine-api.open-meteo.com/v1/marine?latitude=36.9741&longitude=-122.0308&hourly=wave_height,wave_period",
+            "https://api.open-meteo.com/v1/forecast?latitude=36.9741&longitude=-122.0308&hourly=wind_speed_10m,wind_direction_10m"
+        ],
+        "parameters_covered": [
+            "wind_speed",
+            "wind_direction",
+            "wave_height",
+            "wave_period"
+        ],
+        "sample_data": {
+            "wave_height": 0.88,
+            "wave_period": 7.75,
+            "wind_speed": 20.1,
+            "wind_direction": 285
+        }
+    },
+    {
+        "apis": [
+            "https://marine-api.open-meteo.com/v1/marine?latitude=36.9741&longitude=-122.0308&hourly=wave_height,wave_period",
+            "https://api.open-meteo.com/v1/forecast?latitude=36.9741&longitude=-122.0308&hourly=wind_speed_10m,wind_direction_10m"
+        ],
+        "parameters_covered": [
+            "wind_speed",
+            "wind_direction",
+            "wave_height",
+            "wave_period"
+        ],
+        "sample_data": {
+            "wave_height": 0.88,
+            "wave_period": 7.75,
+            "wind_speed": 20.1,
+            "wind_direction": 285
+        }
+    },
+    {
+        "apis": [
+            "https://marine-api.open-meteo.com/v1/marine?latitude=33.7701&longitude=-118.1937&hourly=wave_height,wave_period",
+            "https://api.open-meteo.com/v1/forecast?latitude=33.7701&longitude=-118.1937&hourly=wind_speed_10m,wind_direction_10m"
+        ],
+        "parameters_covered": [
+            "wind_speed",
+            "wind_direction",
+            "wave_height",
+            "wave_period"
+        ],
+        "sample_data": {
+            "wave_height": 0.62,
+            "wave_period": 7.15,
+            "wind_speed": 13.8,
+            "wind_direction": 237
+        }
+    },
+    {
+        "apis": [
+            "https://marine-api.open-meteo.com/v1/marine?latitude=33.7701&longitude=-118.1937&hourly=wave_height,wave_period",
+            "https://api.open-meteo.com/v1/forecast?latitude=33.7701&longitude=-118.1937&hourly=wind_speed_10m,wind_direction_10m"
+        ],
+        "parameters_covered": [
+            "wind_speed",
+            "wind_direction",
+            "wave_height",
+            "wave_period"
+        ],
+        "sample_data": {
+            "wave_height": 0.62,
+            "wave_period": 7.15,
+            "wind_speed": 13.8,
+            "wind_direction": 237
+        }
+    },
+    {
+        "apis": [
+            "https://marine-api.open-meteo.com/v1/marine?latitude=33.6603&longitude=-117.9992&hourly=wave_height,wave_period",
+            "https://api.open-meteo.com/v1/forecast?latitude=33.6603&longitude=-117.9992&hourly=wind_speed_10m,wind_direction_10m"
+        ],
+        "parameters_covered": [
+            "wind_speed",
+            "wind_direction",
+            "wave_height",
+            "wave_period"
+        ],
+        "sample_data": {
+            "wave_height": 0.66,
+            "wave_period": 9.95,
+            "wind_speed": 13.9,
+            "wind_direction": 260
+        }
+    },
+    {
+        "apis": [
+            "https://marine-api.open-meteo.com/v1/marine?latitude=33.6603&longitude=-117.9992&hourly=wave_height,wave_period",
+            "https://api.open-meteo.com/v1/forecast?latitude=33.6603&longitude=-117.9992&hourly=wind_speed_10m,wind_direction_10m"
+        ],
+        "parameters_covered": [
+            "wind_speed",
+            "wind_direction",
+            "wave_height",
+            "wave_period"
+        ],
+        "sample_data": {
+            "wave_height": 0.66,
+            "wave_period": 9.95,
+            "wind_speed": 13.9,
+            "wind_direction": 260
+        }
+    },
+    {
+        "apis": [
+            "https://marine-api.open-meteo.com/v1/marine?latitude=33.6189&longitude=-117.9298&hourly=wave_height,wave_period",
+            "https://api.open-meteo.com/v1/forecast?latitude=33.6189&longitude=-117.9298&hourly=wind_speed_10m,wind_direction_10m"
+        ],
+        "parameters_covered": [
+            "wind_speed",
+            "wind_direction",
+            "wave_height",
+            "wave_period"
+        ],
+        "sample_data": {
+            "wave_height": 0.66,
+            "wave_period": 9.95,
+            "wind_speed": 12.2,
+            "wind_direction": 256
+        }
+    },
+    {
+        "apis": [
+            "https://marine-api.open-meteo.com/v1/marine?latitude=33.6189&longitude=-117.9298&hourly=wave_height,wave_period",
+            "https://api.open-meteo.com/v1/forecast?latitude=33.6189&longitude=-117.9298&hourly=wind_speed_10m,wind_direction_10m"
+        ],
+        "parameters_covered": [
+            "wind_speed",
+            "wind_direction",
+            "wave_height",
+            "wave_period"
+        ],
+        "sample_data": {
+            "wave_height": 0.66,
+            "wave_period": 9.95,
+            "wind_speed": 12.2,
+            "wind_direction": 256
+        }
+    },
+    {
+        "apis": [
+            "https://marine-api.open-meteo.com/v1/marine?latitude=33.5422&longitude=-117.7831&hourly=wave_height,wave_period",
+            "https://api.open-meteo.com/v1/forecast?latitude=33.5422&longitude=-117.7831&hourly=wind_speed_10m,wind_direction_10m"
+        ],
+        "parameters_covered": [
+            "wind_speed",
+            "wind_direction",
+            "wave_height",
+            "wave_period"
+        ],
+        "sample_data": {
+            "wave_height": 0.66,
+            "wave_period": 10.4,
+            "wind_speed": 12.3,
+            "wind_direction": 267
+        }
+    },
+    {
+        "apis": [
+            "https://marine-api.open-meteo.com/v1/marine?latitude=33.5422&longitude=-117.7831&hourly=wave_height,wave_period",
+            "https://api.open-meteo.com/v1/forecast?latitude=33.5422&longitude=-117.7831&hourly=wind_speed_10m,wind_direction_10m"
+        ],
+        "parameters_covered": [
+            "wind_speed",
+            "wind_direction",
+            "wave_height",
+            "wave_period"
+        ],
+        "sample_data": {
+            "wave_height": 0.66,
+            "wave_period": 10.4,
+            "wind_speed": 12.3,
+            "wind_direction": 267
+        }
+    },
+    {
+        "apis": [
+            "https://marine-api.open-meteo.com/v1/marine?latitude=34.0259&longitude=-118.7798&hourly=wave_height,wave_period",
+            "https://api.open-meteo.com/v1/forecast?latitude=34.0259&longitude=-118.7798&hourly=wind_speed_10m,wind_direction_10m"
+        ],
+        "parameters_covered": [
+            "wind_speed",
+            "wind_direction",
+            "wave_height",
+            "wave_period"
+        ],
+        "sample_data": {
+            "wave_height": 0.72,
+            "wave_period": 9.3,
+            "wind_speed": 22.0,
+            "wind_direction": 270
+        }
+    },
+    {
+        "apis": [
+            "https://marine-api.open-meteo.com/v1/marine?latitude=34.0259&longitude=-118.7798&hourly=wave_height,wave_period",
+            "https://api.open-meteo.com/v1/forecast?latitude=34.0259&longitude=-118.7798&hourly=wind_speed_10m,wind_direction_10m"
+        ],
+        "parameters_covered": [
+            "wind_speed",
+            "wind_direction",
+            "wave_height",
+            "wave_period"
+        ],
+        "sample_data": {
+            "wave_height": 0.72,
+            "wave_period": 9.3,
+            "wind_speed": 22.0,
+            "wind_direction": 270
+        }
+    },
+    {
+        "apis": [
+            "https://marine-api.open-meteo.com/v1/marine?latitude=34.2805&longitude=-119.2932&hourly=wave_height,wave_period",
+            "https://api.open-meteo.com/v1/forecast?latitude=34.2805&longitude=-119.2932&hourly=wind_speed_10m,wind_direction_10m"
+        ],
+        "parameters_covered": [
+            "wind_speed",
+            "wind_direction",
+            "wave_height",
+            "wave_period"
+        ],
+        "sample_data": {
+            "wave_height": 0.56,
+            "wave_period": 8.2,
+            "wind_speed": 15.5,
+            "wind_direction": 283
+        }
+    },
+    {
+        "apis": [
+            "https://marine-api.open-meteo.com/v1/marine?latitude=34.2805&longitude=-119.2932&hourly=wave_height,wave_period",
+            "https://api.open-meteo.com/v1/forecast?latitude=34.2805&longitude=-119.2932&hourly=wind_speed_10m,wind_direction_10m"
+        ],
+        "parameters_covered": [
+            "wind_speed",
+            "wind_direction",
+            "wave_height",
+            "wave_period"
+        ],
+        "sample_data": {
+            "wave_height": 0.56,
+            "wave_period": 8.2,
+            "wind_speed": 15.5,
+            "wind_direction": 283
+        }
+    },
+    {
+        "apis": [
+            "https://marine-api.open-meteo.com/v1/marine?latitude=33.1959&longitude=-117.3795&hourly=wave_height,wave_period",
+            "https://api.open-meteo.com/v1/forecast?latitude=33.1959&longitude=-117.3795&hourly=wind_speed_10m,wind_direction_10m"
+        ],
+        "parameters_covered": [
+            "wind_speed",
+            "wind_direction",
+            "wave_height",
+            "wave_period"
+        ],
+        "sample_data": {
+            "wave_height": 0.68,
+            "wave_period": 9.9,
+            "wind_speed": 11.2,
+            "wind_direction": 266
+        }
+    },
+    {
+        "apis": [
+            "https://marine-api.open-meteo.com/v1/marine?latitude=33.1959&longitude=-117.3795&hourly=wave_height,wave_period",
+            "https://api.open-meteo.com/v1/forecast?latitude=33.1959&longitude=-117.3795&hourly=wind_speed_10m,wind_direction_10m"
+        ],
+        "parameters_covered": [
+            "wind_speed",
+            "wind_direction",
+            "wave_height",
+            "wave_period"
+        ],
+        "sample_data": {
+            "wave_height": 0.68,
+            "wave_period": 9.9,
+            "wind_speed": 11.2,
+            "wind_direction": 266
+        }
+    },
+    {
+        "apis": [
+            "https://marine-api.open-meteo.com/v1/marine?latitude=33.1581&longitude=-117.3506&hourly=wave_height,wave_period",
+            "https://api.open-meteo.com/v1/forecast?latitude=33.1581&longitude=-117.3506&hourly=wind_speed_10m,wind_direction_10m"
+        ],
+        "parameters_covered": [
+            "wind_speed",
+            "wind_direction",
+            "wave_height",
+            "wave_period"
+        ],
+        "sample_data": {
+            "wave_height": 0.72,
+            "wave_period": 9.85,
+            "wind_speed": 10.5,
+            "wind_direction": 264
+        }
+    },
+    {
+        "apis": [
+            "https://marine-api.open-meteo.com/v1/marine?latitude=33.1581&longitude=-117.3506&hourly=wave_height,wave_period",
+            "https://api.open-meteo.com/v1/forecast?latitude=33.1581&longitude=-117.3506&hourly=wind_speed_10m,wind_direction_10m"
+        ],
+        "parameters_covered": [
+            "wind_speed",
+            "wind_direction",
+            "wave_height",
+            "wave_period"
+        ],
+        "sample_data": {
+            "wave_height": 0.72,
+            "wave_period": 9.85,
+            "wind_speed": 10.5,
+            "wind_direction": 264
+        }
+    },
+    {
+        "apis": [
+            "https://marine-api.open-meteo.com/v1/marine?latitude=33.037&longitude=-117.292&hourly=wave_height,wave_period",
+            "https://api.open-meteo.com/v1/forecast?latitude=33.037&longitude=-117.292&hourly=wind_speed_10m,wind_direction_10m"
+        ],
+        "parameters_covered": [
+            "wind_speed",
+            "wind_direction",
+            "wave_height",
+            "wave_period"
+        ],
+        "sample_data": {
+            "wave_height": 0.7,
+            "wave_period": 9.55,
+            "wind_speed": 11.1,
+            "wind_direction": 257
+        }
+    },
+    {
+        "apis": [
+            "https://marine-api.open-meteo.com/v1/marine?latitude=33.037&longitude=-117.292&hourly=wave_height,wave_period",
+            "https://api.open-meteo.com/v1/forecast?latitude=33.037&longitude=-117.292&hourly=wind_speed_10m,wind_direction_10m"
+        ],
+        "parameters_covered": [
+            "wind_speed",
+            "wind_direction",
+            "wave_height",
+            "wave_period"
+        ],
+        "sample_data": {
+            "wave_height": 0.7,
+            "wave_period": 9.55,
+            "wind_speed": 11.1,
+            "wind_direction": 257
+        }
+    }
+]

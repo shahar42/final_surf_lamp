@@ -18,7 +18,8 @@ Key Components:
 
 import os
 import logging
-from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, TIMESTAMP, MetaData, Float
+import uuid
+from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, TIMESTAMP, MetaData, Float, Boolean
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import func
@@ -94,6 +95,26 @@ class User(Base):
     wave_threshold_m = Column(Float, nullable=True, default=1.0)
     
     lamp = relationship("Lamp", back_populates="user", uselist=False, cascade="all, delete-orphan")
+
+class PasswordResetToken(Base):
+    """Stores password reset tokens"""
+    __tablename__ = 'password_reset_tokens'
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
+    token_hash = Column(String(128), unique=True, nullable=False)
+    expiration_time = Column(TIMESTAMP, nullable=False)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    used_at = Column(TIMESTAMP, nullable=True)
+    is_invalidated = Column(Boolean, default=False, nullable=False)
+    
+    user = relationship("User", backref="reset_tokens")
+    
+    def is_valid(self):
+        from datetime import datetime
+        return (self.expiration_time > datetime.utcnow() and 
+                self.used_at is None and 
+                not self.is_invalidated)
 
 class Lamp(Base):
     """

@@ -27,22 +27,17 @@ from flask_limiter.util import get_remote_address
 from functools import wraps
 from datetime import datetime, timedelta
 from sqlalchemy import text
+from forms import RegistrationForm, LoginForm, ForgotPasswordForm, ResetPasswordForm
 from werkzeug.middleware.proxy_fix import ProxyFix
-
-# Import the database function and models
+from flask_mail import Mail, Message
+import secrets
+import hashlib
+from datetime import datetime, timedelta
+from data_base import PasswordResetToken
 from data_base import add_user_and_lamp, get_user_lamp_data, SessionLocal, User, Lamp, update_user_location
-
 from forms import RegistrationForm, LoginForm
 
-def convert_wind_direction(degrees):
-    """Convert wind direction from degrees to compass direction"""
-    if degrees is None:
-        return "--"
-    
-    directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
-                 "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
-    index = round(degrees / 22.5) % 16
-    return directions[index]
+
 
 # --- Configuration ---
 app = Flask(__name__)
@@ -88,6 +83,50 @@ SURF_LOCATIONS = [
 ]
 
 # --- Helper Functions ---
+
+app.config.update(
+    MAIL_SERVER=os.environ.get('MAIL_SERVER'),
+    MAIL_PORT=int(os.environ.get('MAIL_PORT', 587)),
+    MAIL_USE_TLS=True,
+    MAIL_USERNAME=os.environ.get('MAIL_USERNAME'),
+    MAIL_PASSWORD=os.environ.get('MAIL_PASSWORD'),
+    MAIL_DEFAULT_SENDER=os.environ.get('MAIL_DEFAULT_SENDER')
+)
+mail = Mail(app)
+
+
+
+def send_reset_email(user_email, username, token):
+    reset_link = url_for('reset_password_form', token=token, _external=True)
+    subject = "Password Reset Request"
+    
+    msg = Message(subject, recipients=[user_email])
+    msg.body = f"""Hello {username},
+
+Click this link to reset your password:
+{reset_link}
+
+This link expires in 20 minutes.
+If you didn't request this, ignore this email.
+"""
+    
+    try:
+        mail.send(msg)
+        return True
+    except Exception as e:
+        logger.error(f"Email send failed: {e}")
+        return False
+
+def convert_wind_direction(degrees):
+    """Convert wind direction from degrees to compass direction"""
+    if degrees is None:
+        return "--"
+    
+    directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+                 "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
+    index = round(degrees / 22.5) % 16
+    return directions[index]
+
 def login_required(f):
     """
     Decorator to ensure a user is logged in before accessing a route.
@@ -175,6 +214,86 @@ def index():
         return render_template('dashboard.html', data=dashboard_data, locations=SURF_LOCATIONS)
     
     return redirect(url_for('register'))
+
+@app.route("/forgot-password", methods=['GET', 'POST'])
+@limiter.limit("5 per hour")
+def forgot_password():
+    form = ForgotPasswordForm()
+    
+    if form.validate_on_submit():
+        email = form.email.data.lower()
+        
+        # Always show same message (prevent enumeration)
+        flash('If an account exists with that email, a reset link has been sent.', 'info')
+        
+        db = SessionLocal()
+        try:
+            user = db.query(User).filter(User.email == email).first()
+            if user:
+                # Generate secure token
+                token = secrets.token_urlsafe(48)
+                token_hash = hashlib.sha256(token.encode()).hexdigest()
+                expiration = datetime.utcnow() + timedelta(minutes=20)
+                
+                # Invalidate old tokens
+                db.query(PasswordResetToken).filter(
+                    PasswordResetToken.user_id == user.user_id,
+                    PasswordResetToken.used_at.is_(None)
+                ).update({"is_invalidated": True})
+                
+                # Create new token
+                reset_token = PasswordResetToken(
+                    user_id=user.user_id,
+                    token_hash=token_hash,
+                    expiration_time=expiration
+                )
+                db.add(reset_token)
+                db.commit()
+                
+                # Send email
+                send_reset_email(user.email, user.username, token)
+        finally:
+            db.close()
+            
+        return redirect(url_for('login'))
+    
+    return render_template('forgot_password.html', form=form)
+
+@app.route("/reset-password/<token>", methods=['GET', 'POST'])
+@limiter.limit("3 per 15 minutes")
+def reset_password_form(token):
+    form = ResetPasswordForm()
+    
+    if form.validate_on_submit():
+        db = SessionLocal()
+        try:
+            token_hash = hashlib.sha256(token.encode()).hexdigest()
+            reset_token = db.query(PasswordResetToken).filter(
+                PasswordResetToken.token_hash == token_hash
+            ).first()
+            
+            if not reset_token or not reset_token.is_valid():
+                flash('Invalid or expired reset link.', 'error')
+                return redirect(url_for('forgot_password'))
+            
+            # Update password
+            user = db.query(User).get(reset_token.user_id)
+            user.password_hash = bcrypt.generate_password_hash(form.new_password.data).decode('utf-8')
+            
+            # Mark token as used
+            reset_token.used_at = datetime.utcnow()
+            db.commit()
+            
+            flash('Password reset successfully! Please log in.', 'success')
+            return redirect(url_for('login'))
+            
+        except Exception as e:
+            db.rollback()
+            flash('An error occurred. Please try again.', 'error')
+        finally:
+            db.close()
+    
+    return render_template('reset_password.html', form=form, token=token)
 
 @app.route("/register", methods=['GET', 'POST'])
 @limiter.limit("10/minute") # Add rate limiting to registration

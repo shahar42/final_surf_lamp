@@ -120,6 +120,10 @@
             <button type="submit" class="submit-btn w-full text-white font-bold py-3 px-4 rounded-lg shadow-lg">Sign In</button>
         </form>
 
+        <p class="text-center text-white/70 mt-4">
+            <a href="{{ url_for('forgot_password') }}" class="font-semibold text-white hover:text-pink-300">Forgot Password?</a>
+        </p>
+
         <p class="text-center text-white/70 mt-6">
             Don't have an account? <a href="{{ url_for('register') }}" class="font-semibold text-white hover:text-pink-300">Register Now</a>
         </p>

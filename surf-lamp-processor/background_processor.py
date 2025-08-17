@@ -12,6 +12,8 @@ import requests
 import logging
 from sqlalchemy import create_engine, text
 from datetime import datetime
+
+
 from collections import defaultdict
 import json
 from arduino_transport import get_arduino_transport
@@ -38,7 +40,17 @@ arduino_last_failure = defaultdict(float)
 ARDUINO_FAILURE_THRESHOLD = 3  # Skip after 3 consecutive failures
 ARDUINO_RETRY_DELAY = 1800     # 30 minutes before retry
 
-
+# Location to timezone mapping
+LOCATION_TIMEZONES = {
+    "Hadera, Israel": "Asia/Jerusalem",
+    "Tel Aviv, Israel": "Asia/Jerusalem", 
+    "Ashdod, Israel": "Asia/Jerusalem",
+    "Haifa, Israel": "Asia/Jerusalem",
+    "Netanya, Israel": "Asia/Jerusalem",
+    "San Diego, USA": "America/Los_Angeles",
+    "Barcelona, Spain": "Europe/Madrid",
+    # open for future updates
+}
 
 # Database connection (same as your Flask app)
 DATABASE_URL = os.environ.get('DATABASE_URL')
@@ -109,7 +121,7 @@ def record_arduino_result(arduino_id, success):
         arduino_last_failure[arduino_id] = time.time()
         logger.warning(f"Arduino {arduino_id} failure count: {arduino_failure_counts[arduino_id]}")
 
-def send_to_arduino(arduino_id, surf_data, format_type="meters"):
+def send_to_arduino(arduino_id, surf_data, format_type="meters", location=None):
     """Send surf data to Arduino device via configurable transport with failure tracking"""
     
     # Check if we should skip this Arduino due to recent failures
@@ -135,7 +147,7 @@ def send_to_arduino(arduino_id, surf_data, format_type="meters"):
         user_threshold = get_user_threshold_for_arduino(arduino_id)
         
         # Format data based on user preferences
-        formatted_data = format_for_arduino(surf_data, format_type)
+        formatted_data = format_for_arduino(surf_data, format_type, location)
         
         # Add threshold to Arduino payload
         formatted_data['wave_threshold_m'] = user_threshold
@@ -373,23 +385,35 @@ def get_arduino_ip(arduino_id):
         logger.error(f"❌ Database error looking up Arduino IP: {e}")
         return None
 
-def format_for_arduino(surf_data, format_type="meters"):
-    """Format surf data for Arduino consumption"""
-    logger.info(f"🔧 Formatting data for Arduino (format: {format_type})")
+def format_for_arduino(surf_data, format_type="meters", location=None):
+    """Format surf data for Arduino consumption with location-aware time"""
+    logger.info(f"🔧 Formatting data for Arduino (format: {format_type}, location: {location})")
     
     formatted = surf_data.copy()
+
+    # Add location-aware current time
+    if location and location in LOCATION_TIMEZONES:
+        import pytz
+        from datetime import datetime
+        
+        timezone_str = LOCATION_TIMEZONES[location]
+        local_tz = pytz.timezone(timezone_str)
+        current_time = datetime.now(local_tz)
+        
+        formatted['local_time'] = current_time.strftime('%Y-%m-%d %H:%M:%S %Z')
+        formatted['timezone'] = timezone_str
+        logger.info(f"🕐 Added local time: {formatted['local_time']}")
     
-    # Convert units if needed
     if format_type == "feet":
         if surf_data.get("wave_height_m"):
             formatted["wave_height_ft"] = round(surf_data["wave_height_m"] * 3.28084, 2)
         if surf_data.get("wind_speed_mps"):
             formatted["wind_speed_mph"] = round(surf_data["wind_speed_mps"] * 2.237, 2)
-        logger.info(f"   Converted to imperial: {formatted.get('wave_height_ft', 0)}ft waves, {formatted.get('wind_speed_mph', 0)}mph wind")
+        logger.info(f"   Converted to imperial: {formatted.get('wave_height_ft', 0)}ft waves")
     else:
-        logger.info(f"   Metric format: {formatted.get('wave_height_m', 0)}m waves, {formatted.get('wind_speed_mps', 0)}mps wind")
+        logger.info(f"   Metric format: {formatted.get('wave_height_m', 0)}m waves")
     
-    return formatted    
+    return formatted
 
 def fetch_surf_data(api_key, endpoint):
     """Fetch surf data from external API and standardize using config"""
@@ -547,12 +571,26 @@ def process_all_lamps():
             logger.info(f"\n--- Processing Lamp {lamp_id} ({lamp_config['location']}) ---")
             logger.info(f"API sources: {len(lamp_config['endpoints'])}")
             
-            # Fetch data from all API sources for this lamp
+            # Define required parameters for complete surf data
+            required_parameters = {
+                'wave_height_m', 'wave_period_s', 'wind_speed_mps', 'wind_direction_deg'
+            }
+            
+            # Initialize data collection
             combined_data = {}
             successful_fetches = 0
             
+            # Process APIs by priority until we have all required data
             for endpoint in lamp_config['endpoints']:
-                logger.info(f"Fetching from priority {endpoint['priority']} API...")
+                # Check what parameters we're still missing
+                missing_parameters = required_parameters - set(combined_data.keys())
+                
+                if not missing_parameters:
+                    logger.info(f"✅ All required parameters collected! Skipping remaining APIs.")
+                    break
+                    
+                logger.info(f"🔍 Missing parameters: {missing_parameters}")
+                logger.info(f"📡 Fetching from priority {endpoint['priority']} API...")
                 
                 try:
                     source_data = fetch_surf_data(
@@ -561,20 +599,38 @@ def process_all_lamps():
                     )
                     
                     if source_data:
-                        # Merge data from this source
-                        combined_data.update(source_data)
-                        successful_fetches += 1
-                        logger.info(f"✅ Priority {endpoint['priority']} API successful")
+                        # Count how many NEW parameters this API provided
+                        new_parameters = set(source_data.keys()) & missing_parameters
+                        
+                        if new_parameters:
+                            # Only merge the parameters we actually needed
+                            for param in new_parameters:
+                                combined_data[param] = source_data[param]
+                            
+                            successful_fetches += 1
+                            logger.info(f"✅ Priority {endpoint['priority']} API provided: {new_parameters}")
+                        else:
+                            logger.info(f"ℹ️  Priority {endpoint['priority']} API returned data but no new required parameters")
                     else:
                         logger.warning(f"⚠️  Priority {endpoint['priority']} API returned no data")
                         
                 except Exception as e:
                     logger.warning(f"⚠️  Priority {endpoint['priority']} API failed: {e}")
-                    # Continue with other endpoints (partial data approach)
+                    # Continue with other endpoints for missing data
             
-            # Process lamp if we got any data
+            # Final status check
+            final_missing = required_parameters - set(combined_data.keys())
+            
+            if final_missing:
+                logger.warning(f"⚠️  Incomplete data for lamp {lamp_id}. Missing: {final_missing}")
+                # Add NULL values for missing parameters so Arduino gets consistent data structure
+                for param in final_missing:
+                    combined_data[param] = 0.0 if 'deg' not in param else 0
+                logger.info(f"🔧 Added default values for missing parameters")
+            
+            # Process lamp if we got any data at all
             if combined_data and successful_fetches > 0:
-                logger.info(f"Combined data from {successful_fetches}/{len(lamp_config['endpoints'])} sources")
+                logger.info(f"📊 Final data from {successful_fetches} API source(s): {list(combined_data.keys())}")
                 
                 # Always update database first (dashboard guaranteed)
                 timestamp_updated = update_lamp_timestamp(lamp_id)
@@ -589,7 +645,8 @@ def process_all_lamps():
                     arduino_success = send_to_arduino(
                         lamp_config['arduino_id'], 
                         combined_data, 
-                        lamp_config['format']
+                        lamp_config['format'],
+                        lamp_config['location']
                     )
                     
                     if arduino_success:

@@ -3,6 +3,26 @@ from wtforms import StringField, PasswordField, SelectField, RadioField, Integer
 from wtforms.validators import DataRequired, Email, Length, NumberRange, Regexp, ValidationError
 import re
 import bleach
+from wtforms import SubmitField
+from wtforms.validators import EqualTo
+
+class ForgotPasswordForm(FlaskForm):
+    email = SanitizedStringField('Email', validators=[
+        DataRequired(message="Email is required"),
+        Email(message="Please enter a valid email address")
+    ])
+    submit = SubmitField('Send Reset Link')
+
+class ResetPasswordForm(FlaskForm):
+    new_password = PasswordField('New Password', validators=[
+        DataRequired(message="Password is required"),
+        Length(min=8, max=128, message="Password must be between 8 and 128 characters")
+    ])
+    confirm_password = PasswordField('Confirm Password', validators=[
+        DataRequired(message="Please confirm your password"),
+        EqualTo('new_password', message="Passwords must match")
+    ])
+    submit = SubmitField('Reset Password')
 
 class SanitizedStringField(StringField):
     """Custom field that sanitizes HTML content"""
