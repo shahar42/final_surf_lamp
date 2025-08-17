@@ -310,8 +310,12 @@ def test_reset_db():
         # Get your actual user_id
         user = db.query(User).filter(User.email == 'shaharisn1@gmail.com').first()
         if not user:
+            db.close()
             return "❌ User not found"
         
+        # Get username before the session is closed
+        username = user.username
+
         # Test with your real user_id
         token = secrets.token_urlsafe(48)
         token_hash = hashlib.sha256(token.encode()).hexdigest()
@@ -326,10 +330,10 @@ def test_reset_db():
         db.commit()
         db.close()
         
-        return f"✅ Database test passed! Token created for user {user.username}"
+        return f"✅ Database test passed! Token created for user {username}"
         
     except Exception as e:
-        return f"❌ Database test failed: {e}"
+        return f"❌ Database test failed: {e}" 
 
 @app.route("/register", methods=['GET', 'POST'])
 @limiter.limit("10/minute") # Add rate limiting to registration
