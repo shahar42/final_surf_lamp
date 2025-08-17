@@ -42,7 +42,7 @@ from forms import RegistrationForm, LoginForm
 # --- Configuration ---
 app = Flask(__name__)
 
-app.jinja_env.filters['wind_direction'] = convert_wind_direction
+
 
 # Fix for Render's reverse proxy - prevents redirect loops
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
@@ -126,6 +126,8 @@ def convert_wind_direction(degrees):
                  "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
     index = round(degrees / 22.5) % 16
     return directions[index]
+
+app.jinja_env.filters['wind_direction'] = convert_wind_direction
 
 def login_required(f):
     """
