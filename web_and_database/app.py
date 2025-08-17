@@ -42,7 +42,7 @@ from forms import RegistrationForm, LoginForm
 # --- Configuration ---
 app = Flask(__name__)
 
-
+app.jinja_env.filters['wind_direction'] = convert_wind_direction
 
 # Fix for Render's reverse proxy - prevents redirect loops
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
@@ -126,8 +126,6 @@ def convert_wind_direction(degrees):
                  "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
     index = round(degrees / 22.5) % 16
     return directions[index]
-
-app.jinja_env.filters['wind_direction'] = convert_wind_direction
 
 def login_required(f):
     """
@@ -296,6 +294,37 @@ def reset_password_form(token):
             db.close()
     
     return render_template('reset_password.html', form=form, token=token)
+
+@app.route("/test-reset-db")
+def test_reset_db():
+    """Test password reset database operations"""
+    try:
+        db = SessionLocal()
+        
+        # Test 1: Create fake token
+        token = secrets.token_urlsafe(48)
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+        expiration = datetime.utcnow() + timedelta(minutes=20)
+        
+        reset_token = PasswordResetToken(
+            user_id=1,  # Assuming you have user_id=1
+            token_hash=token_hash,
+            expiration_time=expiration
+        )
+        db.add(reset_token)
+        db.commit()
+        
+        # Test 2: Validate token
+        found_token = db.query(PasswordResetToken).filter(
+            PasswordResetToken.token_hash == token_hash
+        ).first()
+        
+        db.close()
+        
+        return f"✅ Database test passed! Token created and found. Token: {token[:20]}..."
+        
+    except Exception as e:
+        return f"❌ Database test failed: {e}"
 
 @app.route("/register", methods=['GET', 'POST'])
 @limiter.limit("10/minute") # Add rate limiting to registration
