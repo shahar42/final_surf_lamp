@@ -84,6 +84,58 @@ SURF_LOCATIONS = [
 
 # --- Helper Functions ---
 
+def convert_wind_direction(degrees):
+    """Convert wind direction from degrees to compass direction"""
+    if degrees is None:
+        return "--"
+    
+    directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+                 "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
+    index = round(degrees / 22.5) % 16
+    return directions[index]
+
+app.jinja_env.filters['wind_direction'] = convert_wind_direction
+
+# Fix for Render's reverse proxy - prevents redirect loops
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
+if not app.config['SECRET_KEY']:
+    raise ValueError("SECRET_KEY environment variable is required")
+bcrypt = Bcrypt(app)
+
+# --- Redis and Rate Limiter Setup ---
+# Use the REDIS_URL from environment variables provided by Render.
+# Fallback to localhost for local development.
+redis_url = os.environ.get('REDIS_URL', 'redis://localhost:6379')
+
+# Initialize the limiter with the correct storage URI
+limiter = Limiter(
+    key_func=get_remote_address,
+    storage_uri=redis_url,
+    storage_options={"socket_connect_timeout": 30},
+    strategy="fixed-window",
+)
+# Then, associate it with your app
+limiter.init_app(app)
+
+# Location change rate limiting storage
+location_changes = {}  # {user_id: [timestamp1, timestamp2, ...]}
+
+
+# --- Static Data ---
+SURF_LOCATIONS = [
+    "Hadera, Israel",
+    "Tel Aviv, Israel", 
+    "Ashdod, Israel",
+    "Haifa, Israel",
+    "Netanya, Israel",
+    "Ashkelon, Israel",
+    "Nahariya, Israel"
+]
+
+# --- Helper Functions ---
+
 app.config.update(
     MAIL_SERVER=os.environ.get('MAIL_SERVER'),
     MAIL_PORT=int(os.environ.get('MAIL_PORT', 587)),
@@ -92,6 +144,29 @@ app.config.update(
     MAIL_PASSWORD=os.environ.get('MAIL_PASSWORD'),
     MAIL_DEFAULT_SENDER=os.environ.get('MAIL_DEFAULT_SENDER')
 )
+mail = Mail(app)
+
+
+def send_reset_email(user_email, username, token):
+    reset_link = url_for('reset_password_form', token=token, _external=True)
+    subject = "Password Reset Request"
+    
+    msg = Message(subject, recipients=[user_email])
+    msg.body = f"""Hello {username},
+
+Click this link to reset your password:
+{reset_link}
+
+This link expires in 20 minutes.
+If you didn't request this, ignore this email.
+"""
+    
+    try:
+        mail.send(msg)
+        return True
+    except Exception as e:
+        logger.error(f"Email send failed: {e}")
+        return False
 mail = Mail(app)
 
 
@@ -116,16 +191,6 @@ If you didn't request this, ignore this email.
     except Exception as e:
         logger.error(f"Email send failed: {e}")
         return False
-
-def convert_wind_direction(degrees):
-    """Convert wind direction from degrees to compass direction"""
-    if degrees is None:
-        return "--"
-    
-    directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
-                 "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
-    index = round(degrees / 22.5) % 16
-    return directions[index]
 
 def login_required(f):
     """
