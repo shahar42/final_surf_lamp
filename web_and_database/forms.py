@@ -6,6 +6,14 @@ import bleach
 from wtforms import SubmitField
 from wtforms.validators import EqualTo
 
+class SanitizedStringField(StringField):
+    """Custom field that sanitizes HTML content"""
+    def process_formdata(self, valuelist):
+        super().process_formdata(valuelist)
+        if self.data:
+            # Remove HTML tags and sanitize
+            self.data = bleach.clean(self.data, tags=[], strip=True).strip()
+
 class ForgotPasswordForm(FlaskForm):
     email = SanitizedStringField('Email', validators=[
         DataRequired(message="Email is required"),
@@ -23,14 +31,6 @@ class ResetPasswordForm(FlaskForm):
         EqualTo('new_password', message="Passwords must match")
     ])
     submit = SubmitField('Reset Password')
-
-class SanitizedStringField(StringField):
-    """Custom field that sanitizes HTML content"""
-    def process_formdata(self, valuelist):
-        super().process_formdata(valuelist)
-        if self.data:
-            # Remove HTML tags and sanitize
-            self.data = bleach.clean(self.data, tags=[], strip=True).strip()
 
 class RegistrationForm(FlaskForm):
     # Name validation - only letters, spaces, hyphens, apostrophes
