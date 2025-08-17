@@ -398,7 +398,7 @@ def update_location():
         if success:
             # Update session
             session['user_location'] = new_location
-            return {'success': True, 'message': 'Location updated successfully'}
+            return {'success': True, 'message': 'Update success, data will update soon'}
         else:
             return {'success': False, 'message': message}, 500
             
