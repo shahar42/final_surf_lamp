@@ -304,31 +304,29 @@ def reset_password_form(token):
 
 @app.route("/test-reset-db")
 def test_reset_db():
-    """Test password reset database operations"""
     try:
         db = SessionLocal()
         
-        # Test 1: Create fake token
+        # Get your actual user_id
+        user = db.query(User).filter(User.email == 'shaharisn1@gmail.com').first()
+        if not user:
+            return "❌ User not found"
+        
+        # Test with your real user_id
         token = secrets.token_urlsafe(48)
         token_hash = hashlib.sha256(token.encode()).hexdigest()
         expiration = datetime.utcnow() + timedelta(minutes=20)
         
         reset_token = PasswordResetToken(
-            user_id=1,  # Assuming you have user_id=1
+            user_id=user.user_id,  # Use actual user_id
             token_hash=token_hash,
             expiration_time=expiration
         )
         db.add(reset_token)
         db.commit()
-        
-        # Test 2: Validate token
-        found_token = db.query(PasswordResetToken).filter(
-            PasswordResetToken.token_hash == token_hash
-        ).first()
-        
         db.close()
         
-        return f"✅ Database test passed! Token created and found. Token: {token[:20]}..."
+        return f"✅ Database test passed! Token created for user {user.username}"
         
     except Exception as e:
         return f"❌ Database test failed: {e}"
