@@ -83,8 +83,8 @@ SURF_LOCATIONS = [
     "Ashdod, Israel",
     "Haifa, Israel",
     "Netanya, Israel",
-    "Netanya, israel",
-    "Nahariya, isral"
+    "Netanya, Israel",
+    "Nahariya, Isral"
 ]
 
 # --- Helper Functions ---
@@ -118,14 +118,14 @@ def check_location_change_limit(user_id):
     ]
     
     # Check if limit exceeded
-    if len(location_changes[user_id]) >= 5:
-        return False, "Maximum 5 location changes per day reached"
+    if len(location_changes[user_id]) >= 7:
+        return False, "Maximum 7 location changes per day reached"
     
     # Add current timestamp
     location_changes[user_id].append(now)
     return True, "OK"
 
-# --- Routes ---
+# --- ---Routes ---------------------------
 
 @app.route("/")
 def index():
@@ -253,7 +253,6 @@ def login():
                 session['user_email'] = user.email
                 session['user_id'] = user.user_id
                 session['username'] = user.username
-                flash(f"Welcome back, {user.username}!", 'success')
                 return redirect(url_for('dashboard'))
             else:
                 flash('Invalid email or password. Please try again.', 'error')

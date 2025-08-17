@@ -184,7 +184,11 @@
                             <div class="text-white/80 text-sm">Wave Height</div>
                             <div class="text-white font-bold text-xl">
                                 {% if data.conditions.wave_height_m %}
-                                    {{ "%.1f"|format(data.conditions.wave_height_m) }}m
+                                    {% if data.user.preferred_output == 'feet' %}
+                                        {{ "%.1f"|format(data.conditions.wave_height_m * 3.28084) }}ft
+                                    {% else %}
+                                        {{ "%.1f"|format(data.conditions.wave_height_m) }}m
+                                    {% endif %}
                                 {% else %}
                                     --
                                 {% endif %}
@@ -211,7 +215,11 @@
                             <div class="text-white/80 text-sm">Wind Speed</div>
                             <div class="text-white font-bold text-xl">
                                 {% if data.conditions.wind_speed_mps %}
-                                    {{ "%.1f"|format(data.conditions.wind_speed_mps) }} m/s
+                                    {% if data.user.preferred_output == 'feet' %}
+                                        {{ "%.1f"|format(data.conditions.wind_speed_mps * 2.237) }} mph
+                                    {% else %}
+                                        {{ "%.1f"|format(data.conditions.wind_speed_mps) }} m/s
+                                    {% endif %}
                                 {% else %}
                                     --
                                 {% endif %}

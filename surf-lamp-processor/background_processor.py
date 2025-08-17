@@ -12,12 +12,13 @@ import requests
 import logging
 from sqlalchemy import create_engine, text
 from datetime import datetime
+from collections import defaultdict
 import json
 from arduino_transport import get_arduino_transport
 from dotenv import load_dotenv
-# Import the endpoint configuration system
-# Import the endpoint configuration system
 from endpoint_configs import FIELD_MAPPINGS, get_endpoint_config
+
+
 load_dotenv()
 # Configure detailed logging
 logging.basicConfig(
@@ -31,6 +32,14 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 arduino_transport = get_arduino_transport()
 
+# Global failure tracking
+arduino_failure_counts = defaultdict(int)
+arduino_last_failure = defaultdict(float)
+ARDUINO_FAILURE_THRESHOLD = 3  # Skip after 3 consecutive failures
+ARDUINO_RETRY_DELAY = 1800     # 30 minutes before retry
+
+
+
 # Database connection (same as your Flask app)
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if not DATABASE_URL:
@@ -43,6 +52,7 @@ try:
 except Exception as e:
     logger.error(f"Failed to create database engine: {e}")
     exit(1)
+
 
 def extract_field_value(data, field_path):
     """
@@ -67,6 +77,91 @@ def extract_field_value(data, field_path):
         return value
     except (KeyError, TypeError, IndexError):
         return None
+
+def should_skip_arduino(arduino_id):
+    """Check if Arduino should be skipped due to recent failures"""
+    failure_count = arduino_failure_counts[arduino_id]
+    
+    if failure_count < ARDUINO_FAILURE_THRESHOLD:
+        return False  # Normal case - proceed with Arduino
+    
+    last_failure_time = arduino_last_failure[arduino_id]
+    
+    if time.time() - last_failure_time < ARDUINO_RETRY_DELAY:
+        logger.info(f"Skipping Arduino {arduino_id} (failed {failure_count} times, retry in {int(ARDUINO_RETRY_DELAY - (time.time() - last_failure_time))}s)")
+        return True
+    else:
+        # Reset failure count after retry delay
+        arduino_failure_counts[arduino_id] = 0
+        logger.info(f"Retrying Arduino {arduino_id} after cooldown")
+        return False
+
+def record_arduino_result(arduino_id, success):
+    """Record Arduino communication result"""
+    if success:
+        # Reset failure count on success
+        arduino_failure_counts[arduino_id] = 0
+        if arduino_id in arduino_last_failure:
+            del arduino_last_failure[arduino_id]
+    else:
+        # Increment failure count
+        arduino_failure_counts[arduino_id] += 1
+        arduino_last_failure[arduino_id] = time.time()
+        logger.warning(f"Arduino {arduino_id} failure count: {arduino_failure_counts[arduino_id]}")
+
+def send_to_arduino(arduino_id, surf_data, format_type="meters"):
+    """Send surf data to Arduino device via configurable transport with failure tracking"""
+    
+    # Check if we should skip this Arduino due to recent failures
+    if should_skip_arduino(arduino_id):
+        return False
+    
+    logger.info(f"📡 Sending data to Arduino {arduino_id}...")
+    
+    try:
+        # Get Arduino IP address
+        arduino_ip = get_arduino_ip(arduino_id)
+        if not arduino_ip:
+            logger.warning(f"⚠️  No IP address found for Arduino {arduino_id}")
+            # In mock mode, we can still simulate with a placeholder IP
+            if os.environ.get('ARDUINO_TRANSPORT', 'http').lower() == 'mock':
+                arduino_ip = "192.168.1.100"  # Placeholder for mock demonstration
+                logger.info(f"🧪 Using placeholder IP for mock: {arduino_ip}")
+            else:
+                record_arduino_result(arduino_id, False)  # Record failure
+                return False
+        
+        # Get user's wave threshold
+        user_threshold = get_user_threshold_for_arduino(arduino_id)
+        
+        # Format data based on user preferences
+        formatted_data = format_for_arduino(surf_data, format_type)
+        
+        # Add threshold to Arduino payload
+        formatted_data['wave_threshold_m'] = user_threshold
+        
+        headers = {'Content-Type': 'application/json'}
+        
+        # Use transport abstraction
+        success, status_code, response_text = arduino_transport.send_data(
+            arduino_id, arduino_ip, formatted_data, headers
+        )
+        
+        # Record the result for failure tracking
+        record_arduino_result(arduino_id, success)
+        
+        if success:
+            logger.info(f"✅ Successfully sent data to Arduino {arduino_id}")
+            return True
+        else:
+            logger.warning(f"⚠️  Arduino {arduino_id} returned status {status_code}: {response_text}")
+            return False
+            
+    except Exception as e:
+        # Record failure for any exception
+        record_arduino_result(arduino_id, False)
+        logger.warning(f"⚠️  Error sending to Arduino {arduino_id}: {e}")
+        return False
 
 def apply_conversions(value, conversions, field_name):
     """
@@ -278,6 +373,24 @@ def get_arduino_ip(arduino_id):
         logger.error(f"❌ Database error looking up Arduino IP: {e}")
         return None
 
+def format_for_arduino(surf_data, format_type="meters"):
+    """Format surf data for Arduino consumption"""
+    logger.info(f"🔧 Formatting data for Arduino (format: {format_type})")
+    
+    formatted = surf_data.copy()
+    
+    # Convert units if needed
+    if format_type == "feet":
+        if surf_data.get("wave_height_m"):
+            formatted["wave_height_ft"] = round(surf_data["wave_height_m"] * 3.28084, 2)
+        if surf_data.get("wind_speed_mps"):
+            formatted["wind_speed_mph"] = round(surf_data["wind_speed_mps"] * 2.237, 2)
+        logger.info(f"   Converted to imperial: {formatted.get('wave_height_ft', 0)}ft waves, {formatted.get('wind_speed_mph', 0)}mph wind")
+    else:
+        logger.info(f"   Metric format: {formatted.get('wave_height_m', 0)}m waves, {formatted.get('wind_speed_mps', 0)}mps wind")
+    
+    return formatted    
+
 def fetch_surf_data(api_key, endpoint):
     """Fetch surf data from external API and standardize using config"""
     logger.info(f"🌊 Fetching surf data from: {endpoint}")
@@ -295,7 +408,7 @@ def fetch_surf_data(api_key, endpoint):
         logger.info(f"📤 Headers: {headers}")
         
         # Make the actual API call
-        response = requests.get(endpoint, headers=headers, timeout=30)
+        response = requests.get(endpoint, headers=headers, timeout=5)
         response.raise_for_status()
         
         logger.info(f"✅ API call successful: {response.status_code}")
@@ -324,23 +437,6 @@ def fetch_surf_data(api_key, endpoint):
         logger.error(f"❌ Unexpected error fetching surf data from {endpoint}: {e}")
         return None
 
-def format_for_arduino(surf_data, format_type="meters"):
-    """Format surf data for Arduino consumption"""
-    logger.info(f"🔧 Formatting data for Arduino (format: {format_type})")
-    
-    formatted = surf_data.copy()
-    
-    # Convert units if needed
-    if format_type == "feet":
-        if surf_data.get("wave_height_m"):
-            formatted["wave_height_ft"] = round(surf_data["wave_height_m"] * 3.28084, 2)
-        if surf_data.get("wind_speed_mps"):
-            formatted["wind_speed_mph"] = round(surf_data["wind_speed_mps"] * 2.237, 2)
-        logger.info(f"   Converted to imperial: {formatted.get('wave_height_ft', 0)}ft waves, {formatted.get('wind_speed_mph', 0)}mph wind")
-    else:
-        logger.info(f"   Metric format: {formatted.get('wave_height_m', 0)}m waves, {formatted.get('wind_speed_mps', 0)}mps wind")
-    
-    return formatted
 
 def get_user_threshold_for_arduino(arduino_id):
     """Get user's wave threshold for this Arduino"""
@@ -360,48 +456,7 @@ def get_user_threshold_for_arduino(arduino_id):
         logger.error(f"Failed to get threshold for Arduino {arduino_id}: {e}")
         return 1.0  # Safe default
 
-def send_to_arduino(arduino_id, surf_data, format_type="meters"):
-    """Send surf data to Arduino device via configurable transport"""
-    logger.info(f"📡 Sending data to Arduino {arduino_id}...")
-    
-    try:
-        # Get Arduino IP address (existing logic)
-        arduino_ip = get_arduino_ip(arduino_id)
-        if not arduino_ip:
-            logger.warning(f"⚠️  No IP address found for Arduino {arduino_id}")
-            # In mock mode, we can still simulate with a placeholder IP
-            if os.environ.get('ARDUINO_TRANSPORT', 'http').lower() == 'mock':
-                arduino_ip = "192.168.1.100"  # Placeholder for mock demonstration
-                logger.info(f"🧪 Using placeholder IP for mock: {arduino_ip}")
-            else:
-                return False
-        
-        # Get user's wave threshold
-        user_threshold = get_user_threshold_for_arduino(arduino_id)
-        
-        # Format data based on user preferences (existing logic)
-        formatted_data = format_for_arduino(surf_data, format_type)
-        
-        # Add threshold to Arduino payload
-        formatted_data['wave_threshold_m'] = user_threshold
-        
-        headers = {'Content-Type': 'application/json'}
-        
-        # Use transport abstraction
-        success, status_code, response_text = arduino_transport.send_data(
-            arduino_id, arduino_ip, formatted_data, headers
-        )
-        
-        if success:
-            logger.info(f"✅ Successfully sent data to Arduino {arduino_id}")
-            return True
-        else:
-            logger.warning(f"⚠️  Arduino {arduino_id} returned status {status_code}: {response_text}")
-            return False
-            
-    except Exception as e:
-        logger.warning(f"⚠️  Error sending to Arduino {arduino_id}: {e}")
-        return False
+
     
 def update_lamp_timestamp(lamp_id):
     """Update lamp's last_updated timestamp"""
@@ -489,7 +544,7 @@ def process_all_lamps():
         failed_arduino_updates = 0
         
         for lamp_id, lamp_config in lamp_configs.items():
-            logger.info(f"n--- Processing Lamp {lamp_id} ({lamp_config['location']}) ---")
+            logger.info(f"\n--- Processing Lamp {lamp_id} ({lamp_config['location']}) ---")
             logger.info(f"API sources: {len(lamp_config['endpoints'])}")
             
             # Fetch data from all API sources for this lamp
@@ -554,7 +609,7 @@ def process_all_lamps():
         end_time = time.time()
         duration = round(end_time - start_time, 2)
         
-        logger.info(f"n🎉 ======= LAMP PROCESSING CYCLE COMPLETED =======")
+        logger.info(f"\n🎉 ======= LAMP PROCESSING CYCLE COMPLETED =======")
         logger.info(f"📊 Summary:")
         logger.info(f"   - Lamps processed: {len(lamp_configs)}")
         logger.info(f"   - Database updates: {total_database_updates}")
