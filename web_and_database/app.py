@@ -671,15 +671,14 @@ def handle_arduino_callback():
         
         # Extract required fields
         arduino_id = data.get('arduino_id')
-        status = data.get('status', 'unknown')
+        data_received = data.get('data_received', False)
         
         if not arduino_id:
             logger.error("Arduino callback missing arduino_id")
             return {'success': False, 'message': 'arduino_id is required'}, 400
         
-        logger.info(f"📥 Arduino Callback - ID: {arduino_id}, Status: {status}")
-        logger.info(f"   Data: Wave {data.get('wave_height_m', 0)}m, Wind {data.get('wind_speed_mps', 0)}m/s")
-        logger.info(f"   Arduino IP: {data.get('local_ip', 'unknown')}, Memory: {data.get('free_memory', 0)} bytes")
+        logger.info(f"📥 Arduino Callback - ID: {arduino_id}, Data Received: {data_received}")
+        logger.info(f"   Arduino IP: {data.get('local_ip', 'unknown')}")
         
         # Update database with confirmed delivery
         db = SessionLocal()
@@ -691,33 +690,21 @@ def handle_arduino_callback():
                 logger.warning(f"⚠️  Arduino {arduino_id} not found in database")
                 return {'success': False, 'message': f'Arduino {arduino_id} not found'}, 404
             
+            # Store Arduino IP address from callback
+            arduino_ip = data.get('local_ip')
+            if arduino_ip:
+                lamp.arduino_ip = arduino_ip
+                logger.info(f"📍 Updated Arduino {arduino_id} IP address: {arduino_ip}")
+            
             # Update lamp timestamp (confirms delivery)
             lamp.last_updated = datetime.now()
             logger.info(f"✅ Updated lamp {lamp.lamp_id} timestamp")
-            
-            # Update or create current conditions with CONFIRMED values from Arduino
-            conditions = db.query(CurrentConditions).filter(
-                CurrentConditions.lamp_id == lamp.lamp_id
-            ).first()
-            
-            if not conditions:
-                # Create new conditions record
-                conditions = CurrentConditions(lamp_id=lamp.lamp_id)
-                db.add(conditions)
-                logger.info(f"🆕 Created new conditions record for lamp {lamp.lamp_id}")
-            
-            # Update with the ACTUAL values that Arduino processed and displayed
-            conditions.wave_height_m = data.get('wave_height_m', 0.0)
-            conditions.wave_period_s = data.get('wave_period_s', 0.0)
-            conditions.wind_speed_mps = data.get('wind_speed_mps', 0.0)
-            conditions.wind_direction_deg = data.get('wind_direction_deg', 0)
-            conditions.last_updated = datetime.now()
             
             # Commit all changes
             db.commit()
             
             logger.info(f"✅ Database updated successfully for Arduino {arduino_id}")
-            logger.info(f"   Lamp ID: {lamp.lamp_id}, Conditions updated: {conditions.last_updated}")
+            logger.info(f"   Lamp ID: {lamp.lamp_id}, Timestamp updated: {lamp.last_updated}")
             
             # Return success response to Arduino
             response_data = {
@@ -725,8 +712,7 @@ def handle_arduino_callback():
                 'message': 'Callback processed successfully',
                 'lamp_id': lamp.lamp_id,
                 'arduino_id': arduino_id,
-                'timestamp': datetime.now().isoformat(),
-                'database_updated': True
+                'timestamp': datetime.now().isoformat()
             }
             
             return response_data, 200

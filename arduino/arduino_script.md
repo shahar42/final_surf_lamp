@@ -357,134 +357,34 @@ void handleAPTimeout() {
 // ---------------------------- HTTP Server Endpoints ----------------------------
 
 void setupHTTPEndpoints() {
-    // Main endpoint for receiving surf data from background processor
+    // Only endpoint needed - receive surf data from background processor
     server.on("/api/update", HTTP_POST, handleSurfDataUpdate);
     
-    // Status endpoint for monitoring
-    server.on("/api/status", HTTP_GET, handleStatusRequest);
-    
-    // Test endpoint for manual testing
-    server.on("/api/test", HTTP_GET, handleTestRequest);
-    
-    // LED test endpoint
-    server.on("/api/led-test", HTTP_GET, handleLEDTestRequest);
-    
-    // Device info endpoint
-    server.on("/api/info", HTTP_GET, handleDeviceInfoRequest);
-    
     server.begin();
-    Serial.println("🌐 HTTP server started with endpoints:");
-    Serial.println("   POST /api/update    - Receive surf data");
-    Serial.println("   GET  /api/status    - Device status");
-    Serial.println("   GET  /api/test      - Connection test");
-    Serial.println("   GET  /api/led-test  - LED test");
-    Serial.println("   GET  /api/info      - Device information");
+    Serial.println("🌐 HTTP server started");
 }
 
 void handleSurfDataUpdate() {
-    Serial.println("📥 Received surf data request");
-    
     if (!server.hasArg("plain")) {
-        server.send(400, "application/json", "{\"status\":\"error\",\"message\":\"No JSON data received\"}");
-        Serial.println("❌ No JSON data in request");
+        server.send(400, "text/plain", "No data");
         return;
     }
 
     String jsonData = server.arg("plain");
-    Serial.println("📋 Raw JSON data:");
-    Serial.println(jsonData);
-
+    
     if (processSurfData(jsonData)) {
-        server.send(200, "application/json", "{\"status\":\"ok\",\"message\":\"Surf data updated successfully\",\"arduino_id\":" + String(ARDUINO_ID) + "}");
-        Serial.println("✅ Surf data processed successfully");
+        server.send(200, "text/plain", "OK");
     } else {
-        server.send(400, "application/json", "{\"status\":\"error\",\"message\":\"Failed to process surf data\",\"arduino_id\":" + String(ARDUINO_ID) + "}");
-        Serial.println("❌ Failed to process surf data");
+        server.send(400, "text/plain", "Error");
     }
 }
 
-void handleStatusRequest() {
-    DynamicJsonDocument statusDoc(1024);
-    
-    statusDoc["arduino_id"] = ARDUINO_ID;
-    statusDoc["status"] = "online";
-    statusDoc["wifi_connected"] = WiFi.status() == WL_CONNECTED;
-    statusDoc["ip_address"] = WiFi.localIP().toString();
-    statusDoc["ssid"] = WiFi.SSID();
-    statusDoc["signal_strength"] = WiFi.RSSI();
-    statusDoc["uptime_ms"] = millis();
-    statusDoc["free_heap"] = ESP.getFreeHeap();
-    statusDoc["chip_model"] = ESP.getChipModel();
-    statusDoc["firmware_version"] = "1.0.0";
-    
-    // Last surf data
-    statusDoc["last_surf_data"]["received"] = lastSurfData.dataReceived;
-    statusDoc["last_surf_data"]["wave_height_m"] = lastSurfData.waveHeight;
-    statusDoc["last_surf_data"]["wave_period_s"] = lastSurfData.wavePeriod;
-    statusDoc["last_surf_data"]["wind_speed_mps"] = lastSurfData.windSpeed;
-    statusDoc["last_surf_data"]["wind_direction_deg"] = lastSurfData.windDirection;
-    statusDoc["last_surf_data"]["last_update_ms"] = lastSurfData.lastUpdate;
-    
-    String statusJson;
-    serializeJson(statusDoc, statusJson);
-    
-    server.send(200, "application/json", statusJson);
-    Serial.println("📊 Status request served");
-}
-
-void handleTestRequest() {
-    DynamicJsonDocument testDoc(256);
-    testDoc["status"] = "ok";
-    testDoc["message"] = "Arduino is responding";
-    testDoc["arduino_id"] = ARDUINO_ID;
-    testDoc["timestamp"] = millis();
-    
-    String testJson;
-    serializeJson(testDoc, testJson);
-    
-    server.send(200, "application/json", testJson);
-    Serial.println("🧪 Test request served");
-}
-
-void handleLEDTestRequest() {
-    Serial.println("🧪 LED test requested via HTTP");
-    performLEDTest();
-    
-    server.send(200, "application/json", "{\"status\":\"ok\",\"message\":\"LED test completed\"}");
-}
-
-void handleDeviceInfoRequest() {
-    DynamicJsonDocument infoDoc(512);
-    
-    infoDoc["device_name"] = "Surf Lamp";
-    infoDoc["arduino_id"] = ARDUINO_ID;
-    infoDoc["model"] = ESP.getChipModel();
-    infoDoc["revision"] = ESP.getChipRevision();
-    infoDoc["cores"] = ESP.getChipCores();
-    infoDoc["flash_size"] = ESP.getFlashChipSize();
-    infoDoc["psram_size"] = ESP.getPsramSize();
-    infoDoc["firmware_version"] = "1.0.0";
-    infoDoc["led_strips"]["center"] = NUM_LEDS_CENTER;
-    infoDoc["led_strips"]["right"] = NUM_LEDS_RIGHT;
-    infoDoc["led_strips"]["left"] = NUM_LEDS_LEFT;
-    
-    String infoJson;
-    serializeJson(infoDoc, infoJson);
-    
-    server.send(200, "application/json", infoJson);
-    Serial.println("ℹ️ Device info request served");
-}
 
 // ---------------------------- Surf Data Processing ----------------------------
 
 bool processSurfData(const String &jsonData) {
-    DynamicJsonDocument doc(1024);
-    DeserializationError error = deserializeJson(doc, jsonData);
-    
-    if (error) {
-        Serial.printf("❌ JSON parsing failed: %s\n", error.c_str());
-        return false;
-    }
+    DynamicJsonDocument doc(512);
+    if (deserializeJson(doc, jsonData)) return false;
     
     // Extract surf data
     float waveHeight = doc["wave_height_m"] | 0.0;
@@ -493,17 +393,10 @@ bool processSurfData(const String &jsonData) {
     int windDirection = doc["wind_direction_deg"] | 0;
     float waveThreshold = doc["wave_threshold_m"] | 1.0;
     
-    Serial.printf("🌊 Surf Data Received:\n");
-    Serial.printf("   Wave Height: %.2f m\n", waveHeight);
-    Serial.printf("   Wave Period: %.1f s\n", wavePeriod);
-    Serial.printf("   Wind Speed: %.1f m/s\n", windSpeed);
-    Serial.printf("   Wind Direction: %d°\n", windDirection);
-    Serial.printf("   Wave Threshold: %.1f m\n", waveThreshold);
-    
-    // Update LEDs with threshold
+    // Update LEDs
     updateSurfDisplay(waveHeight, wavePeriod, windSpeed, windDirection, waveThreshold);
     
-    // Store data for status reporting
+    // Store for tracking
     lastSurfData.waveHeight = waveHeight;
     lastSurfData.wavePeriod = wavePeriod;
     lastSurfData.windSpeed = windSpeed;
@@ -511,8 +404,8 @@ bool processSurfData(const String &jsonData) {
     lastSurfData.lastUpdate = millis();
     lastSurfData.dataReceived = true;
     
-    // Send callback to Flask app
-    sendCallbackToFlask(waveHeight, wavePeriod, windSpeed, windDirection);
+    // Send callback
+    sendCallbackToFlask();
     
     return true;
 }
@@ -532,19 +425,11 @@ void sendCallbackToFlask(float waveHeight, float wavePeriod, float windSpeed, in
     http.addHeader("Content-Type", "application/json");
     http.setTimeout(10000); // 10 second timeout
     
-    // Create callback payload
-    DynamicJsonDocument callbackDoc(1024);
+    // Create simple callback payload - just acknowledgment
+    DynamicJsonDocument callbackDoc(256);
     callbackDoc["arduino_id"] = ARDUINO_ID;
-    callbackDoc["status"] = "received";
-    callbackDoc["wave_height_m"] = waveHeight;
-    callbackDoc["wave_period_s"] = wavePeriod;
-    callbackDoc["wind_speed_mps"] = windSpeed;
-    callbackDoc["wind_direction_deg"] = windDirection;
+    callbackDoc["data_received"] = true;
     callbackDoc["local_ip"] = WiFi.localIP().toString();
-    callbackDoc["signal_strength"] = WiFi.RSSI();
-    callbackDoc["uptime_ms"] = millis();
-    callbackDoc["free_memory"] = ESP.getFreeHeap();
-    callbackDoc["timestamp"] = millis();
     
     String callbackJson;
     serializeJson(callbackDoc, callbackJson);
