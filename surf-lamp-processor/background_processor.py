@@ -149,8 +149,8 @@ def send_to_arduino(arduino_id, surf_data, format_type="meters", location=None):
         # Format data based on user preferences
         formatted_data = format_for_arduino(surf_data, format_type, location)
         
-        # Add threshold to Arduino payload
-        formatted_data['wave_threshold_m'] = user_threshold
+        # Add threshold to Arduino payload and convert to cm
+        formatted_data['wave_threshold_cm'] = int(round(user_threshold * 100))
         
         headers = {'Content-Type': 'application/json'}
         
@@ -403,15 +403,23 @@ def format_for_arduino(surf_data, format_type="meters", location=None):
         formatted['local_time'] = current_time.strftime('%Y-%m-%d %H:%M:%S %Z')
         formatted['timezone'] = timezone_str
         logger.info(f"🕐 Added local time: {formatted['local_time']}")
-    
+
+    # Convert wave height to cm and wind speed to integer
+    if 'wave_height_m' in formatted:
+        formatted['wave_height_cm'] = int(round(formatted['wave_height_m'] * 100))
+        del formatted['wave_height_m']
+
+    if 'wind_speed_mps' in formatted:
+        formatted['wind_speed_mps'] = int(round(formatted['wind_speed_mps']))
+
     if format_type == "feet":
-        if surf_data.get("wave_height_m"):
-            formatted["wave_height_ft"] = round(surf_data["wave_height_m"] * 3.28084, 2)
-        if surf_data.get("wind_speed_mps"):
-            formatted["wind_speed_mph"] = round(surf_data["wind_speed_mps"] * 2.237, 2)
+        if 'wave_height_cm' in formatted:
+            formatted["wave_height_ft"] = round(formatted["wave_height_cm"] / 30.48, 2)
+        if 'wind_speed_mps' in formatted:
+            formatted["wind_speed_mph"] = round(formatted["wind_speed_mps"] * 2.237, 2)
         logger.info(f"   Converted to imperial: {formatted.get('wave_height_ft', 0)}ft waves")
     else:
-        logger.info(f"   Metric format: {formatted.get('wave_height_m', 0)}m waves")
+        logger.info(f"   Metric format: {formatted.get('wave_height_cm', 0)}cm waves")
     
     return formatted
 
