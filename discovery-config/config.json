@@ -1,0 +1,15 @@
+{
+  "api_server": "surf-lamp.onrender.com",
+  "backup_servers": [
+    "backup-api.herokuapp.com", 
+    "api.surflamp.com"
+  ],
+  "version": "1.0",
+  "timestamp": 1692847200,
+  "endpoints": {
+    "arduino_data": "/api/arduino/{arduino_id}/data",
+    "status": "/api/arduino/status"
+  },
+  "update_interval_hours": 24,
+  "signature": "unsigned_for_now"
+}

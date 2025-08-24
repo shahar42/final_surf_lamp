@@ -20,6 +20,7 @@ Key Features:
 import os
 import logging
 import redis
+import time
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -728,6 +729,89 @@ def handle_arduino_callback():
     except Exception as e:
         logger.error(f"❌ Error processing Arduino callback: {e}")
         return {'success': False, 'message': f'Server error: {str(e)}'}, 500
+
+@app.route("/api/arduino/<int:arduino_id>/data", methods=['GET'])
+def get_arduino_surf_data(arduino_id):
+    """
+    New endpoint: Arduino pulls surf data from server
+    This doesn't break existing push functionality
+    """
+    logger.info(f"📥 Arduino {arduino_id} requesting surf data (PULL mode)")
+    
+    try:
+        # Get lamp data for this Arduino
+        db = SessionLocal()
+        try:
+            # Join to get current conditions for this Arduino
+            result = db.query(Lamp, CurrentConditions, User).select_from(Lamp)                .outerjoin(CurrentConditions, Lamp.lamp_id == CurrentConditions.lamp_id)                .join(User, Lamp.user_id == User.user_id)                .filter(Lamp.arduino_id == arduino_id)                .first()
+            
+            if not result:
+                logger.warning(f"⚠️ Arduino {arduino_id} not found in database")
+                return {'error': 'Arduino not found'}, 404
+            
+            lamp, conditions, user = result
+            
+            # If no conditions yet, return zeros (safe defaults)
+            if not conditions:
+                logger.info(f"ℹ️ No surf conditions yet for Arduino {arduino_id}, returning defaults")
+                surf_data = {
+                    'wave_height_cm': 0,
+                    'wave_period_s': 0.0,
+                    'wind_speed_mps': 0,
+                    'wind_direction_deg': 0,
+                    'wave_threshold_cm': int((user.wave_threshold_m or 1.0) * 100),
+                    'last_updated': '1970-01-01T00:00:00Z',
+                    'data_available': False
+                }
+            else:
+                # Format data exactly like current POST format
+                surf_data = {
+                    'wave_height_cm': int(round((conditions.wave_height_m or 0) * 100)),
+                    'wave_period_s': conditions.wave_period_s or 0.0,
+                    'wind_speed_mps': int(round(conditions.wind_speed_mps or 0)),
+                    'wind_direction_deg': conditions.wind_direction_deg or 0,
+                    'wave_threshold_cm': int((user.wave_threshold_m or 1.0) * 100),
+                    'last_updated': conditions.last_updated.isoformat() if conditions.last_updated else '1970-01-01T00:00:00Z',
+                    'data_available': True
+                }
+            
+            logger.info(f"✅ Returning surf data for Arduino {arduino_id}: wave={surf_data['wave_height_cm']}cm")
+            return surf_data, 200
+            
+        finally:
+            db.close()
+            
+    except Exception as e:
+        logger.error(f"❌ Error getting surf data for Arduino {arduino_id}: {e}")
+        return {'error': 'Server error'}, 500
+
+@app.route("/api/discovery/server", methods=['GET'])
+def get_server_discovery():
+    """
+    Discovery endpoint: Returns current API server information
+    Allows Arduino to find the correct server dynamically
+    """
+    try:
+        # For now, return the current server info
+        # Later we can make this configurable
+        current_host = request.host
+        
+        discovery_info = {
+            'api_server': current_host,
+            'version': '1.0',
+            'timestamp': int(time.time()),
+            'endpoints': {
+                'arduino_data': '/api/arduino/{arduino_id}/data',
+                'status': '/api/arduino/status'
+            }
+        }
+        
+        logger.info(f"📡 Discovery request served: {current_host}")
+        return discovery_info, 200
+        
+    except Exception as e:
+        logger.error(f"❌ Discovery endpoint error: {e}")
+        return {'error': 'Discovery unavailable'}, 500
 
 @app.route("/api/arduino/status", methods=['GET'])
 def arduino_status_overview():
