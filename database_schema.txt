@@ -1,0 +1,191 @@
+                           SURF LAMP DATABASE SCHEMA
+                          =============================
+
+┌─────────────────────────┐         ┌─────────────────────────┐
+│         USERS           │         │  PASSWORD_RESET_TOKENS  │
+├─────────────────────────┤         ├─────────────────────────┤
+│ PK user_id (int)        │◄────────┤ PK id (uuid)           │
+│    username (str) UNQ   │         │ FK user_id (int)       │
+│    password_hash (txt)  │         │    token_hash (str)    │
+│    email (str) UNQ      │         │    expiration_time     │
+│    location (str)       │         │    created_at          │
+│    theme (str)          │         │    used_at             │
+│    preferred_output     │         │    is_invalidated      │
+│    wave_threshold_m     │         └─────────────────────────┘
+└─────────────────────────┘                      │
+             │1                                  │1-to-Many
+             │                                   │
+             │1-to-1                            │
+             ▼                                   │
+┌─────────────────────────┐                     │
+│         LAMPS           │                     │
+├─────────────────────────┤                     │
+│ PK lamp_id (int)        │                     │
+│ FK user_id (int)   ◄────┘                     │
+│    arduino_id (int) UNQ │                     │
+│    arduino_ip (str) UNQ │                     │
+│    last_updated         │                     │
+└─────────────────────────┘                     │
+             │1                                 │
+             │                                  │
+             │1-to-1                           │
+             ▼                                  │
+┌─────────────────────────┐                    │
+│   CURRENT_CONDITIONS    │                    │
+├─────────────────────────┤                    │
+│ PK/FK lamp_id (int)     │                    │
+│       wave_height_m     │                    │
+│       wave_period_s     │                    │
+│       wind_speed_mps    │                    │
+│       wind_direction    │                    │
+│       last_updated      │                    │
+└─────────────────────────┘                    │
+                                                │
+                                                │
+                                                │
+┌─────────────────────────┐                    │
+│      DAILY_USAGE        │                    │
+├─────────────────────────┤                    │
+│ PK usage_id (int)       │                    │
+│    website_url (str) UNQ│                    │
+│    last_updated         │                    │
+└─────────────────────────┘                    │
+             │1                                │
+             │                                 │
+             │1-to-Many                       │
+             ▼                                 │
+┌─────────────────────────┐                   │
+│   LOCATION_WEBSITES     │                   │
+├─────────────────────────┤                   │
+│ PK location (str)       │                   │
+│ FK usage_id (int) UNQ   │                   │
+└─────────────────────────┘                   │
+                                               │
+                                               │
+       ┌───────────────────────────────────────┘
+       │
+       ▼
+┌─────────────────────────┐         ┌─────────────────────────┐
+│      USAGE_LAMPS        │         │         LAMPS           │
+├─────────────────────────┤         ├─────────────────────────┤
+│ PK/FK usage_id (int)    │◄────────┤ PK lamp_id (int)        │
+│ PK/FK lamp_id (int)     │         │ FK user_id (int)        │
+│       api_key (txt)     │         │    arduino_id (int)     │
+│       http_endpoint     │         │    arduino_ip (str)     │
+│       endpoint_priority │         │    last_updated         │
+└─────────────────────────┘         └─────────────────────────┘
+
+
+                              DATA FLOW OVERVIEW
+                             ===================
+
+┌──────────────────┐    Registration    ┌──────────────────┐
+│    WEB CLIENT    │◄──────────────────►│  FLASK WEB APP   │
+│  (Dashboard UI)  │    Authentication  │  (app.py)        │
+└──────────────────┘                    └──────────────────┘
+                                                   │
+                                                   │ CRUD
+                                                   ▼
+┌──────────────────┐                    ┌──────────────────┐
+│   SURF ARDUINO   │◄──────────────────►│   POSTGRESQL     │
+│   (ESP32 Device) │    HTTP Requests   │   DATABASE       │
+└──────────────────┘                    └──────────────────┘
+         ▲                                         ▲
+         │                                         │
+         │ Server Discovery                       │ API Data
+         ▼                                         │
+┌──────────────────┐                    ┌──────────────────┐
+│ GITHUB DISCOVERY │                    │ BACKGROUND       │
+│   CONFIG JSON    │                    │ PROCESSOR        │
+└──────────────────┘                    └──────────────────┘
+                                                   ▲
+                                                   │ Fetch
+                                                   ▼
+                                        ┌──────────────────┐
+                                        │   SURF APIs      │
+                                        │ (Marine Weather) │
+                                        └──────────────────┘
+
+
+                           COMPONENT RELATIONSHIPS
+                          =========================
+
+USER AUTHENTICATION FLOW:
+├── User Registration
+│   ├── Create User Record (bcrypt password)
+│   ├── Create Lamp Record (arduino_id, arduino_ip)
+│   ├── Create DailyUsage Records (API endpoints)
+│   ├── Create LocationWebsites Mapping
+│   └── Create UsageLamps Configuration
+│
+├── Password Reset
+│   ├── Generate UUID Token (SHA256 hashed)
+│   ├── 20-minute expiration window
+│   └── Single-use token invalidation
+│
+└── Session Management
+    ├── Flask sessions for state
+    ├── CSRF protection
+    └── Rate limiting (Redis backend)
+
+DATA PROCESSING FLOW:
+├── Background Processor
+│   ├── Query UsageLamps for endpoints
+│   ├── Fetch from Marine APIs (priority order)
+│   ├── Update CurrentConditions table
+│   └── Update last_updated timestamps
+│
+├── Arduino Integration
+│   ├── Server Discovery (GitHub config)
+│   ├── Periodic data fetch (31 minutes)
+│   ├── LED visualization updates
+│   └── Status reporting endpoints
+│
+└── Web Dashboard
+    ├── Real-time conditions display
+    ├── User preference management
+    ├── Lamp configuration interface
+    └── Historical data visualization
+
+API ENDPOINT MANAGEMENT:
+├── Multiple Sources per Location
+│   ├── Wave data APIs
+│   ├── Wind data APIs
+│   └── Priority-based fallback
+│
+├── Deduplication Strategy
+│   ├── Shared DailyUsage records
+│   ├── UsageLamps many-to-many mapping
+│   └── LocationWebsites primary source
+│
+└── Rate Limiting & Caching
+    ├── API call optimization
+    ├── Background fetch scheduling
+    └── Data freshness tracking
+
+
+                              SECURITY LAYERS
+                             ==================
+
+DATABASE SECURITY:
+├── PostgreSQL with SQLAlchemy ORM
+├── Parameterized queries (SQL injection protection)
+├── Foreign key constraints with cascade deletes
+├── Unique constraints on critical fields
+└── Atomic transactions for data integrity
+
+APPLICATION SECURITY:
+├── bcrypt password hashing with salt
+├── SHA256 token hashing for password resets
+├── CSRF token protection (Flask-WTF)
+├── Rate limiting with Redis backend
+├── Input sanitization (HTML tag removal)
+├── Session-based authentication
+└── Secure headers and HTTPS enforcement
+
+ARDUINO SECURITY:
+├── Server discovery via GitHub (HTTPS)
+├── API endpoint authentication
+├── Local network isolation
+├── Fallback server configuration
+└── Status monitoring and health checks

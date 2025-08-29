@@ -3,6 +3,10 @@
 #include <Preferences.h>
 #include <ArduinoJson.h>
 #include <FastLED.h>
+#include "ServerDiscovery.h"
+
+// Global discovery instance  
+ServerDiscovery serverDiscovery;
 
 // ---------------------------- Configuration ----------------------------
 #define BUTTON_PIN 0  // ESP32 boot button
@@ -25,9 +29,12 @@ const int ARDUINO_ID = 4433;  // ✨ CHANGE THIS for each Arduino device
 // Global Variables
 Preferences preferences;
 WebServer server(80);
+ServerDiscovery serverDiscovery;
 bool configure_wifi = false;
 unsigned long apStartTime = 0;
 const unsigned long AP_TIMEOUT = 60000;  // 60 seconds timeout
+unsigned long lastDataFetch = 0;
+const unsigned long FETCH_INTERVAL = 1860000; // 31 minutes
 
 // Wi-Fi credentials (defaults)
 char ssid[32] = "Your_SSID";
@@ -335,13 +342,21 @@ void setupHTTPEndpoints() {
     // Device info endpoint
     server.on("/api/info", HTTP_GET, handleDeviceInfoRequest);
     
+    // Manual surf data fetch endpoint
+    server.on("/api/fetch", HTTP_GET, handleManualFetchRequest);
+
+    server.on("/api/discovery-test", HTTP_GET, handleDiscoveryTest);
+    
+    
     server.begin();
     Serial.println("🌐 HTTP server started with endpoints:");
     Serial.println("   POST /api/update    - Receive surf data");
+    Serial.println("   GET  /api/discovery-test - Test server discovery");
     Serial.println("   GET  /api/status    - Device status");
     Serial.println("   GET  /api/test      - Connection test");
     Serial.println("   GET  /api/led-test  - LED test");
     Serial.println("   GET  /api/info      - Device information");
+    Serial.println("   GET  /api/fetch     - Manual surf data fetch");
 }
 
 void handleSurfDataUpdate() {
@@ -436,6 +451,64 @@ void handleDeviceInfoRequest() {
     
     server.send(200, "application/json", infoJson);
     Serial.println("ℹ️ Device info request served");
+}
+
+void handleDiscoveryTest() {
+    Serial.println("🧪 Discovery test requested");
+    
+    bool result = serverDiscovery.forceDiscovery();
+    String current = serverDiscovery.getCurrentServer();
+    
+    String response = "{\"server\":\"" + current + "\"}";
+    server.send(200, "application/json", response);
+}
+
+void handleManualFetchRequest() {
+    Serial.println("🔄 Manual surf data fetch requested");
+    
+    if (fetchSurfDataFromServer()) {
+        lastDataFetch = millis();
+        server.send(200, "application/json", "{\"status\":\"ok\",\"message\":\"Surf data fetched successfully\"}");
+        Serial.println("✅ Manual fetch successful");
+    } else {
+        server.send(500, "application/json", "{\"status\":\"error\",\"message\":\"Failed to fetch surf data\"}");
+        Serial.println("❌ Manual fetch failed");
+    }
+}
+
+// ---------------------------- Surf Data Fetching ----------------------------
+
+bool fetchSurfDataFromServer() {
+    String apiServer = serverDiscovery.getApiServer();
+    if (apiServer.length() == 0) {
+        Serial.println("❌ No API server available for fetching data");
+        return false;
+    }
+    
+    HTTPClient http;
+    WiFiClient client;
+    
+    // Construct API URL - assuming the server has an endpoint for Arduino data
+    String url = "https://" + apiServer + "/api/arduino/" + String(ARDUINO_ID) + "/surf-data";
+    Serial.println("🌐 Fetching surf data from: " + url);
+    
+    http.begin(client, url);
+    http.setTimeout(15000); // 15 second timeout
+    http.addHeader("Content-Type", "application/json");
+    
+    int httpCode = http.GET();
+    
+    if (httpCode == HTTP_CODE_OK) {
+        String payload = http.getString();
+        http.end();
+        
+        Serial.println("📥 Received surf data from server");
+        return processSurfData(payload);
+    } else {
+        Serial.printf("❌ HTTP error fetching surf data: %d\n", httpCode);
+        http.end();
+        return false;
+    }
 }
 
 // ---------------------------- Surf Data Processing (Corrected) ----------------------------
@@ -563,8 +636,16 @@ void setup() {
         startConfigMode();
     } else {
         Serial.println("🚀 Surf Lamp ready for operation!");
-        Serial.printf("📍 Device accessible at: http://%sn", WiFi.localIP().toString().c_str());
-        Serial.println("📥 Waiting for surf data from background processor...");
+        Serial.printf("📍 Device accessible at: http://%s\n", WiFi.localIP().toString().c_str());
+        
+        // Try to fetch surf data immediately on startup
+        Serial.println("🔄 Attempting initial surf data fetch...");
+        if (fetchSurfDataFromServer()) {
+            Serial.println("✅ Initial surf data fetch successful");
+            lastDataFetch = millis();
+        } else {
+            Serial.println("⚠️ Initial surf data fetch failed, will retry later");
+        }
     }
 }
 
@@ -595,6 +676,18 @@ void loop() {
         if (configure_wifi) {
             configure_wifi = false;
             Serial.println("✅ Exited configuration mode");
+        }
+        
+        // Periodically fetch surf data from discovered server
+        if (millis() - lastDataFetch > FETCH_INTERVAL) {
+            Serial.println("🔄 Time to fetch new surf data...");
+            if (fetchSurfDataFromServer()) {
+                Serial.println("✅ Surf data fetch successful");
+                lastDataFetch = millis();
+            } else {
+                Serial.println("❌ Surf data fetch failed, will retry later");
+                lastDataFetch = millis(); // Still update to avoid rapid retries
+            }
         }
         
         // Status indication based on data freshness

@@ -16,8 +16,8 @@ private:
     
     // Discovery URLs (static files - free and reliable)
     const char* discovery_urls[2] = {
-       "https://shahar42.github.io/surflamp-discovery/config.json", 
-       "https://raw.githubusercontent.com/shahar42/surflamp-discovery/main/config.json"
+        "https://shahar42.github.io/surflamp-discovery/config.json",
+        "https://raw.githubusercontent.com/shahar42/surflamp-discovery/main/config.json"
     };
     
     String current_server = "";
@@ -55,6 +55,7 @@ public:
         if (discovered.length() > 0) {
             current_server = discovered;
             last_discovery_attempt = millis();
+            return true;
         }
         return false;
     }
