@@ -960,4 +960,4 @@ def debug_users():
 if __name__ == '__main__':
     # For production on Render, use a WSGI server like Gunicorn.
     # The start command should be: gunicorn app:app
-    app.run(debug=True, port=5001)
+    app.run(host='0.0.0.0', port=5001, debug=True)
