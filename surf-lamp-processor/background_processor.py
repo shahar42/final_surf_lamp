@@ -653,25 +653,25 @@ def process_all_lamps():
                     total_database_updates += 1
                     logger.info(f"✅ Database updated for lamp {lamp_id}")
                 
-                # Try to send to Arduino
-                try:
-                    arduino_success = send_to_arduino(
-                        lamp_config['arduino_id'], 
-                        combined_data, 
-                        lamp_config['format'],
-                        lamp_config['location']
-                    )
+                # Try to send to Arduino (DISABLED - Arduino now pulls data)
+                # try:
+                #     arduino_success = send_to_arduino(
+                #         lamp_config['arduino_id'], 
+                #         combined_data, 
+                #         lamp_config['format'],
+                #         lamp_config['location']
+                #     )
                     
-                    if arduino_success:
-                        total_arduino_updates += 1
-                        logger.info(f"✅ Arduino {lamp_config['arduino_id']} updated successfully")
-                    else:
-                        failed_arduino_updates += 1
-                        logger.warning(f"⚠️  Arduino {lamp_config['arduino_id']} update failed")
+                #     if arduino_success:
+                #         total_arduino_updates += 1
+                #         logger.info(f"✅ Arduino {lamp_config['arduino_id']} updated successfully")
+                #     else:
+                #         failed_arduino_updates += 1
+                #         logger.warning(f"⚠️  Arduino {lamp_config['arduino_id']} update failed")
                         
-                except Exception as e:
-                    failed_arduino_updates += 1
-                    logger.warning(f"⚠️  Arduino {lamp_config['arduino_id']} communication failed: {e}")
+                # except Exception as e:
+                #     failed_arduino_updates += 1
+                #     logger.warning(f"⚠️  Arduino {lamp_config['arduino_id']} communication failed: {e}")
             else:
                 logger.error(f"❌ No usable data for lamp {lamp_id} - all API sources failed")
         

@@ -505,7 +505,7 @@ bool fetchSurfDataFromServer() {
     HTTPClient http;
     WiFiClientSecure client;
 
-    String url = "https://" + apiServer + "/api/arduino/" + String(ARDUINO_ID) + "/surf-data";
+    String url = "https://" + apiServer + "/api/arduino/" + String(ARDUINO_ID) + "/data";
     Serial.println("🌐 Fetching surf data from: " + url);
 
     client.setInsecure();

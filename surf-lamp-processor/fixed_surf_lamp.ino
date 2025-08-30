@@ -489,7 +489,7 @@ bool fetchSurfDataFromServer() {
     WiFiClient client;
     
     // Construct API URL - assuming the server has an endpoint for Arduino data
-    String url = "https://" + apiServer + "/api/arduino/" + String(ARDUINO_ID) + "/surf-data";
+    String url = "https://" + apiServer + "/api/arduino/" + String(ARDUINO_ID) + "/data";
     Serial.println("🌐 Fetching surf data from: " + url);
     
     http.begin(client, url);
