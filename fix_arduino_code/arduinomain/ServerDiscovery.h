@@ -17,8 +17,8 @@ private:
     
     // Discovery URLs (static files - free and reliable)
     const char* discovery_urls[2] = {
-        "https://shahar42.github.io/surflamp-discovery/config.json",
-        "https://raw.githubusercontent.com/shahar42/surflamp-discovery/main/config.json"
+        "https://shahar42.github.io/final_surf_lamp/discovery-config/config.json",
+        "https://raw.githubusercontent.com/shahar42/final_surf_lamp/master/discovery-config/config.json"
     };
     
     String current_server = "";
