@@ -683,7 +683,7 @@ def process_all_lamps():
         logger.info(f"   - Duration: {duration} seconds")
         logger.info(f"   - Status: {'SUCCESS' if total_database_updates > 0 else 'FAILED'}")
         
-        return total_database_updates > 0
+        return True
         
     except Exception as e:
         logger.error(f"💥 CRITICAL ERROR in lamp processing cycle: {e}")
