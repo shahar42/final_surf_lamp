@@ -3,9 +3,10 @@
 #include <Preferences.h>
 #include <ArduinoJson.h>
 #include <FastLED.h>
-#include "ServerDiscovery.h"
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
+
+#include "ServerDiscovery.h"
 
 // Global discovery instance
 ServerDiscovery serverDiscovery;

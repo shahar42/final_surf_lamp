@@ -59,7 +59,12 @@ if not DATABASE_URL:
     exit(1)
 
 try:
-    engine = create_engine(DATABASE_URL)
+    # For Supabase, explicitly require SSL
+    connect_args = {}
+    if "supabase.com" in DATABASE_URL:
+        connect_args["sslmode"] = "require"
+        
+    engine = create_engine(DATABASE_URL, connect_args=connect_args)
     logger.info(f"Database engine created successfully")
 except Exception as e:
     logger.error(f"Failed to create database engine: {e}")
