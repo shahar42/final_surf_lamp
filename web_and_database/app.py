@@ -199,7 +199,8 @@ def index():
                 'location': user.location,
                 'theme': user.theme,
                 'preferred_output': user.preferred_output,
-                'wave_threshold_m': user.wave_threshold_m or 1.0
+                'wave_threshold_m': user.wave_threshold_m or 1.0,
+                'wind_threshold_knots': user.wind_threshold_knots or 22.0
             },
             'lamp': {
                 'lamp_id': lamp.lamp_id,
@@ -457,7 +458,8 @@ def dashboard():
             'location': user.location,
             'theme': user.theme,
             'preferred_output': user.preferred_output,
-            'wave_threshold_m': user.wave_threshold_m or 1.0
+            'wave_threshold_m': user.wave_threshold_m or 1.0,
+            'wind_threshold_knots': user.wind_threshold_knots or 22.0
         },
         'lamp': {
             'lamp_id': lamp.lamp_id,
@@ -505,7 +507,8 @@ def dashboard_view(view_type):
             'location': user.location,
             'theme': user.theme,
             'preferred_output': user.preferred_output,
-            'wave_threshold_m': user.wave_threshold_m or 1.0
+            'wave_threshold_m': user.wave_threshold_m or 1.0,
+            'wind_threshold_knots': user.wind_threshold_knots or 22.0
         },
         'lamp': {
             'lamp_id': lamp.lamp_id,
@@ -612,6 +615,32 @@ def update_threshold():
                 user.wave_threshold_m = threshold
                 db.commit()
                 return {'success': True, 'message': 'Wave threshold updated successfully'}
+            else:
+                return {'success': False, 'message': 'User not found'}, 404
+        finally:
+            db.close()
+            
+    except Exception as e:
+        return {'success': False, 'message': f'Server error: {str(e)}'}, 500
+
+@app.route("/update-wind-threshold", methods=['POST'])
+@login_required
+def update_wind_threshold():
+    try:
+        data = request.get_json()
+        threshold = int(data.get('threshold', 22))
+        user_id = session.get('user_id')
+        
+        if threshold < 1 or threshold > 25:
+            return {'success': False, 'message': 'Wind threshold must be between 1 and 25 knots'}, 400
+        
+        db = SessionLocal()
+        try:
+            user = db.query(User).filter(User.user_id == user_id).first()
+            if user:
+                user.wind_threshold_knots = threshold
+                db.commit()
+                return {'success': True, 'message': 'Wind threshold updated successfully'}
             else:
                 return {'success': False, 'message': 'User not found'}, 404
         finally:
@@ -760,6 +789,7 @@ def get_arduino_surf_data(arduino_id):
                     'wind_speed_mps': 0,
                     'wind_direction_deg': 0,
                     'wave_threshold_cm': int((user.wave_threshold_m or 1.0) * 100),
+                    'wind_speed_threshold_knots': int(round(user.wind_threshold_knots or 22.0)),
                     'last_updated': '1970-01-01T00:00:00Z',
                     'data_available': False
                 }
@@ -771,6 +801,7 @@ def get_arduino_surf_data(arduino_id):
                     'wind_speed_mps': int(round(conditions.wind_speed_mps or 0)),
                     'wind_direction_deg': conditions.wind_direction_deg or 0,
                     'wave_threshold_cm': int((user.wave_threshold_m or 1.0) * 100),
+                    'wind_speed_threshold_knots': int(round(user.wind_threshold_knots or 22.0)),
                     'last_updated': conditions.last_updated.isoformat() if conditions.last_updated else '1970-01-01T00:00:00Z',
                     'data_available': True
                 }

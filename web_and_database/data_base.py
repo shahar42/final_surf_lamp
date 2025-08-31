@@ -93,6 +93,7 @@ class User(Base):
     theme = Column(String(50), nullable=False)
     preferred_output = Column(String(50), nullable=False)
     wave_threshold_m = Column(Float, nullable=True, default=1.0)
+    wind_threshold_knots = Column(Float, nullable=True, default=22.0)
     
     lamp = relationship("Lamp", back_populates="user", uselist=False, cascade="all, delete-orphan")
 

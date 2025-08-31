@@ -18,6 +18,7 @@
              │ 🎨 theme: VARCHAR(50)       │
              │ 📊 preferred_output: VARCH  │
              │ 🌊 wave_threshold_m: FLOAT  │
+             │ 💨 wind_threshold_knots: FLOAT │
              └─────────────────────────────┘
                            │
                            │ 1:M

@@ -148,14 +148,16 @@ def send_to_arduino(arduino_id, surf_data, format_type="meters", location=None):
                 record_arduino_result(arduino_id, False)  # Record failure
                 return False
         
-        # Get user's wave threshold
-        user_threshold = get_user_threshold_for_arduino(arduino_id)
+        # Get user's thresholds
+        user_wave_threshold = get_user_threshold_for_arduino(arduino_id)
+        user_wind_threshold = get_user_wind_threshold_for_arduino(arduino_id)
         
         # Format data based on user preferences
         formatted_data = format_for_arduino(surf_data, format_type, location)
         
-        # Add threshold to Arduino payload and convert to cm
-        formatted_data['wave_threshold_cm'] = int(round(user_threshold * 100))
+        # Add thresholds to Arduino payload
+        formatted_data['wave_threshold_cm'] = int(round(user_wave_threshold * 100))
+        formatted_data['wind_speed_threshold_knots'] = int(round(user_wind_threshold))
         
         headers = {'Content-Type': 'application/json'}
         
@@ -492,6 +494,24 @@ def get_user_threshold_for_arduino(arduino_id):
     except Exception as e:
         logger.error(f"Failed to get threshold for Arduino {arduino_id}: {e}")
         return 1.0  # Safe default
+
+def get_user_wind_threshold_for_arduino(arduino_id):
+    """Get user's wind threshold for this Arduino"""
+    query = text("""
+        SELECT u.wind_threshold_knots 
+        FROM users u
+        JOIN lamps l ON u.user_id = l.user_id
+        WHERE l.arduino_id = :arduino_id
+    """)
+    
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(query, {"arduino_id": arduino_id})
+            row = result.fetchone()
+            return row[0] if row and row[0] else 22.0
+    except Exception as e:
+        logger.error(f"Failed to get wind threshold for Arduino {arduino_id}: {e}")
+        return 22.0  # Safe default
 
 
     
