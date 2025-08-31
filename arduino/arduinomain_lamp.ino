@@ -1,3 +1,4 @@
+
 #include <WiFi.h>
 #include <WebServer.h>
 #include <Preferences.h>
@@ -38,6 +39,11 @@ const unsigned long AP_TIMEOUT = 60000;  // 60 seconds timeout
 unsigned long lastDataFetch = 0;
 const unsigned long FETCH_INTERVAL = 1860000; // 31 minutes
 
+// Blinking state variables
+unsigned long lastBlinkUpdate = 0;
+const unsigned long BLINK_INTERVAL = 1500; // 1.5 seconds for slow smooth blink
+float blinkPhase = 0.0; // Phase for smooth sine wave blinking
+
 // Wi-Fi credentials (defaults)
 char ssid[32] = "Sunrise";
 char password[64] = "4085429360";
@@ -53,6 +59,8 @@ struct SurfData {
     float wavePeriod = 0.0;
     float windSpeed = 0.0;
     int windDirection = 0;
+    int waveThreshold = 100;
+    int windSpeedThreshold = 15;
     unsigned long lastUpdate = 0;
     bool dataReceived = false;
 } lastSurfData;
@@ -62,7 +70,7 @@ struct SurfData {
 void setupHTTPEndpoints();
 bool fetchSurfDataFromServer();
 bool processSurfData(const String &jsonData);
-void updateSurfDisplay(int waveHeight_cm, float wavePeriod, int windSpeed, int windDirection, int waveThreshold_cm = 100);
+void updateSurfDisplay(int waveHeight_cm, float wavePeriod, int windSpeed, int windDirection, int waveThreshold_cm = 100, int windSpeedThreshold_knots = 15);
 void handleSurfDataUpdate();
 void handleStatusRequest();
 void handleTestRequest();
@@ -70,6 +78,9 @@ void handleLEDTestRequest();
 void handleDeviceInfoRequest();
 void handleManualFetchRequest();
 void handleDiscoveryTest();
+void applyWindSpeedThreshold(int windSpeedLEDs, int windSpeed_mps, int windSpeedThreshold_knots);
+void applyWaveHeightThreshold(int waveHeightLEDs, int waveHeight_cm, int waveThreshold_cm);
+void updateBlinkingLEDs(int numActiveLeds, int segmentLen, CRGB* leds, CHSV baseColor);
 
 
 // ---------------------------- Color Maps ----------------------------
@@ -166,6 +177,28 @@ void updateLEDs(int numActiveLeds, int segmentLen, CRGB* leds, CHSV* colorMap) {
     }
 }
 
+void updateBlinkingLEDs(int numActiveLeds, int segmentLen, CRGB* leds, CHSV baseColor) {
+    // Update blink phase for smooth sine wave blinking
+    unsigned long currentMillis = millis();
+    if (currentMillis - lastBlinkUpdate >= 50) { // Update every 50ms for smooth animation
+        blinkPhase += 0.1;
+        if (blinkPhase >= 2 * PI) blinkPhase = 0.0;
+        lastBlinkUpdate = currentMillis;
+    }
+    
+    // Calculate brightness using sine wave (0.3 to 1.0 range for visible pulsing)
+    float brightnessFactor = 0.3 + 0.7 * (sin(blinkPhase) * 0.5 + 0.5);
+    int adjustedBrightness = min(255, (int)(baseColor.val * brightnessFactor));
+    
+    for (int i = 0; i < segmentLen; i++) {
+        if (i < numActiveLeds) {
+            leds[i] = CHSV(baseColor.hue, baseColor.sat, adjustedBrightness);
+        } else {
+            leds[i] = CRGB::Black;
+        }
+    }
+}
+
 void updateLEDsOneColor(int numActiveLeds, int segmentLen, CRGB* leds, CHSV color) {
     for (int i = 0; i < segmentLen; i++) {
         if (i < numActiveLeds) {
@@ -173,6 +206,29 @@ void updateLEDsOneColor(int numActiveLeds, int segmentLen, CRGB* leds, CHSV colo
         } else {
             leds[i] = CRGB::Black;
         }
+    }
+}
+
+void applyWindSpeedThreshold(int windSpeedLEDs, int windSpeed_mps, int windSpeedThreshold_knots) {
+    // Convert wind speed from m/s to knots for threshold comparison
+    float windSpeedInKnots = windSpeed_mps * 1.94384;
+    
+    if (windSpeedInKnots >= windSpeedThreshold_knots) {
+        // ALERT MODE: Blinking bright white wind speed LEDs
+        updateBlinkingLEDs(windSpeedLEDs, NUM_LEDS_CENTER - 1, leds_center, CHSV(0, 0, min(255, (int)(255 * 1.6)))); // Blinking bright white
+    } else {
+        // NORMAL MODE: Standard white wind speed visualization
+        updateLEDsOneColor(windSpeedLEDs, NUM_LEDS_CENTER - 1, leds_center, CHSV(0, 0, 255)); // White
+    }
+}
+
+void applyWaveHeightThreshold(int waveHeightLEDs, int waveHeight_cm, int waveThreshold_cm) {
+    if (waveHeight_cm >= waveThreshold_cm) {
+        // ALERT MODE: Blinking bright blue wave height LEDs
+        updateBlinkingLEDs(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, CHSV(240, 255, min(255, (int)(255 * 1.6)))); // Blinking bright blue
+    } else {
+        // NORMAL MODE: Blue wave height visualization
+        updateLEDsOneColor(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, CHSV(240, 255, 255)); // Blue
     }
 }
 
@@ -418,6 +474,8 @@ void handleStatusRequest() {
     statusDoc["last_surf_data"]["wave_period_s"] = lastSurfData.wavePeriod;
     statusDoc["last_surf_data"]["wind_speed_mps"] = lastSurfData.windSpeed;
     statusDoc["last_surf_data"]["wind_direction_deg"] = lastSurfData.windDirection;
+    statusDoc["last_surf_data"]["wave_threshold_cm"] = lastSurfData.waveThreshold;
+    statusDoc["last_surf_data"]["wind_speed_threshold_knots"] = lastSurfData.windSpeedThreshold;
     statusDoc["last_surf_data"]["last_update_ms"] = lastSurfData.lastUpdate;
     
     String statusJson;
@@ -545,6 +603,7 @@ bool processSurfData(const String &jsonData) {
     int wind_speed_mps = doc["wind_speed_mps"] | 0;
     int wind_direction_deg = doc["wind_direction_deg"] | 0;
     int wave_threshold_cm = doc["wave_threshold_cm"] | 100;
+    int wind_speed_threshold_knots = doc["wind_speed_threshold_knots"] | 15;
     
     Serial.println("🌊 Surf Data Received:");
     Serial.printf("   Wave Height: %d cm\n", wave_height_cm);
@@ -552,15 +611,18 @@ bool processSurfData(const String &jsonData) {
     Serial.printf("   Wind Speed: %d m/s\n", wind_speed_mps);
     Serial.printf("   Wind Direction: %d°\n", wind_direction_deg);
     Serial.printf("   Wave Threshold: %d cm\n", wave_threshold_cm);
+    Serial.printf("   Wind Speed Threshold: %d knots\n", wind_speed_threshold_knots);
     
     // Update LEDs with the new data
-    updateSurfDisplay(wave_height_cm, wave_period_s, wind_speed_mps, wind_direction_deg, wave_threshold_cm);
+    updateSurfDisplay(wave_height_cm, wave_period_s, wind_speed_mps, wind_direction_deg, wave_threshold_cm, wind_speed_threshold_knots);
     
     // Store data for status reporting (converting height back to meters for consistency if needed)
     lastSurfData.waveHeight = wave_height_cm / 100.0;
     lastSurfData.wavePeriod = wave_period_s;
     lastSurfData.windSpeed = wind_speed_mps;
     lastSurfData.windDirection = wind_direction_deg;
+    lastSurfData.waveThreshold = wave_threshold_cm;
+    lastSurfData.windSpeedThreshold = wind_speed_threshold_knots;
     lastSurfData.lastUpdate = millis();
     lastSurfData.dataReceived = true;
     
@@ -568,39 +630,27 @@ bool processSurfData(const String &jsonData) {
 }
 
 
-void updateSurfDisplay(int waveHeight_cm, float wavePeriod, int windSpeed, int windDirection, int waveThreshold_cm) {
+void updateSurfDisplay(int waveHeight_cm, float wavePeriod, int windSpeed, int windDirection, int waveThreshold_cm, int windSpeedThreshold_knots) {
     // Calculate LED counts based on surf data
-    int windSpeedLEDs = constrain(static_cast<int>(windSpeed * 1.3) + 1, 0, NUM_LEDS_CENTER - 1);
+    // Convert m/s to knots and scale by 1/2 for LED display
+    int windSpeedLEDs = constrain(static_cast<int>(windSpeed * (1.94384 / 2.0)) + 1, 0, NUM_LEDS_CENTER - 1);
     int waveHeightLEDs = constrain(static_cast<int>(waveHeight_cm / 25) + 1, 0, NUM_LEDS_RIGHT);
     int wavePeriodLEDs = constrain(static_cast<int>(wavePeriod), 0, NUM_LEDS_LEFT);
     
-    // Set wind direction and wind speed (always normal)
+    // Set wind direction indicator
     setWindDirection(windDirection);
-    updateLEDs(windSpeedLEDs, NUM_LEDS_CENTER - 1, leds_center, colorMapWind);
-    updateLEDs(wavePeriodLEDs, NUM_LEDS_LEFT, leds_side_left, colorMap);
     
-    // THRESHOLD LOGIC FOR WAVE HEIGHT LEDs ONLY
-    if (waveHeight_cm >= waveThreshold_cm) {
-        // ALERT MODE: 60% brighter wave height LEDs
-        for (int i = 0; i < NUM_LEDS_RIGHT; i++) {
-            int colorIndex = map(i, 0, NUM_LEDS_RIGHT - 1, 0, 23);
-            if (i < waveHeightLEDs) {
-                CHSV color = colorMapWave[colorIndex];
-                color.val = min(255, (int)(color.val * 1.6)); // 60% brighter
-                leds_side_right[i] = color;
-            } else {
-                leds_side_right[i] = CRGB::Black;
-            }
-        }
-    } else {
-        // NORMAL MODE: Standard wave height visualization
-        updateLEDs(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, colorMapWave);
-    }
+    // Set wave period LEDs (always normal green)
+    updateLEDsOneColor(wavePeriodLEDs, NUM_LEDS_LEFT, leds_side_left, CHSV(120, 255, 255)); // Green
+    
+    // Apply threshold logic for wind speed and wave height
+    applyWindSpeedThreshold(windSpeedLEDs, windSpeed, windSpeedThreshold_knots);
+    applyWaveHeightThreshold(waveHeightLEDs, waveHeight_cm, waveThreshold_cm);
     
     FastLED.show();
     
-    Serial.printf("🎨 LEDs Updated - Wind: %d, Wave: %d, Period: %d, Direction: %d° [Threshold: %dcm]\n", 
-                  windSpeedLEDs, waveHeightLEDs, wavePeriodLEDs, windDirection, waveThreshold_cm);
+    Serial.printf("🎨 LEDs Updated - Wind: %d, Wave: %d, Period: %d, Direction: %d° [Wave Threshold: %dcm, Wind Threshold: %dkts]\n", 
+                  windSpeedLEDs, waveHeightLEDs, wavePeriodLEDs, windDirection, waveThreshold_cm, windSpeedThreshold_knots);
 }
 
 

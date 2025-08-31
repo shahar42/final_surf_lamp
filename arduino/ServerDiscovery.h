@@ -4,20 +4,21 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
+#include <WiFiClientSecure.h>
 
 class ServerDiscovery {
 private:
     // Hardcoded fallback servers (Phase 1 compatibility)
     const char* fallback_servers[3] = {
-        "surf-lamp-api.render.com",
+        "final-surf-lamp.onrender.com",
         "backup-api.herokuapp.com", 
         "localhost:5001"  // For development
     };
     
     // Discovery URLs (static files - free and reliable)
     const char* discovery_urls[2] = {
-       "https://shahar42.github.io/surflamp-discovery/config.json", 
-       "https://raw.githubusercontent.com/shahar42/surflamp-discovery/main/config.json"
+        "https://shahar42.github.io/final_surf_lamp/discovery-config/config.json",
+        "https://raw.githubusercontent.com/shahar42/final_surf_lamp/master/discovery-config/config.json"     
     };
     
     String current_server = "";
@@ -55,6 +56,7 @@ public:
         if (discovered.length() > 0) {
             current_server = discovered;
             last_discovery_attempt = millis();
+            return true;
         }
         return false;
     }
@@ -100,8 +102,10 @@ private:
     
     String fetchDiscoveryConfig(const char* url) {
         HTTPClient http;
-        WiFiClient client;
-        
+        WiFiClientSecure client;
+
+        client.setInsecure(); // Allow insecure connections for discovery
+
         http.begin(client, url);
         http.setTimeout(10000); // 10 second timeout
         
@@ -114,7 +118,7 @@ private:
             // Parse JSON and extract server
             return parseDiscoveryResponse(payload);
         } else {
-            Serial.printf("   HTTP error: %d\n", httpCode);
+            Serial.printf("   HTTP error: %d (%s)\n", httpCode, http.errorToString(httpCode).c_str());
             http.end();
             return "";
         }
@@ -151,5 +155,4 @@ private:
         return "";
     }
 };
-
-#endif
+#endif 
