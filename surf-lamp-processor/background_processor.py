@@ -40,6 +40,10 @@ arduino_last_failure = defaultdict(float)
 ARDUINO_FAILURE_THRESHOLD = 3  # Skip after 3 consecutive failures
 ARDUINO_RETRY_DELAY = 1800     # 30 minutes before retry
 
+# API request cache to avoid duplicate calls per cycle
+api_request_cache = {}
+cache_reset_time = None
+
 # Location to timezone mapping
 LOCATION_TIMEZONES = {
     "Hadera, Israel": "Asia/Jerusalem",
@@ -94,6 +98,13 @@ def extract_field_value(data, field_path):
         return value
     except (KeyError, TypeError, IndexError):
         return None
+
+def reset_api_cache():
+    """Reset API cache at the start of each processing cycle"""
+    global api_request_cache, cache_reset_time
+    api_request_cache = {}
+    cache_reset_time = time.time()
+    logger.info("🗑️  API request cache reset for new processing cycle")
 
 def get_current_hour_index(time_array):
     """
@@ -477,40 +488,48 @@ def format_for_arduino(surf_data, format_type="meters", location=None):
 
 def fetch_surf_data(api_key, endpoint):
     """Fetch surf data from external API and standardize using config"""
+    # Check cache first
+    cache_key = f"{endpoint}_{api_key or 'no_key'}"
+    if cache_key in api_request_cache:
+        logger.info(f"💾 Using cached data for: {endpoint}")
+        return api_request_cache[cache_key]
+
     logger.info(f"🌊 Fetching surf data from: {endpoint}")
-    
+
     try:
         # Build headers - only add Authorization if API key exists
         headers = {'User-Agent': 'SurfLamp-Agent/1.0'}
-        
+
         if api_key and api_key.strip():
             headers['Authorization'] = f'Bearer {api_key}'
             logger.info(f"📤 Making API request with authentication")
         else:
             logger.info(f"📤 Making API request without authentication (public endpoint)")
-        
+
         logger.info(f"📤 Headers: {headers}")
-        
+
         # Make the actual API call
         response = requests.get(endpoint, headers=headers, timeout=5)
         response.raise_for_status()
-        
+
         logger.info(f"✅ API call successful: {response.status_code}")
         logger.debug(f"📥 Raw response: {response.text[:200]}...")
-        
+
         # Parse JSON response
         raw_data = response.json()
-        
+
         # Standardize using endpoint configuration
         surf_data = standardize_surf_data(raw_data, endpoint)
-        
+
         if surf_data:
             logger.info(f"✅ Surf data standardized successfully")
+            # Cache the result
+            api_request_cache[cache_key] = surf_data
             return surf_data
         else:
             logger.error(f"❌ Failed to standardize surf data")
             return None
-        
+
     except requests.exceptions.RequestException as e:
         logger.error(f"❌ HTTP request failed for {endpoint}: {e}")
         return None
@@ -625,7 +644,10 @@ def process_all_lamps():
     """Main processing function - handles multi-source API calls per lamp"""
     logger.info("🚀 ======= STARTING LAMP PROCESSING CYCLE =======")
     start_time = time.time()
-    
+
+    # Reset API cache at the start of each cycle
+    reset_api_cache()
+
     try:
         # Step 1: Test database connection
         if not test_database_connection():

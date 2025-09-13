@@ -81,6 +81,8 @@ void handleDiscoveryTest();
 void applyWindSpeedThreshold(int windSpeedLEDs, int windSpeed_mps, int windSpeedThreshold_knots);
 void applyWaveHeightThreshold(int waveHeightLEDs, int waveHeight_cm, int waveThreshold_cm);
 void updateBlinkingLEDs(int numActiveLeds, int segmentLen, CRGB* leds, CHSV baseColor);
+void updateBlinkingCenterLEDs(int numActiveLeds, CHSV baseColor);
+void updateBlinkingAnimation();
 
 
 // ---------------------------- Color Maps ----------------------------
@@ -178,23 +180,30 @@ void updateLEDs(int numActiveLeds, int segmentLen, CRGB* leds, CHSV* colorMap) {
 }
 
 void updateBlinkingLEDs(int numActiveLeds, int segmentLen, CRGB* leds, CHSV baseColor) {
-    // Update blink phase for smooth sine wave blinking
-    unsigned long currentMillis = millis();
-    if (currentMillis - lastBlinkUpdate >= 50) { // Update every 50ms for smooth animation
-        blinkPhase += 0.1;
-        if (blinkPhase >= 2 * PI) blinkPhase = 0.0;
-        lastBlinkUpdate = currentMillis;
-    }
-    
-    // Calculate brightness using sine wave (0.3 to 1.0 range for visible pulsing)
-    float brightnessFactor = 0.3 + 0.7 * (sin(blinkPhase) * 0.5 + 0.5);
+    // Use shared timing from updateBlinkingAnimation
+    float brightnessFactor = 0.95 + 0.25 * sin(blinkPhase);
     int adjustedBrightness = min(255, (int)(baseColor.val * brightnessFactor));
-    
+
     for (int i = 0; i < segmentLen; i++) {
         if (i < numActiveLeds) {
             leds[i] = CHSV(baseColor.hue, baseColor.sat, adjustedBrightness);
         } else {
             leds[i] = CRGB::Black;
+        }
+    }
+}
+
+void updateBlinkingCenterLEDs(int numActiveLeds, CHSV baseColor) {
+    // Use shared blinkPhase, no timing update here
+    float brightnessFactor = 0.95 + 0.25 * sin(blinkPhase);
+    int adjustedBrightness = min(255, (int)(baseColor.val * brightnessFactor));
+
+    // Start from LED 1, skip LED 0
+    for (int i = 1; i < NUM_LEDS_CENTER - 1; i++) {
+        if (i < numActiveLeds + 1) {
+            leds_center[i] = CHSV(baseColor.hue, baseColor.sat, adjustedBrightness);
+        } else {
+            leds_center[i] = CRGB::Black;
         }
     }
 }
@@ -214,21 +223,56 @@ void applyWindSpeedThreshold(int windSpeedLEDs, int windSpeed_mps, int windSpeed
     float windSpeedInKnots = windSpeed_mps * 1.94384;
 
     if (windSpeedInKnots >= windSpeedThreshold_knots) {
-        // ALERT MODE: Blinking bright blue wind speed LEDs
-        updateBlinkingLEDs(windSpeedLEDs, NUM_LEDS_CENTER - 2, leds_center, CHSV(240, 255, min(255, (int)(255 * 1.6)))); // Blinking bright blue
+        // ALERT MODE: Blinking bright green wind speed LEDs (starting from second LED)
+        updateBlinkingCenterLEDs(windSpeedLEDs, CHSV(120, 255, min(255, (int)(255 * 1.6)))); // Blinking bright green
     } else {
-        // NORMAL MODE: Standard blue wind speed visualization
-        updateLEDsOneColor(windSpeedLEDs, NUM_LEDS_CENTER - 2, leds_center, CHSV(240, 255, 255)); // Blue
+        // NORMAL MODE: Standard green wind speed visualization
+        updateLEDsOneColor(windSpeedLEDs, NUM_LEDS_CENTER - 2, leds_center, CHSV(120, 255, 255)); // Green
     }
 }
 
 void applyWaveHeightThreshold(int waveHeightLEDs, int waveHeight_cm, int waveThreshold_cm) {
     if (waveHeight_cm >= waveThreshold_cm) {
-        // ALERT MODE: Blinking bright green wave height LEDs
-        updateBlinkingLEDs(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, CHSV(120, 255, min(255, (int)(255 * 1.6)))); // Blinking bright green
+        // ALERT MODE: Blinking bright white wave height LEDs
+        updateBlinkingLEDs(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, CHSV(0, 0, min(255, (int)(255 * 1.6)))); // Blinking bright white
     } else {
-        // NORMAL MODE: Green wave height visualization
-        updateLEDsOneColor(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, CHSV(120, 255, 255)); // Green
+        // NORMAL MODE: White wave height visualization
+        updateLEDsOneColor(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, CHSV(0, 0, 255)); // White
+    }
+}
+
+void updateBlinkingAnimation() {
+    // Only update blinking if we have valid surf data and thresholds are exceeded
+    if (!lastSurfData.dataReceived) return;
+
+    // Update timing once per call
+    unsigned long currentMillis = millis();
+    if (currentMillis - lastBlinkUpdate >= 5) { // 200 FPS for ultra-smooth animation
+        blinkPhase += 0.2094; // 0.3-second cycle (2π/30 = 0.2094)
+        if (blinkPhase >= 2 * PI) blinkPhase = 0.0;
+        lastBlinkUpdate = currentMillis;
+    }
+
+    bool needsUpdate = false;
+
+    // Check if wind speed threshold is exceeded
+    float windSpeedInKnots = lastSurfData.windSpeed * 1.94384;
+    if (windSpeedInKnots >= lastSurfData.windSpeedThreshold) {
+        int windSpeedLEDs = constrain(static_cast<int>(lastSurfData.windSpeed * (1.94384 / 2.0)) + 1, 0, NUM_LEDS_CENTER - 2);
+        updateBlinkingCenterLEDs(windSpeedLEDs, CHSV(120, 255, min(255, (int)(255 * 1.6))));
+        needsUpdate = true;
+    }
+
+    // Check if wave height threshold is exceeded
+    if (lastSurfData.waveHeight >= lastSurfData.waveThreshold) {
+        int waveHeightLEDs = constrain(static_cast<int>(lastSurfData.waveHeight / 25) + 1, 0, NUM_LEDS_RIGHT);
+        updateBlinkingLEDs(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, CHSV(0, 0, min(255, (int)(255 * 1.6))));
+        needsUpdate = true;
+    }
+
+    // Only call FastLED.show() if we updated blinking LEDs
+    if (needsUpdate) {
+        FastLED.show();
     }
 }
 
@@ -641,8 +685,8 @@ void updateSurfDisplay(int waveHeight_cm, float wavePeriod, int windSpeed, int w
     // Set wind direction indicator
     setWindDirection(windDirection);
     
-    // Set wave period LEDs (always normal green)
-    updateLEDsOneColor(wavePeriodLEDs, NUM_LEDS_LEFT, leds_side_left, CHSV(120, 255, 255)); // Green
+    // Set wave period LEDs (always normal yellow)
+    updateLEDsOneColor(wavePeriodLEDs, NUM_LEDS_LEFT, leds_side_left, CHSV(60, 255, 255)); // Yellow
     
     // Apply threshold logic for wind speed and wave height
     applyWindSpeedThreshold(windSpeedLEDs, windSpeed, windSpeedThreshold_knots);
@@ -744,7 +788,10 @@ void loop() {
                 lastDataFetch = millis(); // Still update to avoid rapid retries
             }
         }
-        
+
+        // Update blinking LEDs if any thresholds are exceeded
+        updateBlinkingAnimation();
+
         // Status indication based on data freshness
         if (lastSurfData.dataReceived && (millis() - lastSurfData.lastUpdate < 1800000)) { // 30 minutes
             blinkGreenLED(); // Fresh data

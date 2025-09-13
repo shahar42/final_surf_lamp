@@ -248,6 +248,29 @@ Arduino uses discovery system to find API server:
 - **Session Management:** Secure user sessions with timeout
 - **Database Transactions:** Atomic operations for data consistency
 
+## Deployment Architecture (Render)
+
+### Production Deployment
+The Surf Lamp system runs on Render cloud platform with the following architecture:
+
+1. **Flask Web Application** (`web_and_database/app.py`)
+   - Deployed as a Render Web Service
+   - Handles user dashboard, authentication, and Arduino API endpoints
+   - Configured with ProxyFix for Render's reverse proxy setup
+
+2. **Background Processor** (`surf-lamp-processor/background_processor.py`)
+   - Deployed as a Render Background Worker
+   - Continuously fetches surf data from external APIs every 30 minutes
+   - Updates database with latest surf conditions for all registered lamps
+
+### Render Configuration
+- **Web Service:** Hosts the Flask application for user interface and Arduino API
+- **Background Worker:** Runs the background processor for continuous data fetching
+- **Database:** Uses Render's managed PostgreSQL database
+- **Environment Variables:** Database connection strings and configuration managed via Render dashboard
+
+Both services share the same database and work together to provide real-time surf data to Arduino devices and users.
+
 ## Development and Debugging
 
 ### Log Locations
