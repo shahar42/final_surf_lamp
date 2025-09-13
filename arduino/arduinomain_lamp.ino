@@ -212,27 +212,28 @@ void updateLEDsOneColor(int numActiveLeds, int segmentLen, CRGB* leds, CHSV colo
 void applyWindSpeedThreshold(int windSpeedLEDs, int windSpeed_mps, int windSpeedThreshold_knots) {
     // Convert wind speed from m/s to knots for threshold comparison
     float windSpeedInKnots = windSpeed_mps * 1.94384;
-    
+
     if (windSpeedInKnots >= windSpeedThreshold_knots) {
-        // ALERT MODE: Blinking bright white wind speed LEDs
-        updateBlinkingLEDs(windSpeedLEDs, NUM_LEDS_CENTER - 1, leds_center, CHSV(0, 0, min(255, (int)(255 * 1.6)))); // Blinking bright white
+        // ALERT MODE: Blinking bright blue wind speed LEDs
+        updateBlinkingLEDs(windSpeedLEDs, NUM_LEDS_CENTER - 2, leds_center, CHSV(240, 255, min(255, (int)(255 * 1.6)))); // Blinking bright blue
     } else {
-        // NORMAL MODE: Standard white wind speed visualization
-        updateLEDsOneColor(windSpeedLEDs, NUM_LEDS_CENTER - 1, leds_center, CHSV(0, 0, 255)); // White
+        // NORMAL MODE: Standard blue wind speed visualization
+        updateLEDsOneColor(windSpeedLEDs, NUM_LEDS_CENTER - 2, leds_center, CHSV(240, 255, 255)); // Blue
     }
 }
 
 void applyWaveHeightThreshold(int waveHeightLEDs, int waveHeight_cm, int waveThreshold_cm) {
     if (waveHeight_cm >= waveThreshold_cm) {
-        // ALERT MODE: Blinking bright blue wave height LEDs
-        updateBlinkingLEDs(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, CHSV(240, 255, min(255, (int)(255 * 1.6)))); // Blinking bright blue
+        // ALERT MODE: Blinking bright green wave height LEDs
+        updateBlinkingLEDs(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, CHSV(120, 255, min(255, (int)(255 * 1.6)))); // Blinking bright green
     } else {
-        // NORMAL MODE: Blue wave height visualization
-        updateLEDsOneColor(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, CHSV(240, 255, 255)); // Blue
+        // NORMAL MODE: Green wave height visualization
+        updateLEDsOneColor(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, CHSV(120, 255, 255)); // Green
     }
 }
 
 void setWindDirection(int windDirection) {
+    Serial.printf("🐛 DEBUG: Wind direction = %d°\n", windDirection);
     int northLED = NUM_LEDS_CENTER - 1;
 
     // Wind direction color coding
@@ -633,7 +634,7 @@ bool processSurfData(const String &jsonData) {
 void updateSurfDisplay(int waveHeight_cm, float wavePeriod, int windSpeed, int windDirection, int waveThreshold_cm, int windSpeedThreshold_knots) {
     // Calculate LED counts based on surf data
     // Convert m/s to knots and scale by 1/2 for LED display
-    int windSpeedLEDs = constrain(static_cast<int>(windSpeed * (1.94384 / 2.0)) + 1, 0, NUM_LEDS_CENTER - 1);
+    int windSpeedLEDs = constrain(static_cast<int>(windSpeed * (1.94384 / 2.0)) + 1, 0, NUM_LEDS_CENTER - 2);
     int waveHeightLEDs = constrain(static_cast<int>(waveHeight_cm / 25) + 1, 0, NUM_LEDS_RIGHT);
     int wavePeriodLEDs = constrain(static_cast<int>(wavePeriod), 0, NUM_LEDS_LEFT);
     
