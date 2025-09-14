@@ -508,12 +508,28 @@ def fetch_surf_data(api_key, endpoint):
 
         logger.info(f"📤 Headers: {headers}")
 
-        # Make the actual API call
-        response = requests.get(endpoint, headers=headers, timeout=5)
-        response.raise_for_status()
+        # Make the actual API call with retry logic for rate limiting
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = requests.get(endpoint, headers=headers, timeout=5)
+                response.raise_for_status()
+                break  # Success, exit retry loop
+            except requests.exceptions.HTTPError as e:
+                if response.status_code == 429 and attempt < max_retries - 1:
+                    # Rate limited - exponential backoff
+                    wait_time = (2 ** attempt) * 5  # 5, 10, 20 seconds
+                    logger.warning(f"⚠️  Rate limited (429), retrying in {wait_time}s (attempt {attempt + 1}/{max_retries})")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    raise  # Re-raise if not 429 or max retries reached
 
-        # Add small delay to prevent burst rate limiting
-        time.sleep(1)
+        # Add appropriate delay based on API provider
+        if "open-meteo.com" in endpoint:
+            time.sleep(3)  # Open-Meteo requires longer delays
+        else:
+            time.sleep(1)  # Other APIs
 
         logger.info(f"✅ API call successful: {response.status_code}")
         logger.debug(f"📥 Raw response: {response.text[:200]}...")
