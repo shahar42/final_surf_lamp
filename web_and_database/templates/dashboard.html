@@ -53,7 +53,7 @@
             50% { opacity: 1; }
         }
         .status-online {
-            color: #10b981;
+            color: #22c55e;
         }
         .status-offline {
             color: #ef4444;
@@ -74,7 +74,7 @@
             animation: softPulse 4s ease-in-out infinite; /* Assuming softPulse is defined or will be */
             vertical-align: middle; /* Align with text */
         }
-        #locationSelect option {
+        #locationSelect option, #ledTheme option {
             background-color: #1f2937;
             color: #FFFCDE;
             padding: 4px 8px;
@@ -170,10 +170,10 @@
                     <span class="text-white/80">LED Colors:</span>
                     <div class="flex items-center space-x-2">
                         <select id="ledTheme" class="bg-white/20 text-white rounded px-2 py-1 text-sm border border-white/30">
-                            <option value="day" {{ 'selected' if data.user.theme == 'day' else '' }}>🌅 Cool (Day)</option>
-                            <option value="night" {{ 'selected' if data.user.theme == 'night' else '' }}>🌙 Warm (Night)</option>
+                            <option value="day" {{ 'selected' if data.user.theme == 'day' else '' }}>Light</option>
+                            <option value="night" {{ 'selected' if data.user.theme == 'night' else '' }}>Dark</option>
                         </select>
-                        <button id="updateTheme" class="bg-purple-500 hover:bg-purple-600 px-2 py-1 rounded text-xs text-white">Set</button>
+                        <button id="updateTheme" class="bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded text-xs text-white">Set</button>
                     </div>
                 </div>
                 <div id="theme-status" class="text-sm text-white/80 mt-2"></div>
