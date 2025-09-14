@@ -799,17 +799,17 @@ def main():
         exit(0 if success else 1)
     
     else:
-        logger.info("🔄 PRODUCTION MODE: Running continuously every 30 minutes")
-        
+        logger.info("🔄 PRODUCTION MODE: Running continuously every 20 minutes")
+
         # Run once immediately for testing
         logger.info("Running initial cycle...")
         process_all_lamps()
-        
-        # Then schedule every 30 minutes
+
+        # Then schedule every 20 minutes
         import schedule
-        schedule.every(30).minutes.do(process_all_lamps)
-        
-        logger.info("⏰ Scheduled to run every 30 minutes. Waiting...")
+        schedule.every(20).minutes.do(process_all_lamps)
+
+        logger.info("⏰ Scheduled to run every 20 minutes. Waiting...")
         
         # Keep running
         while True:
