@@ -568,35 +568,6 @@ def update_location():
     except Exception as e:
         return {'success': False, 'message': f'Server error: {str(e)}'}, 500
 
-@app.route("/update-theme", methods=['POST'])
-@login_required
-def update_theme():
-    """Update user's theme"""
-    try:
-        data = request.get_json()
-        new_theme = data.get('theme')
-        user_id = session.get('user_id')
-
-        # Validate theme
-        if new_theme not in ['dark', 'light']:
-            return {'success': False, 'message': 'Invalid theme selected'}, 400
-
-        db = SessionLocal()
-        try:
-            user = db.query(User).filter(User.user_id == user_id).first()
-            if user:
-                user.theme = new_theme
-                db.commit()
-                session['theme'] = new_theme
-                return {'success': True, 'message': 'Theme updated successfully'}
-            else:
-                return {'success': False, 'message': 'User not found'}, 404
-        finally:
-            db.close()
-            
-    except Exception as e:
-        return {'success': False, 'message': f'Server error: {str(e)}'}, 500
-
 @app.route("/update-threshold", methods=['POST'])
 @login_required
 def update_threshold():
@@ -647,6 +618,35 @@ def update_wind_threshold():
             db.close()
             
     except Exception as e:
+        return {'success': False, 'message': f'Server error: {str(e)}'}, 500
+
+@app.route("/update-theme", methods=['POST'])
+@login_required
+def update_theme():
+    """Update user's LED color theme preference"""
+    try:
+        data = request.get_json()
+        theme = data.get('theme')
+        user_id = session.get('user_id')
+
+        if theme not in ['day', 'night']:
+            return {'success': False, 'message': 'Invalid theme. Must be day or night'}, 400
+
+        db = SessionLocal()
+        try:
+            user = db.query(User).filter(User.user_id == user_id).first()
+            if user:
+                user.theme = theme
+                db.commit()
+                logger.info(f"✅ User {user.username} updated LED theme to: {theme}")
+                return {'success': True, 'message': f'LED theme updated to {theme}'}
+            else:
+                return {'success': False, 'message': 'User not found'}, 404
+        finally:
+            db.close()
+
+    except Exception as e:
+        logger.error(f"❌ Error updating theme: {e}")
         return {'success': False, 'message': f'Server error: {str(e)}'}, 500
 
 @app.route("/admin/trigger-processor")
@@ -790,6 +790,7 @@ def get_arduino_surf_data(arduino_id):
                     'wind_direction_deg': 0,
                     'wave_threshold_cm': int((user.wave_threshold_m or 1.0) * 100),
                     'wind_speed_threshold_knots': int(round(user.wind_threshold_knots or 22.0)),
+                    'led_theme': user.theme or 'day',
                     'last_updated': '1970-01-01T00:00:00Z',
                     'data_available': False
                 }
@@ -802,6 +803,7 @@ def get_arduino_surf_data(arduino_id):
                     'wind_direction_deg': conditions.wind_direction_deg or 0,
                     'wave_threshold_cm': int((user.wave_threshold_m or 1.0) * 100),
                     'wind_speed_threshold_knots': int(round(user.wind_threshold_knots or 22.0)),
+                    'led_theme': user.theme or 'day',
                     'last_updated': conditions.last_updated.isoformat() if conditions.last_updated else '1970-01-01T00:00:00Z',
                     'data_available': True
                 }

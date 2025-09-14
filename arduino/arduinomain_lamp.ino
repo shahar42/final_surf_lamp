@@ -84,6 +84,10 @@ void updateBlinkingLEDs(int numActiveLeds, int segmentLen, CRGB* leds, CHSV base
 void updateBlinkingCenterLEDs(int numActiveLeds, CHSV baseColor);
 void updateBlinkingAnimation();
 
+// ---------------------------- Theme Functions ----------------------------
+CHSV getWindSpeedColor(String theme);
+CHSV getWaveHeightColor(String theme);
+CHSV getWavePeriodColor(String theme);
 
 // ---------------------------- Color Maps ----------------------------
 
@@ -113,6 +117,35 @@ CHSV colorMapWind[] = {
     CHSV(120, 255, 255), CHSV(150, 255, 200), CHSV(180, 255, 255), CHSV(210, 255, 200),
     CHSV(240, 255, 255), CHSV(100, 255, 255), CHSV(85, 255, 255),  CHSV(85, 255, 255)
 };
+
+// ---------------------------- Theme Color Functions ----------------------------
+
+String currentTheme = "day";  // Default theme
+
+CHSV getWindSpeedColor(String theme) {
+    if (theme == "night") {
+        return CHSV(30, 255, 255);  // Orange
+    } else {
+        return CHSV(120, 255, 255); // Green (current)
+    }
+}
+
+CHSV getWaveHeightColor(String theme) {
+    if (theme == "night") {
+        return CHSV(30, 50, 255);   // Warm White
+    } else {
+        return CHSV(0, 0, 255);     // White (current)
+    }
+}
+
+CHSV getWavePeriodColor(String theme) {
+    if (theme == "night") {
+        return CHSV(45, 255, 255);  // Amber
+    } else {
+        return CHSV(60, 255, 255);  // Yellow (current)
+    }
+}
+
 
 // ---------------------------- WiFi Credential Functions ----------------------------
 
@@ -223,21 +256,23 @@ void applyWindSpeedThreshold(int windSpeedLEDs, int windSpeed_mps, int windSpeed
     float windSpeedInKnots = windSpeed_mps * 1.94384;
 
     if (windSpeedInKnots >= windSpeedThreshold_knots) {
-        // ALERT MODE: Blinking bright green wind speed LEDs (starting from second LED)
-        updateBlinkingCenterLEDs(windSpeedLEDs, CHSV(120, 255, min(255, (int)(255 * 1.6)))); // Blinking bright green
+        // ALERT MODE: Blinking theme-based wind speed LEDs (starting from second LED)
+        CHSV themeColor = getWindSpeedColor(currentTheme);
+        updateBlinkingCenterLEDs(windSpeedLEDs, CHSV(themeColor.hue, themeColor.sat, min(255, (int)(255 * 1.6)))); // Blinking theme color
     } else {
-        // NORMAL MODE: Standard green wind speed visualization
-        updateLEDsOneColor(windSpeedLEDs, NUM_LEDS_CENTER - 2, leds_center, CHSV(120, 255, 255)); // Green
+        // NORMAL MODE: Theme-based wind speed visualization
+        updateLEDsOneColor(windSpeedLEDs, NUM_LEDS_CENTER - 2, leds_center, getWindSpeedColor(currentTheme));
     }
 }
 
 void applyWaveHeightThreshold(int waveHeightLEDs, int waveHeight_cm, int waveThreshold_cm) {
     if (waveHeight_cm >= waveThreshold_cm) {
-        // ALERT MODE: Blinking bright white wave height LEDs
-        updateBlinkingLEDs(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, CHSV(0, 0, min(255, (int)(255 * 1.6)))); // Blinking bright white
+        // ALERT MODE: Blinking theme-based wave height LEDs
+        CHSV themeColor = getWaveHeightColor(currentTheme);
+        updateBlinkingLEDs(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, CHSV(themeColor.hue, themeColor.sat, min(255, (int)(255 * 1.6)))); // Blinking theme color
     } else {
-        // NORMAL MODE: White wave height visualization
-        updateLEDsOneColor(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, CHSV(0, 0, 255)); // White
+        // NORMAL MODE: Theme-based wave height visualization
+        updateLEDsOneColor(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, getWaveHeightColor(currentTheme));
     }
 }
 
@@ -259,14 +294,16 @@ void updateBlinkingAnimation() {
     float windSpeedInKnots = lastSurfData.windSpeed * 1.94384;
     if (windSpeedInKnots >= lastSurfData.windSpeedThreshold) {
         int windSpeedLEDs = constrain(static_cast<int>(lastSurfData.windSpeed * (1.94384 / 2.0)) + 1, 0, NUM_LEDS_CENTER - 2);
-        updateBlinkingCenterLEDs(windSpeedLEDs, CHSV(120, 255, min(255, (int)(255 * 1.6))));
+        CHSV themeColor = getWindSpeedColor(currentTheme);
+        updateBlinkingCenterLEDs(windSpeedLEDs, CHSV(themeColor.hue, themeColor.sat, min(255, (int)(255 * 1.6))));
         needsUpdate = true;
     }
 
     // Check if wave height threshold is exceeded
     if (lastSurfData.waveHeight >= lastSurfData.waveThreshold) {
         int waveHeightLEDs = constrain(static_cast<int>(lastSurfData.waveHeight / 25) + 1, 0, NUM_LEDS_RIGHT);
-        updateBlinkingLEDs(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, CHSV(0, 0, min(255, (int)(255 * 1.6))));
+        CHSV themeColor = getWaveHeightColor(currentTheme);
+        updateBlinkingLEDs(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, CHSV(themeColor.hue, themeColor.sat, min(255, (int)(255 * 1.6))));
         needsUpdate = true;
     }
 
@@ -280,7 +317,7 @@ void setWindDirection(int windDirection) {
     Serial.printf("🐛 DEBUG: Wind direction = %d°\n", windDirection);
     int northLED = NUM_LEDS_CENTER - 1;
 
-    // Wind direction color coding
+    // Wind direction color coding (ALWAYS consistent for navigation)
     if (windDirection < 45 || windDirection >= 315) {
         leds_center[northLED] = CRGB::Green;   // North - Green
     } else if (windDirection >= 45 && windDirection < 135) {
@@ -649,7 +686,14 @@ bool processSurfData(const String &jsonData) {
     int wind_direction_deg = doc["wind_direction_deg"] | 0;
     int wave_threshold_cm = doc["wave_threshold_cm"] | 100;
     int wind_speed_threshold_knots = doc["wind_speed_threshold_knots"] | 15;
-    
+    String led_theme = doc["led_theme"] | "day";
+
+    // Update theme if changed
+    if (led_theme != currentTheme) {
+        currentTheme = led_theme;
+        Serial.printf("🎨 LED theme updated to: %s\n", currentTheme.c_str());
+    }
+
     Serial.println("🌊 Surf Data Received:");
     Serial.printf("   Wave Height: %d cm\n", wave_height_cm);
     Serial.printf("   Wave Period: %.1f s\n", wave_period_s);
@@ -657,6 +701,7 @@ bool processSurfData(const String &jsonData) {
     Serial.printf("   Wind Direction: %d°\n", wind_direction_deg);
     Serial.printf("   Wave Threshold: %d cm\n", wave_threshold_cm);
     Serial.printf("   Wind Speed Threshold: %d knots\n", wind_speed_threshold_knots);
+    Serial.printf("   LED Theme: %s\n", currentTheme.c_str());
     
     // Update LEDs with the new data
     updateSurfDisplay(wave_height_cm, wave_period_s, wind_speed_mps, wind_direction_deg, wave_threshold_cm, wind_speed_threshold_knots);
@@ -685,8 +730,8 @@ void updateSurfDisplay(int waveHeight_cm, float wavePeriod, int windSpeed, int w
     // Set wind direction indicator
     setWindDirection(windDirection);
     
-    // Set wave period LEDs (always normal yellow)
-    updateLEDsOneColor(wavePeriodLEDs, NUM_LEDS_LEFT, leds_side_left, CHSV(60, 255, 255)); // Yellow
+    // Set wave period LEDs with theme color
+    updateLEDsOneColor(wavePeriodLEDs, NUM_LEDS_LEFT, leds_side_left, getWavePeriodColor(currentTheme));
     
     // Apply threshold logic for wind speed and wave height
     applyWindSpeedThreshold(windSpeedLEDs, windSpeed, windSpeedThreshold_knots);

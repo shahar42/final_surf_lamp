@@ -165,7 +165,19 @@
                     </div>
                 </div>
                 <div id="wind-threshold-status" class="text-sm text-white/80 mt-2"></div>
-                
+
+                <div class="flex justify-between items-center pt-2 border-t border-white/20">
+                    <span class="text-white/80">LED Colors:</span>
+                    <div class="flex items-center space-x-2">
+                        <select id="ledTheme" class="bg-white/20 text-white rounded px-2 py-1 text-sm border border-white/30">
+                            <option value="day" {{ 'selected' if data.user.theme == 'day' else '' }}>🌅 Cool (Day)</option>
+                            <option value="night" {{ 'selected' if data.user.theme == 'night' else '' }}>🌙 Warm (Night)</option>
+                        </select>
+                        <button id="updateTheme" class="bg-purple-500 hover:bg-purple-600 px-2 py-1 rounded text-xs text-white">Set</button>
+                    </div>
+                </div>
+                <div id="theme-status" class="text-sm text-white/80 mt-2"></div>
+
                 <div class="flex justify-between items-center pt-2 border-t border-white/20">
                     <span class="text-white/80">Status:</span>
                     {% if data.conditions %}
@@ -390,6 +402,38 @@
         .catch(error => {
             statusDiv.textContent = 'Network error. Please try again.';
             statusDiv.style.color = '#ef4444';
+        });
+    });
+
+    // Theme update handler
+    document.getElementById('updateTheme').addEventListener('click', function() {
+        const theme = document.getElementById('ledTheme').value;
+        const statusDiv = document.getElementById('theme-status');
+
+        statusDiv.textContent = 'Updating...';
+        statusDiv.style.color = '#ffffff';
+
+        fetch('/update-theme', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ theme: theme })
+        })
+        .then(response => response.json().then(data => ({ok: response.ok, body: data})))
+        .then(({ok, body}) => {
+            if (ok && body.success) {
+                statusDiv.textContent = `Theme updated to ${theme}. Arduino will update within 31 minutes.`;
+                statusDiv.style.color = '#00ff88';
+            } else {
+                statusDiv.textContent = body.message || 'Update failed';
+                statusDiv.style.color = '#ff6b6b';
+            }
+        })
+        .catch(error => {
+            statusDiv.textContent = 'Network error';
+            statusDiv.style.color = '#ff6b6b';
+            console.error('Theme update error:', error);
         });
     });
     </script>
