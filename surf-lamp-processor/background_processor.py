@@ -489,7 +489,7 @@ def format_for_arduino(surf_data, format_type="meters", location=None):
 def fetch_surf_data(api_key, endpoint):
     """Fetch surf data from external API and standardize using config"""
     # Check cache first
-    cache_key = f"{endpoint}_{api_key or 'no_key'}"
+    cache_key = endpoint
     if cache_key in api_request_cache:
         logger.info(f"💾 Using cached data for: {endpoint}")
         return api_request_cache[cache_key]
