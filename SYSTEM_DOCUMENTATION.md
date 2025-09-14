@@ -14,9 +14,10 @@ The Surf Lamp system displays real-time surf conditions using LED visualizations
    - Location-aware configuration system
 
 2. **Background Processor** (`surf-lamp-processor/background_processor.py`)
-   - Fetches data from external surf APIs every 30 minutes
+   - Fetches data from external surf APIs every 20 minutes
    - Processes and stores data in database
    - Supports multi-source API configurations per location
+   - Implements 1-second delays between API calls to prevent burst rate limiting
 
 3. **Arduino Firmware** (`arduino/arduinomain_lamp.ino`)
    - ESP32-based device that pulls data from server every 31 minutes
@@ -32,11 +33,11 @@ The Surf Lamp system displays real-time surf conditions using LED visualizations
 ```
 External APIs → Background Processor → Database → Web API → Arduino → LED Display
      ↓                ↓                    ↓         ↓         ↓
-   30min           Every 30min         Real-time   31min   Immediate
+   20min           Every 20min         Real-time   31min   Immediate
 ```
 
 ### Detailed Flow
-1. **Background Processor** runs every 30 minutes (`PROCESS_INTERVAL = 30 minutes`)
+1. **Background Processor** runs every 20 minutes (`PROCESS_INTERVAL = 20 minutes`)
 2. Fetches data from location-specific APIs defined in `MULTI_SOURCE_LOCATIONS`
 3. Stores processed data in `current_conditions` table
 4. **Arduino** pulls data every 31 minutes (`FETCH_INTERVAL = 1860000ms`)
@@ -194,7 +195,7 @@ usage_lamps (
 ## Timing and Synchronization
 
 ### Update Intervals
-- **Background Processor:** Every 30 minutes (defined in `background_processor.py:743`)
+- **Background Processor:** Every 20 minutes (defined in `background_processor.py:810`)
 - **Arduino Fetch:** Every 31 minutes (`FETCH_INTERVAL = 1860000ms` in Arduino code)
 - **Dashboard Updates:** Real-time (when user refreshes)
 
@@ -242,6 +243,7 @@ Arduino uses discovery system to find API server:
 - **Database Reconnection:** Tests connection before each cycle
 - **API Failures:** Continues with other endpoints if one fails
 - **Partial Data:** Stores whatever data was successfully fetched
+- **Rate Limit Prevention:** 1-second delay between API calls to prevent burst rate limiting (background_processor.py:516)
 
 ### Web Application
 - **Rate Limiting:** Prevents authentication abuse

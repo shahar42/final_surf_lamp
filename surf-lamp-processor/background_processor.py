@@ -512,6 +512,9 @@ def fetch_surf_data(api_key, endpoint):
         response = requests.get(endpoint, headers=headers, timeout=5)
         response.raise_for_status()
 
+        # Add small delay to prevent burst rate limiting
+        time.sleep(1)
+
         logger.info(f"✅ API call successful: {response.status_code}")
         logger.debug(f"📥 Raw response: {response.text[:200]}...")
 
