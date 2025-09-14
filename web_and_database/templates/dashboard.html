@@ -41,11 +41,11 @@
             z-index: 50;
         }
         .logout-btn {
-            background-color: #ff007f;
+            background-color: #c4005e;
             transition: background-color 0.3s ease, transform 0.2s ease;
         }
         .logout-btn:hover {
-            background-color: #e60073;
+            background-color: #a30052;
             transform: translateY(-1px);
         }
         @keyframes softPulse {
@@ -271,7 +271,7 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-white/80 text-sm">
                 <div>
                     <span class="text-white/60">Lamp Last Updated:</span><br>
-                    <span class="text-white">{{ data.lamp.last_updated.strftime('%Y-%m-%d %H:%M:%S') }} UTC</span>
+                    <span class="text-white">{{ data.lamp.last_updated.strftime('%Y-%m-%d') }} UTC</span>
                 </div>
                 
                 

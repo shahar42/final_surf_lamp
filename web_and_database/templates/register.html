@@ -176,45 +176,24 @@
                 {% endif %}
             </div>
 
-            <!-- Theme and Units -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-white">
-                <div>
-                    <label class="block mb-2 font-semibold">Theme</label>
-                    <div class="flex space-x-4">
-                        {% for subfield in form.theme %}
-                            <label class="flex items-center space-x-2 cursor-pointer">
-                                {{ subfield(class="form-radio h-4 w-4 text-pink-500") }}
-                                <span>{{ subfield.label.text }}</span>
-                            </label>
+            <!-- Units -->
+            <div class="text-white">
+                <label class="block mb-2 font-semibold">Units</label>
+                <div class="flex space-x-4">
+                    {% for subfield in form.units %}
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            {{ subfield(class="form-radio h-4 w-4 text-pink-500") }}
+                            <span>{{ subfield.label.text }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+                {% if form.units.errors %}
+                    <div class="field-error">
+                        {% for error in form.units.errors %}
+                            <div>• {{ error }}</div>
                         {% endfor %}
                     </div>
-                    {% if form.theme.errors %}
-                        <div class="field-error">
-                            {% for error in form.theme.errors %}
-                                <div>• {{ error }}</div>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                </div>
-                
-                <div>
-                    <label class="block mb-2 font-semibold">Units</label>
-                    <div class="flex space-x-4">
-                        {% for subfield in form.units %}
-                            <label class="flex items-center space-x-2 cursor-pointer">
-                                {{ subfield(class="form-radio h-4 w-4 text-pink-500") }}
-                                <span>{{ subfield.label.text }}</span>
-                            </label>
-                        {% endfor %}
-                    </div>
-                    {% if form.units.errors %}
-                        <div class="field-error">
-                            {% for error in form.units.errors %}
-                                <div>• {{ error }}</div>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                </div>
+                {% endif %}
             </div>
 
             <button type="submit" class="submit-btn w-full text-white font-bold py-3 px-4 rounded-lg shadow-lg">Create Account</button>
