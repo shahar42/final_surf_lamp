@@ -63,9 +63,34 @@ MULTI_SOURCE_LOCATIONS = {
             "type": "wind"
         }
     ],
+    "Hadera, Israel": [
+        {
+            "url": "https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json",
+            "priority": 1,
+            "type": "wave"
+        },
+        {
+            "url": "https://api.open-meteo.com/v1/forecast?latitude=32.4365&longitude=34.9196&hourly=wind_speed_10m,wind_direction_10m",
+            "priority": 2,
+            "type": "wind"
+        },
+        {
+            "url": "https://api.open-meteo.com/v1/gfs?latitude=32.4365&longitude=34.9196&hourly=wind_speed_10m,wind_direction_10m",
+            "priority": 3,
+            "type": "wind"
+        }
+    ],
     # ... other locations
 }
 ```
+
+### API Backup System
+The system uses a priority-based fallback system. For example, Hadera has three API sources:
+- **Priority 1**: Isramar (wave data) - Primary source
+- **Priority 2**: Open-Meteo forecast (wind data) - Primary wind source
+- **Priority 3**: Open-Meteo GFS (wind data) - **Backup wind source**
+
+If Priority 2 fails (e.g., 429 rate limiting), the system automatically falls back to Priority 3. This ensures wind data is always available even if the primary API is blocked.
 
 ### Location Change Process
 **Function:** `update_user_location()` in `data_base.py:467-540`

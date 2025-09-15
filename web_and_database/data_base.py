@@ -247,6 +247,11 @@ MULTI_SOURCE_LOCATIONS = {
             "url": "https://api.open-meteo.com/v1/forecast?latitude=32.4365&longitude=34.9196&hourly=wind_speed_10m,wind_direction_10m",
             "priority": 2,
             "type": "wind"
+        },
+        {
+            "url": "https://api.open-meteo.com/v1/gfs?latitude=32.4365&longitude=34.9196&hourly=wind_speed_10m,wind_direction_10m",
+            "priority": 3,
+            "type": "wind"
         }
     ],
     "Ashdod, Israel": [
