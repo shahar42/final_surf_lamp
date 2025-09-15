@@ -1,136 +1,156 @@
-# Arduino Surf Lamp Logic Documentation
+# Arduino Surf Lamp Logic
 
-## Overview
-The Surf Lamp is an ESP32-based device that visualizes surf conditions using three LED strips. It connects to WiFi, fetches surf data from a remote server, and displays wave height, wind speed, wind direction, and wave period through colored LEDs.
+This document provides a detailed reference for the Surf Lamp's device behavior, including its LED visualization system, operational states, and internal logic.
 
-## Device Configuration
-- **Arduino ID**: 4433 (unique identifier for each device)
-- **LED Configuration**:
-  - Center Strip: 12 LEDs (Wind Speed + Direction)
-  - Right Strip: 9 LEDs (Wave Height)
-  - Left Strip: 9 LEDs (Wave Period)
+## 💡 LED System
 
-## WiFi Connection Process
+The lamp uses three LED strips to visualize four different surf conditions simultaneously. The system is designed to be intuitive and readable at a glance.
 
-### 1. Initial Connection Attempt
-- Device attempts to connect using stored WiFi credentials
-- Default credentials: SSID="Sunrise", Password="4085429360"
-- Connection timeout: 30 seconds
+### LED Strip Layout
 
-### 2. Configuration Mode (if WiFi fails)
-- Creates WiFi Access Point: "SurfLamp-Setup"
-- AP Password: "surf123456"
-- Web interface available at AP IP address
-- User can enter new WiFi credentials via web form
-- AP times out after 60 seconds, then retries original connection
+*   **Right Strip (`GPIO 2`, 9 LEDs):** Displays wave height.
+*   **Left Strip (`GPIO 5`, 9 LEDs):** Displays wave period.
+*   **Center Strip (`GPIO 4`, 12 LEDs):** Displays wind speed and direction.
 
-### 3. Reconnection Logic
-- Continuously monitors WiFi status
-- Auto-reconnects every 30 seconds if connection lost
-- Stores new credentials permanently in NVRAM
+### Data-to-LED Mapping
 
-## LED Color Coding
+The number of lit LEDs on each strip corresponds to the intensity of the surf condition.
 
-### Center Strip (Wind Speed + Direction)
-**Wind Speed Visualization:**
-- **Normal**: White LEDs (number of LEDs = wind speed in m/s × 0.97)
-- **Alert Mode**: Blinking bright white (when wind ≥ threshold in knots)
+*   **Wave Height (Right Strip):**
+    *   **Logic:** `Number of LEDs = wave_height_cm / 25 + 1`
+    *   **Example:** A wave height of 100cm (1 meter) will light up `100 / 25 + 1 = 5` LEDs on the right strip.
 
-**Wind Direction (Last LED):**
-- **North (315°-44°)**: Green
-- **East (45°-134°)**: Yellow
-- **South (135°-224°)**: Red
-- **West (225°-314°)**: Blue
+*   **Wave Period (Left Strip):**
+    *   **Logic:** `Number of LEDs = wave_period_s`
+    *   **Example:** A wave period of 8.5 seconds will light up 8 LEDs on the left strip.
 
-### Right Strip (Wave Height)
-- **Normal**: Solid Blue
-- **Alert Mode**: Blinking Bright Blue (when wave height ≥ threshold)
-- Number of LEDs = wave height in cm ÷ 25
+*   **Wind Speed (Center Strip):**
+    *   **Logic:** `Number of LEDs = (wind_speed_mps * 1.94384 / 2.0) + 1`
+    *   **Explanation:** Wind speed is converted from meters/second to knots, and then scaled. The formula effectively lights one additional LED for every ~2 knots of wind speed.
+    *   **Example:** A wind speed of 5 m/s (~9.7 knots) will light up `(5 * 1.94384 / 2.0) + 1 = 5.85`, which is rounded down to 5 LEDs.
 
-### Left Strip (Wave Period)
-- **Always**: Solid Green
-- Number of LEDs = wave period in seconds
+### 🧭 Wind Direction Colors
 
-## Data Acquisition Process
+The topmost LED of the center strip (`LED #11`) indicates the wind direction using a standard color code. This provides crucial information about whether the wind is onshore, offshore, or cross-shore.
 
-### 1. Server Discovery
-- Uses ServerDiscovery class to locate API server
-- Maintains current server endpoint
+| Direction        | Degrees             | Color  | Meaning for Surfing (example) |
+| ---------------- | ------------------- | ------ | ----------------------------- |
+| **North**        | 315° - 44°          | Green  | Cross-shore                   |
+| **East**         | 45° - 134°          | Yellow | Offshore (good conditions)    |
+| **South**        | 135° - 224°         | Red    | Cross-shore                   |
+| **West**         | 225° - 314°         | Blue   | Onshore (choppy conditions)   |
 
-### 2. Automatic Data Fetching
-- **Interval**: Every 31 minutes (1,860,000 ms)
-- **URL Format**: `https://{server}/api/arduino/{ARDUINO_ID}/data`
-- **Method**: HTTPS GET request with 15-second timeout
-- **Security**: Uses insecure SSL (self-signed certificates accepted)
+### ⚠️ Threshold Alerts (Blinking)
 
-### 3. Manual Data Fetching
-- Available via `/api/fetch` HTTP endpoint
-- Can be triggered remotely for immediate updates
+When surf conditions exceed the user-defined thresholds, the corresponding LED strip will start to pulse smoothly to draw attention.
 
-### 4. Data Processing
-**Expected JSON Format:**
-```json
-{
-  "wave_height_cm": 150,
-  "wave_period_s": 8.5,
-  "wind_speed_mps": 12,
-  "wind_direction_deg": 180,
-  "wave_threshold_cm": 100,
-  "wind_speed_threshold_knots": 15
-}
-```
+*   **Wave Height Alert:**
+    *   **Trigger:** `wave_height_cm >= wave_threshold_cm`
+    *   **Behavior:** The right LED strip (wave height) will blink in a theme-based color.
 
-## User Interaction
+*   **Wind Speed Alert:**
+    *   **Trigger:** `wind_speed_knots >= wind_speed_threshold_knots`
+    *   **Behavior:** The center LED strip (wind speed) will blink in a theme-based color.
 
-### Status Indicators (Status LED)
-- **Blinking Blue**: Connecting to WiFi
-- **Blinking Green**: Connected with fresh data (< 30 min old)
-- **Blinking Blue (slow)**: Connected but no recent data
-- **Blinking Red**: WiFi connection failed
-- **Blinking Yellow**: Configuration mode active
+### ✨ Status LED
 
-### Physical Controls
-- **Boot Button (Pin 0)**: Available for future use
-- **Reset Button**: Restarts device (standard ESP32 functionality)
+The first LED of the center strip (`LED #0`) serves as a status indicator, providing at-a-glance information about the device's state.
 
-### HTTP API Endpoints
-Users can interact with the device via HTTP requests:
-- `GET /api/status` - View device status and last surf data
-- `GET /api/test` - Test device connectivity
-- `GET /api/led-test` - Trigger LED test sequence
-- `GET /api/info` - Get device hardware information
-- `GET /api/fetch` - Manually fetch new surf data
-- `POST /api/update` - Send surf data directly to device
+| Color          | Blinking Pattern | Meaning                                       |
+| -------------- | ---------------- | --------------------------------------------- |
+| **Blue**       | Slow Blink       | Connecting to Wi-Fi.                          |
+| **Green**      | Slow Blink       | Connected to Wi-Fi and has received fresh data. |
+| **Red**        | Slow Blink       | Wi-Fi connection failed.                      |
+| **Yellow**     | Slow Blink       | In Wi-Fi configuration mode (Access Point is active). |
+| **Blue (Solid)** | Solid            | No recent data received (older than 30 minutes). |
 
-## Alert System
+## 📶 WiFi Configuration Process
 
-### Wave Height Alert
-- **Trigger**: When wave height ≥ wave_threshold_cm
-- **Visual**: Right strip LEDs blink bright blue
-- **Default Threshold**: 100 cm
+If the device cannot connect to a saved Wi-Fi network, it enters configuration mode.
 
-### Wind Speed Alert  
-- **Trigger**: When wind speed ≥ wind_speed_threshold_knots
-- **Visual**: Center strip LEDs blink bright white
-- **Default Threshold**: 15 knots
-- **Conversion**: Wind speed converted from m/s to knots for threshold comparison
+1.  **Access Point Creation:** The device creates a Wi-Fi network with the SSID `SurfLamp-Setup` and the password `surf123456`.
+2.  **Connect:** The user connects a phone or computer to this network.
+3.  **Captive Portal:** A captive portal should automatically open in the user's browser. If not, they can manually navigate to `http://192.168.4.1`.
+4.  **Enter Credentials:** The user enters their home Wi-Fi SSID and password into the web form.
+5.  **Save and Reboot:** The device saves the credentials to its non-volatile memory and reboots.
+6.  **Connection:** The device then attempts to connect to the user-provided network.
 
-## Data Flow Summary
+## 📡 Device API Behavior
 
-1. **Startup**: Device performs LED test, connects to WiFi
-2. **Initial Fetch**: Attempts to get surf data immediately after connection
-3. **Continuous Operation**:
-   - Serves HTTP requests
-   - Monitors WiFi connection
-   - Fetches new data every 31 minutes
-   - Updates LED display based on current data
-   - Indicates system status via status LED
-4. **Error Handling**: Automatically retries failed operations, maintains connection stability
+The device hosts a local API for diagnostics and control.
 
-## Technical Details
-- **Platform**: ESP32 with WiFiClientSecure for HTTPS
-- **LED Library**: FastLED with WS2812B strips
-- **JSON Processing**: ArduinoJson library
-- **Storage**: Preferences library for NVRAM credential storage
-- **Update Rate**: LED animations update every 50ms for smooth blinking
-- **Memory Management**: Dynamic JSON documents with appropriate sizing
+*   `GET /api/status`
+    *   **Behavior:** Returns a detailed JSON object with the device's current operational status.
+    *   **Example Response:**
+        ```json
+        {
+          "arduino_id": 4433,
+          "status": "online",
+          "wifi_connected": true,
+          "ip_address": "192.168.1.100",
+          "ssid": "MyHomeWiFi",
+          "signal_strength": -55,
+          "uptime_ms": 1200000,
+          "free_heap": 150000,
+          "last_surf_data": {
+            "received": true,
+            "wave_height_m": 1.25,
+            "wave_period_s": 8.5,
+            "wind_speed_mps": 5,
+            "wind_direction_deg": 270,
+            "last_update_ms": 60000
+          }
+        }
+        ```
+
+*   `GET /api/info`
+    *   **Behavior:** Returns static information about the device hardware and firmware.
+    *   **Example Response:**
+        ```json
+        {
+          "device_name": "Surf Lamp",
+          "arduino_id": 4433,
+          "model": "ESP32-D0WD-V3",
+          "firmware_version": "1.0.0",
+          "led_strips": {
+            "center": 12,
+            "right": 9,
+            "left": 9
+          }
+        }
+        ```
+
+*   `GET /api/led-test`
+    *   **Behavior:** Initiates a sequence that tests all LED strips with various colors and patterns. Returns a confirmation message.
+
+*   `GET /api/fetch`
+    *   **Behavior:** Forces the device to immediately attempt a data fetch from the backend server. Useful for debugging.
+
+*   `GET /api/discovery-test`
+    *   **Behavior:** Forces the device to run its server discovery protocol and returns the server URL it found.
+
+## 🚨 Error States and Recovery Procedures
+
+The firmware is designed to be self-recovering from common error conditions.
+
+*   **Error: Wi-Fi Connection Failed**
+    *   **Detection:** `WiFi.status()` is not `WL_CONNECTED`.
+    *   **Indication:** The status LED blinks **Red**.
+    *   **Recovery:** The device will automatically attempt to reconnect to the last known Wi-Fi network every 30 seconds.
+    *   **User Action:** If reconnection fails repeatedly, the user can power cycle the device. If it still fails, it will enter configuration mode.
+
+*   **Error: Failed to Fetch Surf Data**
+    *   **Detection:** The HTTP request to the backend server returns an error code or times out.
+    *   **Indication:** The serial monitor will print an error message (e.g., `❌ HTTP error fetching surf data`). The device will continue to display the last known data.
+    *   **Recovery:** The device will automatically retry fetching data at the next scheduled interval (every 31 minutes).
+    *   **User Action:** The user can manually trigger a fetch via the `/api/fetch` endpoint to test the connection.
+
+*   **Error: Failed to Parse JSON Data**
+    *   **Detection:** The `ArduinoJson` library fails to parse the HTTP response from the server.
+    *   **Indication:** The serial monitor will print a `JSON parsing failed` error.
+    *   **Recovery:** The device will ignore the invalid data and wait for the next fetch interval.
+
+*   **Error: Server Discovery Fails**
+    *   **Detection:** The device cannot fetch or parse the `config.json` file from any of the discovery URLs.
+    *   **Indication:** The serial monitor will print `Discovery failed`.
+    *   **Recovery:** The device will fall back to using its hardcoded list of known servers, starting with `final-surf-lamp.onrender.com`.

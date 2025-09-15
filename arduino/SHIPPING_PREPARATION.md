@@ -1,133 +1,113 @@
-# Surf Lamp - Shipping Preparation Guide
+# Surf Lamp Shipping Preparation Guide
 
-## Overview
+This document outlines the essential procedures for preparing a Surf Lamp device for production, quality assurance, and shipping to end-users.
 
-This document outlines the changes needed to prepare the Surf Lamp firmware for shipping to customers. The current firmware already has a complete dynamic WiFi configuration system implemented, but contains hardcoded WiFi credentials that need to be removed before shipping.
+## 1. Firmware Preparation for Production
 
-## Current WiFi Configuration System
+Before flashing the firmware onto production units, several modifications must be made to the source code to ensure each device is unique and secure.
 
-The firmware already includes:
-- ✅ **Automatic Configuration Portal** - Creates "SurfLamp-Setup" network when WiFi connection fails
-- ✅ **Web-based Setup Interface** - User-friendly portal at http://192.168.4.1 for WiFi setup
-- ✅ **Persistent Storage** - WiFi credentials saved to ESP32 NVRAM using Preferences library
-- ✅ **Automatic Fallback** - Automatically enters config mode if stored WiFi fails
-- ✅ **Timeout Protection** - AP mode timeout prevents device from staying in config mode indefinitely
+### 1.1. Assign a Unique `ARDUINO_ID`
 
-## Changes Required for Shipping
+This is the most critical step. Each device **must** have a unique ID that is registered in the backend database. This ID is the link between the physical hardware and the user's account.
 
-### 1. Remove Hardcoded WiFi Credentials
+1.  **Open the firmware sketch:** `arduinomain_lamp.ino`
+2.  **Locate the ID definition line:**
+    ```cpp
+    const int ARDUINO_ID = 4433; // ✨ CHANGE THIS for each Arduino device
+    ```
+3.  **Assign and Record:** Change the integer value to a new, unique ID. This ID should be recorded and associated with the device's serial number in a production database.
 
-**File:** `arduinomain_lamp.ino`
-**Lines:** 48-49
+### 1.2. Disable Serial Debugging (Optional)
 
-**Current Code:**
+For production units, you may want to disable the extensive serial logging to slightly improve performance and hide internal logic.
+
+*   **Action:** Comment out or remove `Serial.print` statements throughout the code, especially those that print detailed surf data or system status.
+*   **Recommendation:** Keep critical error messages (e.g., connection failures) to aid in potential returns or repairs.
+
+### 1.3. Verify Server Discovery URLs
+
+Ensure the `ServerDiscovery.h` file points to the correct production discovery URLs.
+
 ```cpp
-// Wi-Fi credentials (defaults)
-char ssid[32] = "Sunrise";
-char password[64] = "4085429360";
+// In ServerDiscovery.h
+const char* discovery_urls[2] = {
+    "https://your-github-username.github.io/your-repo/discovery-config/config.json",
+    "https://raw.githubusercontent.com/your-github-username/your-repo/master/discovery-config/config.json"
+};
 ```
 
-**Change To:**
-```cpp
-// Wi-Fi credentials (will be loaded from stored preferences or set via config portal)
-char ssid[32] = "";
-char password[64] = "";
-```
+## 2. Pre-Shipping Quality Assurance (QA) Checklist
 
-**Impact:** 
-- Device will have no default WiFi credentials
-- On first boot, it will automatically enter configuration mode
-- Customer will be guided through WiFi setup via the web portal
+Each unit must pass the following QA checks before final testing.
 
-### 2. Verify Configuration Portal Settings
+**Technician:** ________________________
+**Device Serial Number:** ______________
+**Assigned `ARDUINO_ID`:** ______________
 
-**Current Settings (No Changes Needed):**
-- **SSID:** `SurfLamp-Setup` 
-- **Password:** `surf123456`
-- **Portal URL:** `http://192.168.4.1`
-- **Timeout:** 60 seconds before retrying WiFi connection
+| Check # | Item                                     | Pass/Fail | Notes                                       |
+| :------ | :--------------------------------------- | :-------- | :------------------------------------------ |
+| 1       | **Visual Inspection**                    |           | Check for clean solder joints, no shorts.   |
+| 2       | **Connector Integrity**                  |           | Ensure all connectors are secure.           |
+| 3       | **Power Supply Test**                    |           | Connect power, check for stable voltage.    |
+| 4       | **Firmware Flashed**                     |           | Verify the correct production firmware version. |
+| 5       | **Unique ID Verified**                   |           | Confirm the flashed `ARDUINO_ID` matches the record. |
+| 6       | **Enclosure Fit**                        |           | Check that the PCB fits correctly in its case. |
 
-These settings are appropriate for shipping and provide good security.
+## 3. Final Testing Protocol for Manufactured Units
 
-### 3. Update Device ID for Each Unit
+This protocol must be performed on every unit after it passes the initial QA checklist.
 
-**File:** `arduinomain_lamp.ino`
-**Line:** 31
+### Step 1: Power On and LED Test
 
-**Current Code:**
-```cpp
-const int ARDUINO_ID = 4433;  // ✨ CHANGE THIS for each Arduino device
-```
+1.  Power on the device.
+2.  The device will automatically run an LED test sequence on boot (rainbow pattern).
+3.  **Expected Result:** All LEDs on all three strips should light up and cycle through colors smoothly. This verifies that the LED hardware is working correctly.
 
-**Action Required:**
-- Set unique ARDUINO_ID for each device before flashing
-- This ID must match the registration in the web dashboard
-- Consider using a systematic numbering scheme (e.g., 1001, 1002, 1003...)
+### Step 2: Wi-Fi Configuration Test
 
-## Shipping Process
+1.  The device will fail to find a known network and start its own Access Point (AP).
+2.  Using a test phone or computer, connect to the `SurfLamp-Setup` Wi-Fi network (password: `surf123456`).
+3.  **Expected Result:** A captive portal should open automatically. This verifies the Wi-Fi configuration server is working.
 
-### Pre-Shipping Checklist
+### Step 3: Connect to Test Network
 
-1. **Firmware Preparation:**
-   - [ ] Remove hardcoded WiFi credentials (change lines 48-49)
-   - [ ] Set unique ARDUINO_ID for the device
-   - [ ] Flash firmware to ESP32
-   - [ ] Test LED functionality
+1.  In the captive portal, enter the credentials for a dedicated **test Wi-Fi network**.
+2.  The device will reboot and attempt to connect.
+3.  **Expected Result:** The device connects to the test network and gets an IP address. The status LED should turn from Red to Blue (connecting) to Green (connected).
 
-2. **WiFi Configuration Test:**
-   - [ ] Power on device (should create "SurfLamp-Setup" network)
-   - [ ] Connect to setup network with password "surf123456"
-   - [ ] Navigate to http://192.168.4.1
-   - [ ] Verify configuration portal loads correctly
-   - [ ] Test WiFi connection with known network
-   - [ ] Verify device connects and serves API endpoints
+### Step 4: Data Fetch and Display Test
 
-3. **Factory Reset (Optional):**
-   - [ ] Clear any stored WiFi preferences if needed
-   - [ ] Power cycle to ensure clean state
+1.  Once connected, the device will attempt to fetch data from the server.
+2.  To speed up the test, use a web browser on the same test network to access the device's manual fetch endpoint: `http://<device-ip>/api/fetch`.
+3.  **Expected Result:** The device's LEDs should update to display the fetched surf data. This verifies the entire data pipeline from server to device.
 
-### Customer Setup Instructions
+## 4. Customer Setup Instruction Template
 
-The customer setup process will be:
+A small, user-friendly instruction card should be included in the packaging.
 
-1. **Power On Device** - Device will create "SurfLamp-Setup" WiFi network
-2. **Connect to Setup Network** - Password: "surf123456"
-3. **Open Configuration Portal** - Automatic captive portal or http://192.168.4.1
-4. **Enter WiFi Credentials** - Input their home WiFi SSID and password
-5. **Device Connects** - Automatic connection to their network
-6. **Registration** - Device becomes available at local IP for dashboard registration
+---
 
-## Additional Considerations
+### **Quick Start Guide: Your Surf Lamp**
 
-### Security
-- The setup password "surf123456" provides basic security during configuration
-- Consider if this password should be changed or made device-specific
+**1. Power On**
+   Plug in your Surf Lamp. The LEDs will run a quick test pattern.
 
-### Documentation
-- Update README.md if needed to reflect shipping configuration
-- Ensure customer documentation includes setup instructions
-- Consider creating setup instruction cards/QR codes for customers
+**2. Connect to Wi-Fi**
+   *   On your phone or computer, find and connect to the Wi-Fi network named `SurfLamp-Setup`.
+   *   Password: `surf123456`
 
-### Testing
-- Test the complete customer setup flow before shipping
-- Verify server discovery works correctly after WiFi configuration
-- Ensure LED test functionality works for customer verification
+**3. Configure Your Network**
+   *   A setup page should open automatically. If not, open a web browser and go to `http://192.168.4.1`.
+   *   Select your home Wi-Fi network, enter the password, and click "Connect".
 
-## Emergency Fallback
+**4. All Set!**
+   Your lamp will reboot and connect to your network. Once connected, it will automatically download the latest surf conditions. Enjoy the waves!
 
-If a customer has issues with WiFi configuration:
-- Device will retry connection every 30 seconds
-- After extended failures, it will re-enter configuration mode
-- Button on GPIO pin 0 can be used for manual reset if needed
+---
 
-## File Summary
+## 5. Warranty and Support Considerations
 
-**Files to Modify:**
-- `arduinomain_lamp.ino` (lines 31, 48-49)
-
-**Files to Review:**
-- `README.md` (update setup instructions if needed)
-
-**Files Unchanged:**
-- `ServerDiscovery.h` (dynamic server discovery already implemented)
-- All other functionality remains the same
+*   **Standard Warranty:** A standard 1-year limited warranty covering manufacturing defects is recommended.
+*   **Support Channel:** Establish a clear support channel (e.g., email address, support website) for customers who experience issues.
+*   **Common Issues:** The most common support request will likely be related to Wi-Fi setup. Ensure the support team is familiar with the process and common pitfalls (e.g., incorrect password, 5GHz vs. 2.4GHz networks).
+*   **Device Identification:** When a customer requests support, it is crucial to ask for the `ARDUINO_ID` or serial number to look up the device in the backend and diagnose issues.

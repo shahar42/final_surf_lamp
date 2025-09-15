@@ -1,23 +1,22 @@
-# Discovery Configuration
+# Server Discovery Configuration
 
-This directory contains the server discovery configuration used by the Surf Lamp Arduino firmware.
+This directory contains the configuration file that allows deployed Arduino devices to dynamically discover the location of the production backend server. This is a critical component for system resilience, as it allows the backend to be migrated to a new server without needing to re-flash the entire fleet of devices.
 
 ## Overview
 
-The Arduino firmware uses dynamic server discovery to avoid hardcoding server URLs. Instead of relying on a fixed backend server address, the firmware fetches this configuration file from GitHub Pages to determine the current API server location.
+The `ServerDiscovery.h` class in the Arduino firmware is programmed to fetch the `config.json` file from a public URL hosted on GitHub Pages. It parses this file to find the primary API server. If this process fails, it falls back to a hardcoded list of servers.
 
-## Files
+## Configuration File Format (`config.json`)
 
-### `config.json`
+The `config.json` file defines the server landscape for the devices.
 
-The main configuration file that tells Arduino devices where to find the backend API server.
+### Example
 
-**Structure:**
 ```json
 {
   "api_server": "final-surf-lamp.onrender.com",
   "backup_servers": [
-    "backup-api.herokuapp.com", 
+    "backup-api.herokuapp.com",
     "api.surflamp.com"
   ],
   "version": "1.0",
@@ -31,49 +30,60 @@ The main configuration file that tells Arduino devices where to find the backend
 }
 ```
 
-**Fields:**
-- `api_server`: Primary server hostname for API requests
-- `backup_servers`: Alternative servers (future use)
-- `version`: Configuration version
-- `timestamp`: Last update timestamp
-- `endpoints`: API endpoint paths
-- `update_interval_hours`: How often devices should check for updates
-- `signature`: Digital signature (placeholder for future security)
+### Field Descriptions
 
-## How It Works
+| Field                   | Type          | Description                                                                                             |
+| ----------------------- | ------------- | ------------------------------------------------------------------------------------------------------- |
+| `api_server`            | String        | **Required.** The primary domain name of the production server that devices should contact.             |
+| `backup_servers`        | Array of Strings | A list of secondary servers. This is currently for informational purposes; the firmware uses its own hardcoded fallbacks. |
+| `version`               | String        | The version of the configuration file.                                                                  |
+| `timestamp`             | Integer       | A Unix timestamp indicating when the file was last updated.                                             |
+| `endpoints`             | Object        | Defines the specific API paths. This allows for changing API routes without a firmware update.          |
+| `update_interval_hours` | Integer       | Informs the device how often it should check for a new discovery file. The device caches the server address. |
+| `signature`             | String        | (Future Use) A cryptographic signature to verify the authenticity of the file.                          |
 
-1. **Arduino Startup**: When the Arduino boots up, it attempts to connect to the stored WiFi network
-2. **Discovery Process**: Every 24 hours (or on first run), the device fetches this config from:
-   - `https://shahar42.github.io/final_surf_lamp/discovery-config/config.json`
-   - `https://raw.githubusercontent.com/shahar42/final_surf_lamp/master/discovery-config/config.json`
-3. **Server Selection**: The device uses the `api_server` value to make all subsequent API calls
-4. **Fallback**: If discovery fails, devices fall back to hardcoded servers in `ServerDiscovery.h`
+## 🚀 Deployment to GitHub Pages
 
-## Updating the Configuration
+For the discovery mechanism to work, this `config.json` file must be accessible via a public URL. GitHub Pages is a free and reliable way to achieve this.
 
-To change the backend server:
+1.  **Navigate to Repository Settings:** In your GitHub repository, go to `Settings` > `Pages`.
+2.  **Configure Source:** Under "Build and deployment", select `Deploy from a branch`.
+3.  **Select Branch:** Choose the `main` (or `master`) branch and the `/docs` folder as the source, or `/ (root)` if you prefer.
+4.  **Save:** Click `Save`. GitHub will generate a public URL for your repository's content (e.g., `https://your-username.github.io/your-repo/`).
 
-1. **Update config.json**: Modify the `api_server` field with the new server hostname
-2. **Update timestamp**: Set to current Unix timestamp
-3. **Commit and push**: Changes will be automatically available via GitHub Pages
-4. **Wait for propagation**: Arduino devices will pick up changes within 24 hours
+Once set up, any changes pushed to the selected branch will be automatically published and live on your GitHub Pages site.
 
-## Benefits
+## 🔄 Update Procedure
 
-- **Zero-downtime server migration**: Update config file to point to new servers
-- **No firmware updates required**: Server changes don't require reflashing devices
-- **Redundancy**: Multiple discovery URLs and fallback servers
-- **Version control**: All server changes are tracked in git history
+To direct all devices to a new server (e.g., after a migration), follow these steps:
 
-## Security Considerations
+1.  **Edit the File:** Change the value of the `api_server` key in `config.json` to the new server address.
+    ```json
+    "api_server": "new-production-server.onrender.com",
+    ```
+2.  **Commit and Push:** Commit the change to your `main` (or `master`) branch and push it to GitHub.
+    ```bash
+    git add discovery-config/config.json
+    git commit -m "Update production API server to new-production-server.onrender.com"
+    git push origin main
+    ```
+3.  **Wait for Propagation:** Devices will automatically pick up the new server address the next time their 24-hour discovery cache expires. This will happen gradually across the fleet, resulting in a smooth, rolling migration.
 
-- Configuration is served over HTTPS from GitHub
-- Currently unsigned (signature field is placeholder)
-- Future versions may include cryptographic signatures for integrity verification
+## 🛡️ Backup and Rollback Strategies
 
-## Deployment
+### Backup
 
-This directory should be published to GitHub Pages at:
-`https://shahar42.github.io/final_surf_lamp/discovery-config/`
+The primary backup mechanism is built into the firmware itself. In `ServerDiscovery.h`, there is a hardcoded list of fallback servers. If the device fails to fetch or parse the `config.json` file from GitHub for any reason, it will iterate through this hardcoded list, providing a high degree of resilience.
 
-The Arduino firmware expects the config to be accessible at that exact path.
+### Rollback
+
+Rolling back a server change is straightforward and leverages Git's history.
+
+1.  **Identify the Commit:** Find the commit hash of the incorrect server change using `git log`.
+2.  **Revert the Commit:** Use `git revert` to create a new commit that undoes the changes from the bad commit.
+    ```bash
+    git revert <commit-hash-of-bad-change>
+    ```
+3.  **Push the Revert:** Push the newly created revert commit to the `main` branch.
+
+This will publish a new `config.json` with the previous, correct server address, and devices will migrate back on their next discovery cycle.

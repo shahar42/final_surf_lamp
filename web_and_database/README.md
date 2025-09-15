@@ -1,82 +1,65 @@
-# Web Dashboard and API
+# Web Application and Database
 
-This directory contains the Flask web application that serves as the primary user interface and API for the Surf Lamp project.
+This directory contains the core web application for the Surf Lamp project. It is a Flask-based application that provides the user-facing dashboard, authentication, and the API endpoint for the Arduino devices.
 
 ## Overview
 
-The application provides a web-based dashboard for users to register, log in, and view the real-time status and surf conditions of their lamp. It also exposes a set of API endpoints that are used by the Arduino devices for service discovery and data synchronization.
+The application serves three main purposes:
 
-## Features
+1.  **User Management:** Handles user registration, login, and password management.
+2.  **Dashboard:** Provides a user-specific dashboard to view surf conditions, manage lamp settings (like location and alert thresholds), and see device status.
+3.  **Arduino API:** Exposes a `GET` endpoint that allows a registered Arduino device to pull its specific surf data and configuration.
 
-*   **User Authentication:** Secure user registration, login, and password reset functionality.
-*   **Interactive Dashboard:** Displays the latest surf data, lamp status, and user preferences.
-*   **Device API:** Provides endpoints for Arduinos to dynamically discover the server, pull the latest data, and report their status.
-*   **Security:** Implements rate limiting on sensitive endpoints, sanitizes all user input, and uses secure password hashing.
+## 🛠️ Local Development Setup
 
-## Technology Stack
+Follow these steps to run the web application on your local machine for development.
 
-*   **Backend:** Flask
-*   **Database:** PostgreSQL (with SQLAlchemy for ORM)
-*   **Authentication:** Flask-Bcrypt for password hashing, Flask-WTF for secure forms.
-*   **Rate Limiting:** Flask-Limiter with a Redis backend.
-*   **Deployment:** Gunicorn (for production)
+### Prerequisites
 
-## Database Schema
+*   **Python:** Version 3.8 or newer.
+*   **PostgreSQL:** A running PostgreSQL database server.
+*   **Redis:** A running Redis server (for rate limiting and caching).
 
-The database is the backbone of the application. The schema is defined in `data_base.py` and includes the following key tables:
+### Installation
 
-*   `users`: Stores user credentials, preferences (theme, units), and their selected location.
-*   `lamps`: Represents each physical lamp device and links it to a user.
-*   `current_conditions`: A table that stores the latest processed surf data for each lamp. This table is written to by the `surf-lamp-processor` and read by the web app to display on the dashboard.
-*   `usage_lamps` & `daily_usage`: These tables manage the complex mapping between lamps and the multiple API sources required to gather full surf data for a given location.
+1.  **Create a Virtual Environment:**
+    ```bash
+    python3 -m venv venv
+    source venv/bin/activate
+    ```
 
-## API Endpoints for Devices
+2.  **Install Dependencies:**
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-The application exposes several endpoints for the Arduino devices:
+### Configuration (Environment Variables)
 
-*   `GET /api/discovery/server`
-    *   **Purpose:** Allows a device to dynamically find the active server address. This is the first endpoint a device should call.
-*   `GET /api/arduino/<arduino_id>/data`
-    *   **Purpose:** Allows a device to **pull** the latest processed surf data from the server. This is the recommended data synchronization method.
-*   `POST /api/arduino/callback`
-    *   **Purpose:** Allows a device to **push** its status (including its local IP address) back to the server. This is useful for monitoring and debugging.
+The application is configured using environment variables. Create a file named `.env` in this directory and add the following key-value pairs. **Do not commit this file to version control.**
 
-## Setup and Running
+```ini
+# .env file
 
-### 1. Dependencies
+# A strong, random string for signing session cookies
+SECRET_KEY='your-very-strong-secret-key'
 
-Install the required Python packages using pip:
+# Connection string for your PostgreSQL database
+DATABASE_URL='postgresql://user:password@localhost/surf_lamp_db'
 
-```bash
-pip install -r requirements.txt
+# Connection string for your Redis server
+REDIS_URL='redis://localhost:6379'
+
+# Email configuration for password resets
+MAIL_SERVER='smtp.gmail.com'
+MAIL_PORT=587
+MAIL_USERNAME='your-email@gmail.com'
+MAIL_PASSWORD='your-app-password'
+MAIL_DEFAULT_SENDER='your-email@gmail.com'
 ```
 
-### 2. Environment Variables
+### Running the Application
 
-This service is configured using environment variables. Create a `.env` file in this directory or set the variables directly in your shell.
-
-| Variable          | Description                                                                  |
-| ----------------- | ---------------------------------------------------------------------------- |
-| `DATABASE_URL`    | **Required.** The connection string for the PostgreSQL database.             |
-| `SECRET_KEY`      | **Required.** A long, random string used for signing session cookies.        |
-| `REDIS_URL`       | **Required.** The connection string for your Redis instance.                 |
-| `MAIL_SERVER`     | **Required for password reset.** The SMTP server for sending emails.         |
-| `MAIL_PORT`       | **Required for password reset.** The port of the SMTP server.                |
-| `MAIL_USERNAME`   | **Required for password reset.** The username for the SMTP server.           |
-| `MAIL_PASSWORD`   | **Required for password reset.** The password for the SMTP server.           |
-| `MAIL_DEFAULT_SENDER` | **Required for password reset.** The email address to send from.             |
-
-### 3. Initialize the Database
-
-Before running the application for the first time, you need to create the database tables. Run the following command:
-
-```bash
-python data_base.py
-```
-
-### 4. Running the Application
-
-**For development:**
+Once the dependencies are installed and the `.env` file is configured, you can start the development server:
 
 ```bash
 python app.py
@@ -84,10 +67,36 @@ python app.py
 
 The application will be available at `http://127.0.0.1:5001`.
 
-**For production:**
+## 🚀 Production Deployment (Render)
 
-Use the Gunicorn WSGI server:
+This application is designed to be deployed on platforms like Render.
 
-```bash
-gunicorn app:app
-```
+*   **Service Type:** Deploy as a **Web Service**.
+*   **Build Command:** `pip install -r web_and_database/requirements.txt`
+*   **Start Command:** `gunicorn web_and_database.app:app`
+
+#### Environment Variables
+
+In the Render dashboard, create environment variables with the same keys and values as in the local `.env` file, but using your production database, Redis, and email credentials.
+
+#### ProxyFix Middleware
+
+The application includes `ProxyFix` middleware, which is essential for running behind a reverse proxy like Render's. It ensures that Flask correctly handles `X-Forwarded-For` and `X-Forwarded-Proto` headers, which is critical for security features and generating correct redirect URLs.
+
+## 🔒 Security Best Practices
+
+Several security measures are built into the application:
+
+*   **Password Hashing:** User passwords are never stored in plaintext. They are hashed using `Flask-Bcrypt`.
+*   **CSRF Protection:** `Flask-WTF` is used to generate and validate CSRF tokens for all forms, protecting against Cross-Site Request Forgery attacks.
+*   **Rate Limiting:** `Flask-Limiter` is configured to prevent brute-force attacks on authentication routes (`/login`, `/register`, `/forgot-password`).
+*   **Secure Sessions:** User sessions are cryptographically signed using the `SECRET_KEY`.
+
+## 📂 Project Structure
+
+*   `app.py`: The main Flask application file containing all routes and application logic.
+*   `data_base.py`: Defines the SQLAlchemy database models and includes functions for interacting with the database.
+*   `forms.py`: Defines the WTForms classes used for registration, login, and password reset.
+*   `requirements.txt`: A list of all Python dependencies.
+*   `templates/`: Contains all the HTML templates rendered by Flask.
+*   `static/`: Contains static assets like CSS, JavaScript, and images.

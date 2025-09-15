@@ -54,40 +54,113 @@ The system uses PostgreSQL with a carefully designed schema supporting multi-use
 ### Prerequisites
 - Python 3.8+
 - PostgreSQL database
-- Redis server
-- ESP32 development board
+- Redis server (for rate limiting)
+- ESP32 development board (ESP32-WROOM-32 recommended)
 - Arduino IDE or PlatformIO
+- WS2812B LED strips (3 strips required)
+
+### Environment Verification
+Before setup, verify your environment:
+```bash
+# Check Python version
+python --version  # Should be 3.8+
+
+# Check PostgreSQL availability
+psql --version
+
+# Check Redis availability
+redis-server --version
+```
 
 ### Setup Web Application
 ```bash
 cd web_and_database/
 pip install -r requirements.txt
+
 # Configure database connection in security_config.py
+# Set DATABASE_URL environment variable or update config file
+export DATABASE_URL="postgresql://user:password@localhost:5432/surf_lamp_db"
+
+# Initialize database (if needed)
+python -c "from data_base import init_db; init_db()"
+
+# Start the web application
 python app.py
 ```
+Access dashboard at: `http://localhost:5000`
 
 ### Setup Background Processor
 ```bash
 cd surf-lamp-processor/
 pip install -r requirements.txt
+
+# Set environment variables
+export DATABASE_URL="postgresql://user:password@localhost:5432/surf_lamp_db"
+export ARDUINO_TRANSPORT="http"  # Use "mock" for testing
+
+# Start background processor (runs every 20 minutes)
 python background_processor.py
+
+# For single test run:
+TEST_MODE=true python background_processor.py
 ```
 
 ### Setup Arduino Device
-1. Flash `surf-lamp-processor/fixed_surf_lamp.ino` to ESP32
-2. Connect to "SurfLamp-Setup" WiFi hotspot (password: surf123456)
-3. Configure your home WiFi through web interface
-4. Device will auto-discover servers and fetch data every 31 minutes
+1. **Hardware Setup:**
+   - Connect 3 WS2812B LED strips to GPIO pins 2, 4, and 5
+   - Ensure adequate 5V power supply for LED strips
+   - Use appropriate current capacity (calculate: LED count × 60mA)
 
-### Configuration
-- Update GitHub username in `ServerDiscovery.h` discovery URLs
-- Configure database credentials in `security_config.py`
-- Set up supported surf locations in `endpoint_configs.py`
-- Customize LED patterns and thresholds in Arduino code
+2. **Firmware Flash:**
+   ```bash
+   # Update ServerDiscovery.h with your GitHub username
+   # Flash surf-lamp-processor/fixed_surf_lamp.ino to ESP32
+   ```
+
+3. **WiFi Configuration:**
+   - Connect to "SurfLamp-Setup" WiFi hotspot (password: surf123456)
+   - Navigate to 192.168.4.1 in browser
+   - Configure home WiFi through web interface
+   - Device will auto-discover servers and fetch data every 31 minutes
+
+### Configuration Files
+- **Database:** `web_and_database/security_config.py`
+- **API Endpoints:** `surf-lamp-processor/endpoint_configs.py`
+- **Server Discovery:** `discovery-config/config.json`
+- **Arduino Discovery:** Update GitHub username in `arduino/ServerDiscovery.h`
 
 ## 🌐 API Integration
 
-The system integrates with multiple marine weather APIs including NOAA, Marine Weather, and regional surf forecasting services. Each location can use multiple API sources with priority-based fallback. The background processor handles rate limiting, data validation, and automatic failover between API sources.
+### Multi-Source API Architecture
+The system integrates with multiple marine weather APIs for comprehensive surf data:
+
+**Primary APIs:**
+- **Open-Meteo Marine API** - Wave height, period, direction
+- **Open-Meteo Weather API** - Wind speed and direction
+- **Isramar (Israel)** - Regional wave data for Israeli locations
+- **NOAA APIs** - Marine weather data (configurable)
+
+**Priority-Based Fallback System:**
+Each location supports multiple API sources with automatic failover:
+```
+Location: Hadera, Israel
+├── Priority 1: Isramar (wave data) - Primary source
+├── Priority 2: Open-Meteo forecast (wind) - Primary wind
+└── Priority 3: Open-Meteo GFS (wind) - Backup wind source
+```
+
+**Rate Limiting & Resilience:**
+- 1-second delays between API calls prevent burst rate limiting
+- Automatic retry with exponential backoff
+- Failed endpoints temporarily suspended
+- Data validation and error handling
+- Graceful degradation when APIs are unavailable
+
+**Adding New APIs:**
+1. Add endpoint configuration to `endpoint_configs.py`
+2. Define field mappings for JSON response parsing
+3. Update `MULTI_SOURCE_LOCATIONS` in `data_base.py`
+4. Test with single processing cycle
 
 ## 🔒 Security Features
 
@@ -101,20 +174,65 @@ The system integrates with multiple marine weather APIs including NOAA, Marine W
 
 ## 📊 Monitoring & Testing
 
-Run the discovery system test:
-```bash
-python test_discovery_system.py
-```
+### System Health Monitoring
 
-Test API endpoints:
+**Background Processor Monitoring:**
 ```bash
+# Check processor logs
+tail -f surf-lamp-processor/lamp_processor.log
+
+# Test single processing cycle
+cd surf-lamp-processor/
+TEST_MODE=true python background_processor.py
+
+# Verify API endpoints
 python test_pull_endpoints.py
 ```
 
-Monitor Arduino device:
-- Visit `http://[arduino-ip]/api/status` for device status
-- Use `http://[arduino-ip]/api/fetch` to manually trigger data fetch
-- Check `http://[arduino-ip]/api/led-test` for hardware validation
+**Discovery System Testing:**
+```bash
+# Test server discovery mechanism
+python test_discovery_system.py
+
+# Verify GitHub configuration
+curl https://[username].github.io/[repo]/discovery-config/config.json
+```
+
+**Arduino Device Monitoring:**
+
+| Endpoint | Purpose | Response |
+|----------|---------|----------|
+| `GET /api/status` | Device health check | Full system status JSON |
+| `GET /api/fetch` | Manual data trigger | Forces immediate data fetch |
+| `GET /api/led-test` | Hardware validation | LED strip test sequence |
+| `GET /api/info` | Device information | Hardware specs and config |
+
+**Example Status Check:**
+```bash
+# Get device status
+curl http://192.168.1.100/api/status
+
+# Expected response:
+{
+  "arduino_id": 4433,
+  "status": "online",
+  "wifi_connected": true,
+  "ip_address": "192.168.1.100",
+  "uptime_ms": 3600000,
+  "last_surf_data": {
+    "wave_height_m": 1.5,
+    "last_update_ms": 1800000
+  }
+}
+```
+
+### Performance Monitoring
+**Key Metrics to Monitor:**
+- Background processor cycle time (should be < 5 minutes)
+- API response times and success rates
+- Arduino device connectivity and data freshness
+- Database query performance
+- Memory usage on ESP32 devices (should maintain >200KB free heap)
 
 ## 🌍 Supported Locations
 
@@ -137,17 +255,143 @@ Currently supports 7 surf locations in Israel:
 
 ## 🔧 Development
 
-The project uses a modular architecture with clear separation between web application, data processing, and hardware control layers. Each component can be developed and tested independently. The system supports both development and production configurations with environment-specific settings.
+### Architecture Overview
+The project uses a modular architecture with clear separation of concerns:
 
-For detailed technical documentation, see individual README files in each directory and the complete database schema diagram in `database_schema.txt`.
+**Layer Separation:**
+- **Presentation Layer:** Web dashboard (Flask templates), Arduino API, LED visualization
+- **Business Logic:** Flask application, background processor, server discovery
+- **Data Access:** SQLAlchemy ORM, API integration, security controls
+- **Persistence:** PostgreSQL database, Redis cache, file system
+
+**Development Environment Setup:**
+```bash
+# Clone and setup
+git clone [repository-url]
+cd Git_Surf_Lamp_Agent
+
+# Setup virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install all dependencies
+pip install -r web_and_database/requirements.txt
+pip install -r surf-lamp-processor/requirements.txt
+```
+
+**Testing Strategy:**
+- **Unit Tests:** Individual component testing
+- **Integration Tests:** API endpoint validation
+- **Hardware Tests:** Arduino LED strip validation
+- **End-to-End Tests:** Complete data flow verification
+
+**Development Workflow:**
+1. **Database First:** Design schema changes in `database_schema.txt`
+2. **API Development:** Update endpoints and test with Postman/curl
+3. **Frontend Changes:** Modify Flask templates and test in browser
+4. **Arduino Development:** Use mock transport for testing without hardware
+5. **Integration Testing:** Test complete data flow from API to LED
+
+**Environment-Specific Configurations:**
+```bash
+# Development
+export ARDUINO_TRANSPORT="mock"
+export TEST_MODE="true"
+export DEBUG="true"
+
+# Production
+export ARDUINO_TRANSPORT="http"
+export TEST_MODE="false"
+export DEBUG="false"
+```
+
+**Code Style & Standards:**
+- Follow PEP 8 for Python code
+- Use meaningful variable names reflecting domain concepts
+- Comment complex business logic and Arduino calculations
+- Maintain consistent error handling patterns
+
+### Advanced Troubleshooting
+
+**Common Issues & Solutions:**
+
+| Issue | Symptoms | Solution |
+|-------|----------|----------|
+| Arduino not updating | LEDs show old data | Check `arduino_ip` in database, verify network connectivity |
+| Background processor stuck | No new data in logs | Check API rate limits, verify database connection |
+| Web dashboard errors | Login failures, timeouts | Check Redis connection, verify PostgreSQL status |
+| LED strips not working | No light output | Test power supply, check GPIO pin connections |
+
+**Performance Optimization:**
+- Monitor database query execution times
+- Optimize API call frequency (current: 20-minute intervals)
+- Implement connection pooling for high-traffic scenarios
+- Use Redis caching for frequently accessed data
+
+**Known Limitations:**
+- Maximum 100 concurrent Arduino devices per server instance
+- API rate limits may affect real-time updates during peak usage
+- ESP32 memory constraints limit complex LED animations
+- IPv4 only (IPv6 support planned for future release)
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Test with both simulated and hardware devices
-4. Submit pull request with comprehensive testing results
-5. Ensure compatibility with existing Arduino deployments
+### Contribution Workflow
+1. **Fork the repository** and create a feature branch
+2. **Follow development standards:**
+   - Test with both mock and real Arduino devices
+   - Verify database migrations don't break existing data
+   - Check API endpoint backward compatibility
+   - Validate LED visualization changes with hardware
+
+3. **Testing Requirements:**
+   - Run background processor in test mode
+   - Verify Arduino device registration and data flow
+   - Test web dashboard functionality
+   - Validate new API integrations with real endpoints
+
+4. **Documentation Updates:**
+   - Update relevant README sections
+   - Document new configuration options
+   - Add troubleshooting entries for new features
+   - Update database schema diagrams if applicable
+
+5. **Pull Request Guidelines:**
+   - Include comprehensive testing results
+   - Provide before/after screenshots for UI changes
+   - Document any breaking changes
+   - Ensure compatibility with existing Arduino deployments
+
+### Development Guidelines
+**Before Contributing:**
+- Review existing issues and feature requests
+- Discuss major changes in GitHub issues first
+- Ensure your development environment matches prerequisites
+
+**Code Quality Standards:**
+- Follow existing code style and patterns
+- Add logging for new background processes
+- Include error handling for new API integrations
+- Maintain security best practices (no hardcoded credentials)
+
+## 📚 Technical Documentation
+
+### Core Documentation Files
+- **[SYSTEM_DOCUMENTATION.md](SYSTEM_DOCUMENTATION.md)** - Technical deep-dive and implementation details
+- **[database_schema.txt](database_schema.txt)** - Complete database schema and relationships
+- **[database_schema_v2.txt](database_schema_v2.txt)** - Enhanced schema with security architecture
+- **[arduino_architecture_schema.txt](arduino_architecture_schema.txt)** - Hardware and firmware architecture
+- **[surf-lamp-processor/README.md](surf-lamp-processor/README.md)** - Background processor setup and configuration
+
+### API Documentation
+- **Arduino Endpoints:** See `arduino_payload_documentation.md`
+- **Web API:** Authentication, lamp management, and data endpoints
+- **Background Processing:** API integration and data flow patterns
+
+### Troubleshooting Resources
+- **Common Issues:** Database connection, Arduino connectivity, LED hardware
+- **Performance Optimization:** API rate limiting, database queries, memory management
+- **Security Configuration:** Authentication, rate limiting, input validation
 
 ## 📄 License
 
