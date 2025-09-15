@@ -646,6 +646,7 @@ def update_current_conditions(lamp_id, surf_data):
 def process_all_lamps():
     """Main processing function - handles multi-source API calls per lamp"""
     logger.info("🚀 ======= STARTING LAMP PROCESSING CYCLE =======")
+    reset_api_cache()  # Clear cache from previous cycle
     start_time = time.time()
 
     try:
