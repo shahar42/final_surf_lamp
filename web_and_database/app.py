@@ -635,8 +635,8 @@ def update_theme():
         theme = data.get('theme')
         user_id = session.get('user_id')
 
-        if theme not in ['day', 'night']:
-            return {'success': False, 'message': 'Invalid theme. Must be day or night'}, 400
+        if theme not in ['day', 'dark']:
+            return {'success': False, 'message': 'Invalid theme. Must be day or dark'}, 400
 
         db = SessionLocal()
         try:

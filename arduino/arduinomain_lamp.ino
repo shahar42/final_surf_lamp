@@ -123,7 +123,7 @@ CHSV colorMapWind[] = {
 String currentTheme = "day";  // Default theme
 
 CHSV getWindSpeedColor(String theme) {
-    if (theme == "night") {
+    if (theme == "dark") {
         return CHSV(30, 255, 255);  // Orange
     } else {
         return CHSV(120, 255, 255); // Green (current)
@@ -131,7 +131,7 @@ CHSV getWindSpeedColor(String theme) {
 }
 
 CHSV getWaveHeightColor(String theme) {
-    if (theme == "night") {
+    if (theme == "dark") {
         return CHSV(30, 50, 255);   // Warm White
     } else {
         return CHSV(0, 0, 255);     // White (current)
@@ -139,7 +139,7 @@ CHSV getWaveHeightColor(String theme) {
 }
 
 CHSV getWavePeriodColor(String theme) {
-    if (theme == "night") {
+    if (theme == "dark") {
         return CHSV(45, 255, 255);  // Amber
     } else {
         return CHSV(60, 255, 255);  // Yellow (current)

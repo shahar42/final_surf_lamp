@@ -170,7 +170,7 @@
                     <span class="text-white/80">LED Colors:</span>
                     <div class="flex items-center space-x-2">
                         <button id="lightTheme" class="theme-btn bg-white/20 hover:bg-white/30 px-3 py-1 rounded text-sm {{ 'bg-blue-500 text-white' if data.user.theme == 'day' else 'text-white/80' }}">Light</button>
-                        <button id="darkTheme" class="theme-btn bg-white/20 hover:bg-white/30 px-3 py-1 rounded text-sm {{ 'bg-blue-500 text-white' if data.user.theme == 'night' else 'text-white/80' }}">Dark</button>
+                        <button id="darkTheme" class="theme-btn bg-white/20 hover:bg-white/30 px-3 py-1 rounded text-sm {{ 'bg-blue-500 text-white' if data.user.theme == 'dark' else 'text-white/80' }}">Dark</button>
                     </div>
                 </div>
                 <div id="theme-status" class="text-sm text-white/80 mt-2"></div>
@@ -408,7 +408,7 @@
     });
 
     document.getElementById('darkTheme').addEventListener('click', function() {
-        updateTheme('night', this);
+        updateTheme('dark', this);
     });
 
     function updateTheme(theme, clickedButton) {
