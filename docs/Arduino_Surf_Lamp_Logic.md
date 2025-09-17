@@ -25,9 +25,9 @@ The number of lit LEDs on each strip corresponds to the intensity of the surf co
     *   **Example:** A wave period of 8.5 seconds will light up 8 LEDs on the left strip.
 
 *   **Wind Speed (Center Strip):**
-    *   **Logic:** `Number of LEDs = (wind_speed_mps * 1.94384 / 2.0) + 1`
-    *   **Explanation:** Wind speed is converted from meters/second to knots, and then scaled. The formula effectively lights one additional LED for every ~2 knots of wind speed.
-    *   **Example:** A wind speed of 5 m/s (~9.7 knots) will light up `(5 * 1.94384 / 2.0) + 1 = 5.85`, which is rounded down to 5 LEDs.
+    *   **Logic:** `Number of LEDs = wind_speed_mps * 10 / 22`
+    *   **Explanation:** Wind speed is linearly scaled from 0-22 m/s to 0-10 LEDs, optimized for typical surf conditions.
+    *   **Example:** A wind speed of 11 m/s will light up `11 * 10 / 22 = 5` LEDs. A wind speed of 22 m/s will light up all 10 available LEDs.
 
 ### 🧭 Wind Direction Colors
 

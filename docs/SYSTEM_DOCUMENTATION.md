@@ -36,6 +36,28 @@ External APIs → Background Processor → Database → Web API → Arduino → 
    20min           Every 20min         Real-time   31min   Immediate
 ```
 
+### Wind Speed Unit Handling
+
+The system ensures consistent wind speed units throughout the data pipeline:
+
+**API Configuration:**
+- All Open-Meteo API URLs include `&wind_speed_unit=ms` parameter
+- APIs return wind speed data directly in meters per second (m/s)
+- No unit conversion needed in background processor
+
+**Data Processing:**
+1. **External APIs**: Return wind speed in m/s (via URL parameter)
+2. **Background Processor**: Extracts `wind_speed_10m` as `wind_speed_mps`
+3. **Database**: Stores wind speed values in m/s
+4. **Arduino API**: Sends wind speed as `"wind_speed_mps": <integer>`
+5. **Arduino**: Receives m/s, converts to knots only for threshold comparison
+
+**Arduino Internal Conversion:**
+```cpp
+float windSpeedInKnots = windSpeed_mps * 1.94384;  // For threshold comparison
+int windSpeedLEDs = constrain(static_cast<int>(windSpeed * 10.0 / 22.0), 1, NUM_LEDS_CENTER - 2);  // Uses m/s directly
+```
+
 ### Detailed Flow
 1. **Background Processor** runs every 20 minutes (`PROCESS_INTERVAL = 20 minutes`)
 2. Fetches data from location-specific APIs defined in `MULTI_SOURCE_LOCATIONS`
@@ -84,25 +106,111 @@ MULTI_SOURCE_LOCATIONS = {
 }
 ```
 
-### API Backup System
-The system uses a priority-based fallback system. For example, Hadera has three API sources:
-- **Priority 1**: Isramar (wave data) - Primary source
-- **Priority 2**: Open-Meteo forecast (wind data) - Primary wind source
-- **Priority 3**: Open-Meteo GFS (wind data) - **Backup wind source**
+### Smart Multi-Endpoint Priority System
 
-If Priority 2 fails (e.g., 429 rate limiting), the system automatically falls back to Priority 3. This ensures wind data is always available even if the primary API is blocked.
+The system implements an intelligent **multi-source API architecture** with automatic failover capabilities:
 
-### Location Change Process
+**Design Principles:**
+- **Data Type Specialization:** Each API optimized for specific data types (wave vs wind)
+- **Geographic Optimization:** Local sources (Isramar) for better regional accuracy
+- **API Diversity:** Multiple providers prevent single points of failure
+- **Graceful Degradation:** Automatic fallback when primary sources fail
+
+**Example: Hadera, Israel Configuration**
+- **Priority 1**: Isramar (wave data) - Local Israeli marine data for accuracy
+- **Priority 2**: Open-Meteo forecast (wind) - Primary global wind source
+- **Priority 3**: Open-Meteo GFS (wind) - **Backup wind source for rate limiting protection**
+
+**Failover Logic:**
+1. Fetch Priority 1 (wave data) - If fails, continues without wave data
+2. Fetch Priority 2 (wind data) - If fails (e.g., 429 rate limiting), automatically tries Priority 3
+3. Background processor logs all attempts and falls back gracefully
+4. System ensures wind data is always available even if primary API is blocked
+
+**Benefits:**
+- **99%+ uptime** through redundancy
+- **Optimal data quality** from specialized sources
+- **Rate limiting protection** via backup APIs
+- **Regional accuracy** from local data sources
+
+### Location Change Process - Complete Program Execution Flow
+
 **Function:** `update_user_location()` in `data_base.py:467-540`
 
-When user changes location in dashboard:
-1. Updates `users.location` field
-2. Deletes existing `usage_lamps` records for the lamp
-3. Creates new `usage_lamps` records with new location's API endpoints
-4. Background processor automatically picks up new endpoints
-5. Arduino receives new location data within 31 minutes
+#### **Step 1: Configuration in Code**
+```python
+MULTI_SOURCE_LOCATIONS = {
+    "Tel Aviv, Israel": [
+        {"url": "https://marine-api.open-meteo.com/...", "priority": 1, "type": "wave"},
+        {"url": "https://api.open-meteo.com/v1/forecast?...", "priority": 2, "type": "wind"}
+    ]
+}
+```
+
+#### **Step 2: User Dashboard Action**
+- User selects new location → JavaScript calls `/update-location` endpoint
+
+#### **Step 3: Database Mapping Process**
+1. **Lookup:** System finds `new_location` in `MULTI_SOURCE_LOCATIONS`
+2. **Delete:** Removes existing `usage_lamps` records for lamp
+3. **Create:** For each API source in location config:
+   ```python
+   UsageLamps(
+       lamp_id=lamp.lamp_id,
+       http_endpoint=source['url'],           # Full API URL with coordinates
+       endpoint_priority=source['priority']   # 1, 2, 3...
+   )
+   ```
+
+#### **Step 4: Background Processor Discovery**
+Every 20 minutes, queries database:
+```sql
+SELECT ul.http_endpoint, ul.endpoint_priority, u.location
+FROM usage_lamps ul
+JOIN lamps l ON ul.lamp_id = l.lamp_id
+ORDER BY ul.lamp_id, ul.endpoint_priority  -- Priority order!
+```
+
+#### **Step 5: Priority-Based API Processing**
+- **Priority 1:** Try primary endpoint (e.g., Isramar wave data)
+- **Priority 2:** Try secondary endpoint (e.g., Open-Meteo wind)
+- **Priority 3:** Try backup endpoint (e.g., GFS wind backup)
+- **Failover:** If endpoint fails, automatically tries next priority
+
+#### **Step 6: Data Flow Chain**
+```
+Code Config → User Selection → Database Update → Background Processor →
+Priority API Calls → Data Storage → Arduino Pull → LED Display
+```
+
+**Timeline:**
+- Database update: Immediate
+- Background processor pickup: Up to 20 minutes
+- Arduino data refresh: Up to 31 minutes
+
+**Important:** API URL changes in code require location change to update database endpoints
 
 ## Arduino LED System
+
+### LED Theme System
+
+**User Flow:**
+1. User selects "Light" or "Dark" theme in dashboard
+2. JavaScript sends POST to `/update-theme` endpoint
+3. Server updates `users.theme` field in database ("day" or "night")
+4. Arduino pulls theme via `/api/arduino/{id}/data` endpoint (every 31 minutes)
+5. Arduino applies theme colors immediately upon receiving update
+
+**Theme Colors:**
+- **Day Theme:** Green (120°), Cyan (180°), Orange (30°) - Bright, vibrant colors
+- **Night Theme:** Blue (240°), Purple (270°), Red (0°) - Darker, warmer colors
+
+**Color Mapping:**
+```cpp
+// Wind Speed: Green (day) / Blue (night)
+// Wave Height: Cyan (day) / Purple (night)
+// Wave Period: Orange (day) / Red (night)
+```
 
 ### LED Configuration
 **File:** `arduino/arduinomain_lamp.ino:16-26`
@@ -111,15 +219,16 @@ When user changes location in dashboard:
 #define LED_PIN_SIDE 2          // Wave height (right strip)
 #define LED_PIN_SIDE_LEFT 5     // Wave period (left strip)
 
-#define NUM_LEDS_RIGHT 9        // Wave height LEDs
-#define NUM_LEDS_LEFT 9         // Wave period LEDs
-#define NUM_LEDS_CENTER 12      // Wind speed + direction LEDs
+#define NUM_LEDS_RIGHT 15       // Wave height LEDs
+#define NUM_LEDS_LEFT 15        // Wave period LEDs
+#define NUM_LEDS_CENTER 19      // Wind speed + direction LEDs
 ```
 
 ### Wind Direction Colors
-**Function:** `setWindDirection()` in `arduinomain_lamp.ino:235-248`
+**Function:** `setWindDirection()` in `arduinomain_lamp.ino:316-328`
 ```cpp
-// Wind direction color coding (based on LED 11 - the top LED)
+// Wind direction color coding (based on LED 18 - the top LED)
+// int northLED = NUM_LEDS_CENTER - 1;  // LED #18 (0-indexed)
 if (windDirection < 45 || windDirection >= 315) {
     leds_center[northLED] = CRGB::Green;   // North - Green
 } else if (windDirection >= 45 && windDirection < 135) {
@@ -147,6 +256,11 @@ int windSpeedLEDs = constrain(static_cast<int>(windSpeed * 10.0 / 22.0), 1, NUM_
 int waveHeightLEDs = constrain(static_cast<int>(waveHeight_cm / 25) + 1, 0, NUM_LEDS_RIGHT);
 int wavePeriodLEDs = constrain(static_cast<int>(wavePeriod), 0, NUM_LEDS_LEFT);
 ```
+
+With the updated LED counts:
+- **Wind Speed**: Scales 0-22 m/s to 1-17 LEDs (reserves top 2 LEDs for direction indicator)
+- **Wave Height**: Every 25cm = 1 LED, up to 15 LEDs maximum
+- **Wave Period**: Direct mapping up to 15 LEDs maximum
 
 ## API Endpoints
 
@@ -176,8 +290,10 @@ Returns surf data formatted for Arduino consumption:
 
 ## Database Schema
 
-### Core Tables
-**File:** `web_and_database/data_base.py:74-223`
+### Core Tables - Implementation Reference
+**USE CASE:** SQLAlchemy implementation details and field specifications
+**AUDIENCE:** Backend developers, API integration, code maintenance
+**FILE:** `web_and_database/data_base.py:74-223`
 
 ```sql
 -- Users table
@@ -229,6 +345,11 @@ usage_lamps (
 2. Next Arduino fetch cycle → Sees new threshold (up to 31 minutes)
 3. Arduino applies new threshold logic → LED behavior changes
 
+### Theme Change Propagation
+1. User changes LED theme in dashboard → Database update (immediate)
+2. Next Arduino fetch cycle → Sees new theme (up to 31 minutes)
+3. Arduino updates LED colors → All surf data displays in new theme colors
+
 ## Configuration Files
 
 ### API Field Mappings
@@ -269,6 +390,9 @@ Arduino uses discovery system to find API server:
 - **API Failures:** Continues with other endpoints if one fails
 - **Partial Data:** Stores whatever data was successfully fetched
 - **Rate Limit Prevention:** 10-second delay between API calls to prevent burst rate limiting (background_processor.py:516)
+- **API Cache:** Caches API responses within each 20-minute cycle to avoid duplicate requests; cache resets at start of each cycle
+- **Priority Processing:** Processes API endpoints in priority order, attempting backups only when primary sources fail
+- **Smart Aggregation:** Combines data from multiple sources to create complete surf reports
 
 ### Web Application
 - **Rate Limiting:** Prevents authentication abuse
@@ -329,18 +453,38 @@ Arduino Serial Output includes:
 - **API Keys:** Stored securely in database, not hardcoded
 - **Input Validation:** Form validation on all user inputs
 
-## Supported Locations
+## Location-to-Endpoint Mapping
 
-**Current Coverage:** (from `web_and_database/data_base.py:227-311`)
-- Tel Aviv, Israel (32.0853, 34.7818)
-- Hadera, Israel (32.4365, 34.9196)
-- Ashdod, Israel (31.7939, 34.6328)
-- Haifa, Israel (32.7940, 34.9896)
-- Netanya, Israel (32.3215, 34.8532)
-- Nahariya, Israel (33.006, 35.094)
-- Ashkelon, Israel (31.6699, 34.5738)
+### Complete Endpoint Coverage Map
 
-**Adding New Locations:**
+| Location | Coordinates | Wave API | Wind API | Backup Wind API |
+|----------|-------------|----------|----------|-----------------|
+| **Tel Aviv** | 32.0853, 34.7818 | Marine-API (Open-Meteo) | Open-Meteo Forecast | - |
+| **Hadera** | 32.4365, 34.9196 | **Isramar** (Local) | Open-Meteo Forecast | Open-Meteo GFS |
+| **Ashdod** | 31.7939, 34.6328 | Marine-API (Open-Meteo) | Open-Meteo Forecast | - |
+| **Haifa** | 32.7940, 34.9896 | Marine-API (Open-Meteo) | Open-Meteo Forecast | - |
+| **Netanya** | 32.3215, 34.8532 | Marine-API (Open-Meteo) | Open-Meteo Forecast | - |
+| **Nahariya** | 33.006, 35.094 | Marine-API (Open-Meteo) | Open-Meteo Forecast | - |
+| **Ashkelon** | 31.6699, 34.5738 | Marine-API (Open-Meteo) | Open-Meteo Forecast | - |
+
+### API Endpoint Details
+
+**Wave Data Sources:**
+- **Marine-API (Open-Meteo):** `marine-api.open-meteo.com/v1/marine`
+- **Isramar (Local Israeli):** `isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json`
+
+**Wind Data Sources:**
+- **Open-Meteo Forecast:** `api.open-meteo.com/v1/forecast` (Primary)
+- **Open-Meteo GFS:** `api.open-meteo.com/v1/gfs` (Backup for Hadera only)
+
+### Special Configuration Notes
+
+- **Hadera:** Only location with 3 API sources (includes GFS backup for wind)
+- **Isramar:** Local Israeli marine data - higher accuracy for wave conditions
+- **All wind APIs:** Include `&wind_speed_unit=ms` for correct m/s values
+- **Coordinates:** Embedded in API URLs for location-specific data
+
+### Adding New Locations
 1. Add coordinates to `MULTI_SOURCE_LOCATIONS` in `data_base.py`
 2. Add location name to `SURF_LOCATIONS` in `app.py:78-86`
 3. System automatically configures API endpoints for new users

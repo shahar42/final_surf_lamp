@@ -38,7 +38,7 @@ Stores debugging scripts and configuration files used during development and tro
 
 ## 🗄️ Database Schema
 
-The system uses PostgreSQL with a carefully designed schema supporting multi-user, multi-device surf monitoring. See `database_schema.txt` for a complete ASCII diagram of table relationships, data flow patterns, and security architecture.
+The system uses PostgreSQL with a carefully designed schema supporting multi-user, multi-device surf monitoring. See `docs/database_schema.txt` for a complete ASCII diagram of table relationships, data flow patterns, and security architecture.
 
 **Key Tables:**
 - `users` - User authentication and preferences
@@ -286,7 +286,7 @@ pip install -r surf-lamp-processor/requirements.txt
 - **End-to-End Tests:** Complete data flow verification
 
 **Development Workflow:**
-1. **Database First:** Design schema changes in `database_schema.txt`
+1. **Database First:** Design schema changes in `docs/database_schema.txt`
 2. **API Development:** Update endpoints and test with Postman/curl
 3. **Frontend Changes:** Modify Flask templates and test in browser
 4. **Arduino Development:** Use mock transport for testing without hardware
@@ -377,14 +377,14 @@ export DEBUG="false"
 ## 📚 Technical Documentation
 
 ### Core Documentation Files
-- **[SYSTEM_DOCUMENTATION.md](SYSTEM_DOCUMENTATION.md)** - Technical deep-dive and implementation details
-- **[database_schema.txt](database_schema.txt)** - Complete database schema and relationships
-- **[database_schema_v2.txt](database_schema_v2.txt)** - Enhanced schema with security architecture
-- **[arduino_architecture_schema.txt](arduino_architecture_schema.txt)** - Hardware and firmware architecture
-- **[surf-lamp-processor/README.md](surf-lamp-processor/README.md)** - Background processor setup and configuration
+- **[SYSTEM_DOCUMENTATION.md](docs/SYSTEM_DOCUMENTATION.md)** - Technical deep-dive and implementation details
+- **[database_schema.txt](docs/database_schema.txt)** - Complete database schema and relationships
+- **[database_schema_v2.txt](docs/database_schema_v2.txt)** - Enhanced schema with security architecture
+- **[arduino_architecture_schema.txt](docs/arduino_architecture_schema.txt)** - Hardware and firmware architecture
+- **[surf-lamp-processor README](docs/surf-lamp-processor-README.md)** - Background processor setup and configuration
 
 ### API Documentation
-- **Arduino Endpoints:** See `arduino_payload_documentation.md`
+- **Arduino Endpoints:** See `docs/arduino_payload_documentation.md`
 - **Web API:** Authentication, lamp management, and data endpoints
 - **Background Processing:** API integration and data flow patterns
 

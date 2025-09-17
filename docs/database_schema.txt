@@ -1,5 +1,8 @@
-                           SURF LAMP DATABASE SCHEMA
-                          =============================
+                    SURF LAMP DATABASE SCHEMA - DEVELOPER REFERENCE
+                   ===================================================
+                   USE CASE: Quick entity relationships & data flow overview
+                   AUDIENCE: Developers, system architects, troubleshooting
+                   FORMAT: ASCII diagrams with table relationships
 
 ┌─────────────────────────┐         ┌─────────────────────────┐
 │         USERS           │         │  PASSWORD_RESET_TOKENS  │

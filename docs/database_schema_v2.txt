@@ -1,6 +1,9 @@
 ╔════════════════════════════════════════════════════════════════════════════════════════╗
-║                           SURF LAMP DATABASE SCHEMA v2.0                              ║
+║                   SURF LAMP DATABASE SCHEMA v2.0 - VISUAL REFERENCE                  ║
 ║                          ═══════════════════════════════════                          ║
+║  USE CASE: Comprehensive visual schema with security & deployment context             ║
+║  AUDIENCE: Database administrators, security auditors, deployment teams               ║
+║  FORMAT: Enhanced ASCII with emojis, sections, and detailed annotations               ║
 ╚════════════════════════════════════════════════════════════════════════════════════════╝
 
 ┌─────────────────────────────────────────────────────────────────────────────────────────┐
