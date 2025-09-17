@@ -126,23 +126,23 @@ CHSV getWindSpeedColor(String theme) {
     if (theme == "dark") {
         return CHSV(30, 255, 255);  // Orange
     } else {
-        return CHSV(120, 255, 255); // Green (current)
+        return CHSV(120, 255, 255); // Green
     }
 }
 
 CHSV getWaveHeightColor(String theme) {
     if (theme == "dark") {
-        return CHSV(30, 50, 255);   // Warm White
+        return CHSV(240, 255, 255); // Blue
     } else {
-        return CHSV(0, 0, 255);     // White (current)
+        return CHSV(240, 255, 255); // Blue
     }
 }
 
 CHSV getWavePeriodColor(String theme) {
     if (theme == "dark") {
-        return CHSV(45, 255, 255);  // Amber
+        return CHSV(280, 255, 255); // Purple
     } else {
-        return CHSV(60, 255, 255);  // Yellow (current)
+        return CHSV(0, 30, 255);    // White with a dash of red
     }
 }
 
