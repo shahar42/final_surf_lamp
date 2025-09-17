@@ -58,7 +58,7 @@ MULTI_SOURCE_LOCATIONS = {
             "type": "wave"
         },
         {
-            "url": "https://api.open-meteo.com/v1/forecast?latitude=32.0853&longitude=34.7818&hourly=wind_speed_10m,wind_direction_10m",
+            "url": "https://api.open-meteo.com/v1/forecast?latitude=32.0853&longitude=34.7818&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms",
             "priority": 2,
             "type": "wind"
         }
@@ -70,12 +70,12 @@ MULTI_SOURCE_LOCATIONS = {
             "type": "wave"
         },
         {
-            "url": "https://api.open-meteo.com/v1/forecast?latitude=32.4365&longitude=34.9196&hourly=wind_speed_10m,wind_direction_10m",
+            "url": "https://api.open-meteo.com/v1/forecast?latitude=32.4365&longitude=34.9196&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms",
             "priority": 2,
             "type": "wind"
         },
         {
-            "url": "https://api.open-meteo.com/v1/gfs?latitude=32.4365&longitude=34.9196&hourly=wind_speed_10m,wind_direction_10m",
+            "url": "https://api.open-meteo.com/v1/gfs?latitude=32.4365&longitude=34.9196&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms",
             "priority": 3,
             "type": "wind"
         }
@@ -143,7 +143,7 @@ if (windDirection < 45 || windDirection >= 315) {
 
 LED calculations:
 ```cpp
-int windSpeedLEDs = constrain(static_cast<int>(windSpeed * (1.94384 / 2.0)) + 1, 0, NUM_LEDS_CENTER - 2);
+int windSpeedLEDs = constrain(static_cast<int>(windSpeed * 10.0 / 22.0), 1, NUM_LEDS_CENTER - 2);
 int waveHeightLEDs = constrain(static_cast<int>(waveHeight_cm / 25) + 1, 0, NUM_LEDS_RIGHT);
 int wavePeriodLEDs = constrain(static_cast<int>(wavePeriod), 0, NUM_LEDS_LEFT);
 ```

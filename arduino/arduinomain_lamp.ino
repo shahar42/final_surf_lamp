@@ -293,7 +293,7 @@ void updateBlinkingAnimation() {
     // Check if wind speed threshold is exceeded
     float windSpeedInKnots = lastSurfData.windSpeed * 1.94384;
     if (windSpeedInKnots >= lastSurfData.windSpeedThreshold) {
-        int windSpeedLEDs = constrain(static_cast<int>(lastSurfData.windSpeed * (1.94384 / 2.0)) + 1, 0, NUM_LEDS_CENTER - 2);
+        int windSpeedLEDs = constrain(static_cast<int>(lastSurfData.windSpeed * 10.0 / 22.0), 1, NUM_LEDS_CENTER - 2);
         CHSV themeColor = getWindSpeedColor(currentTheme);
         updateBlinkingCenterLEDs(windSpeedLEDs, CHSV(themeColor.hue, themeColor.sat, min(255, (int)(255 * 1.6))));
         needsUpdate = true;
@@ -722,8 +722,8 @@ bool processSurfData(const String &jsonData) {
 
 void updateSurfDisplay(int waveHeight_cm, float wavePeriod, int windSpeed, int windDirection, int waveThreshold_cm, int windSpeedThreshold_knots) {
     // Calculate LED counts based on surf data
-    // Convert m/s to knots and scale by 1/2 for LED display
-    int windSpeedLEDs = constrain(static_cast<int>(windSpeed * (1.94384 / 2.0)) + 1, 0, NUM_LEDS_CENTER - 2);
+    // Scale wind speed to use full LED range (0-22 m/s maps to 0-10 LEDs)
+    int windSpeedLEDs = constrain(static_cast<int>(windSpeed * 10.0 / 22.0), 1, NUM_LEDS_CENTER - 2);
     int waveHeightLEDs = constrain(static_cast<int>(waveHeight_cm / 25) + 1, 0, NUM_LEDS_RIGHT);
     int wavePeriodLEDs = constrain(static_cast<int>(wavePeriod), 0, NUM_LEDS_LEFT);
     
