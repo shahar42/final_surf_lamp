@@ -40,10 +40,6 @@ arduino_last_failure = defaultdict(float)
 ARDUINO_FAILURE_THRESHOLD = 3  # Skip after 3 consecutive failures
 ARDUINO_RETRY_DELAY = 1800     # 30 minutes before retry
 
-# API request cache to avoid duplicate calls per cycle
-api_request_cache = {}
-cache_reset_time = None
-
 # Location to timezone mapping
 LOCATION_TIMEZONES = {
     "Hadera, Israel": "Asia/Jerusalem",
@@ -99,12 +95,7 @@ def extract_field_value(data, field_path):
     except (KeyError, TypeError, IndexError):
         return None
 
-def reset_api_cache():
-    """Reset API cache at the start of each processing cycle"""
-    global api_request_cache, cache_reset_time
-    api_request_cache = {}
-    cache_reset_time = time.time()
-    logger.info("🗑️  API request cache reset for new processing cycle")
+# Cache removal - no longer needed with location-based processing
 
 def get_current_hour_index(time_array):
     """
@@ -333,61 +324,38 @@ def test_database_connection():
         logger.error(f"❌ Database connection failed: {e}")
         return False
 
-def get_lamp_api_configs():
-    """Get API configurations grouped by lamp_id to handle multi-source lamps"""
-    logger.info("📡 Getting lamp API configurations grouped by lamp_id...")
-    
+def get_unique_api_configs():
+    """Get unique API configurations to avoid redundant calls"""
+    logger.info("📡 Getting unique API configurations...")
+
     query = text("""
-        SELECT 
-            ul.lamp_id,
+        SELECT DISTINCT
             ul.usage_id,
-            ul.http_endpoint,
+            du.website_url,
             ul.api_key,
-            ul.endpoint_priority,
-            l.arduino_id,
-            u.location,
-            u.preferred_output as format
+            ul.http_endpoint,
+            ul.endpoint_priority
         FROM usage_lamps ul
-        JOIN lamps l ON ul.lamp_id = l.lamp_id
-        JOIN users u ON l.user_id = u.user_id
+        JOIN daily_usage du ON ul.usage_id = du.usage_id
         WHERE ul.http_endpoint IS NOT NULL
         AND ul.http_endpoint != ''
-        ORDER BY ul.lamp_id, ul.endpoint_priority
+        ORDER BY ul.endpoint_priority, ul.usage_id
     """)
-    
+
     try:
         with engine.connect() as conn:
             result = conn.execute(query)
-            rows = [dict(row._mapping) for row in result]
-        
-        # Group by lamp_id
-        lamp_configs = {}
-        for row in rows:
-            lamp_id = row['lamp_id']
-            if lamp_id not in lamp_configs:
-                lamp_configs[lamp_id] = {
-                    'arduino_id': row['arduino_id'],
-                    'location': row['location'],
-                    'format': row['format'],
-                    'endpoints': []
-                }
-            
-            lamp_configs[lamp_id]['endpoints'].append({
-                'usage_id': row['usage_id'],
-                'http_endpoint': row['http_endpoint'],
-                'api_key': row['api_key'],
-                'priority': row['endpoint_priority']
-            })
-        
-        logger.info(f"✅ Found {len(lamp_configs)} lamps with multi-source configurations")
-        for lamp_id, config in lamp_configs.items():
-            logger.info(f"   Lamp {lamp_id}: {len(config['endpoints'])} API sources")
-            
-        return lamp_configs
-        
+            configs = [dict(row._mapping) for row in result]
+
+        logger.info(f"✅ Found {len(configs)} unique API configurations:")
+        for i, config in enumerate(configs, 1):
+            logger.info(f"   {i}. {config['website_url']} (usage_id: {config['usage_id']}, priority: {config['endpoint_priority']})")
+
+        return configs
+
     except Exception as e:
-        logger.error(f"❌ Failed to get lamp API configurations: {e}")
-        return {}
+        logger.error(f"❌ Failed to get API configurations: {e}")
+        return []
 
 def get_arduinos_for_api(usage_id):
     """Get all Arduino targets that need data from this API"""
@@ -488,12 +456,6 @@ def format_for_arduino(surf_data, format_type="meters", location=None):
 
 def fetch_surf_data(api_key, endpoint):
     """Fetch surf data from external API and standardize using config"""
-    # Check cache first
-    cache_key = endpoint
-    if cache_key in api_request_cache:
-        logger.info(f"💾 Using cached data for: {endpoint}")
-        return api_request_cache[cache_key]
-
     logger.info(f"🌊 Fetching surf data from: {endpoint}")
 
     try:
@@ -530,8 +492,8 @@ def fetch_surf_data(api_key, endpoint):
                 else:
                     raise e  # Other HTTP errors, don't retry
 
-        # Add 30 second delay between all API calls to avoid rate limiting
-        time.sleep(30)
+        # Add 10 second delay between all API calls to avoid rate limiting
+        time.sleep(10)
 
         logger.info(f"✅ API call successful: {response.status_code}")
         logger.debug(f"📥 Raw response: {response.text[:200]}...")
@@ -544,8 +506,6 @@ def fetch_surf_data(api_key, endpoint):
 
         if surf_data:
             logger.info(f"✅ Surf data standardized successfully")
-            # Cache the result
-            api_request_cache[cache_key] = surf_data
             return surf_data
         else:
             logger.error(f"❌ Failed to standardize surf data")
@@ -662,9 +622,8 @@ def update_current_conditions(lamp_id, surf_data):
         return False
 
 def process_all_lamps():
-    """Main processing function - handles multi-source API calls per lamp"""
-    logger.info("🚀 ======= STARTING LAMP PROCESSING CYCLE =======")
-    reset_api_cache()  # Clear cache from previous cycle
+    """Main processing function - API-based processing to eliminate duplicate calls"""
+    logger.info("🚀 ======= STARTING API-BASED PROCESSING CYCLE =======")
     start_time = time.time()
 
     try:
@@ -673,107 +632,84 @@ def process_all_lamps():
             logger.error("❌ Database connection failed, aborting cycle")
             return False
 
-        # Step 2: Get lamp configurations (grouped by lamp_id)
-        lamp_configs = get_lamp_api_configs()
-        if not lamp_configs:
-            logger.error("❌ No lamp configurations found, aborting cycle")
+        # Step 2: Get unique API configurations
+        api_configs = get_unique_api_configs()
+        if not api_configs:
+            logger.error("❌ No API configurations found, aborting cycle")
             return False
 
-        logger.info(f"📊 Processing {len(lamp_configs)} lamps with multi-source APIs...")
+        logger.info(f"📊 Processing {len(api_configs)} unique API configurations...")
 
-        # Step 3: Process each lamp
-        total_database_updates = 0
+        # Step 3: Process each API configuration
+        total_lamps_updated = 0
+        total_api_calls = 0
 
-        for lamp_id, lamp_config in lamp_configs.items():
-            logger.info(f"\n--- Processing Lamp {lamp_id} ({lamp_config['location']}) ---")
-            logger.info(f"API sources: {len(lamp_config['endpoints'])}")
+        for i, config in enumerate(api_configs, 1):
+            logger.info(f"\n--- Processing API {i}/{len(api_configs)} ---")
+            logger.info(f"API: {config['website_url']} (Priority: {config['endpoint_priority']})")
 
-            # Define required parameters for complete surf data
-            required_parameters = {
-                'wave_height_m', 'wave_period_s', 'wind_speed_mps', 'wind_direction_deg'
-            }
+            total_api_calls += 1
 
-            # Initialize data collection
-            combined_data = {}
-            successful_fetches = 0
+            # Fetch surf data once per API
+            surf_data = fetch_surf_data(
+                config['api_key'],
+                config['http_endpoint']
+            )
 
-            # Process APIs by priority until we have all required data
-            for endpoint in lamp_config['endpoints']:
-                # Check what parameters we're still missing
-                missing_parameters = required_parameters - set(combined_data.keys())
+            if surf_data is None:
+                logger.error(f"❌ Skipping API {config['usage_id']} due to fetch failure")
+                continue
 
-                if not missing_parameters:
-                    logger.info(f"✅ All required parameters collected! Skipping remaining APIs.")
-                    break
+            # Get all Arduino devices that need this data
+            arduino_targets = get_arduinos_for_api(config['usage_id'])
 
-                logger.info(f"🔍 Missing parameters: {missing_parameters}")
-                logger.info(f"📡 Fetching from priority {endpoint['priority']} API...")
+            if not arduino_targets:
+                logger.warning(f"⚠️  No Arduino targets found for API {config['usage_id']}")
+                continue
 
-                try:
-                    source_data = fetch_surf_data(
-                        endpoint['api_key'],
-                        endpoint['http_endpoint']
-                    )
+            # Update all relevant lamps with this data
+            lamps_updated_for_this_api = 0
+            for j, target in enumerate(arduino_targets, 1):
+                logger.info(f"  Updating lamp {j}/{len(arduino_targets)} (Arduino {target['arduino_id']})")
 
-                    if source_data:
-                        # Count how many NEW parameters this API provided
-                        new_parameters = set(source_data.keys()) & missing_parameters
-
-                        if new_parameters:
-                            # Only merge the parameters we actually needed
-                            for param in new_parameters:
-                                combined_data[param] = source_data[param]
-
-                            successful_fetches += 1
-                            logger.info(f"✅ Priority {endpoint['priority']} API provided: {new_parameters}")
-                        else:
-                            logger.info(f"ℹ️  Priority {endpoint['priority']} API returned data but no new required parameters")
-                    else:
-                        logger.warning(f"⚠️  Priority {endpoint['priority']} API returned no data")
-
-                except Exception as e:
-                    logger.warning(f"⚠️  Priority {endpoint['priority']} API failed: {e}")
-                    # Continue with other endpoints for missing data
-
-            # Final status check
-            final_missing = required_parameters - set(combined_data.keys())
-
-            if final_missing:
-                logger.warning(f"⚠️  Incomplete data for lamp {lamp_id}. Missing: {final_missing}")
-                # Add NULL values for missing parameters so Arduino gets consistent data structure
-                for param in final_missing:
-                    combined_data[param] = 0.0 if 'deg' not in param else 0
-                logger.info(f"🔧 Added default values for missing parameters")
-
-            # Process lamp if we got any data at all
-            if combined_data and successful_fetches > 0:
-                logger.info(f"📊 Final data from {successful_fetches} API source(s): {list(combined_data.keys())}")
-
-                # Always update database first (dashboard guaranteed)
-                timestamp_updated = update_lamp_timestamp(lamp_id)
-                conditions_updated = update_current_conditions(lamp_id, combined_data)
+                # Update timestamp and current conditions for this lamp
+                timestamp_updated = update_lamp_timestamp(target['lamp_id'])
+                conditions_updated = update_current_conditions(target['lamp_id'], surf_data)
 
                 if timestamp_updated and conditions_updated:
-                    total_database_updates += 1
-                    logger.info(f"✅ Database updated for lamp {lamp_id}")
-            else:
-                logger.error(f"❌ No usable data for lamp {lamp_id} - all API sources failed")
+                    lamps_updated_for_this_api += 1
+                    total_lamps_updated += 1
+                    logger.info(f"✅ Lamp {target['lamp_id']} (Arduino {target['arduino_id']}) updated successfully")
+                else:
+                    logger.error(f"❌ Failed to update lamp {target['lamp_id']} (Arduino {target['arduino_id']})")
+
+            logger.info(f"📊 Updated {lamps_updated_for_this_api}/{len(arduino_targets)} lamps for this API")
 
         # Final summary
         end_time = time.time()
         duration = round(end_time - start_time, 2)
 
-        logger.info(f"\n🎉 ======= LAMP PROCESSING CYCLE COMPLETED =======")
+        logger.info(f"\n🎉 ======= API-BASED PROCESSING CYCLE COMPLETED =======")
         logger.info(f"📊 Summary:")
-        logger.info(f"   - Lamps processed: {len(lamp_configs)}")
-        logger.info(f"   - Database updates: {total_database_updates}")
+        logger.info(f"   - Unique APIs processed: {len(api_configs)}")
+        logger.info(f"   - Total API calls made: {total_api_calls}")
+        logger.info(f"   - Lamps updated: {total_lamps_updated}")
         logger.info(f"   - Duration: {duration} seconds")
-        logger.info(f"   - Status: {'SUCCESS' if total_database_updates > 0 else 'FAILED'}")
+        logger.info(f"   - Status: SUCCESS")
 
         return True
 
     except Exception as e:
-        logger.error(f"💥 CRITICAL ERROR in lamp processing cycle: {e}")
+        end_time = time.time()
+        duration = round(end_time - start_time, 2)
+
+        logger.info(f"\n🚫 ======= API-BASED PROCESSING CYCLE FAILED =======")
+        logger.info(f"📊 Summary:")
+        logger.info(f"   - Error: {str(e)}")
+        logger.info(f"   - Duration: {duration} seconds")
+        logger.info(f"   - Status: FAILED")
+
+        logger.error(f"💥 CRITICAL ERROR in processing cycle: {e}")
         return False
 
 def run_once():
