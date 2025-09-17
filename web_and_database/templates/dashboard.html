@@ -169,8 +169,8 @@
                 <div class="flex justify-between items-center pt-2 border-t border-white/20">
                     <span class="text-white/80">LED Colors:</span>
                     <div class="flex items-center space-x-2">
-                        <button id="lightTheme" class="theme-btn bg-white/20 hover:bg-white/30 px-3 py-1 rounded text-sm {{ 'bg-blue-500 text-white' if data.user.theme == 'day' else 'text-white/80' }}">Light</button>
-                        <button id="darkTheme" class="theme-btn bg-white/20 hover:bg-white/30 px-3 py-1 rounded text-sm {{ 'bg-blue-500 text-white' if data.user.theme == 'dark' else 'text-white/80' }}">Dark</button>
+                        <button id="lightTheme" class="theme-btn px-3 py-1 rounded text-sm {{ 'bg-green-600 text-white font-bold' if data.user.theme == 'day' else 'bg-white/20 hover:bg-white/30 text-white/80' }}">Light</button>
+                        <button id="darkTheme" class="theme-btn px-3 py-1 rounded text-sm {{ 'bg-green-600 text-white font-bold' if data.user.theme == 'dark' else 'bg-white/20 hover:bg-white/30 text-white/80' }}">Dark</button>
                     </div>
                 </div>
                 <div id="theme-status" class="text-sm text-white/80 mt-2"></div>
@@ -432,11 +432,11 @@
 
                 // Update button styles
                 document.querySelectorAll('.theme-btn').forEach(btn => {
-                    btn.classList.remove('bg-blue-500', 'text-white');
-                    btn.classList.add('text-white/80');
+                    btn.classList.remove('bg-green-600', 'text-white', 'font-bold');
+                    btn.classList.add('bg-white/20', 'hover:bg-white/30', 'text-white/80');
                 });
-                clickedButton.classList.remove('text-white/80');
-                clickedButton.classList.add('bg-blue-500', 'text-white');
+                clickedButton.classList.remove('bg-white/20', 'hover:bg-white/30', 'text-white/80');
+                clickedButton.classList.add('bg-green-600', 'text-white', 'font-bold');
             } else {
                 statusDiv.textContent = body.message || 'Update failed';
                 statusDiv.style.color = '#ff6b6b';
