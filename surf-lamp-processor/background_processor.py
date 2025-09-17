@@ -508,12 +508,30 @@ def fetch_surf_data(api_key, endpoint):
 
         logger.info(f"📤 Headers: {headers}")
 
-        # Make the actual API call
-        response = requests.get(endpoint, headers=headers, timeout=5)
-        response.raise_for_status()
+        # Make the API call with retry logic for rate limiting
+        max_retries = 3
+        base_delay = 60  # Start with 60 seconds for rate limit retries
 
-        # Add 10 second delay between all API calls
-        time.sleep(10)
+        for attempt in range(max_retries):
+            try:
+                response = requests.get(endpoint, headers=headers, timeout=5)
+                response.raise_for_status()
+                break  # Success, exit retry loop
+            except requests.exceptions.HTTPError as e:
+                if response.status_code == 429:  # Rate limited
+                    if attempt < max_retries - 1:  # Not the last attempt
+                        delay = base_delay * (2 ** attempt)  # Exponential backoff
+                        logger.warning(f"⚠️ Rate limited (429). Retrying in {delay} seconds... (attempt {attempt + 1}/{max_retries})")
+                        time.sleep(delay)
+                        continue
+                    else:
+                        logger.error(f"❌ Rate limited after {max_retries} attempts, giving up")
+                        raise e
+                else:
+                    raise e  # Other HTTP errors, don't retry
+
+        # Add 30 second delay between all API calls to avoid rate limiting
+        time.sleep(30)
 
         logger.info(f"✅ API call successful: {response.status_code}")
         logger.debug(f"📥 Raw response: {response.text[:200]}...")
