@@ -512,8 +512,8 @@ def fetch_surf_data(api_key, endpoint):
         response = requests.get(endpoint, headers=headers, timeout=5)
         response.raise_for_status()
 
-        # Add 3 second delay between all API calls
-        time.sleep(3)
+        # Add 10 second delay between all API calls
+        time.sleep(10)
 
         logger.info(f"✅ API call successful: {response.status_code}")
         logger.debug(f"📥 Raw response: {response.text[:200]}...")
