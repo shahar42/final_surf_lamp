@@ -171,17 +171,17 @@ void loadCredentials() {
 
 // ---------------------------- LED Status Functions ----------------------------
 
-void blinkStatusLED(CRGB color, int delayMs = 500) {
-    static unsigned long lastBlinkTime = 0;
-    static bool ledOn = false;
-    unsigned long currentMillis = millis();
+void blinkStatusLED(CRGB color) {
+    // Use wave-like breathing pattern with shared blinkPhase and 20% dimmer
+    float brightnessFactor = 0.76 + 0.2 * sin(blinkPhase); // 0.8 * (0.95 + 0.25 * sin) = 20% dimmer
+    int adjustedBrightness = min(204, (int)(255 * brightnessFactor)); // Max 204 (80% of 255)
 
-    if (currentMillis - lastBlinkTime >= delayMs) {
-        lastBlinkTime = currentMillis;
-        ledOn = !ledOn;
-        leds_center[0] = ledOn ? color : CRGB::Black;
-        FastLED.show();
-    }
+    // Convert RGB to HSV for brightness control
+    CHSV hsvColor = rgb2hsv_approximate(color);
+    hsvColor.val = adjustedBrightness;
+
+    leds_center[0] = hsvColor;
+    FastLED.show();
 }
 
 void blinkBlueLED()  { blinkStatusLED(CRGB::Blue);  }   // Connecting to WiFi
@@ -261,7 +261,7 @@ void applyWindSpeedThreshold(int windSpeedLEDs, int windSpeed_mps, int windSpeed
         updateBlinkingCenterLEDs(windSpeedLEDs, CHSV(themeColor.hue, themeColor.sat, min(255, (int)(255 * 1.6)))); // Blinking theme color
     } else {
         // NORMAL MODE: Theme-based wind speed visualization
-        updateLEDsOneColor(windSpeedLEDs, NUM_LEDS_CENTER - 2, leds_center, getWindSpeedColor(currentTheme));
+        updateLEDsOneColor(windSpeedLEDs, NUM_LEDS_CENTER - 2, &leds_center[1], getWindSpeedColor(currentTheme));
     }
 }
 
@@ -841,7 +841,7 @@ void loop() {
         if (lastSurfData.dataReceived && (millis() - lastSurfData.lastUpdate < 1800000)) { // 30 minutes
             blinkGreenLED(); // Fresh data
         } else {
-            blinkStatusLED(CRGB::Blue, 1000); // No recent data
+            blinkStatusLED(CRGB::Blue); // No recent data
         }
     }
     
