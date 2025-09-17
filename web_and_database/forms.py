@@ -70,9 +70,6 @@ class RegistrationForm(FlaskForm):
         DataRequired(message="Please select a location")
     ])
     
-    # Theme selection
-    theme = RadioField('Theme', choices=[('light', 'Light'), ('dark', 'Dark')], 
-                      validators=[DataRequired(message="Please select a theme")])
     
     # Units selection
     units = RadioField('Units', choices=[('meters', 'Meters'), ('feet', 'Feet')],

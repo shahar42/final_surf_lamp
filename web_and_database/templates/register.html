@@ -204,5 +204,50 @@
         </p>
     </div>
 
+    <script>
+        // Real-time password validation
+        document.addEventListener('DOMContentLoaded', function() {
+            const passwordField = document.getElementById('password');
+            const passwordErrorDiv = passwordField.parentNode.querySelector('.field-error');
+
+            if (passwordField) {
+                passwordField.addEventListener('input', function() {
+                    const password = this.value;
+                    const isValid = password.length >= 8 && password.length <= 128;
+
+                    if (isValid) {
+                        // Remove error styling
+                        this.classList.remove('error');
+                        if (passwordErrorDiv) {
+                            passwordErrorDiv.style.display = 'none';
+                        }
+                    } else if (password.length > 0) {
+                        // Add error styling only if user has started typing
+                        this.classList.add('error');
+                        if (passwordErrorDiv) {
+                            passwordErrorDiv.style.display = 'block';
+                        }
+                    }
+                });
+            }
+
+            // Apply same logic to other fields
+            const allFields = ['name', 'email', 'lamp_id', 'arduino_id'];
+            allFields.forEach(fieldName => {
+                const field = document.getElementById(fieldName);
+                if (field) {
+                    field.addEventListener('input', function() {
+                        // Remove error styling when user starts typing
+                        this.classList.remove('error');
+                        const errorDiv = this.parentNode.querySelector('.field-error');
+                        if (errorDiv) {
+                            errorDiv.style.display = 'none';
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+
 </body>
 </html>

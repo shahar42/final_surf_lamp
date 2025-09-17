@@ -361,12 +361,12 @@ def register():
         lamp_id = form.lamp_id.data
         arduino_id = form.arduino_id.data
         location = form.location.data
-        theme = form.theme.data
+        theme = 'day'  # Default theme
         units = form.units.data
 
         # Process and Store Data
         hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
-        
+
         success, message = add_user_and_lamp(
             name=name,
             email=email,
@@ -385,6 +385,12 @@ def register():
             flash(message, 'error')
             # We redirect to register, but the form will be populated with the previous data
             return render_template('register.html', form=form, locations=SURF_LOCATIONS)
+    else:
+        # Debug: Show validation errors when form doesn't validate
+        if request.method == 'POST':
+            for field_name, errors in form.errors.items():
+                for error in errors:
+                    flash(f"{field_name.replace('_', ' ').title()}: {error}", 'error')
 
     return render_template('register.html', form=form, locations=SURF_LOCATIONS)
 
