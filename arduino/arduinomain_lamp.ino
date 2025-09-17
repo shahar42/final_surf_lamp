@@ -18,9 +18,9 @@ ServerDiscovery serverDiscovery;
 #define LED_PIN_SIDE 2
 #define LED_PIN_SIDE_LEFT 5
 
-#define NUM_LEDS_RIGHT 9
-#define NUM_LEDS_LEFT 9
-#define NUM_LEDS_CENTER 12
+#define NUM_LEDS_RIGHT 15
+#define NUM_LEDS_LEFT 15
+#define NUM_LEDS_CENTER 20
 #define BRIGHTNESS 100
 #define LED_TYPE WS2812B
 #define COLOR_ORDER GRB
@@ -37,7 +37,7 @@ bool configure_wifi = false;
 unsigned long apStartTime = 0;
 const unsigned long AP_TIMEOUT = 60000;  // 60 seconds timeout
 unsigned long lastDataFetch = 0;
-const unsigned long FETCH_INTERVAL = 1860000; // 31 minutes
+const unsigned long FETCH_INTERVAL = 780000; // 13 minutes
 
 // Blinking state variables
 unsigned long lastBlinkUpdate = 0;
@@ -722,7 +722,7 @@ bool processSurfData(const String &jsonData) {
 
 void updateSurfDisplay(int waveHeight_cm, float wavePeriod, int windSpeed, int windDirection, int waveThreshold_cm, int windSpeedThreshold_knots) {
     // Calculate LED counts based on surf data
-    // Scale wind speed to use full LED range (0-22 m/s maps to 0-10 LEDs)
+    // Scale wind speed to use full LED range (0-22 m/s maps to 0-18 LEDs)
     int windSpeedLEDs = constrain(static_cast<int>(windSpeed * 10.0 / 22.0), 1, NUM_LEDS_CENTER - 2);
     int waveHeightLEDs = constrain(static_cast<int>(waveHeight_cm / 25) + 1, 0, NUM_LEDS_RIGHT);
     int wavePeriodLEDs = constrain(static_cast<int>(wavePeriod), 0, NUM_LEDS_LEFT);
