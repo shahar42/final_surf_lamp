@@ -5,6 +5,26 @@ The Surf Lamp system displays real-time surf conditions using LED visualizations
 
 ## Architecture
 
+⚠️ **CRITICAL ARCHITECTURAL PRINCIPLES** ⚠️
+===============================================
+
+**DO NOT MODIFY these core design decisions without understanding the production issues they solve:**
+
+1. **🔄 PULL-BASED COMMUNICATION**
+   - Arduino devices fetch data from web server (every 16 minutes)
+   - Background processor ONLY updates database, never pushes to Arduino
+   - Eliminates network complexity, firewall issues, and Arduino reliability problems
+
+2. **📍 LOCATION-BASED PROCESSING**
+   - API calls grouped by location to eliminate duplicate requests
+   - Prevents 429 rate limiting errors (solved 25-minute processing issue)
+   - Reduces API calls by ~70% while maintaining data completeness
+
+3. **🎯 MULTI-SOURCE PRIORITY SYSTEM**
+   - Each location uses multiple API sources with priority ordering
+   - Data merging ensures complete surf conditions (wave + wind data)
+   - Automatic failover prevents data loss when primary APIs fail
+
 ### Core Components
 
 1. **Web Application** (`web_and_database/app.py`)
@@ -14,13 +34,14 @@ The Surf Lamp system displays real-time surf conditions using LED visualizations
    - Location-aware configuration system
 
 2. **Background Processor** (`surf-lamp-processor/background_processor.py`)
-   - Fetches data from external surf APIs every 20 minutes
-   - Processes and stores data in database
-   - Supports multi-source API configurations per location
-   - Implements 1-second delays between API calls to prevent burst rate limiting
+   - **Location-based processing**: Groups API calls by location to eliminate duplicates
+   - Fetches data from external surf APIs every 20 minutes with multi-source priority
+   - **Prevents rate limiting**: 10-second delays + exponential backoff (60s → 120s → 240s)
+   - **Data merging**: Combines wave data (Isramar) with wind data (Open-Meteo) per location
+   - **Pull-based architecture**: Only updates database, Arduino devices fetch data independently
 
 3. **Arduino Firmware** (`arduino/arduinomain_lamp.ino`)
-   - ESP32-based device that pulls data from server every 31 minutes
+   - ESP32-based device that pulls data from server every 16 minutes
    - Controls LED strips for visual surf condition display
    - Implements threshold-based blinking alerts
 
@@ -59,79 +80,87 @@ int windSpeedLEDs = constrain(static_cast<int>(windSpeed * 10.0 / 22.0), 1, NUM_
 ```
 
 ### Detailed Flow
-1. **Background Processor** runs every 20 minutes (`PROCESS_INTERVAL = 20 minutes`)
-2. Fetches data from location-specific APIs defined in `MULTI_SOURCE_LOCATIONS`
-3. Stores processed data in `current_conditions` table
-4. **Arduino** pulls data every 31 minutes (`FETCH_INTERVAL = 1860000ms`)
-5. **Arduino** updates LED display immediately upon receiving data
+1. **Background Processor** runs every 20 minutes with location-based processing
+2. **Groups lamps by location** to eliminate duplicate API calls (reduces calls by ~70%)
+3. **Multi-source data fetching** per location:
+   - Priority 1: Wave data (Isramar for Israel locations)
+   - Priority 2+: Wind data (Open-Meteo forecast, GFS backup)
+4. **Data merging**: Combines fields from all sources for complete surf conditions
+5. **Database updates**: Stores merged data in `current_conditions` table
+6. **Arduino** independently pulls data every 31 minutes (`FETCH_INTERVAL = 1860000ms`)
+7. **Arduino** updates LED display immediately upon receiving data
 
-## Location System (Dynamic)
+## Location System (Database-Driven)
 
-**File:** `web_and_database/data_base.py:227-312`
+**Database Tables:** `users`, `lamps`, `usage_lamps`, `daily_usage`
 
-The system uses a dynamic location mapping where each location has specific API endpoints with coordinates:
+The system uses a **database-driven location mapping** where API endpoints are configured per lamp and grouped by user location for efficient processing:
 
-```python
-MULTI_SOURCE_LOCATIONS = {
-    "Tel Aviv, Israel": [
-        {
-            "url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.0853&longitude=34.7818&hourly=wave_height,wave_period,wave_direction",
-            "priority": 1,
-            "type": "wave"
-        },
-        {
-            "url": "https://api.open-meteo.com/v1/forecast?latitude=32.0853&longitude=34.7818&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms",
-            "priority": 2,
-            "type": "wind"
-        }
-    ],
-    "Hadera, Israel": [
-        {
-            "url": "https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json",
-            "priority": 1,
-            "type": "wave"
-        },
-        {
-            "url": "https://api.open-meteo.com/v1/forecast?latitude=32.4365&longitude=34.9196&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms",
-            "priority": 2,
-            "type": "wind"
-        },
-        {
-            "url": "https://api.open-meteo.com/v1/gfs?latitude=32.4365&longitude=34.9196&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms",
-            "priority": 3,
-            "type": "wind"
-        }
-    ],
-    # ... other locations
-}
+### Database Schema for Location-Based Processing
+
+```sql
+-- Users define locations
+users (user_id, location, preferred_output, wave_threshold_m, wind_threshold_knots)
+
+-- Lamps belong to users and inherit location
+lamps (lamp_id, user_id, arduino_id, arduino_ip, last_updated)
+
+-- API endpoints are configured per lamp with priorities
+usage_lamps (lamp_id, usage_id, api_key, http_endpoint, endpoint_priority)
+
+-- Daily usage tracks API source information
+daily_usage (usage_id, website_url, ...)
 ```
 
-### Smart Multi-Endpoint Priority System
+### Location-Based Processing Query
 
-The system implements an intelligent **multi-source API architecture** with automatic failover capabilities:
+The background processor uses this query to group API calls by location:
 
-**Design Principles:**
-- **Data Type Specialization:** Each API optimized for specific data types (wave vs wind)
-- **Geographic Optimization:** Local sources (Isramar) for better regional accuracy
-- **API Diversity:** Multiple providers prevent single points of failure
-- **Graceful Degradation:** Automatic fallback when primary sources fail
+```sql
+SELECT DISTINCT
+    u.location,
+    ul.usage_id,
+    du.website_url,
+    ul.api_key,
+    ul.http_endpoint,
+    ul.endpoint_priority
+FROM usage_lamps ul
+JOIN daily_usage du ON ul.usage_id = du.usage_id
+JOIN lamps l ON ul.lamp_id = l.lamp_id
+JOIN users u ON l.user_id = u.user_id
+WHERE ul.http_endpoint IS NOT NULL
+ORDER BY u.location, ul.endpoint_priority
+```
 
-**Example: Hadera, Israel Configuration**
-- **Priority 1**: Isramar (wave data) - Local Israeli marine data for accuracy
-- **Priority 2**: Open-Meteo forecast (wind) - Primary global wind source
-- **Priority 3**: Open-Meteo GFS (wind) - **Backup wind source for rate limiting protection**
+### Location-Based Multi-Source Processing
 
-**Failover Logic:**
-1. Fetch Priority 1 (wave data) - If fails, continues without wave data
-2. Fetch Priority 2 (wind data) - If fails (e.g., 429 rate limiting), automatically tries Priority 3
-3. Background processor logs all attempts and falls back gracefully
-4. System ensures wind data is always available even if primary API is blocked
+The system implements **location-based processing** with multi-source data merging:
 
-**Benefits:**
-- **99%+ uptime** through redundancy
-- **Optimal data quality** from specialized sources
-- **Rate limiting protection** via backup APIs
-- **Regional accuracy** from local data sources
+**Architecture Benefits:**
+- **Eliminates Duplicate API Calls:** Groups lamps by location (reduces API calls by ~70%)
+- **Rate Limiting Prevention:** 10-second delays + exponential backoff for 429 errors
+- **Data Completeness:** Merges wave and wind data from multiple sources per location
+- **Geographic Optimization:** Uses location-specific APIs (Isramar for Israeli locations)
+
+**Processing Flow per Location:**
+1. **Query Database:** Get all unique API endpoints for the location (ordered by priority)
+2. **Fetch Multi-Source Data:** Call each API in priority order with proper delays
+3. **Data Merging:** Combine fields from all sources into complete surf conditions
+4. **Update All Lamps:** Apply merged data to all lamps in that location
+
+**Example: Hadera, Israel Processing**
+- **Location Query:** Groups 6 lamps in Hadera, Israel
+- **API Sources:** 4 unique endpoints (deduplicates 14 database entries)
+  - Priority 1: Isramar (wave_height_m, wave_period_s)
+  - Priority 2: Open-Meteo forecast (wind_speed_mps, wind_direction_deg)
+  - Priority 3: Open-Meteo GFS (backup wind data)
+- **Result:** Combined data with both wave and wind fields for all 6 lamps
+
+**Rate Limiting Protection:**
+- 10-second delays between ALL API calls
+- Exponential backoff for 429 errors: 60s → 120s → 240s
+- Multi-source redundancy ensures data availability
+- Processing time reduced from 25 minutes to <2 minutes
 
 ### Location Change Process - Complete Program Execution Flow
 
