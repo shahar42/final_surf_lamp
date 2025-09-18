@@ -380,7 +380,7 @@ def get_location_based_configs():
             result = conn.execute(query)
             rows = [dict(row._mapping) for row in result]
 
-        # Group by location and deduplicate endpoints
+        # Group by location and intelligently deduplicate endpoints
         location_configs = {}
         for row in rows:
             location = row['location']
@@ -389,11 +389,44 @@ def get_location_based_configs():
             if location not in location_configs:
                 location_configs[location] = {
                     'endpoints': [],
-                    'seen_endpoints': set()
+                    'seen_base_endpoints': {}  # Track base URLs to handle duplicates intelligently
                 }
 
-            # Only add if we haven't seen this endpoint for this location
-            if endpoint not in location_configs[location]['seen_endpoints']:
+            # Create a base URL for comparison (without wind_speed_unit parameter)
+            base_endpoint = endpoint.replace('&wind_speed_unit=ms', '').replace('?wind_speed_unit=ms&', '?').replace('?wind_speed_unit=ms', '')
+
+            # Smart deduplication logic for wind endpoints
+            should_add = False
+            if "wind_speed_10m" in endpoint and "open-meteo.com" in endpoint:
+                # For wind endpoints, prefer URLs with wind_speed_unit=ms
+                if base_endpoint not in location_configs[location]['seen_base_endpoints']:
+                    # First time seeing this base endpoint
+                    if "&wind_speed_unit=ms" in endpoint:
+                        # Prefer the correct URL
+                        should_add = True
+                        location_configs[location]['seen_base_endpoints'][base_endpoint] = True
+                        logger.info(f"✅ Added correct wind endpoint with unit parameter: {endpoint[:80]}...")
+                    else:
+                        # Store as placeholder, but mark as bad
+                        location_configs[location]['seen_base_endpoints'][base_endpoint] = False
+                        logger.warning(f"⚠️  Skipping wind endpoint missing unit parameter: {endpoint[:80]}...")
+                elif not location_configs[location]['seen_base_endpoints'][base_endpoint] and "&wind_speed_unit=ms" in endpoint:
+                    # Replace bad URL with good URL
+                    should_add = True
+                    location_configs[location]['seen_base_endpoints'][base_endpoint] = True
+                    logger.info(f"✅ Replacing bad wind endpoint with correct one: {endpoint[:80]}...")
+                    # Remove the bad endpoint from list
+                    location_configs[location]['endpoints'] = [
+                        ep for ep in location_configs[location]['endpoints']
+                        if not (ep['http_endpoint'].replace('&wind_speed_unit=ms', '').replace('?wind_speed_unit=ms&', '?').replace('?wind_speed_unit=ms', '') == base_endpoint)
+                    ]
+            else:
+                # For non-wind endpoints (like Isramar), use simple deduplication
+                if base_endpoint not in location_configs[location]['seen_base_endpoints']:
+                    should_add = True
+                    location_configs[location]['seen_base_endpoints'][base_endpoint] = True
+
+            if should_add:
                 location_configs[location]['endpoints'].append({
                     'usage_id': row['usage_id'],
                     'website_url': row['website_url'],
@@ -401,11 +434,11 @@ def get_location_based_configs():
                     'http_endpoint': row['http_endpoint'],
                     'priority': row['endpoint_priority']
                 })
-                location_configs[location]['seen_endpoints'].add(endpoint)
 
-        # Remove the temporary seen_endpoints set
+        # Remove the temporary tracking dictionaries
         for location, config in location_configs.items():
-            del config['seen_endpoints']
+            if 'seen_base_endpoints' in config:
+                del config['seen_base_endpoints']
 
         logger.info(f"✅ Found {len(location_configs)} unique locations with multi-source APIs:")
         for location, config in location_configs.items():
@@ -557,7 +590,7 @@ def fetch_surf_data(api_key, endpoint):
 
         for attempt in range(max_retries):
             try:
-                response = requests.get(endpoint, headers=headers, timeout=5)
+                response = requests.get(endpoint, headers=headers, timeout=15)
                 response.raise_for_status()
                 break  # Success, exit retry loop
             except requests.exceptions.HTTPError as e:
@@ -573,8 +606,9 @@ def fetch_surf_data(api_key, endpoint):
                 else:
                     raise e  # Other HTTP errors, don't retry
 
-        # Add 10 second delay between all API calls to avoid rate limiting
-        time.sleep(10)
+        # Add 30 second delay between all API calls to avoid rate limiting
+        # Increased from 10s due to Open-Meteo rate limiting issues
+        time.sleep(30)
 
         logger.info(f"✅ API call successful: {response.status_code}")
         logger.debug(f"📥 Raw response: {response.text[:200]}...")
