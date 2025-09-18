@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "surf-lamp-supabase": {
+      "command": "python",
+      "args": ["/home/shahar42/Git_Surf_Lamp_Agent/mcp-supabase-server/simple_mcp_server.py"],
+      "env": {
+        "PYTHONPATH": "/home/shahar42/Git_Surf_Lamp_Agent"
+      }
+    }
+  }
+}

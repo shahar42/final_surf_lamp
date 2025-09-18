@@ -35,6 +35,11 @@
       "command": "/home/shahar42/Suumerizing_C_holy_grale_book/venv/bin/python3",
       "args": ["/home/shahar42/Suumerizing_C_holy_grale_book/scripts/topology_analyzer_mcp.py"],
       "cwd": "/home/shahar42/Suumerizing_C_holy_grale_book"
+    },
+    "surf-lamp-supabase": {
+      "command": "/home/shahar42/Git_Surf_Lamp_Agent/mcp-supabase-server/start_server.sh",
+      "args": [],
+      "cwd": "/home/shahar42/Git_Surf_Lamp_Agent/mcp-supabase-server"
     }
   }
 }
