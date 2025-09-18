@@ -516,8 +516,28 @@ def format_for_arduino(surf_data, format_type="meters", location=None):
     return formatted
 
 def fetch_surf_data(api_key, endpoint):
-    """Fetch surf data from external API and standardize using config"""
+    """Fetch surf data from external API and standardize using config
+
+    ⚠️  CRITICAL MAINTAINER NOTE: WIND SPEED UNITS ⚠️
+    ==============================================
+    ALL Open-Meteo wind APIs MUST include "&wind_speed_unit=ms" parameter!
+    - Without this parameter, APIs return km/h instead of m/s
+    - This causes incorrect wind speed calculations throughout the system
+    - Arduino expects wind_speed_mps (meters per second) from database
+    - ALWAYS verify new wind endpoints include "&wind_speed_unit=ms"
+
+    Example correct URL:
+    https://api.open-meteo.com/v1/forecast?lat=32.0&lon=34.0&hourly=wind_speed_10m&wind_speed_unit=ms
+    """
     logger.info(f"🌊 Fetching surf data from: {endpoint}")
+
+    # CRITICAL VALIDATION: Check wind speed unit parameter
+    if "wind_speed_10m" in endpoint and "open-meteo.com" in endpoint:
+        if "&wind_speed_unit=ms" not in endpoint:
+            logger.error(f"❌ CRITICAL ERROR: Open-Meteo wind endpoint missing '&wind_speed_unit=ms' parameter!")
+            logger.error(f"❌ Endpoint: {endpoint}")
+            logger.error(f"❌ This will return km/h instead of m/s and break wind calculations!")
+            return None
 
     try:
         # Build headers - only add Authorization if API key exists

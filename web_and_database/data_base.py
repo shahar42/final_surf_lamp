@@ -224,6 +224,8 @@ class UsageLamps(Base):
 
 
 # Multi-source locations (require multiple API calls)
+# ⚠️  CRITICAL: ALL Open-Meteo wind URLs MUST include "&wind_speed_unit=ms" parameter!
+# Without this parameter, APIs return km/h instead of m/s and break wind calculations.
 MULTI_SOURCE_LOCATIONS = {
     "Tel Aviv, Israel": [
         {

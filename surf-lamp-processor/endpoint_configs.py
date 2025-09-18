@@ -2,6 +2,19 @@
 """
 Field mapping configurations for different surf data API endpoints.
 Maps API-specific field names to our standardized surf data format.
+
+⚠️  CRITICAL MAINTAINER NOTE: WIND SPEED UNITS ⚠️
+==============================================
+ALL Open-Meteo wind APIs MUST include "&wind_speed_unit=ms" parameter!
+
+Example correct URLs:
+- https://api.open-meteo.com/v1/forecast?lat=32.0&lon=34.0&hourly=wind_speed_10m&wind_speed_unit=ms
+- https://api.open-meteo.com/v1/gfs?lat=32.0&lon=34.0&hourly=wind_speed_10m&wind_speed_unit=ms
+
+Without this parameter:
+- APIs return km/h instead of m/s
+- Wind calculations become incorrect throughout the system
+- Arduino receives wrong wind speeds and displays incorrect alerts
 """
 
 # In surf-lamp-processor/endpoint_configs.py
