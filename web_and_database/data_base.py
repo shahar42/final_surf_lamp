@@ -234,7 +234,7 @@ MULTI_SOURCE_LOCATIONS = {
             "type": "wave"
         },
         {
-            "url": "https://api.open-meteo.com/v1/forecast?latitude=32.0853&longitude=34.7818&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms",
+            "url": "http://api.openweathermap.org/data/2.5/weather?q=Tel Aviv&appid=d6ef64df6585b7e88e51c221bbd41c2b",
             "priority": 2,
             "type": "wind"
         }
@@ -246,13 +246,8 @@ MULTI_SOURCE_LOCATIONS = {
             "type": "wave"
         },
         {
-            "url": "https://api.open-meteo.com/v1/forecast?latitude=32.4365&longitude=34.9196&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms",
+            "url": "http://api.openweathermap.org/data/2.5/weather?q=Hadera&appid=d6ef64df6585b7e88e51c221bbd41c2b",
             "priority": 2,
-            "type": "wind"
-        },
-        {
-            "url": "https://api.open-meteo.com/v1/gfs?latitude=32.4365&longitude=34.9196&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms",
-            "priority": 3,
             "type": "wind"
         }
     ],
@@ -263,7 +258,7 @@ MULTI_SOURCE_LOCATIONS = {
             "type": "wave"
         },
         {
-            "url": "https://api.open-meteo.com/v1/forecast?latitude=31.7939&longitude=34.6328&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms",
+            "url": "http://api.openweathermap.org/data/2.5/weather?q=Ashdod&appid=d6ef64df6585b7e88e51c221bbd41c2b",
             "priority": 2,
             "type": "wind"
         }
@@ -275,7 +270,7 @@ MULTI_SOURCE_LOCATIONS = {
             "type": "wave"
         },
         {
-            "url": "https://api.open-meteo.com/v1/forecast?latitude=32.7940&longitude=34.9896&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms",
+            "url": "http://api.openweathermap.org/data/2.5/weather?q=Haifa&appid=d6ef64df6585b7e88e51c221bbd41c2b",
             "priority": 2,
             "type": "wind"
         }
@@ -287,7 +282,7 @@ MULTI_SOURCE_LOCATIONS = {
             "type": "wave"
         },
         {
-            "url": "https://api.open-meteo.com/v1/forecast?latitude=32.3215&longitude=34.8532&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms",
+            "url": "http://api.openweathermap.org/data/2.5/weather?q=Netanya&appid=d6ef64df6585b7e88e51c221bbd41c2b",
             "priority": 2,
             "type": "wind"
         }
@@ -299,7 +294,7 @@ MULTI_SOURCE_LOCATIONS = {
         "type": "wave"
     },
     {
-        "url": "https://api.open-meteo.com/v1/forecast?latitude=33.006&longitude=35.094&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms",
+        "url": "http://api.openweathermap.org/data/2.5/weather?q=Nahariya&appid=d6ef64df6585b7e88e51c221bbd41c2b",
         "priority": 2,
         "type": "wind"
     }
@@ -311,7 +306,7 @@ MULTI_SOURCE_LOCATIONS = {
             "type": "wave"
         },
         {
-            "url": "https://api.open-meteo.com/v1/forecast?latitude=31.6699&longitude=34.5738&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms",
+            "url": "http://api.openweathermap.org/data/2.5/weather?q=Ashkelon&appid=d6ef64df6585b7e88e51c221bbd41c2b",
             "priority": 2,
             "type": "wind"
         }
