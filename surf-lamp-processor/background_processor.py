@@ -355,96 +355,47 @@ def test_database_connection():
         return False
 
 def get_location_based_configs():
-    """Get API configurations grouped by location with unique endpoints per location"""
-    logger.info("📡 Getting location-based API configurations...")
-
-    query = text("""
-        SELECT DISTINCT
-            u.location,
-            ul.usage_id,
-            du.website_url,
-            ul.api_key,
-            ul.http_endpoint,
-            ul.endpoint_priority
-        FROM usage_lamps ul
-        JOIN daily_usage du ON ul.usage_id = du.usage_id
-        JOIN lamps l ON ul.lamp_id = l.lamp_id
-        JOIN users u ON l.user_id = u.user_id
-        WHERE ul.http_endpoint IS NOT NULL
-        AND ul.http_endpoint != ''
-        ORDER BY u.location, ul.endpoint_priority, ul.http_endpoint
-    """)
+    """Get API configurations grouped by location - PURE LOCATION-CENTRIC APPROACH"""
+    logger.info("📡 Getting location-based API configurations from MULTI_SOURCE_LOCATIONS...")
 
     try:
+        # Import the source of truth for location configurations
+        import sys
+        sys.path.append('/home/shahar42/Git_Surf_Lamp_Agent/web_and_database')
+        from data_base import MULTI_SOURCE_LOCATIONS
+
+        # Get all distinct locations that have active users
+        query = text("SELECT DISTINCT location FROM users WHERE location IS NOT NULL")
         with engine.connect() as conn:
             result = conn.execute(query)
-            rows = [dict(row._mapping) for row in result]
+            active_locations = [row[0] for row in result]
 
-        # Group by location and intelligently deduplicate endpoints
+        logger.info(f"📍 Found {len(active_locations)} active user locations: {active_locations}")
+
+        # Build location configs using MULTI_SOURCE_LOCATIONS as source of truth
         location_configs = {}
-        for row in rows:
-            location = row['location']
-            endpoint = row['http_endpoint']
+        for location in active_locations:
+            if location in MULTI_SOURCE_LOCATIONS:
+                # Convert MULTI_SOURCE_LOCATIONS format to expected format
+                endpoints = []
+                for source in MULTI_SOURCE_LOCATIONS[location]:
+                    endpoints.append({
+                        'usage_id': None,  # Not needed for pure location-centric approach
+                        'website_url': source['url'],
+                        'api_key': None,
+                        'http_endpoint': source['url'],
+                        'priority': source['priority']
+                    })
 
-            if location not in location_configs:
-                location_configs[location] = {
-                    'endpoints': [],
-                    'seen_base_endpoints': {}  # Track base URLs to handle duplicates intelligently
-                }
-
-            # Create a base URL for comparison (without wind_speed_unit parameter)
-            base_endpoint = endpoint.replace('&wind_speed_unit=ms', '').replace('?wind_speed_unit=ms&', '?').replace('?wind_speed_unit=ms', '')
-
-            # Smart deduplication logic for wind endpoints
-            should_add = False
-            if "wind_speed_10m" in endpoint and "open-meteo.com" in endpoint:
-                # For wind endpoints, prefer URLs with wind_speed_unit=ms
-                if base_endpoint not in location_configs[location]['seen_base_endpoints']:
-                    # First time seeing this base endpoint
-                    if "&wind_speed_unit=ms" in endpoint:
-                        # Prefer the correct URL
-                        should_add = True
-                        location_configs[location]['seen_base_endpoints'][base_endpoint] = True
-                        logger.info(f"✅ Added correct wind endpoint with unit parameter: {endpoint[:80]}...")
-                    else:
-                        # Store as placeholder, but mark as bad
-                        location_configs[location]['seen_base_endpoints'][base_endpoint] = False
-                        logger.warning(f"⚠️  Skipping wind endpoint missing unit parameter: {endpoint[:80]}...")
-                elif not location_configs[location]['seen_base_endpoints'][base_endpoint] and "&wind_speed_unit=ms" in endpoint:
-                    # Replace bad URL with good URL
-                    should_add = True
-                    location_configs[location]['seen_base_endpoints'][base_endpoint] = True
-                    logger.info(f"✅ Replacing bad wind endpoint with correct one: {endpoint[:80]}...")
-                    # Remove the bad endpoint from list
-                    location_configs[location]['endpoints'] = [
-                        ep for ep in location_configs[location]['endpoints']
-                        if not (ep['http_endpoint'].replace('&wind_speed_unit=ms', '').replace('?wind_speed_unit=ms&', '?').replace('?wind_speed_unit=ms', '') == base_endpoint)
-                    ]
+                location_configs[location] = {'endpoints': endpoints}
+                logger.info(f"✅ {location}: {len(endpoints)} API sources from MULTI_SOURCE_LOCATIONS")
             else:
-                # For non-wind endpoints (like Isramar), use simple deduplication
-                if base_endpoint not in location_configs[location]['seen_base_endpoints']:
-                    should_add = True
-                    location_configs[location]['seen_base_endpoints'][base_endpoint] = True
+                logger.warning(f"⚠️  Location '{location}' not found in MULTI_SOURCE_LOCATIONS")
 
-            if should_add:
-                location_configs[location]['endpoints'].append({
-                    'usage_id': row['usage_id'],
-                    'website_url': row['website_url'],
-                    'api_key': row['api_key'],
-                    'http_endpoint': row['http_endpoint'],
-                    'priority': row['endpoint_priority']
-                })
-
-        # Remove the temporary tracking dictionaries
+        logger.info(f"✅ Pure location-centric configuration complete: {len(location_configs)} locations")
         for location, config in location_configs.items():
-            if 'seen_base_endpoints' in config:
-                del config['seen_base_endpoints']
-
-        logger.info(f"✅ Found {len(location_configs)} unique locations with multi-source APIs:")
-        for location, config in location_configs.items():
-            logger.info(f"   {location}: {len(config['endpoints'])} unique API sources")
             for endpoint in config['endpoints']:
-                logger.info(f"     - {endpoint['website_url']} (Priority: {endpoint['priority']})")
+                logger.info(f"   {location}: {endpoint['website_url']} (Priority: {endpoint['priority']})")
 
         return location_configs
 
