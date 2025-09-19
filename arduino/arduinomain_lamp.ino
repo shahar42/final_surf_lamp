@@ -132,15 +132,15 @@ CHSV getWindSpeedColor(String theme) {
 
 CHSV getWaveHeightColor(String theme) {
     if (theme == "dark") {
-        return CHSV(240, 255, 255); // Blue
+        return CHSV(0, 150, 255); // Pink with lower saturation
     } else {
-        return CHSV(240, 255, 255); // Blue
+        return CHSV(160, 255, 255); // Cyan-Blue
     }
 }
 
 CHSV getWavePeriodColor(String theme) {
     if (theme == "dark") {
-        return CHSV(280, 255, 255); // Purple
+        return CHSV(160, 255, 255); // Cyan-Blue
     } else {
         return CHSV(0, 30, 255);    // White with a dash of red
     }

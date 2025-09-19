@@ -2,38 +2,8 @@
 """
 Background service for Surf Lamp processing
 - Fetches surf data from APIs using configurable field mappings
-- Updates database with current surf conditions
+- Sends data to Arduino devices via HTTP POST
 - Extensive logging for debugging
-
-⚠️  CRITICAL ARCHITECTURAL NOTES FOR MAINTAINERS ⚠️
-=================================================
-
-DO NOT CHANGE THE FOLLOWING CORE ARCHITECTURE:
-
-1. 🔄 PULL-BASED COMMUNICATION:
-   - Arduino devices MUST fetch data from the web server (every 31 minutes)
-   - This service ONLY updates the database - it does NOT push data to Arduino
-   - NEVER call send_to_arduino() in the processing loop
-   - Arduino pull-based architecture eliminates network complexity and firewall issues
-
-2. 📍 LOCATION-BASED PROCESSING:
-   - API calls MUST be grouped by location to eliminate duplicate requests
-   - Multiple lamps in the same location share the same API endpoints
-   - This prevents rate limiting (429 errors) and reduces API call volume by ~70%
-   - NEVER revert to lamp-by-lamp processing
-
-3. 🎯 MULTI-SOURCE PRIORITY SYSTEM:
-   - Each location uses multiple API sources with priority ordering
-   - Priority 1: Wave data (Isramar) - highest priority, most reliable
-   - Priority 2+: Wind data (Open-Meteo variants) - backup sources
-   - Data merging combines fields from all sources for complete surf conditions
-   - NEVER simplify to single API source per location
-
-These architectural decisions solve critical production issues:
-- Eliminates 429 rate limiting errors
-- Maintains data completeness (wave + wind data)
-- Reduces processing time from 25 minutes to <2 minutes
-- Preserves reliable Arduino communication
 """
 
 import os
@@ -354,91 +324,92 @@ def test_database_connection():
         logger.error(f"❌ Database connection failed: {e}")
         return False
 
-def get_location_based_configs():
-    """Get API configurations grouped by location - PURE LOCATION-CENTRIC APPROACH"""
-    logger.info("📡 Getting location-based API configurations from MULTI_SOURCE_LOCATIONS...")
-
+def get_lamp_api_configs():
+    """Get API configurations grouped by lamp_id to handle multi-source lamps"""
+    logger.info("📡 Getting lamp API configurations grouped by lamp_id...")
+    
+    query = text("""
+        SELECT 
+            ul.lamp_id,
+            ul.usage_id,
+            ul.http_endpoint,
+            ul.api_key,
+            ul.endpoint_priority,
+            l.arduino_id,
+            u.location,
+            u.preferred_output as format
+        FROM usage_lamps ul
+        JOIN lamps l ON ul.lamp_id = l.lamp_id
+        JOIN users u ON l.user_id = u.user_id
+        WHERE ul.http_endpoint IS NOT NULL
+        AND ul.http_endpoint != ''
+        ORDER BY ul.lamp_id, ul.endpoint_priority
+    """)
+    
     try:
-        # Import the source of truth for location configurations
-        import sys
-        import os
-
-        # Add the web_and_database directory to path using relative path
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        parent_dir = os.path.dirname(current_dir)
-        web_db_path = os.path.join(parent_dir, 'web_and_database')
-        sys.path.append(web_db_path)
-
-        from data_base import MULTI_SOURCE_LOCATIONS
-
-        # Get all distinct locations that have active users
-        query = text("SELECT DISTINCT location FROM users WHERE location IS NOT NULL")
         with engine.connect() as conn:
             result = conn.execute(query)
-            active_locations = [row[0] for row in result]
-
-        logger.info(f"📍 Found {len(active_locations)} active user locations: {active_locations}")
-
-        # Build location configs using MULTI_SOURCE_LOCATIONS as source of truth
-        location_configs = {}
-        for location in active_locations:
-            if location in MULTI_SOURCE_LOCATIONS:
-                # Convert MULTI_SOURCE_LOCATIONS format to expected format
-                endpoints = []
-                for source in MULTI_SOURCE_LOCATIONS[location]:
-                    endpoints.append({
-                        'usage_id': None,  # Not needed for pure location-centric approach
-                        'website_url': source['url'],
-                        'api_key': None,
-                        'http_endpoint': source['url'],
-                        'priority': source['priority']
-                    })
-
-                location_configs[location] = {'endpoints': endpoints}
-                logger.info(f"✅ {location}: {len(endpoints)} API sources from MULTI_SOURCE_LOCATIONS")
-            else:
-                logger.warning(f"⚠️  Location '{location}' not found in MULTI_SOURCE_LOCATIONS")
-
-        logger.info(f"✅ Pure location-centric configuration complete: {len(location_configs)} locations")
-        for location, config in location_configs.items():
-            for endpoint in config['endpoints']:
-                logger.info(f"   {location}: {endpoint['website_url']} (Priority: {endpoint['priority']})")
-
-        return location_configs
-
+            rows = [dict(row._mapping) for row in result]
+        
+        # Group by lamp_id
+        lamp_configs = {}
+        for row in rows:
+            lamp_id = row['lamp_id']
+            if lamp_id not in lamp_configs:
+                lamp_configs[lamp_id] = {
+                    'arduino_id': row['arduino_id'],
+                    'location': row['location'],
+                    'format': row['format'],
+                    'endpoints': []
+                }
+            
+            lamp_configs[lamp_id]['endpoints'].append({
+                'usage_id': row['usage_id'],
+                'http_endpoint': row['http_endpoint'],
+                'api_key': row['api_key'],
+                'priority': row['endpoint_priority']
+            })
+        
+        logger.info(f"✅ Found {len(lamp_configs)} lamps with multi-source configurations")
+        for lamp_id, config in lamp_configs.items():
+            logger.info(f"   Lamp {lamp_id}: {len(config['endpoints'])} API sources")
+            
+        return lamp_configs
+        
     except Exception as e:
-        logger.error(f"❌ Failed to get location configurations: {e}")
+        logger.error(f"❌ Failed to get lamp API configurations: {e}")
         return {}
 
-def get_lamps_for_location(location):
-    """Get all lamps in a specific location"""
-    logger.info(f"🔍 Getting lamps for location: {location}")
-
+def get_arduinos_for_api(usage_id):
+    """Get all Arduino targets that need data from this API"""
+    logger.info(f"🔍 Getting Arduino targets for usage_id: {usage_id}")
+    
     query = text("""
-        SELECT
-            l.arduino_id,
-            l.lamp_id,
+        SELECT 
+            l.arduino_id, 
+            l.lamp_id, 
             u.location,
             u.preferred_output as format,
             l.last_updated
         FROM lamps l
         JOIN users u ON l.user_id = u.user_id
-        WHERE u.location = :location
+        JOIN usage_lamps ul ON l.lamp_id = ul.lamp_id
+        WHERE ul.usage_id = :usage_id
     """)
-
+    
     try:
         with engine.connect() as conn:
-            result = conn.execute(query, {"location": location})
-            lamps = [dict(row._mapping) for row in result]
-
-        logger.info(f"✅ Found {len(lamps)} lamps in {location}:")
-        for lamp in lamps:
-            logger.info(f"   - Arduino {lamp['arduino_id']} (Lamp {lamp['lamp_id']})")
-
-        return lamps
-
+            result = conn.execute(query, {"usage_id": usage_id})
+            targets = [dict(row._mapping) for row in result]
+            
+        logger.info(f"✅ Found {len(targets)} Arduino targets:")
+        for target in targets:
+            logger.info(f"   - Arduino {target['arduino_id']} (Lamp {target['lamp_id']}) in {target['location']}")
+            
+        return targets
+        
     except Exception as e:
-        logger.error(f"❌ Failed to get lamps for location: {e}")
+        logger.error(f"❌ Failed to get Arduino targets: {e}")
         return []
 
 def get_arduino_ip(arduino_id):
@@ -507,28 +478,8 @@ def format_for_arduino(surf_data, format_type="meters", location=None):
     return formatted
 
 def fetch_surf_data(api_key, endpoint):
-    """Fetch surf data from external API and standardize using config
-
-    ⚠️  CRITICAL MAINTAINER NOTE: WIND SPEED UNITS ⚠️
-    ==============================================
-    ALL Open-Meteo wind APIs MUST include "&wind_speed_unit=ms" parameter!
-    - Without this parameter, APIs return km/h instead of m/s
-    - This causes incorrect wind speed calculations throughout the system
-    - Arduino expects wind_speed_mps (meters per second) from database
-    - ALWAYS verify new wind endpoints include "&wind_speed_unit=ms"
-
-    Example correct URL:
-    https://api.open-meteo.com/v1/forecast?lat=32.0&lon=34.0&hourly=wind_speed_10m&wind_speed_unit=ms
-    """
+    """Fetch surf data from external API and standardize using config"""
     logger.info(f"🌊 Fetching surf data from: {endpoint}")
-
-    # CRITICAL VALIDATION: Check wind speed unit parameter
-    if "wind_speed_10m" in endpoint and "open-meteo.com" in endpoint:
-        if "&wind_speed_unit=ms" not in endpoint:
-            logger.error(f"❌ CRITICAL ERROR: Open-Meteo wind endpoint missing '&wind_speed_unit=ms' parameter!")
-            logger.error(f"❌ Endpoint: {endpoint}")
-            logger.error(f"❌ This will return km/h instead of m/s and break wind calculations!")
-            return None
 
     try:
         # Build headers - only add Authorization if API key exists
@@ -548,7 +499,7 @@ def fetch_surf_data(api_key, endpoint):
 
         for attempt in range(max_retries):
             try:
-                response = requests.get(endpoint, headers=headers, timeout=15)
+                response = requests.get(endpoint, headers=headers, timeout=5)
                 response.raise_for_status()
                 break  # Success, exit retry loop
             except requests.exceptions.HTTPError as e:
@@ -564,9 +515,8 @@ def fetch_surf_data(api_key, endpoint):
                 else:
                     raise e  # Other HTTP errors, don't retry
 
-        # Add 30 second delay between all API calls to avoid rate limiting
-        # Increased from 10s due to Open-Meteo rate limiting issues
-        time.sleep(30)
+        # Add 10 second delay between all API calls to avoid rate limiting
+        time.sleep(10)
 
         logger.info(f"✅ API call successful: {response.status_code}")
         logger.debug(f"📥 Raw response: {response.text[:200]}...")
@@ -695,8 +645,9 @@ def update_current_conditions(lamp_id, surf_data):
         return False
 
 def process_all_lamps():
-    """Main processing function - Location-based processing with multi-source priority"""
-    logger.info("🚀 ======= STARTING LOCATION-BASED PROCESSING CYCLE =======")
+    """Main processing function - handles multi-source API calls per lamp"""
+    logger.info("🚀 ======= STARTING LAMP PROCESSING CYCLE =======")
+    reset_api_cache()  # Clear cache from previous cycle
     start_time = time.time()
 
     try:
@@ -705,101 +656,107 @@ def process_all_lamps():
             logger.error("❌ Database connection failed, aborting cycle")
             return False
 
-        # Step 2: Get location-based API configurations
-        location_configs = get_location_based_configs()
-        if not location_configs:
-            logger.error("❌ No location configurations found, aborting cycle")
+        # Step 2: Get lamp configurations (grouped by lamp_id)
+        lamp_configs = get_lamp_api_configs()
+        if not lamp_configs:
+            logger.error("❌ No lamp configurations found, aborting cycle")
             return False
 
-        logger.info(f"📊 Processing {len(location_configs)} locations with multi-source APIs...")
+        logger.info(f"📊 Processing {len(lamp_configs)} lamps with multi-source APIs...")
 
-        # Step 3: Process each location with multi-source priority
-        total_lamps_updated = 0
-        total_api_calls = 0
+        # Step 3: Process each lamp
+        total_database_updates = 0
 
-        for location, config in location_configs.items():
-            logger.info(f"\n--- Processing Location: {location} ---")
-            logger.info(f"Available API sources: {len(config['endpoints'])}")
+        for lamp_id, lamp_config in lamp_configs.items():
+            logger.info(f"\n--- Processing Lamp {lamp_id} ({lamp_config['location']}) ---")
+            logger.info(f"API sources: {len(lamp_config['endpoints'])}")
 
-            # Get all lamps in this location
-            lamps = get_lamps_for_location(location)
-            if not lamps:
-                logger.warning(f"⚠️  No lamps found for location: {location}")
-                continue
+            # Define required parameters for complete surf data
+            required_parameters = {
+                'wave_height_m', 'wave_period_s', 'wind_speed_mps', 'wind_direction_deg'
+            }
 
-            # Try each API source in priority order until we get complete data
-            combined_surf_data = {}
+            # Initialize data collection
+            combined_data = {}
+            successful_fetches = 0
 
-            for endpoint in config['endpoints']:
-                logger.info(f"  Trying API: {endpoint['website_url']} (Priority: {endpoint['priority']})")
-                total_api_calls += 1
+            # Process APIs by priority until we have all required data
+            for endpoint in lamp_config['endpoints']:
+                # Check what parameters we're still missing
+                missing_parameters = required_parameters - set(combined_data.keys())
 
-                # Fetch data from this API source
-                surf_data = fetch_surf_data(
-                    endpoint['api_key'],
-                    endpoint['http_endpoint']
-                )
+                if not missing_parameters:
+                    logger.info(f"✅ All required parameters collected! Skipping remaining APIs.")
+                    break
 
-                if surf_data:
-                    # Merge data, prioritizing fields from higher priority sources
-                    for field, value in surf_data.items():
-                        if field not in combined_surf_data or value is not None:
-                            combined_surf_data[field] = value
+                logger.info(f"🔍 Missing parameters: {missing_parameters}")
+                logger.info(f"📡 Fetching from priority {endpoint['priority']} API...")
 
-                    logger.info(f"✅ Got data: {list(surf_data.keys())}")
-                else:
-                    logger.warning(f"⚠️  Failed to get data from {endpoint['website_url']}")
+                try:
+                    source_data = fetch_surf_data(
+                        endpoint['api_key'],
+                        endpoint['http_endpoint']
+                    )
 
-            # Check if we have sufficient data
-            if not combined_surf_data:
-                logger.error(f"❌ No data obtained for location {location}")
-                continue
+                    if source_data:
+                        # Count how many NEW parameters this API provided
+                        new_parameters = set(source_data.keys()) & missing_parameters
 
-            logger.info(f"📊 Combined data for {location}: {list(combined_surf_data.keys())}")
+                        if new_parameters:
+                            # Only merge the parameters we actually needed
+                            for param in new_parameters:
+                                combined_data[param] = source_data[param]
 
-            # Update all lamps in this location
-            lamps_updated_for_location = 0
-            for lamp in lamps:
-                logger.info(f"  Updating lamp {lamp['lamp_id']} (Arduino {lamp['arduino_id']})")
+                            successful_fetches += 1
+                            logger.info(f"✅ Priority {endpoint['priority']} API provided: {new_parameters}")
+                        else:
+                            logger.info(f"ℹ️  Priority {endpoint['priority']} API returned data but no new required parameters")
+                    else:
+                        logger.warning(f"⚠️  Priority {endpoint['priority']} API returned no data")
 
-                # Update timestamp and current conditions for this lamp
-                timestamp_updated = update_lamp_timestamp(lamp['lamp_id'])
-                conditions_updated = update_current_conditions(lamp['lamp_id'], combined_surf_data)
+                except Exception as e:
+                    logger.warning(f"⚠️  Priority {endpoint['priority']} API failed: {e}")
+                    # Continue with other endpoints for missing data
+
+            # Final status check
+            final_missing = required_parameters - set(combined_data.keys())
+
+            if final_missing:
+                logger.warning(f"⚠️  Incomplete data for lamp {lamp_id}. Missing: {final_missing}")
+                # Add NULL values for missing parameters so Arduino gets consistent data structure
+                for param in final_missing:
+                    combined_data[param] = 0.0 if 'deg' not in param else 0
+                logger.info(f"🔧 Added default values for missing parameters")
+
+            # Process lamp if we got any data at all
+            if combined_data and successful_fetches > 0:
+                logger.info(f"📊 Final data from {successful_fetches} API source(s): {list(combined_data.keys())}")
+
+                # Always update database first (dashboard guaranteed)
+                timestamp_updated = update_lamp_timestamp(lamp_id)
+                conditions_updated = update_current_conditions(lamp_id, combined_data)
 
                 if timestamp_updated and conditions_updated:
-                    lamps_updated_for_location += 1
-                    total_lamps_updated += 1
-                    logger.info(f"✅ Lamp {lamp['lamp_id']} (Arduino {lamp['arduino_id']}) updated successfully")
-                else:
-                    logger.error(f"❌ Failed to update lamp {lamp['lamp_id']} (Arduino {lamp['arduino_id']})")
-
-            logger.info(f"📊 Updated {lamps_updated_for_location}/{len(lamps)} lamps in {location}")
+                    total_database_updates += 1
+                    logger.info(f"✅ Database updated for lamp {lamp_id}")
+            else:
+                logger.error(f"❌ No usable data for lamp {lamp_id} - all API sources failed")
 
         # Final summary
         end_time = time.time()
         duration = round(end_time - start_time, 2)
 
-        logger.info(f"\n🎉 ======= LOCATION-BASED PROCESSING CYCLE COMPLETED =======")
+        logger.info(f"\n🎉 ======= LAMP PROCESSING CYCLE COMPLETED =======")
         logger.info(f"📊 Summary:")
-        logger.info(f"   - Locations processed: {len(location_configs)}")
-        logger.info(f"   - Total API calls made: {total_api_calls}")
-        logger.info(f"   - Lamps updated: {total_lamps_updated}")
+        logger.info(f"   - Lamps processed: {len(lamp_configs)}")
+        logger.info(f"   - Database updates: {total_database_updates}")
         logger.info(f"   - Duration: {duration} seconds")
-        logger.info(f"   - Status: SUCCESS")
+        logger.info(f"   - Status: {'SUCCESS' if total_database_updates > 0 else 'FAILED'}")
 
         return True
 
     except Exception as e:
-        end_time = time.time()
-        duration = round(end_time - start_time, 2)
-
-        logger.info(f"\n🚫 ======= LOCATION-BASED PROCESSING CYCLE FAILED =======")
-        logger.info(f"📊 Summary:")
-        logger.info(f"   - Error: {str(e)}")
-        logger.info(f"   - Duration: {duration} seconds")
-        logger.info(f"   - Status: FAILED")
-
-        logger.error(f"💥 CRITICAL ERROR in processing cycle: {e}")
+        logger.error(f"💥 CRITICAL ERROR in lamp processing cycle: {e}")
         return False
 
 def run_once():
