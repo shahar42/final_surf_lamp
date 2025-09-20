@@ -102,11 +102,7 @@
                     <h1 class="text-3xl font-bold text-white">Surf Lamp Dashboard <span class="lamp-indicator"></span></h1>
                     <p class="text-white/80 mt-1">Welcome back, {{ data.user.username }}!</p>
                 </div>
-                <div class="flex items-center space-x-4">
-                    <a href="{{ url_for('logout') }}" class="logout-btn text-white font-semibold py-2 px-4 rounded-lg shadow-lg">
-                        Logout
-                    </a>
-                </div>
+
             </div>
         </div>
     </div>
@@ -116,7 +112,7 @@
         
         <!-- Lamp Information Card -->
         <div class="card rounded-2xl p-6 shadow-2xl">
-            <h2 class="text-2xl font-bold text-white mb-4">🏄‍♂️ Your Surf Lamp</h2>
+            <h2 class="text-2xl font-bold text-white mb-4">Your Surf Lamp</h2>
             
             <div class="space-y-3 text-white">
                 
@@ -169,8 +165,8 @@
                 <div class="flex justify-between items-center pt-2 border-t border-white/20">
                     <span class="text-white/80">LED Colors:</span>
                     <div class="flex items-center space-x-2">
-                        <button id="lightTheme" class="theme-btn px-3 py-1 rounded text-sm {{ 'bg-green-600 text-white font-bold' if data.user.theme == 'day' else 'bg-white/20 hover:bg-white/30 text-white/80' }}">Light</button>
-                        <button id="darkTheme" class="theme-btn px-3 py-1 rounded text-sm {{ 'bg-green-600 text-white font-bold' if data.user.theme == 'dark' else 'bg-white/20 hover:bg-white/30 text-white/80' }}">Dark</button>
+                        <button id="lightTheme" class="theme-btn px-3 py-1 rounded text-sm {{ 'bg-blue-500 hover:bg-blue-600 text-white font-bold' if data.user.theme == 'day' else 'bg-white/20 hover:bg-white/30 text-white/80' }}">Light</button>
+                        <button id="darkTheme" class="theme-btn px-3 py-1 rounded text-sm {{ 'bg-blue-500 hover:bg-blue-600 text-white font-bold' if data.user.theme == 'dark' else 'bg-white/20 hover:bg-white/30 text-white/80' }}">Dark</button>
                     </div>
                 </div>
                 <div id="theme-status" class="text-sm text-white/80 mt-2"></div>
@@ -188,7 +184,7 @@
 
         <!-- Current Surf Conditions Card -->
         <div class="card rounded-2xl p-6 shadow-2xl">
-            <h2 class="text-2xl font-bold text-white mb-4">🌊 Current Surf Conditions</h2>
+            <h2 class="text-2xl font-bold text-white mb-4">Current Surf Conditions</h2>
             
             {% if data.conditions %}
                 <div class="space-y-4">
@@ -275,7 +271,7 @@
     <!-- System Information -->
     <div class="max-w-6xl mx-auto mt-8">
         <div class="card rounded-2xl p-6 shadow-2xl">
-            <h2 class="text-xl font-bold text-white mb-4">📊 System Information</h2>
+            <h2 class="text-xl font-bold text-white mb-4">System Information</h2>
             
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-white/80 text-sm">
                 <div>
@@ -290,6 +286,11 @@
                     <span class="text-white">Every 30 minutes</span>
                 </div>
             </div>
+        </div>
+        <div class="text-center mt-8">
+            <a href="{{ url_for('logout') }}" class="logout-btn text-white font-semibold py-2 px-4 rounded-lg shadow-lg">
+                Logout
+            </a>
         </div>
     </div>
 
