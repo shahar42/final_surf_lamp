@@ -1,5 +1,12 @@
 #!/bin/bash
-# Start Render MCP Server with proper virtual environment
+
+# Start the Render MCP Server
 cd "$(dirname "$0")"
-source ../myenv/bin/activate
-exec python3 main.py
+
+# Load environment variables
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | xargs)
+fi
+
+# Run the server
+python3 render_mcp_server.py
