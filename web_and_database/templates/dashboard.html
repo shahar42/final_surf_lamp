@@ -191,7 +191,9 @@
                     <!-- Wave Data -->
                     <div class="grid grid-cols-2 gap-4">
                         <div class="text-center">
-                            <div class="wave-icon text-3xl mb-2">🌊</div>
+                            <div class="wave-icon mb-2">
+                                <img src="{{ url_for('static', filename='../templates/icons/wave_height_icon.svg') }}" alt="Wave Height" class="w-12 h-12 mx-auto">
+                            </div>
                             <div class="text-white/80 text-sm">Wave Height</div>
                             <div class="text-white font-bold text-xl">
                                 {% if data.conditions.wave_height_m %}
