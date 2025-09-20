@@ -488,7 +488,7 @@ void updateBlinkingAnimation() {
 
     float windSpeedInKnots = currentSurfData.windSpeed * 1.94384;
     if (windSpeedInKnots >= currentSurfData.windSpeedThreshold) {
-        int windSpeedLeds = constrain(static_cast<int>(currentSurfData.windSpeed * (1.94384 / 2.0)) + 1, 0, NUM_LEDS_CENTER - 2);
+        int windSpeedLeds = constrain(static_cast<int>(currentSurfData.windSpeed * 18.0 / 13.0), 1, NUM_LEDS_CENTER - 2);
         updateBlinkingCenterLeds(windSpeedLeds, CHSV(120, 255, min(255, (int)(255 * 1.6))));
         needsUpdate = true;
     }
@@ -633,7 +633,7 @@ void updateSurfDisplay(int waveHeightCm, float wavePeriod, int windSpeed, int wi
         return;
     }
 
-    int windSpeedLeds = constrain(static_cast<int>(windSpeed * (1.94384 / 2.0)) + 1, 0, NUM_LEDS_CENTER - 2);
+    int windSpeedLeds = constrain(static_cast<int>(windSpeed * 18.0 / 13.0), 1, NUM_LEDS_CENTER - 2);
     int waveHeightLeds = constrain(static_cast<int>(waveHeightCm / 25) + 1, 0, NUM_LEDS_RIGHT);
     int wavePeriodLeds = constrain(static_cast<int>(wavePeriod), 0, NUM_LEDS_LEFT);
 
