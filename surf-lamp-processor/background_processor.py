@@ -542,15 +542,29 @@ def fetch_surf_data(api_key, endpoint):
 
         logger.info(f"📤 Headers: {headers}")
 
-        # Make the API call with retry logic for rate limiting
+        # Make the API call with retry logic for rate limiting and timeouts
         max_retries = 3
         base_delay = 60  # Start with 60 seconds for rate limit retries
 
+        # Use longer timeout for OpenWeatherMap as it can be slower than marine APIs
+        timeout_seconds = 30 if "openweathermap.org" in endpoint else 15
+        logger.info(f"📤 Using {timeout_seconds}s timeout for this API")
+
         for attempt in range(max_retries):
             try:
-                response = requests.get(endpoint, headers=headers, timeout=15)
+                response = requests.get(endpoint, headers=headers, timeout=timeout_seconds)
                 response.raise_for_status()
                 break  # Success, exit retry loop
+            except requests.exceptions.Timeout as e:
+                logger.warning(f"⚠️ Request timeout ({timeout_seconds}s) for {endpoint}")
+                if attempt < max_retries - 1:  # Not the last attempt
+                    delay = 30  # Shorter delay for timeout retries
+                    logger.warning(f"⚠️ Retrying in {delay} seconds... (attempt {attempt + 1}/{max_retries})")
+                    time.sleep(delay)
+                    continue
+                else:
+                    logger.error(f"❌ All timeout retry attempts failed for {endpoint}")
+                    return None
             except requests.exceptions.HTTPError as e:
                 if response.status_code == 429:  # Rate limited
                     if attempt < max_retries - 1:  # Not the last attempt
