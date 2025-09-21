@@ -282,19 +282,18 @@
                     <span class="text-white/60">Lamp Last Updated:</span><br>
                     <span class="text-white">{{ data.lamp.last_updated.strftime('%Y-%m-%d') }} UTC</span>
                 </div>
-                
-                
-                
+
                 <div>
                     <span class="text-white/60">Update Frequency:</span><br>
                     <span class="text-white">Every 30 minutes</span>
                 </div>
+
+                <div class="text-center">
+                    <a href="{{ url_for('logout') }}" class="logout-btn text-white font-semibold py-2 px-4 rounded-lg shadow-lg">
+                        Logout
+                    </a>
+                </div>
             </div>
-        </div>
-        <div class="text-center mt-8">
-            <a href="{{ url_for('logout') }}" class="logout-btn text-white font-semibold py-2 px-4 rounded-lg shadow-lg">
-                Logout
-            </a>
         </div>
     </div>
 
