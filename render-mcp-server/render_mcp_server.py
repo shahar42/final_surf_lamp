@@ -102,7 +102,7 @@ async def render_deployments(service_id: Optional[str] = None, limit: int = 10) 
         limit: Number of recent deployments to show (max 50)
 
     Returns:
-        Formatted deployment history
+        Formatted deployment history (all timestamps in UTC - add 3 hours for Israel time)
     """
     try:
         target_service_id = service_id or SERVICE_ID
@@ -157,7 +157,7 @@ async def render_service_status(service_id: Optional[str] = None) -> str:
         service_id: Render service ID (defaults to configured SERVICE_ID)
 
     Returns:
-        Current service status and details
+        Current service status and details (timestamps in UTC - add 3 hours for Israel time)
     """
     try:
         target_service_id = service_id or SERVICE_ID
@@ -210,7 +210,7 @@ async def render_service_events(service_id: Optional[str] = None, limit: int = 2
         limit: Number of recent events to show (max 50)
 
     Returns:
-        Formatted service events timeline
+        Formatted service events timeline (all timestamps in UTC - add 3 hours for Israel time)
     """
     try:
         target_service_id = service_id or SERVICE_ID
