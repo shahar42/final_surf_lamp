@@ -63,6 +63,7 @@
         }
         .wind-icon {
             color: #0072ff;
+            mix-blend-mode: screen;
         }
         .lamp-indicator {
             display: inline-block;
@@ -242,7 +243,7 @@
                         </div>
                         
                         <div class="text-center">
-                            <div class="wind-icon text-3xl mb-2">🧭</div>
+                            <div class="wind-icon mb-2"><img src="{{ url_for('static', filename='icons/wind_direction_4x.png') }}" alt="Wind Direction" class="w-12 h-12 mx-auto"></div>
                             <div class="text-white/80 text-sm">Wind Direction</div>
                             <div class="text-white font-bold text-xl">
                                 {{ data.conditions.wind_direction_deg | wind_direction }}
