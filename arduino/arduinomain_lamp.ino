@@ -124,25 +124,25 @@ String currentTheme = "day";  // Default theme
 
 CHSV getWindSpeedColor(String theme) {
     if (theme == "dark") {
-        return CHSV(30, 255, 255);  // Orange
+        return CHSV(16, 255, 255);  // Orange - Color #10
     } else {
-        return CHSV(120, 255, 255); // Green
+        return CHSV(0, 0, 255);     // White - Color #29
     }
 }
 
 CHSV getWaveHeightColor(String theme) {
     if (theme == "dark") {
-        return CHSV(0, 150, 255); // Pink with lower saturation
+        return CHSV(128, 255, 255); // Nice blue - Color #24
     } else {
-        return CHSV(160, 255, 255); // Cyan-Blue
+        return CHSV(195, 255, 255); // Deep ice blue - Color #5
     }
 }
 
 CHSV getWavePeriodColor(String theme) {
     if (theme == "dark") {
-        return CHSV(160, 255, 255); // Cyan-Blue
+        return CHSV(85, 155, 205);  // Really nice green - Color #22
     } else {
-        return CHSV(0, 30, 255);    // White with a dash of red
+        return CHSV(39, 255, 255);  // Yellow - Color #9
     }
 }
 
@@ -172,9 +172,19 @@ void loadCredentials() {
 // ---------------------------- LED Status Functions ----------------------------
 
 void blinkStatusLED(CRGB color) {
-    // Use wave-like breathing pattern with shared blinkPhase and 20% dimmer
-    float brightnessFactor = 0.76 + 0.2 * sin(blinkPhase); // 0.8 * (0.95 + 0.25 * sin) = 20% dimmer
-    int adjustedBrightness = min(204, (int)(255 * brightnessFactor)); // Max 204 (80% of 255)
+    static unsigned long lastStatusUpdate = 0;
+    static float statusPhase = 0.0;
+
+    // Update status LED at slower timing (every 20ms for slower pace)
+    if (millis() - lastStatusUpdate >= 20) {
+        statusPhase += 0.05; // Much slower: ~1.25-second cycle
+        if (statusPhase >= 2 * PI) statusPhase = 0.0;
+        lastStatusUpdate = millis();
+    }
+
+    // Gentler breathing pattern
+    float brightnessFactor = 0.7 + 0.3 * sin(statusPhase);
+    int adjustedBrightness = min(255, (int)(255 * brightnessFactor));
 
     // Convert RGB to HSV for brightness control
     CHSV hsvColor = rgb2hsv_approximate(color);
@@ -283,7 +293,7 @@ void updateBlinkingAnimation() {
     // Update timing once per call
     unsigned long currentMillis = millis();
     if (currentMillis - lastBlinkUpdate >= 5) { // 200 FPS for ultra-smooth animation
-        blinkPhase += 0.2094; // 0.3-second cycle (2π/30 = 0.2094)
+        blinkPhase += 0.0628; // 1.0-second cycle (even slower for threshold alerts)
         if (blinkPhase >= 2 * PI) blinkPhase = 0.0;
         lastBlinkUpdate = currentMillis;
     }
@@ -318,13 +328,13 @@ void setWindDirection(int windDirection) {
     int northLED = NUM_LEDS_CENTER - 1;
 
     // Wind direction color coding (ALWAYS consistent for navigation)
-    if (windDirection < 45 || windDirection >= 315) {
+    if ((windDirection >= 0 && windDirection <= 10) || (windDirection >= 300 && windDirection <= 360)) {
         leds_center[northLED] = CRGB::Green;   // North - Green
-    } else if (windDirection >= 45 && windDirection < 135) {
+    } else if (windDirection > 10 && windDirection <= 180) {
         leds_center[northLED] = CRGB::Yellow;  // East - Yellow
-    } else if (windDirection >= 135 && windDirection < 225) {
+    } else if (windDirection > 180 && windDirection <= 250) {
         leds_center[northLED] = CRGB::Red;     // South - Red
-    } else if (windDirection >= 225 && windDirection < 315) {
+    } else if (windDirection > 250 && windDirection < 300) {
         leds_center[northLED] = CRGB::Blue;    // West - Blue
     }
 }
@@ -845,5 +855,5 @@ void loop() {
         }
     }
     
-    delay(100); // Small delay to prevent excessive CPU usage
+    delay(5); // Small delay to prevent excessive CPU usage
 }
