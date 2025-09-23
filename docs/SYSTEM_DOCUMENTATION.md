@@ -379,6 +379,30 @@ usage_lamps (
 2. Next Arduino fetch cycle → Sees new theme (up to 31 minutes)
 3. Arduino updates LED colors → All surf data displays in new theme colors
 
+### Quiet Hours (Sleep Protection)
+**Purpose**: Prevents threshold blinking during sleep hours to avoid waking users
+
+**Implementation**: Timezone-aware system that disables threshold alerts during 10 PM - 6 AM local time
+
+**Data Flow**:
+1. Arduino requests data → Flask API checks user location and current time
+2. If within quiet hours → `quiet_hours_active: true` flag sent to Arduino
+3. Arduino displays normal surf conditions but **disables all threshold blinking**
+4. At 6 AM local time → Automatic return to normal threshold alerts
+
+**Code Locations**:
+- **Flask Logic**: `web_and_database/app.py:92-121` (`is_quiet_hours()` function)
+- **Arduino Logic**: `arduino/arduinomain_lamp.ino:270,282,297` (threshold functions)
+- **Timezone Mapping**: `LOCATION_TIMEZONES` in both `app.py` and `background_processor.py`
+
+**Features**:
+- **Global Support**: Works for any timezone using pytz library
+- **Preserves Thresholds**: Real user settings unchanged, only blinking disabled
+- **Automatic**: No user configuration needed, based on location
+- **Debuggable**: `quiet_hours_active` visible in Arduino status endpoint
+
+**Benefits**: Users sleep undisturbed while maintaining surf data visualization
+
 ## Configuration Files
 
 ### API Field Mappings
@@ -453,6 +477,15 @@ Both services share the same database and work together to provide real-time sur
 
 ## Development and Debugging
 
+### Unit Testing
+The project includes a unit test to verify the core API failover and priority logic in a controlled environment.
+
+- **File:** `surf-lamp-processor/test_api_priority.py`
+- **Purpose:** This test simulates a scenario where a high-priority API fails and asserts that the background processor correctly fails over to the next-highest priority API. It uses mocking to avoid making real network calls or database changes.
+- **To Run:** `python3 surf-lamp-processor/test_api_priority.py`
+
+This test is crucial for ensuring the resilience of the data-fetching mechanism and can be run to prevent regressions.
+
 ### Log Locations
 - **Background Processor:** `surf-lamp-processor/lamp_processor.log`
 - **Web Application:** Console/stdout (configured in app.py:25-27)
@@ -514,9 +547,72 @@ Arduino Serial Output includes:
 - **Coordinates:** Embedded in API URLs for location-specific data
 
 ### Adding New Locations
-1. Add coordinates to `MULTI_SOURCE_LOCATIONS` in `data_base.py`
-2. Add location name to `SURF_LOCATIONS` in `app.py:78-86`
-3. System automatically configures API endpoints for new users
+
+To add a new location (e.g., California, USA), follow these steps:
+
+#### Step 1: Add Timezone Support
+**File:** `web_and_database/app.py:79-90`
+```python
+LOCATION_TIMEZONES = {
+    # ... existing locations ...
+    "Los Angeles, USA": "America/Los_Angeles",     # NEW: Add timezone mapping
+    "San Francisco, USA": "America/Los_Angeles",   # NEW: Pacific Time zone
+}
+```
+
+**File:** `surf-lamp-processor/background_processor.py:74-83`
+```python
+LOCATION_TIMEZONES = {
+    # ... existing locations ...
+    "Los Angeles, USA": "America/Los_Angeles",     # NEW: Same mapping for processor
+}
+```
+
+#### Step 2: Add to Location List
+**File:** `web_and_database/app.py:125+`
+```python
+SURF_LOCATIONS = [
+    # ... existing locations ...
+    "Los Angeles, USA",        # NEW: Appears in dashboard dropdown
+    "San Francisco, USA",      # NEW: Available for user selection
+]
+```
+
+#### Step 3: Add API Endpoints
+**File:** `web_and_database/data_base.py` (find `MULTI_SOURCE_LOCATIONS`)
+```python
+MULTI_SOURCE_LOCATIONS = {
+    # ... existing locations ...
+    "Los Angeles, USA": [
+        {
+            "url": "https://marine-api.open-meteo.com/v1/marine?latitude=34.0522&longitude=-118.2437&hourly=wave_height,wave_direction,wave_period&wind_speed_unit=ms",
+            "priority": 1,
+            "type": "wave"
+        },
+        {
+            "url": "https://api.open-meteo.com/v1/forecast?latitude=34.0522&longitude=-118.2437&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms",
+            "priority": 2,
+            "type": "wind"
+        }
+    ]
+}
+```
+
+#### Common California Coordinates:
+- **Los Angeles**: `34.0522, -118.2437`
+- **San Francisco**: `37.7749, -122.4194`
+- **San Diego**: `32.7767, -117.1611` (already exists)
+- **Monterey**: `36.6002, -121.8947`
+- **Santa Barbara**: `34.4208, -119.6982`
+
+#### Step 4: Automatic Features
+After adding the location, the system automatically provides:
+1. **Quiet Hours**: Sleep protection 10 PM - 6 AM in local timezone (Pacific Time for California)
+2. **Dashboard Access**: Location appears in user dropdown menu
+3. **API Processing**: Location-based surf data fetching with correct coordinates
+4. **Threshold Alerts**: Timezone-aware blinking suppression during sleep hours
+
+**Note**: All existing threshold logic, timezone calculations, and quiet hours functionality work immediately for new locations.
 
 ## Common Issues and Solutions
 

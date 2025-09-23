@@ -61,6 +61,7 @@ struct SurfData {
     int windDirection = 0;
     int waveThreshold = 100;
     int windSpeedThreshold = 15;
+    bool quietHoursActive = false;
     unsigned long lastUpdate = 0;
     bool dataReceived = false;
 } lastSurfData;
@@ -132,9 +133,9 @@ CHSV getWindSpeedColor(String theme) {
 
 CHSV getWaveHeightColor(String theme) {
     if (theme == "dark") {
-        return CHSV(128, 255, 255); // Nice blue - Color #24
+        return CHSV(135, 255, 255); // Nice blue - Color #24
     } else {
-        return CHSV(195, 255, 255); // Deep ice blue - Color #5
+        return CHSV(220, 255, 255); // Deep ice blue - Color #5
     }
 }
 
@@ -171,7 +172,8 @@ void loadCredentials() {
 
 // ---------------------------- LED Status Functions ----------------------------
 
-void blinkStatusLED(CRGB color) {
+void blinkStatusLED(CRGB color) 
+{
     static unsigned long lastStatusUpdate = 0;
     static float statusPhase = 0.0;
 
@@ -265,30 +267,35 @@ void applyWindSpeedThreshold(int windSpeedLEDs, int windSpeed_mps, int windSpeed
     // Convert wind speed from m/s to knots for threshold comparison
     float windSpeedInKnots = windSpeed_mps * 1.94384;
 
-    if (windSpeedInKnots >= windSpeedThreshold_knots) {
+    // Check if quiet hours are active - disable threshold blinking during sleep time
+    if (lastSurfData.quietHoursActive || windSpeedInKnots < windSpeedThreshold_knots) {
+        // NORMAL MODE: Theme-based wind speed visualization (no blinking during quiet hours)
+        updateLEDsOneColor(windSpeedLEDs, NUM_LEDS_CENTER - 2, &leds_center[1], getWindSpeedColor(currentTheme));
+    } else {
         // ALERT MODE: Blinking theme-based wind speed LEDs (starting from second LED)
         CHSV themeColor = getWindSpeedColor(currentTheme);
         updateBlinkingCenterLEDs(windSpeedLEDs, CHSV(themeColor.hue, themeColor.sat, min(255, (int)(255 * 1.6)))); // Blinking theme color
-    } else {
-        // NORMAL MODE: Theme-based wind speed visualization
-        updateLEDsOneColor(windSpeedLEDs, NUM_LEDS_CENTER - 2, &leds_center[1], getWindSpeedColor(currentTheme));
     }
 }
 
 void applyWaveHeightThreshold(int waveHeightLEDs, int waveHeight_cm, int waveThreshold_cm) {
-    if (waveHeight_cm >= waveThreshold_cm) {
+    // Check if quiet hours are active - disable threshold blinking during sleep time
+    if (lastSurfData.quietHoursActive || waveHeight_cm < waveThreshold_cm) {
+        // NORMAL MODE: Theme-based wave height visualization (no blinking during quiet hours)
+        updateLEDsOneColor(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, getWaveHeightColor(currentTheme));
+    } else {
         // ALERT MODE: Blinking theme-based wave height LEDs
         CHSV themeColor = getWaveHeightColor(currentTheme);
         updateBlinkingLEDs(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, CHSV(themeColor.hue, themeColor.sat, min(255, (int)(255 * 1.6)))); // Blinking theme color
-    } else {
-        // NORMAL MODE: Theme-based wave height visualization
-        updateLEDsOneColor(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, getWaveHeightColor(currentTheme));
     }
 }
 
 void updateBlinkingAnimation() {
     // Only update blinking if we have valid surf data and thresholds are exceeded
     if (!lastSurfData.dataReceived) return;
+
+    // Skip all blinking during quiet hours (sleep time)
+    if (lastSurfData.quietHoursActive) return;
 
     // Update timing once per call
     unsigned long currentMillis = millis();
@@ -568,6 +575,7 @@ void handleStatusRequest() {
     statusDoc["last_surf_data"]["wind_direction_deg"] = lastSurfData.windDirection;
     statusDoc["last_surf_data"]["wave_threshold_cm"] = lastSurfData.waveThreshold;
     statusDoc["last_surf_data"]["wind_speed_threshold_knots"] = lastSurfData.windSpeedThreshold;
+    statusDoc["last_surf_data"]["quiet_hours_active"] = lastSurfData.quietHoursActive;
     statusDoc["last_surf_data"]["last_update_ms"] = lastSurfData.lastUpdate;
     
     String statusJson;
@@ -696,6 +704,7 @@ bool processSurfData(const String &jsonData) {
     int wind_direction_deg = doc["wind_direction_deg"] | 0;
     int wave_threshold_cm = doc["wave_threshold_cm"] | 100;
     int wind_speed_threshold_knots = doc["wind_speed_threshold_knots"] | 15;
+    bool quiet_hours_active = doc["quiet_hours_active"] | false;
     String led_theme = doc["led_theme"] | "day";
 
     // Update theme if changed
@@ -711,6 +720,7 @@ bool processSurfData(const String &jsonData) {
     Serial.printf("   Wind Direction: %d°\n", wind_direction_deg);
     Serial.printf("   Wave Threshold: %d cm\n", wave_threshold_cm);
     Serial.printf("   Wind Speed Threshold: %d knots\n", wind_speed_threshold_knots);
+    Serial.printf("   Quiet Hours Active: %s\n", quiet_hours_active ? "true" : "false");
     Serial.printf("   LED Theme: %s\n", currentTheme.c_str());
     
     // Update LEDs with the new data
@@ -723,6 +733,7 @@ bool processSurfData(const String &jsonData) {
     lastSurfData.windDirection = wind_direction_deg;
     lastSurfData.waveThreshold = wave_threshold_cm;
     lastSurfData.windSpeedThreshold = wind_speed_threshold_knots;
+    lastSurfData.quietHoursActive = quiet_hours_active;
     lastSurfData.lastUpdate = millis();
     lastSurfData.dataReceived = true;
     

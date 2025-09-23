@@ -21,6 +21,8 @@ import os
 import logging
 import redis
 import time
+from datetime import datetime
+import pytz
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -72,6 +74,51 @@ limiter.init_app(app)
 
 # Location change rate limiting storage
 location_changes = {}  # {user_id: [timestamp1, timestamp2, ...]}
+
+# Location to timezone mapping (for quiet hours)
+LOCATION_TIMEZONES = {
+    "Hadera, Israel": "Asia/Jerusalem",
+    "Tel Aviv, Israel": "Asia/Jerusalem",
+    "Ashdod, Israel": "Asia/Jerusalem",
+    "Haifa, Israel": "Asia/Jerusalem",
+    "Netanya, Israel": "Asia/Jerusalem",
+    "Nahariya, Israel": "Asia/Jerusalem",
+    "Ashkelon, Israel": "Asia/Jerusalem",
+    "San Diego, USA": "America/Los_Angeles",
+    "Barcelona, Spain": "Europe/Madrid",
+    # Add more locations as needed
+}
+
+def is_quiet_hours(user_location, quiet_start_hour=22, quiet_end_hour=6):
+    """
+    Check if current time in user's location is within quiet hours (sleep time).
+
+    Args:
+        user_location: User's location string (e.g., "Tel Aviv, Israel")
+        quiet_start_hour: Hour when quiet period starts (22 = 10 PM)
+        quiet_end_hour: Hour when quiet period ends (6 = 6 AM)
+
+    Returns:
+        bool: True if within quiet hours, False otherwise
+    """
+    if not user_location or user_location not in LOCATION_TIMEZONES:
+        return False  # Default to no quiet hours if location unknown
+
+    try:
+        timezone_str = LOCATION_TIMEZONES[user_location]
+        local_tz = pytz.timezone(timezone_str)
+        current_time = datetime.now(local_tz)
+        current_hour = current_time.hour
+
+        # Handle overnight quiet hours (e.g., 22:00 to 06:00)
+        if quiet_start_hour > quiet_end_hour:
+            return current_hour >= quiet_start_hour or current_hour < quiet_end_hour
+        else:
+            return quiet_start_hour <= current_hour < quiet_end_hour
+
+    except Exception as e:
+        logger.warning(f"Error checking quiet hours for {user_location}: {e}")
+        return False  # Default to no quiet hours on error
 
 
 # --- Static Data ---
@@ -786,6 +833,12 @@ def get_arduino_surf_data(arduino_id):
             
             lamp, conditions, user = result
             
+            # Check if current time is within quiet hours for this user's location
+            quiet_hours_active = is_quiet_hours(user.location)
+
+            if quiet_hours_active:
+                logger.info(f"🌙 Quiet hours active for {user.location} - threshold alerts disabled")
+
             # If no conditions yet, return zeros (safe defaults)
             if not conditions:
                 logger.info(f"ℹ️ No surf conditions yet for Arduino {arduino_id}, returning defaults")
@@ -797,6 +850,7 @@ def get_arduino_surf_data(arduino_id):
                     'wave_threshold_cm': int((user.wave_threshold_m or 1.0) * 100),
                     'wind_speed_threshold_knots': int(round(user.wind_threshold_knots or 22.0)),
                     'led_theme': user.theme or 'day',
+                    'quiet_hours_active': quiet_hours_active,
                     'last_updated': '1970-01-01T00:00:00Z',
                     'data_available': False
                 }
@@ -810,6 +864,7 @@ def get_arduino_surf_data(arduino_id):
                     'wave_threshold_cm': int((user.wave_threshold_m or 1.0) * 100),
                     'wind_speed_threshold_knots': int(round(user.wind_threshold_knots or 22.0)),
                     'led_theme': user.theme or 'day',
+                    'quiet_hours_active': quiet_hours_active,
                     'last_updated': conditions.last_updated.isoformat() if conditions.last_updated else '1970-01-01T00:00:00Z',
                     'data_available': True
                 }
