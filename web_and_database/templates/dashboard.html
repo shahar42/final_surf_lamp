@@ -130,13 +130,8 @@
                 </div>
                 <div id="location-status" class="text-sm text-white/80 mt-2"></div>
                 
-                
-                
-                <div class="flex justify-between">
-                    <span class="text-white/80">Units:</span>
-                    <span class="font-semibold capitalize">{{ data.user.preferred_output }}</span>
-                </div>
-                
+
+
                 <!-- Add this div after the Units row -->
                 <div class="flex justify-between items-center">
                     <span class="text-white/80">Wave Alert:</span>
@@ -145,7 +140,7 @@
                                value="{{ data.user.wave_threshold_m or 1.0 }}" 
                                min="0.1" max="10.0" step="0.1"
                                class="bg-white/20 text-white rounded px-2 py-1 w-16 text-sm border border-white/30">
-                        <span class="text-white/80 text-sm">m</span>
+                        <span class="text-white/80 text-sm">meters</span>
                         <button id="updateThreshold" class="bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded text-xs text-white">Set</button>
                     </div>
                 </div>
@@ -173,6 +168,11 @@
                 </div>
                 <div id="theme-status" class="text-sm text-white/80 mt-2"></div>
 
+                <div class="flex justify-between pt-2 border-t border-white/20">
+                    <span class="text-white/80">Units:</span>
+                    <span class="font-semibold capitalize">{{ data.user.preferred_output }}</span>
+                </div>
+
                 <div class="flex justify-between items-center pt-2 border-t border-white/20">
                     <span class="text-white/80">Status:</span>
                     {% if data.conditions %}
@@ -193,7 +193,7 @@
                     <!-- Wave Data -->
                     <div class="grid grid-cols-2 gap-4">
                         <div class="text-center">
-                            <div class="wave-icon mb-2"><img src="{{ url_for('static', filename='icons/wave_height_icon_4x.png') }}" alt="Wave Height" class="w-20 h-20 mx-auto png-icon"></div>
+                            <div class="wave-icon mb-2 h-24 flex items-center justify-center"><img src="{{ url_for('static', filename='icons/wave_height_icon_4x.png') }}" alt="Wave Height" class="w-20 h-20 mx-auto png-icon"></div>
                             <div class="text-white/80 text-sm">Wave Height</div>
                             <div class="text-white font-bold text-xl">
                                 {% if data.conditions.wave_height_m %}
@@ -209,7 +209,7 @@
                         </div>
                         
                         <div class="text-center">
-                            <div class="wave-icon mb-2"><img src="{{ url_for('static', filename='icons/wave_period_icon_4x.png') }}" alt="Wave Period" class="w-24 h-24 mx-auto png-icon"></div>
+                            <div class="wave-icon mb-2 h-24 flex items-center justify-center"><img src="{{ url_for('static', filename='icons/wave_period_icon_4x.png') }}" alt="Wave Period" class="w-24 h-24 mx-auto png-icon"></div>
                             <div class="text-white/80 text-sm">Wave Period</div>
                             <div class="text-white font-bold text-xl">
                                 {% if data.conditions.wave_period_s %}
@@ -224,7 +224,7 @@
                     <!-- Wind Data -->
                     <div class="grid grid-cols-2 gap-4 pt-4 border-t border-white/20">
                         <div class="text-center">
-                            <div class="wind-icon mb-2"><img src="{{ url_for('static', filename='icons/wind_speed_icon_4x.png') }}" alt="Wind Speed" class="w-20 h-20 mx-auto png-icon"></div>
+                            <div class="wind-icon mb-2 h-24 flex items-center justify-center"><img src="{{ url_for('static', filename='icons/wind_speed_icon_4x.png') }}" alt="Wind Speed" class="w-20 h-20 mx-auto png-icon"></div>
                             <div class="text-white/80 text-sm">Wind Speed</div>
                             <div class="text-white font-bold text-xl">
                                 {% if data.conditions.wind_speed_mps %}
@@ -240,7 +240,7 @@
                         </div>
                         
                         <div class="text-center">
-                            <div class="wind-icon mb-2"><img src="{{ url_for('static', filename='icons/wind_direction_4x.png') }}" alt="Wind Direction" class="w-16 h-16 mx-auto png-icon"></div>
+                            <div class="wind-icon mb-2 h-24 flex items-center justify-center"><img src="{{ url_for('static', filename='icons/wind_direction_4x.png') }}" alt="Wind Direction" class="w-16 h-16 mx-auto png-icon"></div>
                             <div class="text-white/80 text-sm">Wind Direction</div>
                             <div class="text-white font-bold text-xl">
                                 {{ data.conditions.wind_direction_deg | wind_direction }}
