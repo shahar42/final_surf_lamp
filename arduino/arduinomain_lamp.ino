@@ -125,9 +125,9 @@ String currentTheme = "day";  // Default theme
 
 CHSV getWindSpeedColor(String theme) {
     if (theme == "dark") {
-        return CHSV(16, 255, 255);  // Orange - Color #10
+        return CHSV(24, 250, 240);  // Orange - Color #10
     } else {
-        return CHSV(0, 0, 255);     // White - Color #29
+        return CHSV(15, 0, 255);     // White - Color #29
     }
 }
 
@@ -135,7 +135,7 @@ CHSV getWaveHeightColor(String theme) {
     if (theme == "dark") {
         return CHSV(135, 255, 255); // Nice blue - Color #24
     } else {
-        return CHSV(220, 255, 255); // Deep ice blue - Color #5
+        return CHSV(150, 230, 255); // Deep ice blue - Color #5
     }
 }
 
@@ -143,7 +143,7 @@ CHSV getWavePeriodColor(String theme) {
     if (theme == "dark") {
         return CHSV(85, 155, 205);  // Really nice green - Color #22
     } else {
-        return CHSV(39, 255, 255);  // Yellow - Color #9
+        return CHSV(45, 230, 255);  // Yellow - Color #9
     }
 }
 
@@ -225,12 +225,24 @@ void updateLEDs(int numActiveLeds, int segmentLen, CRGB* leds, CHSV* colorMap) {
 }
 
 void updateBlinkingLEDs(int numActiveLeds, int segmentLen, CRGB* leds, CHSV baseColor) {
-    // Use shared timing from updateBlinkingAnimation
-    float brightnessFactor = 0.95 + 0.25 * sin(blinkPhase);
-    int adjustedBrightness = min(255, (int)(baseColor.val * brightnessFactor));
+    // Enhanced wave effect: traveling wave from bottom (LED 0) to top
+    const float waveLength = 4.0;      // How many LEDs span one wave cycle
+    const float waveSpeed = 2.0;       // Wave travel speed multiplier
+    const float baseIntensity = 0.7;   // Minimum brightness (70%)
+    const float waveAmplitude = 0.3;   // Wave amplitude (30% variation)
 
     for (int i = 0; i < segmentLen; i++) {
         if (i < numActiveLeds) {
+            // Calculate wave position: wave travels up from LED 0
+            float wavePhase = blinkPhase * waveSpeed - (i * 2.0 * PI / waveLength);
+
+            // Create traveling wave with base intensity + wave component
+            float brightnessFactor = baseIntensity + waveAmplitude * sin(wavePhase);
+
+            // Ensure brightness stays within reasonable bounds
+            brightnessFactor = constrain(brightnessFactor, 0.4, 1.0);
+
+            int adjustedBrightness = min(255, (int)(baseColor.val * brightnessFactor));
             leds[i] = CHSV(baseColor.hue, baseColor.sat, adjustedBrightness);
         } else {
             leds[i] = CRGB::Black;
@@ -239,13 +251,25 @@ void updateBlinkingLEDs(int numActiveLeds, int segmentLen, CRGB* leds, CHSV base
 }
 
 void updateBlinkingCenterLEDs(int numActiveLeds, CHSV baseColor) {
-    // Use shared blinkPhase, no timing update here
-    float brightnessFactor = 0.95 + 0.25 * sin(blinkPhase);
-    int adjustedBrightness = min(255, (int)(baseColor.val * brightnessFactor));
+    // Enhanced wave effect for center LEDs: traveling wave from bottom (LED 1) to top
+    const float waveLength = 5.0;      // Slightly longer wave for center strip
+    const float waveSpeed = 2.0;       // Same wave travel speed
+    const float baseIntensity = 0.7;   // Minimum brightness (70%)
+    const float waveAmplitude = 0.3;   // Wave amplitude (30% variation)
 
-    // Start from LED 1, skip LED 0
+    // Start from LED 1, skip LED 0 (reserved for wind direction)
     for (int i = 1; i < NUM_LEDS_CENTER - 1; i++) {
         if (i < numActiveLeds + 1) {
+            // Calculate wave position: wave travels up from LED 1
+            float wavePhase = blinkPhase * waveSpeed - ((i - 1) * 2.0 * PI / waveLength);
+
+            // Create traveling wave with base intensity + wave component
+            float brightnessFactor = baseIntensity + waveAmplitude * sin(wavePhase);
+
+            // Ensure brightness stays within reasonable bounds
+            brightnessFactor = constrain(brightnessFactor, 0.4, 1.0);
+
+            int adjustedBrightness = min(255, (int)(baseColor.val * brightnessFactor));
             leds_center[i] = CHSV(baseColor.hue, baseColor.sat, adjustedBrightness);
         } else {
             leds_center[i] = CRGB::Black;
@@ -300,7 +324,7 @@ void updateBlinkingAnimation() {
     // Update timing once per call
     unsigned long currentMillis = millis();
     if (currentMillis - lastBlinkUpdate >= 5) { // 200 FPS for ultra-smooth animation
-        blinkPhase += 0.0628; // 1.0-second cycle (even slower for threshold alerts)
+        blinkPhase += 0.0419; // 1.5-second cycle (slower threshold alerts)
         if (blinkPhase >= 2 * PI) blinkPhase = 0.0;
         lastBlinkUpdate = currentMillis;
     }
