@@ -135,7 +135,7 @@
                 <!-- Add this div after the Units row -->
                 <div class="flex justify-between items-center">
                     <span class="text-white/80">Wave Alert:</span>
-                    <div class="flex items-center space-x-2">
+                    <div class="flex items-center space-x-2 w-32 justify-end">
                         <input type="number" id="waveThreshold" 
                                value="{{ data.user.wave_threshold_m or 1.0 }}" 
                                min="0.1" max="10.0" step="0.1"
@@ -148,7 +148,7 @@
 
                 <div class="flex justify-between items-center">
                     <span class="text-white/80">Wind Alert:</span>
-                    <div class="flex items-center space-x-2">
+                    <div class="flex items-center space-x-2 w-32 justify-end">
                         <input type="number" id="windThreshold" 
                                value="{{ data.user.wind_threshold_knots or 22 }}" 
                                min="1" max="25" step="1"
@@ -161,7 +161,7 @@
 
                 <div class="flex justify-between items-center pt-2 border-t border-white/20">
                     <span class="text-white/80">LED Colors:</span>
-                    <div class="flex items-center space-x-2">
+                    <div class="flex items-center space-x-2 w-32 justify-end">
                         <button id="lightTheme" class="theme-btn px-3 py-1 rounded text-sm {{ 'bg-blue-500 hover:bg-blue-600 text-white font-bold' if data.user.theme == 'day' else 'bg-white/20 hover:bg-white/30 text-white/80' }}">Light</button>
                         <button id="darkTheme" class="theme-btn px-3 py-1 rounded text-sm {{ 'bg-blue-500 hover:bg-blue-600 text-white font-bold' if data.user.theme == 'dark' else 'bg-white/20 hover:bg-white/30 text-white/80' }}">Dark</button>
                     </div>
