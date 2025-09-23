@@ -176,6 +176,18 @@
                 {% endif %}
             </div>
 
+            <!-- Sport Type Field -->
+            <div>
+                {{ form.sport_type(class="form-input w-full px-4 py-3 rounded-lg appearance-none" + (" error" if form.sport_type.errors else "")) }}
+                {% if form.sport_type.errors %}
+                    <div class="field-error">
+                        {% for error in form.sport_type.errors %}
+                            <div>• {{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
             <!-- Units -->
             <div class="text-white">
                 <label class="block mb-2 font-semibold">Units</label>

@@ -83,6 +83,7 @@ class User(Base):
         location (str): User's selected surf location.
         theme (str): Preferred visual theme (e.g., 'dark', 'light').
         preferred_output (str): Preferred unit system (e.g., 'metric', 'imperial').
+        sport_type (str): User's chosen water sport type.
     """
     __tablename__ = 'users'
     user_id = Column(Integer, primary_key=True, autoincrement=True)
@@ -92,6 +93,7 @@ class User(Base):
     location = Column(String(255), nullable=False)
     theme = Column(String(50), nullable=False)
     preferred_output = Column(String(50), nullable=False)
+    sport_type = Column(String(20), nullable=False, default='surfing')
     wave_threshold_m = Column(Float, nullable=True, default=1.0)
     wind_threshold_knots = Column(Float, nullable=True, default=22.0)
     
@@ -318,7 +320,7 @@ SINGLE_SOURCE_LOCATIONS = {
     # Future locations that provide wave + wind in one API
 }
 
-def add_user_and_lamp(name, email, password_hash, lamp_id, arduino_id, location, theme, units):
+def add_user_and_lamp(name, email, password_hash, lamp_id, arduino_id, location, theme, units, sport_type='surfing'):
     """
     Creates a new user and registers their lamp with appropriate API sources.
     Supports both single-source and multi-source locations.
@@ -348,7 +350,8 @@ def add_user_and_lamp(name, email, password_hash, lamp_id, arduino_id, location,
             password_hash=password_hash,
             location=location,
             theme=theme,
-            preferred_output=units
+            preferred_output=units,
+            sport_type=sport_type
         )
         db.add(new_user)
         db.flush()

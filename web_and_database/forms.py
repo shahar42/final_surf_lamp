@@ -69,8 +69,16 @@ class RegistrationForm(FlaskForm):
     location = SelectField('Location', validators=[
         DataRequired(message="Please select a location")
     ])
-    
-    
+
+    # Sport selection dropdown
+    sport_type = SelectField('Sport Type', choices=[
+        ('surfing', 'Surfing'),
+        ('windsurfing', 'Windsurfing'),
+        ('kitesurfing', 'Kitesurfing'),
+        ('wingsurfing', 'Wing Surfing'),
+        ('sup', 'Stand Up Paddle (SUP)')
+    ], validators=[DataRequired(message="Please select your sport")])
+
     # Units selection
     units = RadioField('Units', choices=[('meters', 'Meters'), ('feet', 'Feet')],
                       validators=[DataRequired(message="Please select units")])

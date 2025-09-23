@@ -408,6 +408,7 @@ def register():
         lamp_id = form.lamp_id.data
         arduino_id = form.arduino_id.data
         location = form.location.data
+        sport_type = form.sport_type.data
         theme = 'day'  # Default theme
         units = form.units.data
 
@@ -422,7 +423,8 @@ def register():
             arduino_id=int(arduino_id),
             location=location,
             theme=theme,
-            units=units
+            units=units,
+            sport_type=sport_type
         )
 
         if success:

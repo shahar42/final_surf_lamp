@@ -61,7 +61,6 @@ struct SurfData {
     int windDirection = 0;
     int waveThreshold = 100;
     int windSpeedThreshold = 15;
-    bool quietHoursActive = false;
     unsigned long lastUpdate = 0;
     bool dataReceived = false;
 } lastSurfData;
@@ -172,8 +171,7 @@ void loadCredentials() {
 
 // ---------------------------- LED Status Functions ----------------------------
 
-void blinkStatusLED(CRGB color) 
-{
+void blinkStatusLED(CRGB color) {
     static unsigned long lastStatusUpdate = 0;
     static float statusPhase = 0.0;
 
@@ -225,24 +223,12 @@ void updateLEDs(int numActiveLeds, int segmentLen, CRGB* leds, CHSV* colorMap) {
 }
 
 void updateBlinkingLEDs(int numActiveLeds, int segmentLen, CRGB* leds, CHSV baseColor) {
-    // Enhanced wave effect: traveling wave from bottom (LED 0) to top
-    const float waveLength = 6.0;      // Longer wave - more LEDs per cycle for smoother flow
-    const float waveSpeed = 1.0;       // Consistent speed to avoid discontinuity
-    const float baseIntensity = 0.8;   // Higher base brightness (80%)
-    const float waveAmplitude = 0.2;   // Smaller amplitude (20% variation) for smoother effect
+    // Use shared timing from updateBlinkingAnimation
+    float brightnessFactor = 0.95 + 0.25 * sin(blinkPhase);
+    int adjustedBrightness = min(255, (int)(baseColor.val * brightnessFactor));
 
     for (int i = 0; i < segmentLen; i++) {
         if (i < numActiveLeds) {
-            // Calculate wave position: wave travels up from LED 0
-            float wavePhase = blinkPhase * waveSpeed - (i * 2.0 * PI / waveLength);
-
-            // Create traveling wave with base intensity + wave component
-            float brightnessFactor = baseIntensity + waveAmplitude * sin(wavePhase);
-
-            // Ensure brightness stays within reasonable bounds
-            brightnessFactor = constrain(brightnessFactor, 0.52, 1.0);
-
-            int adjustedBrightness = min(255, (int)(baseColor.val * brightnessFactor));
             leds[i] = CHSV(baseColor.hue, baseColor.sat, adjustedBrightness);
         } else {
             leds[i] = CRGB::Black;
@@ -251,25 +237,13 @@ void updateBlinkingLEDs(int numActiveLeds, int segmentLen, CRGB* leds, CHSV base
 }
 
 void updateBlinkingCenterLEDs(int numActiveLeds, CHSV baseColor) {
-    // Enhanced wave effect for center LEDs: traveling wave from bottom (LED 1) to top
-    const float waveLength = 8.0;      // Longer wave for center strip - smoother flow
-    const float waveSpeed = 1.0;       // Consistent speed to avoid discontinuity
-    const float baseIntensity = 0.8;   // Higher base brightness (80%)
-    const float waveAmplitude = 0.2;   // Smaller amplitude (20% variation) for smoother effect
+    // Use shared blinkPhase, no timing update here
+    float brightnessFactor = 0.95 + 0.25 * sin(blinkPhase);
+    int adjustedBrightness = min(255, (int)(baseColor.val * brightnessFactor));
 
-    // Start from LED 1, skip LED 0 (reserved for wind direction)
+    // Start from LED 1, skip LED 0
     for (int i = 1; i < NUM_LEDS_CENTER - 1; i++) {
         if (i < numActiveLeds + 1) {
-            // Calculate wave position: wave travels up from LED 1
-            float wavePhase = blinkPhase * waveSpeed - ((i - 1) * 2.0 * PI / waveLength);
-
-            // Create traveling wave with base intensity + wave component
-            float brightnessFactor = baseIntensity + waveAmplitude * sin(wavePhase);
-
-            // Ensure brightness stays within reasonable bounds
-            brightnessFactor = constrain(brightnessFactor, 0.52, 1.0);
-
-            int adjustedBrightness = min(255, (int)(baseColor.val * brightnessFactor));
             leds_center[i] = CHSV(baseColor.hue, baseColor.sat, adjustedBrightness);
         } else {
             leds_center[i] = CRGB::Black;
@@ -291,26 +265,24 @@ void applyWindSpeedThreshold(int windSpeedLEDs, int windSpeed_mps, int windSpeed
     // Convert wind speed from m/s to knots for threshold comparison
     float windSpeedInKnots = windSpeed_mps * 1.94384;
 
-    // Check if quiet hours are active - disable threshold blinking during sleep time
-    if (lastSurfData.quietHoursActive || windSpeedInKnots < windSpeedThreshold_knots) {
-        // NORMAL MODE: Theme-based wind speed visualization (no blinking during quiet hours)
-        updateLEDsOneColor(windSpeedLEDs, NUM_LEDS_CENTER - 2, &leds_center[1], getWindSpeedColor(currentTheme));
-    } else {
+    if (windSpeedInKnots >= windSpeedThreshold_knots) {
         // ALERT MODE: Blinking theme-based wind speed LEDs (starting from second LED)
         CHSV themeColor = getWindSpeedColor(currentTheme);
         updateBlinkingCenterLEDs(windSpeedLEDs, CHSV(themeColor.hue, themeColor.sat, min(255, (int)(255 * 1.6)))); // Blinking theme color
+    } else {
+        // NORMAL MODE: Theme-based wind speed visualization
+        updateLEDsOneColor(windSpeedLEDs, NUM_LEDS_CENTER - 2, &leds_center[1], getWindSpeedColor(currentTheme));
     }
 }
 
 void applyWaveHeightThreshold(int waveHeightLEDs, int waveHeight_cm, int waveThreshold_cm) {
-    // Check if quiet hours are active - disable threshold blinking during sleep time
-    if (lastSurfData.quietHoursActive || waveHeight_cm < waveThreshold_cm) {
-        // NORMAL MODE: Theme-based wave height visualization (no blinking during quiet hours)
-        updateLEDsOneColor(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, getWaveHeightColor(currentTheme));
-    } else {
+    if (waveHeight_cm >= waveThreshold_cm) {
         // ALERT MODE: Blinking theme-based wave height LEDs
         CHSV themeColor = getWaveHeightColor(currentTheme);
         updateBlinkingLEDs(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, CHSV(themeColor.hue, themeColor.sat, min(255, (int)(255 * 1.6)))); // Blinking theme color
+    } else {
+        // NORMAL MODE: Theme-based wave height visualization
+        updateLEDsOneColor(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, getWaveHeightColor(currentTheme));
     }
 }
 
@@ -318,14 +290,11 @@ void updateBlinkingAnimation() {
     // Only update blinking if we have valid surf data and thresholds are exceeded
     if (!lastSurfData.dataReceived) return;
 
-    // Skip all blinking during quiet hours (sleep time)
-    if (lastSurfData.quietHoursActive) return;
-
     // Update timing once per call
     unsigned long currentMillis = millis();
     if (currentMillis - lastBlinkUpdate >= 5) { // 200 FPS for ultra-smooth animation
-        blinkPhase += 0.0419; // 1.5-second cycle (slower threshold alerts)
-        if (blinkPhase >= 2 * PI) blinkPhase -= 2 * PI;  // Smooth wrap instead of hard reset
+        blinkPhase += 0.0628; // 1.0-second cycle (even slower for threshold alerts)
+        if (blinkPhase >= 2 * PI) blinkPhase = 0.0;
         lastBlinkUpdate = currentMillis;
     }
 
@@ -599,7 +568,6 @@ void handleStatusRequest() {
     statusDoc["last_surf_data"]["wind_direction_deg"] = lastSurfData.windDirection;
     statusDoc["last_surf_data"]["wave_threshold_cm"] = lastSurfData.waveThreshold;
     statusDoc["last_surf_data"]["wind_speed_threshold_knots"] = lastSurfData.windSpeedThreshold;
-    statusDoc["last_surf_data"]["quiet_hours_active"] = lastSurfData.quietHoursActive;
     statusDoc["last_surf_data"]["last_update_ms"] = lastSurfData.lastUpdate;
     
     String statusJson;
@@ -728,7 +696,6 @@ bool processSurfData(const String &jsonData) {
     int wind_direction_deg = doc["wind_direction_deg"] | 0;
     int wave_threshold_cm = doc["wave_threshold_cm"] | 100;
     int wind_speed_threshold_knots = doc["wind_speed_threshold_knots"] | 15;
-    bool quiet_hours_active = doc["quiet_hours_active"] | false;
     String led_theme = doc["led_theme"] | "day";
 
     // Update theme if changed
@@ -744,7 +711,6 @@ bool processSurfData(const String &jsonData) {
     Serial.printf("   Wind Direction: %d°\n", wind_direction_deg);
     Serial.printf("   Wave Threshold: %d cm\n", wave_threshold_cm);
     Serial.printf("   Wind Speed Threshold: %d knots\n", wind_speed_threshold_knots);
-    Serial.printf("   Quiet Hours Active: %s\n", quiet_hours_active ? "true" : "false");
     Serial.printf("   LED Theme: %s\n", currentTheme.c_str());
     
     // Update LEDs with the new data
@@ -757,7 +723,6 @@ bool processSurfData(const String &jsonData) {
     lastSurfData.windDirection = wind_direction_deg;
     lastSurfData.waveThreshold = wave_threshold_cm;
     lastSurfData.windSpeedThreshold = wind_speed_threshold_knots;
-    lastSurfData.quietHoursActive = quiet_hours_active;
     lastSurfData.lastUpdate = millis();
     lastSurfData.dataReceived = true;
     
