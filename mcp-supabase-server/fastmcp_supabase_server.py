@@ -98,7 +98,7 @@ async def get_database_schema() -> str:
 
 @mcp.tool()
 async def query_table(table_name: str, limit: int = 10, where_clause: str = "") -> str:
-    """READ: Query specific surf lamp tables with optional WHERE filtering. Available tables: users(user_id,username,email,location,theme,wave_threshold_m,wind_threshold_knots), lamps(lamp_id,user_id,arduino_id,arduino_ip), current_conditions(lamp_id,wave_height_m,wave_period_s,wind_speed_mps,wind_direction_deg), daily_usage(usage_id,website_url), usage_lamps(usage_id,lamp_id,api_key,http_endpoint), location_websites(location,usage_id), password_reset_tokens(id,user_id,token_hash,expiration_time). Use for basic table queries with simple filtering."""
+    """READ: Query specific surf lamp tables with optional WHERE filtering. Available tables: users(user_id,username,email,location,theme,sport_type,wave_threshold_m,wind_threshold_knots), lamps(lamp_id,user_id,arduino_id,arduino_ip), current_conditions(lamp_id,wave_height_m,wave_period_s,wind_speed_mps,wind_direction_deg), daily_usage(usage_id,website_url), usage_lamps(usage_id,lamp_id,api_key,http_endpoint), location_websites(location,usage_id), password_reset_tokens(id,user_id,token_hash,expiration_time). Use for basic table queries with simple filtering."""
     try:
         if table_name not in KNOWN_TABLES:
             return f"Error: table_name must be one of {KNOWN_TABLES}"
@@ -241,7 +241,7 @@ async def get_user_dashboard_data(user_id: int) -> str:
         query = """
         SELECT
             u.user_id, u.username, u.email, u.location, u.theme, u.preferred_output,
-            u.wave_threshold_m, u.wind_threshold_knots,
+            u.sport_type, u.wave_threshold_m, u.wind_threshold_knots,
             l.lamp_id, l.arduino_id, l.arduino_ip, l.last_updated as lamp_updated,
             cc.wave_height_m, cc.wave_period_s, cc.wind_speed_mps, cc.wind_direction_deg,
             cc.last_updated as conditions_updated
@@ -334,7 +334,7 @@ async def search_users_and_locations(search_term: str) -> str:
         conn = await get_connection()
 
         query = """
-        SELECT user_id, username, email, location, theme
+        SELECT user_id, username, email, location, theme, sport_type
         FROM users
         WHERE username ILIKE $1 OR email ILIKE $1 OR location ILIKE $1
         ORDER BY username

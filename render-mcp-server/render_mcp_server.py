@@ -30,9 +30,14 @@ mcp = FastMCP("render")
 # Configuration
 RENDER_API_KEY = os.getenv("RENDER_API_KEY")
 SERVICE_ID = os.getenv("SERVICE_ID", "srv-d2chm8mr433s73anlc0g")
+OWNER_ID = os.getenv("OWNER_ID")
+BACKGROUND_SERVICE_ID = os.getenv("BACKGROUND_SERVICE_ID")
 
 if not RENDER_API_KEY:
     logger.error("❌ RENDER_API_KEY environment variable is required")
+    sys.exit(1)
+if not OWNER_ID:
+    logger.error("❌ OWNER_ID environment variable is required for log access")
     sys.exit(1)
 RENDER_BASE_URL = "https://api.render.com"
 
@@ -1090,6 +1095,231 @@ async def render_delete_service(service_id: str) -> str:
         if "404" in str(e):
             return f"❌ Service {service_id} not found - it may already be deleted"
         return f"❌ Error deleting service: {str(e)}"
+
+@mcp.tool()
+async def render_logs(
+    service_id: Optional[str] = None,
+    limit: int = 20,
+    service_type: str = "web"
+) -> str:
+    """
+    Get recent service runtime logs.
+
+    Args:
+        service_id: Render service ID (defaults to configured SERVICE_ID for web, BACKGROUND_SERVICE_ID for background)
+        limit: Number of recent log entries to show (max 100)
+        service_type: Either 'web' or 'background' to choose which service
+
+    Returns:
+        Formatted service logs with timestamps and log levels
+    """
+    try:
+        # Determine target service ID
+        if service_id:
+            target_service_id = service_id
+        elif service_type == "background":
+            target_service_id = BACKGROUND_SERVICE_ID
+            if not target_service_id:
+                return "❌ BACKGROUND_SERVICE_ID not configured in environment"
+        else:
+            target_service_id = SERVICE_ID
+
+        limit = min(limit, 100)
+
+        url = f"{RENDER_BASE_URL}/v1/logs?ownerId={OWNER_ID}&resource={target_service_id}&limit={limit}"
+        response = await run_curl(url)
+
+        logs = response.get('logs', [])
+        if not logs:
+            return f"No logs found for service {target_service_id}"
+
+        # Format logs
+        service_name = "Background Service" if service_type == 'background' else "Web Service"
+        formatted = []
+        formatted.append(f"📋 {service_name} Logs: {target_service_id}")
+        formatted.append(f"📊 Showing {len(logs)} most recent entries")
+        formatted.append("\n" + "="*80 + "\n")
+
+        # Reverse to show oldest first (chronological order)
+        for log in reversed(logs):
+            timestamp = log.get('timestamp', '')
+            message = log.get('message', '')
+            level = 'info'
+
+            # Extract level from labels
+            for label in log.get('labels', []):
+                if label.get('name') == 'level':
+                    level = label.get('value', 'info')
+                    break
+
+            # Format timestamp
+            try:
+                dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                time_str = dt.strftime('%H:%M:%S')
+            except:
+                time_str = timestamp[:8] if timestamp else "??:??:??"
+
+            # Level emoji
+            level_emoji = {
+                'info': '💬',
+                'error': '❌',
+                'warn': '⚠️',
+                'warning': '⚠️',
+                'debug': '🔍'
+            }.get(level.lower(), '📝')
+
+            formatted.append(f"{level_emoji} {time_str} | {message}")
+
+        if response.get('hasMore'):
+            formatted.append("\n📋 More logs available (use higher --limit to get more)")
+
+        return "\n".join(formatted)
+
+    except Exception as e:
+        return f"❌ Error fetching logs: {str(e)}"
+
+
+@mcp.tool()
+async def search_render_logs(
+    search_term: str,
+    service_id: Optional[str] = None,
+    limit: int = 50,
+    service_type: str = "web"
+) -> str:
+    """
+    Search recent logs for specific text patterns.
+
+    Args:
+        search_term: Text to search for in log messages (case-insensitive)
+        service_id: Render service ID (defaults to configured SERVICE_ID)
+        limit: Number of recent log entries to search through (max 200)
+        service_type: Either 'web' or 'background' to choose which service
+
+    Returns:
+        Filtered logs containing the search term
+    """
+    try:
+        # Get logs using the existing tool
+        all_logs = await render_logs(service_id=service_id, limit=limit, service_type=service_type)
+
+        if all_logs.startswith("❌"):
+            return all_logs
+
+        # Filter logs containing search term
+        lines = all_logs.split('\n')
+        header_lines = lines[:3]  # Keep the header
+        log_lines = lines[4:]     # Skip header and separator
+
+        search_lower = search_term.lower()
+        matching_lines = [line for line in log_lines if search_lower in line.lower()]
+
+        if not matching_lines:
+            return f"🔍 No logs found containing '{search_term}'"
+
+        # Reconstruct with new header
+        formatted = []
+        formatted.extend(header_lines[:2])  # Service name and count lines
+        formatted[1] = f"🔍 Found {len(matching_lines)} entries matching '{search_term}'"
+        formatted.append(lines[2])  # Separator line
+        formatted.extend(matching_lines)
+
+        return "\n".join(formatted)
+
+    except Exception as e:
+        return f"❌ Error searching logs: {str(e)}"
+
+
+@mcp.tool()
+async def render_recent_errors(
+    service_id: Optional[str] = None,
+    limit: int = 50,
+    service_type: str = "web"
+) -> str:
+    """
+    Get recent error and warning logs only.
+
+    Args:
+        service_id: Render service ID (defaults to configured SERVICE_ID)
+        limit: Number of recent log entries to search through (max 200)
+        service_type: Either 'web' or 'background' to choose which service
+
+    Returns:
+        Filtered logs showing only errors and warnings
+    """
+    try:
+        # Get logs using the existing tool
+        all_logs = await render_logs(service_id=service_id, limit=limit, service_type=service_type)
+
+        if all_logs.startswith("❌"):
+            return all_logs
+
+        # Filter for error/warning lines
+        lines = all_logs.split('\n')
+        header_lines = lines[:3]  # Keep the header
+        log_lines = lines[4:]     # Skip header and separator
+
+        error_lines = [line for line in log_lines if line.startswith(('❌', '⚠️'))]
+
+        if not error_lines:
+            return f"✅ No recent errors or warnings found in last {limit} log entries"
+
+        # Reconstruct with new header
+        formatted = []
+        formatted.extend(header_lines[:2])
+        formatted[1] = f"⚠️ Found {len(error_lines)} errors/warnings in recent logs"
+        formatted.append(lines[2])  # Separator line
+        formatted.extend(error_lines)
+
+        return "\n".join(formatted)
+
+    except Exception as e:
+        return f"❌ Error fetching error logs: {str(e)}"
+
+
+@mcp.tool()
+async def render_latest_deployment_logs(service_id: Optional[str] = None, lines: int = 30) -> str:
+    """
+    Get logs from the most recent deployment for debugging deployment issues.
+
+    Args:
+        service_id: Render service ID (defaults to configured SERVICE_ID)
+        lines: Number of recent log lines to show from latest deployment
+
+    Returns:
+        Recent logs that may help debug deployment issues
+    """
+    try:
+        target_service_id = service_id or SERVICE_ID
+
+        # Get recent deployments to find the latest one
+        deployments_result = await render_deployments(service_id=target_service_id, limit=1)
+
+        if deployments_result.startswith("❌"):
+            return deployments_result
+
+        # Get recent logs (more than requested to account for non-deployment logs)
+        logs_result = await render_logs(service_id=target_service_id, limit=lines * 2)
+
+        if logs_result.startswith("❌"):
+            return logs_result
+
+        # Format for deployment context
+        formatted = []
+        formatted.append(f"🚀 Latest Deployment Logs: {target_service_id}")
+        formatted.append(f"📊 Showing recent {lines} deployment-related entries")
+        formatted.append("\n" + "="*80 + "\n")
+
+        # Extract log lines and take the most recent ones
+        lines_list = logs_result.split('\n')[4:]  # Skip header
+        recent_lines = [line for line in lines_list if line.strip()][-lines:]
+
+        formatted.extend(recent_lines)
+
+        return "\n".join(formatted)
+
+    except Exception as e:
+        return f"❌ Error fetching deployment logs: {str(e)}"
+
 
 # Test API connection on startup
 async def test_connection():

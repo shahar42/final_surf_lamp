@@ -1,0 +1,18 @@
+
+{
+  "mcpServers": {
+    "surf-lamp-supabase": {
+      "command": "/home/shahar42/Git_Surf_Lamp_Agent/mcp-supabase-server/start_server.sh",
+      "args": [],
+      "cwd": "/home/shahar42/Git_Surf_Lamp_Agent/mcp-supabase-server"
+    },
+    "render": {
+      "command": "/home/shahar42/Git_Surf_Lamp_Agent/render-mcp-server/start_server.sh",
+      "args": [],
+      "cwd": "/home/shahar42/Git_Surf_Lamp_Agent/render-mcp-server",
+      "env": {
+        "RENDER_API_KEY": "rnd_j6WyOXSMG0bGFbqyYKMBaxUgzF4s"
+      }
+    }
+  }
+}

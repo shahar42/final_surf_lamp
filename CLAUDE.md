@@ -129,9 +129,16 @@
 - **Examples**: Import paths, rate limiting behavior, shared resources
 - **Solution**: Always consider deployment environment differences when debugging
 
+### 21. **MCP Tools Are Primary Interface**
+- **Lesson**: MCP tools are purpose-built for AI agent interaction with external services
+- **Pattern**: Always scan for `mcp__servicename__*` tools before manual approaches
+- **Anti-pattern**: Building local scripts or manual solutions when specialized tools exist
+- **Application**: Use `mcp__render__*` tools directly instead of local render-mcp-server scripts
+- **Trust**: These tools are designed for exactly these use cases - they ARE the natural interface
+
 ## 🔧 Future Enhancement Options
 
-### 21. **Render MCP Server for Production Monitoring** ✅ IMPLEMENTED
+### 22. **Render MCP Server for Production Monitoring** ✅ IMPLEMENTED
 - **Implementation Status**: Complete FastMCP-based server built at `/render-mcp-server/`
 - **Architecture**: FastMCP + aiohttp + Pydantic for robust async API integration
 - **Capabilities Implemented**:

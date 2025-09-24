@@ -1,0 +1,36 @@
+services:
+  - type: worker
+    name: surf-lamp-monitoring
+    env: python
+    plan: starter
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python render_monitoring_service.py"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: INSIGHTS_ENABLED
+        value: true
+      - key: INSIGHTS_EMAIL
+        value: true
+      - key: INSIGHTS_IMMEDIATE_ALERTS
+        value: true
+      - key: INSIGHTS_ANALYSIS_ONLY
+        value: true
+      - key: INSIGHTS_OUTPUT_DIR
+        value: ./insights
+      - key: INSIGHTS_LOOKBACK_HOURS
+        value: 24
+      - key: EMAIL_SMTP_SERVER
+        value: smtp.gmail.com
+      - key: EMAIL_SMTP_PORT
+        value: 587
+      - key: EMAIL_FROM
+        value: shaharisn1@gmail.com
+      - key: EMAIL_TO
+        value: shaharisn1@gmail.com
+      - key: ALERT_ERROR_THRESHOLD
+        value: 5
+      - key: ALERT_RESPONSE_TIME_MS
+        value: 2000
+      - key: ALERT_DOWNTIME_MINUTES
+        value: 5
