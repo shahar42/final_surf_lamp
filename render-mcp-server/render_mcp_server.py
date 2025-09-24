@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 
 # MCP imports
 from mcp.server.fastmcp import FastMCP
+from deploy_tools import register_deployment_tools
 
 # Configure logging
 logging.basicConfig(
@@ -26,6 +27,9 @@ logger = logging.getLogger("render-mcp")
 
 # Initialize FastMCP server
 mcp = FastMCP("render")
+
+# Register deployment tools
+register_deployment_tools(mcp)
 
 # Configuration
 RENDER_API_KEY = os.getenv("RENDER_API_KEY")
