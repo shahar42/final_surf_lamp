@@ -80,12 +80,16 @@ def register_deployment_tools(mcp: FastMCP):
             "type": "background_worker",
             "name": name,
             "ownerId": owner_id,
+            "runtime": runtime,
             "repo": repo_url,
             "branch": branch,
-            "runtime": runtime,
+            "rootDir": ".",
             "buildCommand": build_command,
             "startCommand": start_command,
             "autoDeploy": True,
+            "serviceDetails": {
+                "numInstances": 1
+            },
             "envVars": env_vars
         }
 
@@ -142,12 +146,16 @@ Check the Render dashboard for build logs and deployment status.
             "type": "web_service",
             "name": name,
             "ownerId": owner_id,
+            "runtime": runtime,
             "repo": repo_url,
             "branch": branch,
-            "runtime": runtime,
+            "rootDir": ".",
             "buildCommand": build_command,
             "startCommand": start_command,
             "autoDeploy": True,
+            "serviceDetails": {
+                "numInstances": 1
+            },
             "envVars": env_vars
         }
 
