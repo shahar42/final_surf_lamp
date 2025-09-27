@@ -403,6 +403,50 @@ usage_lamps (
 
 **Benefits**: Users sleep undisturbed while maintaining surf data visualization
 
+## System Infrastructure Components
+
+### Redis Service - User Rate Limiting
+**Purpose**: Rate limiting system to prevent API abuse and protect external weather service quotas
+
+**Rate Limited User Actions**:
+- **Location Changes**: Prevents users from rapidly switching between surf spots
+- **Threshold Modifications**: Limits frequency of wave height and wind speed threshold updates
+- **User Preference Updates**: Controls rate of other dashboard setting changes
+
+**Architecture**: Backend checks Redis counters before processing user actions that would trigger API calls or database updates
+
+**Integration Points**:
+- Web application checks rate limits before updating user location in database
+- Dashboard UI can display rate limit status to users
+- Background processor benefits from reduced API call churn
+
+**Benefits**:
+- Protects weather API quotas from user-driven request spikes
+- Maintains system stability during high usage periods
+- Prevents accidental API quota exhaustion from rapid user interactions
+
+### Nighttime LED Behavior Requirements
+**Night Mode Operation**: Special LED behavior during nighttime hours that overrides normal surf condition display
+
+**Functional Requirements**:
+- **Time Detection**: System detects nighttime hours (typically 10 PM - 6 AM) based on user location timezone
+- **Threshold Bypass**: Wave height and wind speed thresholds do not trigger blinking alerts during night hours
+- **LED Pattern**: Only the top LED of each LED strip should illuminate during night mode
+- **Theme Independence**: Night LED behavior works regardless of user's selected day/night theme colors
+
+**User Experience Goals**:
+- **Sleep Protection**: Provides subtle ambient lighting without disturbing sleep
+- **Consistency**: Reliable gentle lighting during sleep hours regardless of surf conditions
+- **Automatic Operation**: No user configuration required - based on location and time
+
+**Implementation Considerations**:
+- Requires timezone-aware logic in both Arduino firmware and web application
+- Should preserve normal surf data collection and processing
+- May need location-based sunset/sunrise calculations for more accurate night detection
+- Arduino needs to receive night mode flag from server API
+
+**Current Status**: Requirements documented - implementation needed in both Arduino firmware and web application
+
 ## Configuration Files
 
 ### API Field Mappings

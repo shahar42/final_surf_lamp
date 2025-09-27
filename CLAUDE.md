@@ -177,6 +177,26 @@
 
 **Next Step**: Configure `.env` file and test with `python main.py` for immediate production debugging capabilities
 
+## 🔴 System Architecture Components
+
+### 23. **Redis Service - User Rate Limiting**
+- **Purpose**: Rate limiting for user actions to prevent API abuse and system overload
+- **Rate Limited Actions**:
+  - Location changes (users switching between surf spots)
+  - Threshold modifications (wave height, wind speed adjustments)
+  - Other user preference updates
+- **Architecture**: Prevents users from making rapid successive changes that would trigger excessive API calls
+- **Integration**: Backend checks Redis counters before processing user preference updates
+- **Benefit**: Protects weather API quotas and maintains system stability
+
+### 24. **Nighttime LED Behavior Requirements**
+- **Night Mode**: During nighttime hours, normal threshold-based logic should be disabled
+- **LED Pattern**: Only the top LED of each LED strip should be illuminated at night
+- **Threshold Bypass**: Wave height and wind speed thresholds do not apply during night hours
+- **Purpose**: Provides subtle ambient lighting without full surf condition indication
+- **Implementation Need**: Time-based logic to detect night hours and override normal lamp behavior
+- **User Experience**: Consistent gentle lighting during sleep hours regardless of surf conditions
+
 ---
 
 ## 🎯 Key Takeaways for Future Interactions
@@ -191,3 +211,5 @@
 8. **Listen more than you suggest** - User domain knowledge often exceeds technical knowledge
 
 *"doing the same thing twice and expecting a different result is the definition of crazy"* - The user's reminder that true problem-solving requires changing approach, not just repeating failed solutions with minor variations.
+- always prefer permenet long time fixes over quick immediate fixes
+- if a task takes to long and youre doing your fourth iteration and still you have nothing to show the user take a break stop admit you failed and asuer user for help

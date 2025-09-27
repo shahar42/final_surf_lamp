@@ -25,6 +25,22 @@ from email.mime.multipart import MIMEMultipart
 from typing import Dict, List, Optional, Tuple
 import logging
 
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # If dotenv not available, try manual loading
+    if os.path.exists('.env'):
+        with open('.env', 'r') as f:
+            for line in f:
+                if '=' in line and not line.strip().startswith('#'):
+                    key, value = line.strip().split('=', 1)
+                    # Remove quotes if present
+                    if value.startswith('"') and value.endswith('"'):
+                        value = value[1:-1]
+                    os.environ[key] = value
+
 # Add render-mcp-server to path
 sys.path.append('./render-mcp-server')
 

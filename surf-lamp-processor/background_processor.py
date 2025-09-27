@@ -492,8 +492,9 @@ def format_for_arduino(surf_data, format_type="meters", location=None):
         formatted['wave_height_cm'] = int(round(formatted['wave_height_m'] * 100))
         del formatted['wave_height_m']
 
-    if 'wind_speed_mps' in formatted:
-        formatted['wind_speed_mps'] = int(round(formatted['wind_speed_mps']))
+    # Keep wind_speed_mps as float for Arduino precision
+    # Arduino uses: windSpeedLEDs = windSpeed * 18.0 / 13.0
+    # Converting to int loses precision (e.g., 3.93 → 4, 4.35 → 4)
 
     if format_type == "feet":
         if 'wave_height_cm' in formatted:

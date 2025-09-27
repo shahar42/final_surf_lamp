@@ -1,18 +1,22 @@
 {
-  "timestamp": "2025-09-24T02:28:13.103265",
-  "overall_status": "\ud83d\udfe2 HEALTHY",
+  "timestamp": "2025-09-26T23:58:14.846679",
+  "overall_status": "\ud83d\udd34 CRITICAL",
   "checks": {
     "service_health": [
-      "\ud83d\udfe2 HEALTHY",
-      []
+      "\ud83d\udd34 CRITICAL",
+      [
+        "\ud83c\udf10 Web service appears unhealthy"
+      ]
     ],
     "recent_errors": [
       "\ud83d\udfe2 HEALTHY",
       []
     ],
     "processing_cycles": [
-      "\ud83d\udfe2 HEALTHY",
-      []
+      "\ud83d\udd34 CRITICAL",
+      [
+        "\ud83d\udd27 No successful processing cycles found in recent logs"
+      ]
     ],
     "api_responses": [
       "\ud83d\udfe2 HEALTHY",
@@ -23,6 +27,9 @@
       []
     ]
   },
-  "issues": [],
-  "summary": "Health check completed: \ud83d\udfe2 HEALTHY"
+  "issues": [
+    "**Service Health**: \ud83c\udf10 Web service appears unhealthy",
+    "**Processing Cycles**: \ud83d\udd27 No successful processing cycles found in recent logs"
+  ],
+  "summary": "Health check completed: \ud83d\udd34 CRITICAL"
 }

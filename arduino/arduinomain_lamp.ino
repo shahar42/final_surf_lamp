@@ -27,6 +27,16 @@ ServerDiscovery serverDiscovery;
 
 #define WIFI_TIMEOUT 30  // Timeout for WiFi connection in seconds
 
+// LED Calculation Constants
+#define WIND_SCALE_NUMERATOR 18.0    // Wind speed scaling factor (numerator)
+#define WIND_SCALE_DENOMINATOR 13.0  // Wind speed scaling factor (denominator)
+#define MPS_TO_KNOTS_FACTOR 1.94384  // Conversion factor from m/s to knots
+#define WAVE_HEIGHT_DIVISOR 25       // Wave height scaling divisor (cm to LEDs)
+#define THRESHOLD_BRIGHTNESS_MULTIPLIER 1.6  // Brightness multiplier for threshold alerts
+#define MAX_BRIGHTNESS 255           // Maximum LED brightness value
+#define HTTP_TIMEOUT_MS 15000        // HTTP request timeout in milliseconds
+#define JSON_CAPACITY 1024           // JSON document capacity for Arduino data
+
 // Device Configuration
 const int ARDUINO_ID = 4433;  // ✨ CHANGE THIS for each Arduino device
 
@@ -121,30 +131,53 @@ CHSV colorMapWind[] = {
 
 // ---------------------------- Theme Color Functions ----------------------------
 
-String currentTheme = "day";  // Default theme
+String currentTheme = "ocean_breeze";  // Default theme
+
+struct ThemeColors {
+    CHSV wave_color;
+    CHSV wind_color;
+    CHSV period_color;
+};
+
+ThemeColors getThemeColors(String theme) {
+    // Professional LED theme system with FastLED CHSV values
+    if (theme == "ocean_breeze") {
+        return {{160, 255, 200}, {200, 255, 200}, {180, 255, 200}}; // Cool blues and teals
+    } else if (theme == "sunset_surf") {
+        return {{20, 255, 220}, {0, 255, 220}, {10, 255, 220}}; // Warm oranges and reds
+    } else if (theme == "tropical_paradise") {
+        return {{85, 255, 200}, {140, 255, 200}, {110, 255, 200}}; // Vibrant greens and blues
+    } else if (theme == "arctic_wind") {
+        return {{170, 180, 255}, {200, 180, 255}, {185, 180, 255}}; // Cool whites and ice blues
+    } else if (theme == "fire_storm") {
+        return {{40, 255, 240}, {10, 255, 240}, {25, 255, 240}}; // Intense reds and yellows
+    } else if (theme == "midnight_ocean") {
+        return {{210, 255, 150}, {240, 255, 150}, {225, 255, 150}}; // Deep purples and dark blues
+    } else if (theme == "spring_meadow") {
+        return {{60, 200, 200}, {90, 200, 200}, {75, 200, 200}}; // Fresh greens and yellows
+    } else if (theme == "royal_purple") {
+        return {{240, 255, 180}, {220, 255, 180}, {230, 255, 180}}; // Majestic purples and magentas
+    } else if (theme == "golden_hour") {
+        return {{30, 200, 220}, {45, 200, 220}, {37, 200, 220}}; // Warm golds and amber tones
+    } else if (theme == "dark") {
+        // Legacy dark theme
+        return {{135, 255, 255}, {24, 250, 240}, {85, 155, 205}};
+    } else {
+        // Legacy day theme / fallback
+        return {{150, 230, 255}, {15, 0, 255}, {45, 230, 255}};
+    }
+}
 
 CHSV getWindSpeedColor(String theme) {
-    if (theme == "dark") {
-        return CHSV(24, 250, 240);  // Orange - Color #10
-    } else {
-        return CHSV(15, 0, 255);     // White - Color #29
-    }
+    return getThemeColors(theme).wind_color;
 }
 
 CHSV getWaveHeightColor(String theme) {
-    if (theme == "dark") {
-        return CHSV(135, 255, 255); // Nice blue - Color #24
-    } else {
-        return CHSV(150, 230, 255); // Deep ice blue - Color #5
-    }
+    return getThemeColors(theme).wave_color;
 }
 
 CHSV getWavePeriodColor(String theme) {
-    if (theme == "dark") {
-        return CHSV(85, 155, 205);  // Really nice green - Color #22
-    } else {
-        return CHSV(45, 230, 255);  // Yellow - Color #9
-    }
+    return getThemeColors(theme).period_color;
 }
 
 
@@ -186,7 +219,7 @@ void blinkStatusLED(CRGB color)
 
     // Gentler breathing pattern
     float brightnessFactor = 0.7 + 0.3 * sin(statusPhase);
-    int adjustedBrightness = min(255, (int)(255 * brightnessFactor));
+    int adjustedBrightness = min(MAX_BRIGHTNESS, (int)(MAX_BRIGHTNESS * brightnessFactor));
 
     // Convert RGB to HSV for brightness control
     CHSV hsvColor = rgb2hsv_approximate(color);
@@ -242,7 +275,7 @@ void updateBlinkingLEDs(int numActiveLeds, int segmentLen, CRGB* leds, CHSV base
             // Ensure brightness stays within reasonable bounds
             brightnessFactor = constrain(brightnessFactor, 0.52, 1.0);
 
-            int adjustedBrightness = min(255, (int)(baseColor.val * brightnessFactor));
+            int adjustedBrightness = min(MAX_BRIGHTNESS, (int)(baseColor.val * brightnessFactor));
             leds[i] = CHSV(baseColor.hue, baseColor.sat, adjustedBrightness);
         } else {
             leds[i] = CRGB::Black;
@@ -269,7 +302,7 @@ void updateBlinkingCenterLEDs(int numActiveLeds, CHSV baseColor) {
             // Ensure brightness stays within reasonable bounds
             brightnessFactor = constrain(brightnessFactor, 0.52, 1.0);
 
-            int adjustedBrightness = min(255, (int)(baseColor.val * brightnessFactor));
+            int adjustedBrightness = min(MAX_BRIGHTNESS, (int)(baseColor.val * brightnessFactor));
             leds_center[i] = CHSV(baseColor.hue, baseColor.sat, adjustedBrightness);
         } else {
             leds_center[i] = CRGB::Black;
@@ -289,7 +322,7 @@ void updateLEDsOneColor(int numActiveLeds, int segmentLen, CRGB* leds, CHSV colo
 
 void applyWindSpeedThreshold(int windSpeedLEDs, int windSpeed_mps, int windSpeedThreshold_knots) {
     // Convert wind speed from m/s to knots for threshold comparison
-    float windSpeedInKnots = windSpeed_mps * 1.94384;
+    float windSpeedInKnots = windSpeed_mps * MPS_TO_KNOTS_FACTOR;
 
     // Check if quiet hours are active - disable threshold blinking during sleep time
     if (lastSurfData.quietHoursActive || windSpeedInKnots < windSpeedThreshold_knots) {
@@ -298,7 +331,7 @@ void applyWindSpeedThreshold(int windSpeedLEDs, int windSpeed_mps, int windSpeed
     } else {
         // ALERT MODE: Blinking theme-based wind speed LEDs (starting from second LED)
         CHSV themeColor = getWindSpeedColor(currentTheme);
-        updateBlinkingCenterLEDs(windSpeedLEDs, CHSV(themeColor.hue, themeColor.sat, min(255, (int)(255 * 1.6)))); // Blinking theme color
+        updateBlinkingCenterLEDs(windSpeedLEDs, CHSV(themeColor.hue, themeColor.sat, min(MAX_BRIGHTNESS, (int)(MAX_BRIGHTNESS * THRESHOLD_BRIGHTNESS_MULTIPLIER)))); // Blinking theme color
     }
 }
 
@@ -310,7 +343,7 @@ void applyWaveHeightThreshold(int waveHeightLEDs, int waveHeight_cm, int waveThr
     } else {
         // ALERT MODE: Blinking theme-based wave height LEDs
         CHSV themeColor = getWaveHeightColor(currentTheme);
-        updateBlinkingLEDs(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, CHSV(themeColor.hue, themeColor.sat, min(255, (int)(255 * 1.6)))); // Blinking theme color
+        updateBlinkingLEDs(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, CHSV(themeColor.hue, themeColor.sat, min(MAX_BRIGHTNESS, (int)(MAX_BRIGHTNESS * THRESHOLD_BRIGHTNESS_MULTIPLIER)))); // Blinking theme color
     }
 }
 
@@ -332,19 +365,19 @@ void updateBlinkingAnimation() {
     bool needsUpdate = false;
 
     // Check if wind speed threshold is exceeded
-    float windSpeedInKnots = lastSurfData.windSpeed * 1.94384;
+    float windSpeedInKnots = lastSurfData.windSpeed * MPS_TO_KNOTS_FACTOR;
     if (windSpeedInKnots >= lastSurfData.windSpeedThreshold) {
-        int windSpeedLEDs = constrain(static_cast<int>(lastSurfData.windSpeed * 18.0 / 13.0), 1, NUM_LEDS_CENTER - 2);
+        int windSpeedLEDs = constrain(static_cast<int>(lastSurfData.windSpeed * WIND_SCALE_NUMERATOR / WIND_SCALE_DENOMINATOR), 1, NUM_LEDS_CENTER - 2);
         CHSV themeColor = getWindSpeedColor(currentTheme);
-        updateBlinkingCenterLEDs(windSpeedLEDs, CHSV(themeColor.hue, themeColor.sat, min(255, (int)(255 * 1.6))));
+        updateBlinkingCenterLEDs(windSpeedLEDs, CHSV(themeColor.hue, themeColor.sat, min(MAX_BRIGHTNESS, (int)(MAX_BRIGHTNESS * THRESHOLD_BRIGHTNESS_MULTIPLIER))));
         needsUpdate = true;
     }
 
     // Check if wave height threshold is exceeded
     if (lastSurfData.waveHeight >= lastSurfData.waveThreshold) {
-        int waveHeightLEDs = constrain(static_cast<int>(lastSurfData.waveHeight / 25) + 1, 0, NUM_LEDS_RIGHT);
+        int waveHeightLEDs = constrain(static_cast<int>(lastSurfData.waveHeight / WAVE_HEIGHT_DIVISOR) + 1, 0, NUM_LEDS_RIGHT);
         CHSV themeColor = getWaveHeightColor(currentTheme);
-        updateBlinkingLEDs(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, CHSV(themeColor.hue, themeColor.sat, min(255, (int)(255 * 1.6))));
+        updateBlinkingLEDs(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, CHSV(themeColor.hue, themeColor.sat, min(MAX_BRIGHTNESS, (int)(MAX_BRIGHTNESS * THRESHOLD_BRIGHTNESS_MULTIPLIER))));
         needsUpdate = true;
     }
 
@@ -601,6 +634,27 @@ void handleStatusRequest() {
     statusDoc["last_surf_data"]["wind_speed_threshold_knots"] = lastSurfData.windSpeedThreshold;
     statusDoc["last_surf_data"]["quiet_hours_active"] = lastSurfData.quietHoursActive;
     statusDoc["last_surf_data"]["last_update_ms"] = lastSurfData.lastUpdate;
+
+    // Fetch timing information
+    statusDoc["fetch_info"]["last_fetch_ms"] = lastDataFetch;
+    statusDoc["fetch_info"]["fetch_interval_ms"] = FETCH_INTERVAL;
+    statusDoc["fetch_info"]["time_since_last_fetch_ms"] = millis() - lastDataFetch;
+    statusDoc["fetch_info"]["time_until_next_fetch_ms"] = FETCH_INTERVAL - (millis() - lastDataFetch);
+
+    // LED calculation debug info
+    if (lastSurfData.dataReceived) {
+        int windSpeedLEDs = constrain(static_cast<int>(lastSurfData.windSpeed * WIND_SCALE_NUMERATOR / WIND_SCALE_DENOMINATOR), 1, NUM_LEDS_CENTER - 2);
+        int waveHeightLEDs = constrain(static_cast<int>(lastSurfData.waveHeight * 100 / WAVE_HEIGHT_DIVISOR) + 1, 0, NUM_LEDS_RIGHT);
+        int wavePeriodLEDs = constrain(static_cast<int>(lastSurfData.wavePeriod), 0, NUM_LEDS_LEFT);
+
+        statusDoc["led_calculations"]["wind_speed_leds"] = windSpeedLEDs;
+        statusDoc["led_calculations"]["wind_formula"] = "windSpeed * " + String(WIND_SCALE_NUMERATOR) + " / " + String(WIND_SCALE_DENOMINATOR);
+        statusDoc["led_calculations"]["wind_calculation"] = String(lastSurfData.windSpeed) + " * " + String(WIND_SCALE_NUMERATOR) + " / " + String(WIND_SCALE_DENOMINATOR) + " = " + String(lastSurfData.windSpeed * WIND_SCALE_NUMERATOR / WIND_SCALE_DENOMINATOR);
+        statusDoc["led_calculations"]["wave_height_leds"] = waveHeightLEDs;
+        statusDoc["led_calculations"]["wave_period_leds"] = wavePeriodLEDs;
+        statusDoc["led_calculations"]["wind_speed_knots"] = lastSurfData.windSpeed * MPS_TO_KNOTS_FACTOR;
+        statusDoc["led_calculations"]["wind_threshold_exceeded"] = (lastSurfData.windSpeed * MPS_TO_KNOTS_FACTOR) >= lastSurfData.windSpeedThreshold;
+    }
     
     String statusJson;
     serializeJson(statusDoc, statusJson);
@@ -768,8 +822,8 @@ bool processSurfData(const String &jsonData) {
 void updateSurfDisplay(int waveHeight_cm, float wavePeriod, int windSpeed, int windDirection, int waveThreshold_cm, int windSpeedThreshold_knots) {
     // Calculate LED counts based on surf data
     // Scale wind speed to use full LED range (0-13 m/s maps to 0-18 LEDs)
-    int windSpeedLEDs = constrain(static_cast<int>(windSpeed * 18.0 / 13.0), 1, NUM_LEDS_CENTER - 2);
-    int waveHeightLEDs = constrain(static_cast<int>(waveHeight_cm / 25) + 1, 0, NUM_LEDS_RIGHT);
+    int windSpeedLEDs = constrain(static_cast<int>(windSpeed * WIND_SCALE_NUMERATOR / WIND_SCALE_DENOMINATOR), 1, NUM_LEDS_CENTER - 2);
+    int waveHeightLEDs = constrain(static_cast<int>(waveHeight_cm / WAVE_HEIGHT_DIVISOR) + 1, 0, NUM_LEDS_RIGHT);
     int wavePeriodLEDs = constrain(static_cast<int>(wavePeriod), 0, NUM_LEDS_LEFT);
     
     // Set wind direction indicator

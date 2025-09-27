@@ -38,10 +38,10 @@ OWNER_ID = os.getenv("OWNER_ID")
 BACKGROUND_SERVICE_ID = os.getenv("BACKGROUND_SERVICE_ID")
 
 if not RENDER_API_KEY:
-    logger.error("❌ RENDER_API_KEY environment variable is required")
+    logger.error("ERROR: RENDER_API_KEY environment variable is required")
     sys.exit(1)
 if not OWNER_ID:
-    logger.error("❌ OWNER_ID environment variable is required for log access")
+    logger.error("ERROR: OWNER_ID environment variable is required for log access")
     sys.exit(1)
 RENDER_BASE_URL = "https://api.render.com"
 
@@ -120,33 +120,59 @@ async def render_deployments(service_id: Optional[str] = None, limit: int = 10) 
         url = f"{RENDER_BASE_URL}/v1/services/{target_service_id}/deploys?limit={limit}"
         response = await run_curl(url)
 
-        deployments = response if isinstance(response, list) else response.get('deploys', [])
+        # Debug: Add response structure info for troubleshooting
+        if not isinstance(response, (list, dict)) or (isinstance(response, dict) and not response):
+            return f"ERROR: Unexpected API response format for service {target_service_id}: {type(response)}"
+
+        # Handle various API response formats
+        if isinstance(response, list):
+            deployments = response
+        elif isinstance(response, dict):
+            # Check for wrapped deployments
+            deployments = response.get('deploys', response.get('data', []))
+            # If still empty, check if each item has a 'deploy' wrapper
+            if not deployments and response:
+                deployments = [response]
+        else:
+            deployments = []
 
         if not deployments:
             return f"No deployments found for service {target_service_id}"
 
         # Format deployment history
         formatted = []
-        formatted.append(f"🚀 Recent Deployments for Service: {target_service_id}")
-        formatted.append(f"📊 Showing {len(deployments)} most recent deployments")
+        formatted.append(f"Recent Deployments for Service: {target_service_id}")
+        formatted.append(f"Showing {len(deployments)} most recent deployments")
         formatted.append("\n" + "="*80 + "\n")
 
-        for i, deploy in enumerate(deployments, 1):
-            deploy_id = deploy.get('id', 'Unknown')
-            status = deploy.get('status', 'Unknown')
-            created_at = deploy.get('createdAt', 'Unknown')
-            finished_at = deploy.get('finishedAt', 'In Progress')
+        for i, deploy_item in enumerate(deployments, 1):
+            # Handle deploy being wrapped in another structure
+            if isinstance(deploy_item, dict) and 'deploy' in deploy_item:
+                deploy = deploy_item['deploy']
+            else:
+                deploy = deploy_item
 
-            # Status emoji
-            status_emoji = {
-                'live': '✅',
-                'build_failed': '❌',
-                'build_in_progress': '🔄',
-                'canceled': '⏹️',
-                'pre_deploy_failed': '⚠️'
-            }.get(status, '❓')
+            # Safe extraction with type checking
+            deploy_id = deploy.get('id', 'Unknown') if isinstance(deploy, dict) else 'Unknown'
+            status = deploy.get('status', 'Unknown') if isinstance(deploy, dict) else 'Unknown'
+            created_at = deploy.get('createdAt', 'Unknown') if isinstance(deploy, dict) else 'Unknown'
+            finished_at = deploy.get('finishedAt', 'In Progress') if isinstance(deploy, dict) else 'In Progress'
 
-            formatted.append(f"[{i:02d}] {status_emoji} Deploy {deploy_id}")
+            # Status mapping
+            status_prefix = {
+                'live': 'LIVE',
+                'build_failed': 'FAILED',
+                'build_in_progress': 'BUILDING',
+                'canceled': 'CANCELED',
+                'pre_deploy_failed': 'DEPLOY_FAILED',
+                'created': 'CREATED',
+                'build_successful': 'BUILD_OK',
+                'deploy_started': 'DEPLOYING',
+                'deploy_failed': 'DEPLOY_FAILED',
+                'deploy_successful': 'DEPLOYED'
+            }.get(status.lower() if status != 'Unknown' else 'unknown', 'UNKNOWN')
+
+            formatted.append(f"[{i:02d}] {status_prefix} Deploy {deploy_id}")
             formatted.append(f"     Status: {status}")
             formatted.append(f"     Created: {created_at}")
             formatted.append(f"     Finished: {finished_at}")
@@ -155,7 +181,7 @@ async def render_deployments(service_id: Optional[str] = None, limit: int = 10) 
         return "\n".join(formatted)
 
     except Exception as e:
-        return f"❌ Error fetching deployments: {str(e)}"
+        return f"Error fetching deployments: {str(e)}"
 
 @mcp.tool()
 async def render_service_status(service_id: Optional[str] = None) -> str:
@@ -188,8 +214,8 @@ async def render_service_status(service_id: Optional[str] = None) -> str:
             url_info = 'N/A (Background Service)'
 
         formatted = []
-        formatted.append(f"📊 Service Status: {target_service_id}")
-        formatted.append(f"✅ {name}")
+        formatted.append(f"INFO: Service Status: {target_service_id}")
+        formatted.append(f"SUCCESS: {name}")
         formatted.append("\n" + "="*50)
         formatted.append(f"Type: {service_type}")
         formatted.append(f"URL: {url_info}")
@@ -206,20 +232,23 @@ async def render_service_status(service_id: Optional[str] = None) -> str:
         return "\n".join(formatted)
 
     except Exception as e:
-        return f"❌ Error fetching service status: {str(e)}"
+        return f"ERROR: Error fetching service status: {str(e)}"
 
 
 @mcp.tool()
 async def render_service_events(service_id: Optional[str] = None, limit: int = 20) -> str:
     """
-    Get recent service events including builds, deploys, and health changes.
+    DEBUG: Intelligent service events analysis with actionable insights.
+
+    ENHANCED FOR LLM USE: Provides structured, actionable insights instead of raw event data.
+    Automatically categorizes issues, suggests solutions, and highlights what needs attention.
 
     Args:
         service_id: Render service ID (defaults to configured SERVICE_ID)
-        limit: Number of recent events to show (max 50)
+        limit: Number of recent events to analyze (max 50)
 
     Returns:
-        Formatted service events timeline (all timestamps in UTC - add 3 hours for Israel time)
+        Structured analysis with status summary, problems, and recommended actions
     """
     try:
         target_service_id = service_id or SERVICE_ID
@@ -231,59 +260,111 @@ async def render_service_events(service_id: Optional[str] = None, limit: int = 2
         events = response if isinstance(response, list) else response.get('events', [])
 
         if not events:
-            return f"No events found for service {target_service_id}"
+            return f"LIST: No events found for service {target_service_id}\nTIP: This could indicate a new service or connection issues"
 
-        # Format events timeline
-        formatted = []
-        formatted.append(f"📅 Service Events Timeline: {target_service_id}")
-        formatted.append(f"📊 Showing {len(events)} most recent events")
-        formatted.append("\n" + "="*80 + "\n")
+        # Analyze events for patterns
+        deployments = []
+        health_issues = []
+        recent_problems = []
 
-        for i, event_data in enumerate(events, 1):
+        for event_data in events:
             event = event_data.get('event', {})
             event_type = event.get('type', 'Unknown')
             timestamp = event.get('timestamp', 'Unknown')
             details = event.get('details', {})
 
-            # Event type emoji
-            type_emoji = {
-                'deploy_started': '🚀',
-                'deploy_ended': '✅',
-                'build_started': '🔨',
-                'build_ended': '🏗️',
-                'server_unhealthy': '⚠️',
-                'server_healthy': '💚'
-            }.get(event_type, '📋')
+            if 'deploy' in event_type:
+                status = details.get('deployStatus', 'unknown')
+                deployments.append({'type': event_type, 'status': status, 'time': timestamp})
 
-            formatted.append(f"[{i:02d}] {type_emoji} {event_type}")
-            formatted.append(f"     Time: {timestamp}")
+            if 'unhealthy' in event_type or 'failed' in event_type.lower():
+                recent_problems.append({'type': event_type, 'time': timestamp, 'details': details})
 
-            # Add specific details based on event type
-            if 'deployId' in details:
-                formatted.append(f"     Deploy ID: {details['deployId']}")
-            if 'buildId' in details:
-                formatted.append(f"     Build ID: {details['buildId']}")
-            if 'deployStatus' in details:
-                formatted.append(f"     Status: {details['deployStatus']}")
-            if 'buildStatus' in details:
-                formatted.append(f"     Status: {details['buildStatus']}")
-            if 'instanceID' in details:
-                formatted.append(f"     Instance: {details['instanceID']}")
+            if 'server_' in event_type:
+                health_issues.append({'type': event_type, 'time': timestamp})
 
-            # Add trigger info if available
-            trigger = details.get('trigger', {})
-            if trigger.get('newCommit'):
-                commit = trigger['newCommit'][:8]
-                formatted.append(f"     Commit: {commit}")
-            if trigger.get('manual'):
-                formatted.append(f"     Trigger: Manual deployment")
+        # Generate intelligent summary
+        formatted = []
+        formatted.append(f"INTELLIGENT SERVICE ANALYSIS: {target_service_id}")
+        formatted.append("=" * 60)
 
-            formatted.append("")
+        # Overall Status Assessment
+        recent_failures = len([p for p in recent_problems if any(keyword in p['type'].lower() for keyword in ['fail', 'error', 'unhealthy'])])
+        if recent_failures == 0:
+            formatted.append("STATUS: HEALTHY - No recent issues detected")
+        elif recent_failures <= 2:
+            formatted.append("STATUS: MINOR ISSUES - Some problems but service recovering")
+        else:
+            formatted.append("STATUS: NEEDS ATTENTION - Multiple recent failures")
+
+        # Deployment Analysis
+        if deployments:
+            latest_deploy = deployments[0]
+            deploy_status = latest_deploy.get('status', 'unknown')
+
+            formatted.append(f"\nDEPLOYMENT STATUS:")
+            if deploy_status == 'live':
+                formatted.append("   Latest deployment: SUCCESSFUL")
+            elif 'fail' in deploy_status:
+                formatted.append("   Latest deployment: FAILED")
+                formatted.append("   Action: Check build logs and fix deployment issues")
+            else:
+                formatted.append(f"   Latest deployment: {deploy_status.upper()}")
+
+            total_deployments = len(deployments)
+            failed_deployments = len([d for d in deployments if 'fail' in d.get('status', '')])
+            if failed_deployments > 0:
+                formatted.append(f"   Recent activity: {failed_deployments}/{total_deployments} deployments failed")
+
+        # Health Analysis
+        if health_issues:
+            unhealthy_events = len([h for h in health_issues if 'unhealthy' in h['type']])
+            healthy_events = len([h for h in health_issues if 'healthy' in h['type']])
+
+            formatted.append(f"\nHEALTH MONITORING:")
+            if unhealthy_events > healthy_events:
+                formatted.append("   Stability concern: More unhealthy than healthy events")
+                formatted.append("   Action: Monitor resource usage, consider scaling up")
+            elif healthy_events > 0:
+                formatted.append("   Recovery detected: Service self-healing properly")
+            else:
+                formatted.append("   Health status: No significant health events")
+
+        # Problem Summary & Actions
+        if recent_problems:
+            formatted.append(f"\nRECENT PROBLEMS ({len(recent_problems)} found):")
+            problem_types = {}
+            for problem in recent_problems:
+                ptype = problem['type']
+                problem_types[ptype] = problem_types.get(ptype, 0) + 1
+
+            for ptype, count in problem_types.items():
+                formatted.append(f"   - {ptype}: {count} occurrences")
+
+            formatted.append(f"\nRECOMMENDED ACTIONS:")
+            if any('deploy' in p['type'] for p in recent_problems):
+                formatted.append("   - Check deployment configuration and build process")
+            if any('server' in p['type'] for p in recent_problems):
+                formatted.append("   - Monitor server resources (CPU, memory, disk)")
+                formatted.append("   - Consider upgrading service plan if resource-related")
+            formatted.append("   - Review recent commits for potential code issues")
+
+        else:
+            formatted.append(f"\nNO PROBLEMS DETECTED")
+            formatted.append("   Service appears to be running smoothly")
+
+        # Quick Action Summary
+        formatted.append(f"\nQUICK STATUS:")
+        action_needed = recent_failures > 0 or len([d for d in deployments if 'fail' in d.get('status', '')]) > 0
+        if action_needed:
+            formatted.append("   ACTION REQUIRED: Issues need investigation")
+        else:
+            formatted.append("   NO ACTION NEEDED: Service operating normally")
 
         return "\n".join(formatted)
 
     except Exception as e:
-        return f"❌ Error fetching service events: {str(e)}"
+        return f"ERROR: Error analyzing service events: {str(e)}"
 
 @mcp.tool()
 async def render_environment_vars(service_id: Optional[str] = None) -> str:
@@ -309,8 +390,8 @@ async def render_environment_vars(service_id: Optional[str] = None) -> str:
 
         # Format environment variables
         formatted = []
-        formatted.append(f"🔧 Environment Variables: {target_service_id}")
-        formatted.append(f"📊 Found {len(env_vars)} environment variables")
+        formatted.append(f"CONFIG: Environment Variables: {target_service_id}")
+        formatted.append(f"INFO: Found {len(env_vars)} environment variables")
         formatted.append("\n" + "="*60 + "\n")
 
         for i, env_data in enumerate(env_vars, 1):
@@ -335,7 +416,7 @@ async def render_environment_vars(service_id: Optional[str] = None) -> str:
         return "\n".join(formatted)
 
     except Exception as e:
-        return f"❌ Error fetching environment variables: {str(e)}"
+        return f"ERROR: Error fetching environment variables: {str(e)}"
 
 @mcp.tool()
 async def render_list_all_services() -> str:
@@ -356,8 +437,8 @@ async def render_list_all_services() -> str:
 
         # Format services list
         formatted = []
-        formatted.append(f"🏢 All Render Services")
-        formatted.append(f"📊 Found {len(services)} services")
+        formatted.append(f"SERVICES: All Render Services")
+        formatted.append(f"INFO: Found {len(services)} services")
         formatted.append("\n" + "="*80 + "\n")
 
         for i, service_data in enumerate(services, 1):
@@ -369,11 +450,11 @@ async def render_list_all_services() -> str:
 
             # Service type emoji
             type_emoji = {
-                'web_service': '🌐',
-                'background_worker': '⚙️',
+                'web_service': 'WEB:',
+                'background_worker': 'WORKER:',
                 'private_service': '🔒',
-                'static_site': '📄'
-            }.get(service_type, '📋')
+                'static_site': 'FILE:'
+            }.get(service_type, 'LIST:')
 
             formatted.append(f"[{i:02d}] {type_emoji} {name}")
             formatted.append(f"     ID: {service_id}")
@@ -390,7 +471,7 @@ async def render_list_all_services() -> str:
         return "\n".join(formatted)
 
     except Exception as e:
-        return f"❌ Error listing services: {str(e)}"
+        return f"ERROR: Error listing services: {str(e)}"
 
 @mcp.tool()
 async def render_deploy_details(deploy_id: str, service_id: Optional[str] = None) -> str:
@@ -417,7 +498,7 @@ async def render_deploy_details(deploy_id: str, service_id: Optional[str] = None
 
         # Format deployment details
         formatted = []
-        formatted.append(f"🚀 Deployment Details: {deploy_id}")
+        formatted.append(f"DEPLOY: Deployment Details: {deploy_id}")
         formatted.append("\n" + "="*60 + "\n")
 
         # Basic info
@@ -431,7 +512,7 @@ async def render_deploy_details(deploy_id: str, service_id: Optional[str] = None
         # Commit info
         commit = deploy.get('commit', {})
         if commit:
-            formatted.append("\n📝 Commit Information:")
+            formatted.append("\nNOTE: Commit Information:")
             formatted.append(f"Hash: {commit.get('id', 'Unknown')}")
             formatted.append(f"Message: {commit.get('message', 'No message')}")
             formatted.append(f"Created: {commit.get('createdAt', 'Unknown')}")
@@ -439,7 +520,7 @@ async def render_deploy_details(deploy_id: str, service_id: Optional[str] = None
         return "\n".join(formatted)
 
     except Exception as e:
-        return f"❌ Error fetching deployment details: {str(e)}"
+        return f"ERROR: Error fetching deployment details: {str(e)}"
 
 # =================== NEW ENHANCED TOOLS ===================
 
@@ -493,13 +574,13 @@ def _format_service_list(services, detailed=False):
     """Format services for display"""
     formatted = []
     for service in services:
-        status_emoji = "✅" if service['suspended'] == 'not_suspended' else "⏸️"
+        status_emoji = "SUCCESS:" if service['suspended'] == 'not_suspended' else "SUSPENDED:"
         type_emoji = {
-            'web_service': '🌐',
-            'background_worker': '⚙️',
+            'web_service': 'WEB:',
+            'background_worker': 'WORKER:',
             'private_service': '🔒',
-            'static_site': '📄'
-        }.get(service['type'], '📋')
+            'static_site': 'FILE:'
+        }.get(service['type'], 'LIST:')
 
         cost_str = f"${service['cost']:.0f}/mo" if service['cost'] > 0 else "FREE"
 
@@ -519,12 +600,20 @@ def _format_service_list(services, detailed=False):
     return "\n".join(formatted)
 
 @mcp.tool()
-async def render_services_overview() -> str:
+async def render_services_status(analysis_level: str = "summary") -> str:
     """
-    📊 Quick overview of all Render services with cost and status summary.
+    SERVICES: Smart service status tool that adapts output based on your needs.
+
+    USAGE GUIDANCE:
+    - Use "summary" for quick health checks and cost overview
+    - Use "detailed" for deep investigation and troubleshooting
+    - Use "problems" to focus only on services needing attention
+
+    Args:
+        analysis_level: "summary" (default), "detailed", or "problems"
 
     Returns:
-        High-level dashboard of all services including costs and status
+        Intelligent service analysis tailored to your investigation needs
     """
     try:
         data = await _fetch_all_services_data()
@@ -538,77 +627,71 @@ async def render_services_overview() -> str:
         active_services = len([s for s in services if s['suspended'] == 'not_suspended'])
         suspended_services = total_services - active_services
         total_cost = sum(s['cost'] for s in services)
+        problem_services = [s for s in services if s['suspended'] != 'not_suspended' and s['cost'] > 0]
 
-        # Group by type
-        web_services = len([s for s in services if s['type'] == 'web_service'])
-        workers = len([s for s in services if s['type'] == 'background_worker'])
+        if analysis_level == "problems":
+            if not problem_services:
+                return "ALL SERVICES HEALTHY\nNo issues detected - all services running normally"
 
-        formatted = []
-        formatted.append("🏢 Render Services Overview")
-        formatted.append("═" * 40)
-        formatted.append(f"📊 Total Services: {total_services}")
-        formatted.append(f"✅ Active: {active_services}")
-        if suspended_services > 0:
-            formatted.append(f"⏸️ Suspended: {suspended_services}")
-        formatted.append(f"💰 Monthly Cost: ${total_cost:.2f}")
-        formatted.append(f"🌐 Web Services: {web_services}")
-        formatted.append(f"⚙️ Workers: {workers}")
-        formatted.append("\n" + "─" * 40)
-        formatted.append(_format_service_list(services))
+            formatted = []
+            formatted.append("SERVICES NEEDING ATTENTION")
+            formatted.append("=" * 40)
+            formatted.append(f"Problems Found: {len(problem_services)}")
+            wasted_cost = sum(s['cost'] for s in problem_services)
+            formatted.append(f"Money Being Wasted: ${wasted_cost:.2f}/month")
+            formatted.append("\nACTION REQUIRED:")
 
-        return "\n".join(formatted)
+            for service in problem_services:
+                formatted.append(f"   {service['name']}: SUSPENDED but still billing ${service['cost']}/mo")
+                formatted.append(f"      Recommended: Delete or resume this service")
 
-    except Exception as e:
-        return f"❌ Error fetching services overview: {str(e)}"
+            return "\n".join(formatted)
 
-@mcp.tool()
-async def render_services_detailed(service_filter: str = "all") -> str:
-    """
-    🔍 Detailed view of services with filtering options.
+        elif analysis_level == "detailed":
+            formatted = []
+            formatted.append("DEBUG: DETAILED SERVICE ANALYSIS")
+            formatted.append("═" * 60)
+            formatted.append(f"INFO: Total: {total_services} | SUCCESS: Active: {active_services} | COST: Cost: ${total_cost:.2f}/mo")
+            formatted.append("\n" + "─" * 60 + "\n")
+            formatted.append(_format_service_list(services, detailed=True))
 
-    Args:
-        service_filter: Filter services - "all", "web", "worker", "active", "suspended", "paid", "free"
+            if problem_services:
+                formatted.append(f"\nWARNING: ATTENTION NEEDED: {len(problem_services)} services have issues")
 
-    Returns:
-        Detailed information about filtered services
-    """
-    try:
-        data = await _fetch_all_services_data()
-        services = _parse_service_data(data)
+            return "\n".join(formatted)
 
-        # Apply filters
-        if service_filter == "web":
-            services = [s for s in services if s['type'] == 'web_service']
-        elif service_filter == "worker":
-            services = [s for s in services if s['type'] == 'background_worker']
-        elif service_filter == "active":
-            services = [s for s in services if s['suspended'] == 'not_suspended']
-        elif service_filter == "suspended":
-            services = [s for s in services if s['suspended'] != 'not_suspended']
-        elif service_filter == "paid":
-            services = [s for s in services if s['cost'] > 0]
-        elif service_filter == "free":
-            services = [s for s in services if s['cost'] == 0]
+        else:  # summary (default)
+            web_services = len([s for s in services if s['type'] == 'web_service'])
+            workers = len([s for s in services if s['type'] == 'background_worker'])
 
-        if not services:
-            return f"No services found matching filter: {service_filter}"
+            formatted = []
+            formatted.append("SERVICES: SERVICES SUMMARY")
+            formatted.append("═" * 30)
+            formatted.append(f"INFO: Total: {total_services} | SUCCESS: Active: {active_services}")
+            if suspended_services > 0:
+                formatted.append(f"SUSPENDED: Suspended: {suspended_services}")
+            formatted.append(f"COST: Monthly Cost: ${total_cost:.2f}")
+            formatted.append(f"WEB: Web: {web_services} | WORKER: Workers: {workers}")
 
-        formatted = []
-        formatted.append(f"🔍 Detailed Services View ({service_filter})")
-        formatted.append("═" * 60)
-        formatted.append(f"📊 Showing {len(services)} services")
-        formatted.append("\n" + "─" * 60 + "\n")
-        formatted.append(_format_service_list(services, detailed=True))
+            if problem_services:
+                formatted.append(f"ALERT: Issues: {len(problem_services)} services need attention")
+                formatted.append("TIP: Use analysis_level='problems' for details")
+            else:
+                formatted.append("SUCCESS: All services healthy")
 
-        return "\n".join(formatted)
+            formatted.append("\n" + "─" * 30)
+            formatted.append(_format_service_list(services))
+
+            return "\n".join(formatted)
 
     except Exception as e:
-        return f"❌ Error fetching detailed services: {str(e)}"
+        return f"ERROR: Error fetching services status: {str(e)}"
+
 
 @mcp.tool()
 async def render_services_cost_analysis() -> str:
     """
-    💰 Analyze costs across all services with optimization suggestions.
+    COST: Analyze costs across all services with optimization suggestions.
 
     Returns:
         Cost breakdown and optimization recommendations
@@ -627,7 +710,7 @@ async def render_services_cost_analysis() -> str:
         suspended_paid = [s for s in paid_services if s['suspended'] != 'not_suspended']
 
         formatted = []
-        formatted.append("💰 Cost Analysis Report")
+        formatted.append("COST: Cost Analysis Report")
         formatted.append("═" * 40)
         formatted.append(f"💸 Total Monthly Cost: ${total_cost:.2f}")
         formatted.append(f"💳 Paid Services: {len(paid_services)}")
@@ -635,16 +718,16 @@ async def render_services_cost_analysis() -> str:
 
         if suspended_paid:
             wasted_cost = sum(s['cost'] for s in suspended_paid)
-            formatted.append(f"⚠️ Suspended Paid Services: ${wasted_cost:.2f}/mo wasted")
+            formatted.append(f"WARNING: Suspended Paid Services: ${wasted_cost:.2f}/mo wasted")
 
-        formatted.append("\n📊 Cost Breakdown:")
+        formatted.append("\nINFO: Cost Breakdown:")
         for service in paid_services:
-            status = "⏸️ SUSPENDED" if service['suspended'] != 'not_suspended' else "✅ Active"
+            status = "SUSPENDED: SUSPENDED" if service['suspended'] != 'not_suspended' else "SUCCESS: Active"
             formatted.append(f"   ${service['cost']:.0f}/mo - {service['name']} ({status})")
 
         # Optimization suggestions
         if suspended_paid:
-            formatted.append("\n💡 Optimization Suggestions:")
+            formatted.append("\nTIP: Optimization Suggestions:")
             formatted.append("   • Consider deleting suspended paid services")
             for service in suspended_paid:
                 formatted.append(f"     - {service['name']}: ${service['cost']:.0f}/mo savings")
@@ -652,7 +735,7 @@ async def render_services_cost_analysis() -> str:
         return "\n".join(formatted)
 
     except Exception as e:
-        return f"❌ Error analyzing costs: {str(e)}"
+        return f"ERROR: Error analyzing costs: {str(e)}"
 
 @mcp.tool()
 async def render_services_ssh_info() -> str:
@@ -676,24 +759,24 @@ async def render_services_ssh_info() -> str:
         formatted.append("═" * 50)
 
         for service in services_with_ssh:
-            status = "✅" if service['suspended'] == 'not_suspended' else "⏸️"
+            status = "SUCCESS:" if service['suspended'] == 'not_suspended' else "SUSPENDED:"
             formatted.append(f"{status} {service['name']} ({service['type']})")
             formatted.append(f"   ssh {service['ssh_address']}")
             formatted.append(f"   Region: {service['region']}")
             formatted.append("")
 
-        formatted.append("💡 Usage: Copy the SSH command to connect directly to your service")
+        formatted.append("TIP: Usage: Copy the SSH command to connect directly to your service")
 
         return "\n".join(formatted)
 
     except Exception as e:
-        return f"❌ Error fetching SSH info: {str(e)}"
+        return f"ERROR: Error fetching SSH info: {str(e)}"
 
 # Service Management Tools
 @mcp.tool()
 async def render_restart_service(service_id: Optional[str] = None) -> str:
     """
-    🔄 Restart a Render service.
+    RESTART: Restart a Render service.
 
     Args:
         service_id: Service ID to restart (defaults to configured SERVICE_ID)
@@ -707,15 +790,15 @@ async def render_restart_service(service_id: Optional[str] = None) -> str:
         url = f"{RENDER_BASE_URL}/v1/services/{target_service_id}/restart"
         response = await run_curl(url, method="POST")
 
-        return f"✅ Service restart initiated for {target_service_id}\n🔄 Service will restart momentarily"
+        return f"SUCCESS: Service restart initiated for {target_service_id}\nRESTART: Service will restart momentarily"
 
     except Exception as e:
-        return f"❌ Error restarting service: {str(e)}"
+        return f"ERROR: Error restarting service: {str(e)}"
 
 @mcp.tool()
 async def render_suspend_service(service_id: Optional[str] = None) -> str:
     """
-    ⏸️ Suspend a Render service (stops it from running).
+    SUSPENDED: Suspend a Render service (stops it from running).
 
     Args:
         service_id: Service ID to suspend (defaults to configured SERVICE_ID)
@@ -729,15 +812,15 @@ async def render_suspend_service(service_id: Optional[str] = None) -> str:
         url = f"{RENDER_BASE_URL}/v1/services/{target_service_id}/suspend"
         response = await run_curl(url, method="POST")
 
-        return f"⏸️ Service suspension initiated for {target_service_id}\n💰 Service will stop running and billing will pause"
+        return f"SUSPENDED: Service suspension initiated for {target_service_id}\nCOST: Service will stop running and billing will pause"
 
     except Exception as e:
-        return f"❌ Error suspending service: {str(e)}"
+        return f"ERROR: Error suspending service: {str(e)}"
 
 @mcp.tool()
 async def render_resume_service(service_id: Optional[str] = None) -> str:
     """
-    ▶️ Resume a suspended Render service.
+    RESUME: Resume a suspended Render service.
 
     Args:
         service_id: Service ID to resume (defaults to configured SERVICE_ID)
@@ -751,15 +834,15 @@ async def render_resume_service(service_id: Optional[str] = None) -> str:
         url = f"{RENDER_BASE_URL}/v1/services/{target_service_id}/resume"
         response = await run_curl(url, method="POST")
 
-        return f"▶️ Service resume initiated for {target_service_id}\n🚀 Service will start up shortly (30-60 seconds)"
+        return f"RESUME: Service resume initiated for {target_service_id}\nDEPLOY: Service will start up shortly (30-60 seconds)"
 
     except Exception as e:
-        return f"❌ Error resuming service: {str(e)}"
+        return f"ERROR: Error resuming service: {str(e)}"
 
 @mcp.tool()
 async def render_scale_service(num_instances: int, service_id: Optional[str] = None) -> str:
     """
-    📊 Scale a Render service to specified number of instances.
+    INFO: Scale a Render service to specified number of instances.
 
     Args:
         num_instances: Number of instances (0 to stop, 1+ to scale up)
@@ -772,28 +855,28 @@ async def render_scale_service(num_instances: int, service_id: Optional[str] = N
         target_service_id = service_id or SERVICE_ID
 
         if num_instances < 0:
-            return "❌ Number of instances must be 0 or greater"
+            return "ERROR: Number of instances must be 0 or greater"
 
         url = f"{RENDER_BASE_URL}/v1/services/{target_service_id}/scale"
         data = {"numInstances": num_instances}
         response = await run_curl(url, method="POST", data=data)
 
         if num_instances == 0:
-            message = f"🛑 Service {target_service_id} scaled to 0 instances\n💰 Service stopped - no charges while scaled to 0"
+            message = f"🛑 Service {target_service_id} scaled to 0 instances\nCOST: Service stopped - no charges while scaled to 0"
         elif num_instances == 1:
-            message = f"📊 Service {target_service_id} scaled to 1 instance\n💰 Normal billing applies"
+            message = f"INFO: Service {target_service_id} scaled to 1 instance\nCOST: Normal billing applies"
         else:
-            message = f"📈 Service {target_service_id} scaled to {num_instances} instances\n💰 Higher billing - {num_instances}x instance cost"
+            message = f"📈 Service {target_service_id} scaled to {num_instances} instances\nCOST: Higher billing - {num_instances}x instance cost"
 
         return message
 
     except Exception as e:
-        return f"❌ Error scaling service: {str(e)}"
+        return f"ERROR: Error scaling service: {str(e)}"
 
 @mcp.tool()
 async def render_get_custom_domains(service_id: Optional[str] = None) -> str:
     """
-    🌐 List custom domains configured for a service.
+    WEB: List custom domains configured for a service.
 
     Args:
         service_id: Service ID to check (defaults to configured SERVICE_ID)
@@ -810,10 +893,10 @@ async def render_get_custom_domains(service_id: Optional[str] = None) -> str:
         domains = response if isinstance(response, list) else []
 
         if not domains:
-            return f"🌐 No custom domains configured for service {target_service_id}\n💡 Using default .onrender.com domain"
+            return f"WEB: No custom domains configured for service {target_service_id}\nTIP: Using default .onrender.com domain"
 
         formatted = []
-        formatted.append(f"🌐 Custom Domains for {target_service_id}")
+        formatted.append(f"WEB: Custom Domains for {target_service_id}")
         formatted.append("═" * 50)
 
         for i, domain in enumerate(domains, 1):
@@ -824,12 +907,12 @@ async def render_get_custom_domains(service_id: Optional[str] = None) -> str:
         return "\n".join(formatted)
 
     except Exception as e:
-        return f"❌ Error fetching custom domains: {str(e)}"
+        return f"ERROR: Error fetching custom domains: {str(e)}"
 
 @mcp.tool()
 async def render_get_secret_files(service_id: Optional[str] = None) -> str:
     """
-    📄 List secret files configured for a service.
+    FILE: List secret files configured for a service.
 
     Args:
         service_id: Service ID to check (defaults to configured SERVICE_ID)
@@ -846,10 +929,10 @@ async def render_get_secret_files(service_id: Optional[str] = None) -> str:
         files = response if isinstance(response, list) else []
 
         if not files:
-            return f"📄 No secret files configured for service {target_service_id}"
+            return f"FILE: No secret files configured for service {target_service_id}"
 
         formatted = []
-        formatted.append(f"📄 Secret Files for {target_service_id}")
+        formatted.append(f"FILE: Secret Files for {target_service_id}")
         formatted.append("═" * 50)
 
         for i, file_data in enumerate(files, 1):
@@ -862,12 +945,12 @@ async def render_get_secret_files(service_id: Optional[str] = None) -> str:
         return "\n".join(formatted)
 
     except Exception as e:
-        return f"❌ Error fetching secret files: {str(e)}"
+        return f"ERROR: Error fetching secret files: {str(e)}"
 
 @mcp.tool()
 async def render_get_service_instances(service_id: Optional[str] = None) -> str:
     """
-    🖥️ List running instances for a service.
+    INSTANCE: List running instances for a service.
 
     Args:
         service_id: Service ID to check (defaults to configured SERVICE_ID)
@@ -884,10 +967,10 @@ async def render_get_service_instances(service_id: Optional[str] = None) -> str:
         instances = response if isinstance(response, list) else []
 
         if not instances:
-            return f"🖥️ No running instances found for service {target_service_id}"
+            return f"INSTANCE: No running instances found for service {target_service_id}"
 
         formatted = []
-        formatted.append(f"🖥️ Service Instances for {target_service_id}")
+        formatted.append(f"INSTANCE: Service Instances for {target_service_id}")
         formatted.append("═" * 50)
 
         for i, instance in enumerate(instances, 1):
@@ -899,13 +982,13 @@ async def render_get_service_instances(service_id: Optional[str] = None) -> str:
         return "\n".join(formatted)
 
     except Exception as e:
-        return f"❌ Error fetching service instances: {str(e)}"
+        return f"ERROR: Error fetching service instances: {str(e)}"
 
 # Environment and Resource Management
 @mcp.tool()
 async def render_list_env_groups() -> str:
     """
-    🔧 List all environment groups in your Render account.
+    CONFIG: List all environment groups in your Render account.
 
     Returns:
         List of environment groups that can be shared across services
@@ -917,10 +1000,10 @@ async def render_list_env_groups() -> str:
         env_groups = response if isinstance(response, list) else []
 
         if not env_groups:
-            return "🔧 No environment groups found in your account\n💡 Environment groups allow sharing env vars across multiple services"
+            return "CONFIG: No environment groups found in your account\nTIP: Environment groups allow sharing env vars across multiple services"
 
         formatted = []
-        formatted.append("🔧 Environment Groups")
+        formatted.append("CONFIG: Environment Groups")
         formatted.append("═" * 40)
 
         for i, group_data in enumerate(env_groups, 1):
@@ -933,12 +1016,12 @@ async def render_list_env_groups() -> str:
         return "\n".join(formatted)
 
     except Exception as e:
-        return f"❌ Error fetching environment groups: {str(e)}"
+        return f"ERROR: Error fetching environment groups: {str(e)}"
 
 @mcp.tool()
 async def render_list_disks() -> str:
     """
-    💾 List all persistent disks in your Render account.
+    DISK: List all persistent disks in your Render account.
 
     Returns:
         List of persistent disks for data storage
@@ -950,10 +1033,10 @@ async def render_list_disks() -> str:
         disks = response if isinstance(response, list) else []
 
         if not disks:
-            return "💾 No persistent disks found in your account\n💡 Persistent disks provide storage that survives service restarts"
+            return "DISK: No persistent disks found in your account\nTIP: Persistent disks provide storage that survives service restarts"
 
         formatted = []
-        formatted.append("💾 Persistent Disks")
+        formatted.append("DISK: Persistent Disks")
         formatted.append("═" * 30)
 
         for i, disk_data in enumerate(disks, 1):
@@ -968,12 +1051,12 @@ async def render_list_disks() -> str:
         return "\n".join(formatted)
 
     except Exception as e:
-        return f"❌ Error fetching disks: {str(e)}"
+        return f"ERROR: Error fetching disks: {str(e)}"
 
 @mcp.tool()
 async def render_list_projects() -> str:
     """
-    📁 List all projects in your Render account.
+    PROJECT: List all projects in your Render account.
 
     Returns:
         List of projects for organizing services
@@ -985,10 +1068,10 @@ async def render_list_projects() -> str:
         projects = response if isinstance(response, list) else []
 
         if not projects:
-            return "📁 No projects found in your account"
+            return "PROJECT: No projects found in your account"
 
         formatted = []
-        formatted.append("📁 Projects")
+        formatted.append("PROJECT: Projects")
         formatted.append("═" * 20)
 
         for i, project_data in enumerate(projects, 1):
@@ -1001,12 +1084,12 @@ async def render_list_projects() -> str:
         return "\n".join(formatted)
 
     except Exception as e:
-        return f"❌ Error fetching projects: {str(e)}"
+        return f"ERROR: Error fetching projects: {str(e)}"
 
 @mcp.tool()
 async def render_get_user_info() -> str:
     """
-    👤 Get current user account information.
+    USER: Get current user account information.
 
     Returns:
         Your Render account details
@@ -1016,26 +1099,26 @@ async def render_get_user_info() -> str:
         response = await run_curl(url)
 
         if not response:
-            return "❌ No user information found"
+            return "ERROR: No user information found"
 
         email = response.get('email', 'Unknown')
         name = response.get('name', 'Unknown')
 
         formatted = []
-        formatted.append("👤 User Account Information")
+        formatted.append("USER: User Account Information")
         formatted.append("═" * 35)
         formatted.append(f"📧 Email: {email}")
-        formatted.append(f"👤 Name: {name}")
+        formatted.append(f"USER: Name: {name}")
 
         return "\n".join(formatted)
 
     except Exception as e:
-        return f"❌ Error fetching user info: {str(e)}"
+        return f"ERROR: Error fetching user info: {str(e)}"
 
 @mcp.tool()
 async def render_list_maintenance_windows() -> str:
     """
-    🔧 List scheduled maintenance windows.
+    CONFIG: List scheduled maintenance windows.
 
     Returns:
         Information about planned Render platform maintenance
@@ -1047,10 +1130,10 @@ async def render_list_maintenance_windows() -> str:
         maintenance = response if isinstance(response, list) else []
 
         if not maintenance:
-            return "🔧 No scheduled maintenance windows\n✅ All systems operational"
+            return "CONFIG: No scheduled maintenance windows\nSUCCESS: All systems operational"
 
         formatted = []
-        formatted.append("🔧 Scheduled Maintenance")
+        formatted.append("CONFIG: Scheduled Maintenance")
         formatted.append("═" * 30)
 
         for i, maint in enumerate(maintenance, 1):
@@ -1064,12 +1147,12 @@ async def render_list_maintenance_windows() -> str:
         return "\n".join(formatted)
 
     except Exception as e:
-        return f"❌ Error fetching maintenance info: {str(e)}"
+        return f"ERROR: Error fetching maintenance info: {str(e)}"
 
 @mcp.tool()
 async def render_delete_service(service_id: str) -> str:
     """
-    🗑️ Delete a Render service permanently.
+    DELETE: Delete a Render service permanently.
 
     CAUTION: This action is irreversible and will permanently delete the service.
 
@@ -1081,7 +1164,7 @@ async def render_delete_service(service_id: str) -> str:
     """
     try:
         if not service_id:
-            return "❌ Service ID is required for deletion (safety measure)"
+            return "ERROR: Service ID is required for deletion (safety measure)"
 
         # First get service info to confirm what we're deleting
         service_url = f"{RENDER_BASE_URL}/v1/services/{service_id}"
@@ -1093,12 +1176,12 @@ async def render_delete_service(service_id: str) -> str:
         delete_url = f"{RENDER_BASE_URL}/v1/services/{service_id}"
         response = await run_curl(delete_url, method="DELETE")
 
-        return f"🗑️ Service '{service_name}' ({service_type}) has been permanently deleted\n⚠️ Service ID: {service_id}\n💡 This action cannot be undone"
+        return f"DELETE: Service '{service_name}' ({service_type}) has been permanently deleted\nWARNING: Service ID: {service_id}\nTIP: This action cannot be undone"
 
     except Exception as e:
         if "404" in str(e):
-            return f"❌ Service {service_id} not found - it may already be deleted"
-        return f"❌ Error deleting service: {str(e)}"
+            return f"ERROR: Service {service_id} not found - it may already be deleted"
+        return f"ERROR: Error deleting service: {str(e)}"
 
 @mcp.tool()
 async def render_logs(
@@ -1124,7 +1207,7 @@ async def render_logs(
         elif service_type == "background":
             target_service_id = BACKGROUND_SERVICE_ID
             if not target_service_id:
-                return "❌ BACKGROUND_SERVICE_ID not configured in environment"
+                return "ERROR: BACKGROUND_SERVICE_ID not configured in environment"
         else:
             target_service_id = SERVICE_ID
 
@@ -1140,8 +1223,8 @@ async def render_logs(
         # Format logs
         service_name = "Background Service" if service_type == 'background' else "Web Service"
         formatted = []
-        formatted.append(f"📋 {service_name} Logs: {target_service_id}")
-        formatted.append(f"📊 Showing {len(logs)} most recent entries")
+        formatted.append(f"LIST: {service_name} Logs: {target_service_id}")
+        formatted.append(f"INFO: Showing {len(logs)} most recent entries")
         formatted.append("\n" + "="*80 + "\n")
 
         # Reverse to show oldest first (chronological order)
@@ -1165,22 +1248,22 @@ async def render_logs(
 
             # Level emoji
             level_emoji = {
-                'info': '💬',
-                'error': '❌',
-                'warn': '⚠️',
-                'warning': '⚠️',
-                'debug': '🔍'
-            }.get(level.lower(), '📝')
+                'info': 'LOG:',
+                'error': 'ERROR:',
+                'warn': 'WARNING:',
+                'warning': 'WARNING:',
+                'debug': 'DEBUG:'
+            }.get(level.lower(), 'NOTE:')
 
             formatted.append(f"{level_emoji} {time_str} | {message}")
 
         if response.get('hasMore'):
-            formatted.append("\n📋 More logs available (use higher --limit to get more)")
+            formatted.append("\nLIST: More logs available (use higher --limit to get more)")
 
         return "\n".join(formatted)
 
     except Exception as e:
-        return f"❌ Error fetching logs: {str(e)}"
+        return f"ERROR: Error fetching logs: {str(e)}"
 
 
 @mcp.tool()
@@ -1206,7 +1289,7 @@ async def search_render_logs(
         # Get logs using the existing tool
         all_logs = await render_logs(service_id=service_id, limit=limit, service_type=service_type)
 
-        if all_logs.startswith("❌"):
+        if all_logs.startswith("ERROR:"):
             return all_logs
 
         # Filter logs containing search term
@@ -1218,19 +1301,19 @@ async def search_render_logs(
         matching_lines = [line for line in log_lines if search_lower in line.lower()]
 
         if not matching_lines:
-            return f"🔍 No logs found containing '{search_term}'"
+            return f"DEBUG: No logs found containing '{search_term}'"
 
         # Reconstruct with new header
         formatted = []
         formatted.extend(header_lines[:2])  # Service name and count lines
-        formatted[1] = f"🔍 Found {len(matching_lines)} entries matching '{search_term}'"
+        formatted[1] = f"DEBUG: Found {len(matching_lines)} entries matching '{search_term}'"
         formatted.append(lines[2])  # Separator line
         formatted.extend(matching_lines)
 
         return "\n".join(formatted)
 
     except Exception as e:
-        return f"❌ Error searching logs: {str(e)}"
+        return f"ERROR: Error searching logs: {str(e)}"
 
 
 @mcp.tool()
@@ -1254,7 +1337,7 @@ async def render_recent_errors(
         # Get logs using the existing tool
         all_logs = await render_logs(service_id=service_id, limit=limit, service_type=service_type)
 
-        if all_logs.startswith("❌"):
+        if all_logs.startswith("ERROR:"):
             return all_logs
 
         # Filter for error/warning lines
@@ -1262,22 +1345,22 @@ async def render_recent_errors(
         header_lines = lines[:3]  # Keep the header
         log_lines = lines[4:]     # Skip header and separator
 
-        error_lines = [line for line in log_lines if line.startswith(('❌', '⚠️'))]
+        error_lines = [line for line in log_lines if line.startswith(('ERROR:', 'WARNING:'))]
 
         if not error_lines:
-            return f"✅ No recent errors or warnings found in last {limit} log entries"
+            return f"SUCCESS: No recent errors or warnings found in last {limit} log entries"
 
         # Reconstruct with new header
         formatted = []
         formatted.extend(header_lines[:2])
-        formatted[1] = f"⚠️ Found {len(error_lines)} errors/warnings in recent logs"
+        formatted[1] = f"WARNING: Found {len(error_lines)} errors/warnings in recent logs"
         formatted.append(lines[2])  # Separator line
         formatted.extend(error_lines)
 
         return "\n".join(formatted)
 
     except Exception as e:
-        return f"❌ Error fetching error logs: {str(e)}"
+        return f"ERROR: Error fetching error logs: {str(e)}"
 
 
 @mcp.tool()
@@ -1298,19 +1381,19 @@ async def render_latest_deployment_logs(service_id: Optional[str] = None, lines:
         # Get recent deployments to find the latest one
         deployments_result = await render_deployments(service_id=target_service_id, limit=1)
 
-        if deployments_result.startswith("❌"):
+        if deployments_result.startswith("ERROR:"):
             return deployments_result
 
         # Get recent logs (more than requested to account for non-deployment logs)
         logs_result = await render_logs(service_id=target_service_id, limit=lines * 2)
 
-        if logs_result.startswith("❌"):
+        if logs_result.startswith("ERROR:"):
             return logs_result
 
         # Format for deployment context
         formatted = []
-        formatted.append(f"🚀 Latest Deployment Logs: {target_service_id}")
-        formatted.append(f"📊 Showing recent {lines} deployment-related entries")
+        formatted.append(f"DEPLOY: Latest Deployment Logs: {target_service_id}")
+        formatted.append(f"INFO: Showing recent {lines} deployment-related entries")
         formatted.append("\n" + "="*80 + "\n")
 
         # Extract log lines and take the most recent ones
@@ -1322,7 +1405,7 @@ async def render_latest_deployment_logs(service_id: Optional[str] = None, lines:
         return "\n".join(formatted)
 
     except Exception as e:
-        return f"❌ Error fetching deployment logs: {str(e)}"
+        return f"ERROR: Error fetching deployment logs: {str(e)}"
 
 
 # Test API connection on startup
@@ -1330,10 +1413,10 @@ async def test_connection():
     """Test Render API connection on startup"""
     try:
         await render_service_status()
-        logger.info("✅ Render API connection successful")
+        logger.info("SUCCESS: Render API connection successful")
         return True
     except Exception as e:
-        logger.error(f"❌ Render API connection failed: {e}")
+        logger.error(f"ERROR: Render API connection failed: {e}")
         return False
 
 logger.info("Render MCP Server initialized with FastMCP")

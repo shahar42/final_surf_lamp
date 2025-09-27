@@ -20,16 +20,16 @@ def validate_service_commands(build_command: str, start_command: str) -> List[st
     local_patterns = ['/home/', '/Users/', '/tmp/', './test_', './local']
     for pattern in local_patterns:
         if pattern in build_command:
-            warnings.append(f"⚠️ Build command contains local path '{pattern}' - ensure this exists in your repository")
+            warnings.append(f"WARNING: Build command contains local path '{pattern}' - ensure this exists in your repository")
         if pattern in start_command:
-            warnings.append(f"⚠️ Start command contains local path '{pattern}' - ensure this exists in your repository")
+            warnings.append(f"WARNING: Start command contains local path '{pattern}' - ensure this exists in your repository")
 
     # Check for common missing file references
     if 'package.json' in build_command and 'npm' not in build_command:
-        warnings.append(f"⚠️ Build command references package.json but doesn't use npm/yarn")
+        warnings.append(f"WARNING: Build command references package.json but doesn't use npm/yarn")
 
     # Add git workflow reminder
-    warnings.append(f"🔄 REMINDER: Ensure all local changes are committed and pushed to remote repository")
+    warnings.append(f"REMINDER: Ensure all local changes are committed and pushed to remote repository")
     warnings.append(f"   Run: git add . && git commit -m 'Deploy to Render' && git push")
 
     return warnings
@@ -94,10 +94,16 @@ def register_deployment_tools(mcp: FastMCP):
         corresponds to that repository. DO NOT question or validate the repository URL - trust
         the user's specification and use it directly.
 
+        UX DESIGN PRINCIPLES: Prioritize intuitive user experience - make navigation effortless
+        and every element purposeful. Use clear visual hierarchy and responsive design that
+        works on all devices.
+
         VISUAL APPEAL: When creating web applications, focus on small actions with high visual
-        impact - add CSS styling, use attractive colors, implement responsive design, include
-        nice typography, and add simple animations. These small touches make applications look
-        professional and engaging with minimal effort.
+        impact - add CSS styling, use attractive colors, include nice typography, and add
+        simple animations. These small touches make applications look professional and engaging
+        with minimal effort.
+
+        LAYOUT DESIGN: Default to creating full-width layouts for web applications.
 
         CRITICAL GIT WORKFLOW: Any new files or changes made locally MUST be committed and pushed
         to the remote repository BEFORE creating the service. Always remind the user:
@@ -145,28 +151,28 @@ def register_deployment_tools(mcp: FastMCP):
             service_id = result.get("service", {}).get("id", "unknown")
             service_name = result.get("service", {}).get("name", name)
 
-            response_parts = [f"""✅ Background Worker Created Successfully!
+            response_parts = [f"""SUCCESS: Background Worker Created Successfully!
 
-🆔 Service ID: {service_id}
-📛 Service Name: {service_name}
-🔗 Repository: {repo_url}
-🌿 Branch: {branch}
-🏗️ Build: {build_command}
-▶️ Start: {start_command}
-📦 Runtime: {runtime}
-🔧 Environment Variables: {len(env_vars)} configured
+ID: Service ID: {service_id}
+NAME: Service Name: {service_name}
+REPO: Repository: {repo_url}
+BRANCH: Branch: {branch}
+BUILD: Build: {build_command}
+START: Start: {start_command}
+RUNTIME: Runtime: {runtime}
+CONFIG: Environment Variables: {len(env_vars)} configured
 
 The service is now building and will be available shortly.
 Check the Render dashboard for build logs and deployment status."""]
 
             # Add warnings if any
             if validation_warnings:
-                response_parts.append("\n⚠️ VALIDATION WARNINGS:")
+                response_parts.append("\nWARNING: VALIDATION WARNINGS:")
                 response_parts.extend([f"   {warning}" for warning in validation_warnings])
 
             return "\n".join(response_parts)
         except Exception as e:
-            return f"❌ Failed to create background worker: {str(e)}"
+            return f"ERROR: Failed to create background worker: {str(e)}"
 
     @mcp.tool()
     async def create_web_service(
@@ -191,10 +197,16 @@ Check the Render dashboard for build logs and deployment status."""]
         corresponds to that repository. DO NOT question or validate the repository URL - trust
         the user's specification and use it directly.
 
+        UX DESIGN PRINCIPLES: Prioritize intuitive user experience - make navigation effortless
+        and every element purposeful. Use clear visual hierarchy and responsive design that
+        works on all devices.
+
         VISUAL APPEAL: When creating web applications, focus on small actions with high visual
-        impact - add CSS styling, use attractive colors, implement responsive design, include
-        nice typography, and add simple animations. These small touches make applications look
-        professional and engaging with minimal effort.
+        impact - add CSS styling, use attractive colors, include nice typography, and add
+        simple animations. These small touches make applications look professional and engaging
+        with minimal effort.
+
+        LAYOUT DESIGN: Default to creating full-width layouts for web applications.
 
         CRITICAL GIT WORKFLOW: Any new files or changes made locally MUST be committed and pushed
         to the remote repository BEFORE creating the service. Always remind the user:
@@ -243,60 +255,29 @@ Check the Render dashboard for build logs and deployment status."""]
             service_name = result.get("service", {}).get("name", name)
             service_url = result.get("service", {}).get("serviceDetails", {}).get("url", "")
 
-            response_parts = [f"""✅ Web Service Created Successfully!
+            response_parts = [f"""SUCCESS: Web Service Created Successfully!
 
-🆔 Service ID: {service_id}
-📛 Service Name: {service_name}
-🌐 Service URL: {service_url}
-🔗 Repository: {repo_url}
-🌿 Branch: {branch}
-🏗️ Build: {build_command}
-▶️ Start: {start_command}
-📦 Runtime: {runtime}
-🔧 Environment Variables: {len(env_vars)} configured
+ID: Service ID: {service_id}
+NAME: Service Name: {service_name}
+URL: Service URL: {service_url}
+REPO: Repository: {repo_url}
+BRANCH: Branch: {branch}
+BUILD: Build: {build_command}
+START: Start: {start_command}
+RUNTIME: Runtime: {runtime}
+CONFIG: Environment Variables: {len(env_vars)} configured
 
 The service is now building and will be available at the URL above once deployed."""]
 
             # Add warnings if any
             if validation_warnings:
-                response_parts.append("\n⚠️ VALIDATION WARNINGS:")
+                response_parts.append("\nWARNING: VALIDATION WARNINGS:")
                 response_parts.extend([f"   {warning}" for warning in validation_warnings])
 
             return "\n".join(response_parts)
         except Exception as e:
-            return f"❌ Failed to create web service: {str(e)}"
+            return f"ERROR: Failed to create web service: {str(e)}"
 
-    @mcp.tool()
-    async def update_service_env_vars(
-        service_id: str,
-        env_vars: List[Dict[str, str]],
-        api_key: str = "rnd_j6WyOXSMG0bGFbqyYKMBaxUgzF4s"
-    ) -> str:
-        """
-        Update environment variables for an existing service.
-
-        Args:
-            service_id: Render service ID
-            env_vars: List of environment variables [{"key": "NAME", "value": "VALUE"}]
-            api_key: Render API key
-        """
-
-        payload = {"envVars": env_vars}
-
-        try:
-            await make_render_request("PUT", f"/services/{service_id}/env-vars", api_key, payload)
-            return f"""✅ Environment Variables Updated!
-
-🆔 Service ID: {service_id}
-🔧 Updated Variables: {len(env_vars)}
-
-Variables:
-{chr(10).join([f'  • {var["key"]}: {"***" if "password" in var["key"].lower() or "key" in var["key"].lower() else var["value"]}' for var in env_vars])}
-
-The service will automatically redeploy with the new configuration.
-"""
-        except Exception as e:
-            return f"❌ Failed to update environment variables: {str(e)}"
 
     @mcp.tool()
     async def trigger_deploy(
@@ -319,62 +300,15 @@ The service will automatically redeploy with the new configuration.
             result = await make_render_request("POST", f"/services/{service_id}/deploys", api_key, payload)
             deploy_id = result.get("id", "unknown")
 
-            return f"""✅ Deployment Triggered!
+            return f"""SUCCESS: Deployment Triggered!
 
-🆔 Service ID: {service_id}
-🚀 Deploy ID: {deploy_id}
-🧹 Cache Cleared: {'Yes' if clear_cache else 'No'}
+ID: Service ID: {service_id}
+DEPLOY: Deploy ID: {deploy_id}
+CACHE: Cache Cleared: {'Yes' if clear_cache else 'No'}
 
 The deployment is now in progress.
 Check the Render dashboard for build logs and status updates.
 """
         except Exception as e:
-            return f"❌ Failed to trigger deployment: {str(e)}"
+            return f"ERROR: Failed to trigger deployment: {str(e)}"
 
-    @mcp.tool()
-    async def get_deploy_status(
-        service_id: str,
-        api_key: str = "rnd_j6WyOXSMG0bGFbqyYKMBaxUgzF4s"
-    ) -> str:
-        """
-        Get the status of recent deployments for a service.
-
-        Args:
-            service_id: Render service ID
-            api_key: Render API key
-        """
-
-        try:
-            result = await make_render_request("GET", f"/services/{service_id}/deploys", api_key)
-
-            # Handle both list and dict response formats
-            if isinstance(result, list):
-                deploys = result
-            else:
-                deploys = result.get("deploys", [])
-
-            if not deploys:
-                return f"📭 No deployments found for service {service_id}"
-
-            output = [f"📊 Recent Deployments for {service_id}:\n"]
-
-            for i, deploy in enumerate(deploys[:5]):  # Show last 5 deploys
-                status = deploy.get("status", "unknown")
-                created_at = deploy.get("createdAt", "")[:19].replace("T", " ")
-                deploy_id = deploy.get("id", "")[:8]
-
-                status_emoji = {
-                    "created": "🔄",
-                    "build_in_progress": "🏗️",
-                    "build_successful": "✅",
-                    "live": "🟢",
-                    "build_failed": "❌",
-                    "canceled": "⏹️"
-                }.get(status, "❓")
-
-                output.append(f"[{i+1}] {status_emoji} {deploy_id} - {status} - {created_at}")
-
-            return "\n".join(output)
-
-        except Exception as e:
-            return f"❌ Failed to get deployment status: {str(e)}"
