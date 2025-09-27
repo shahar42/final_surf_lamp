@@ -162,11 +162,14 @@
                 <div class="flex justify-between items-center pt-2 border-t border-white/20">
                     <span class="text-white/80">LED Colors:</span>
                     <div class="flex items-center space-x-2 w-32 justify-end">
-                        <button id="lightTheme" class="theme-btn px-3 py-1 rounded text-sm {{ 'bg-blue-500 hover:bg-blue-600 text-white font-bold' if data.user.theme == 'day' else 'bg-white/20 hover:bg-white/30 text-white/80' }}">Light</button>
-                        <button id="darkTheme" class="theme-btn px-3 py-1 rounded text-sm {{ 'bg-blue-500 hover:bg-blue-600 text-white font-bold' if data.user.theme == 'dark' else 'bg-white/20 hover:bg-white/30 text-white/80' }}">Dark</button>
+                        <a href="{{ url_for('themes_page') }}" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm text-white font-semibold transition-colors">
+                            Configure
+                        </a>
                     </div>
                 </div>
-                <div id="theme-status" class="text-sm text-white/80 mt-2"></div>
+                <div class="text-sm text-white/80 mt-2">
+                    Current: {{ data.user.theme.replace('_', ' ').title() if data.user.theme else 'Ocean Breeze' }}
+                </div>
 
                 <div class="flex justify-between pt-2 border-t border-white/20">
                     <span class="text-white/80">Units:</span>
@@ -404,52 +407,6 @@
         });
     });
 
-    // Theme update handlers
-    document.getElementById('lightTheme').addEventListener('click', function() {
-        updateTheme('day', this);
-    });
-
-    document.getElementById('darkTheme').addEventListener('click', function() {
-        updateTheme('dark', this);
-    });
-
-    function updateTheme(theme, clickedButton) {
-        const statusDiv = document.getElementById('theme-status');
-
-        statusDiv.textContent = 'Updating...';
-        statusDiv.style.color = '#ffffff';
-
-        fetch('/update-theme', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ theme: theme })
-        })
-        .then(response => response.json().then(data => ({ok: response.ok, body: data})))
-        .then(({ok, body}) => {
-            if (ok && body.success) {
-                statusDiv.textContent = `Theme updated to ${theme === 'day' ? 'Light' : 'Dark'}. Arduino will update within 13 minutes.`;
-                statusDiv.style.color = '#00ff88';
-
-                // Update button styles
-                document.querySelectorAll('.theme-btn').forEach(btn => {
-                    btn.classList.remove('bg-green-600', 'text-white', 'font-bold');
-                    btn.classList.add('bg-white/20', 'hover:bg-white/30', 'text-white/80');
-                });
-                clickedButton.classList.remove('bg-white/20', 'hover:bg-white/30', 'text-white/80');
-                clickedButton.classList.add('bg-blue-500', 'hover:bg-blue-600', 'text-white', 'font-bold');
-            } else {
-                statusDiv.textContent = body.message || 'Update failed';
-                statusDiv.style.color = '#ff6b6b';
-            }
-        })
-        .catch(error => {
-            statusDiv.textContent = 'Network error';
-            statusDiv.style.color = '#ff6b6b';
-            console.error('Theme update error:', error);
-        });
-    }
     </script>
 </body>
 </html>

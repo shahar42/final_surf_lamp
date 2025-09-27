@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surf Lamp - LED Themes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}?v=1" sizes="32x32">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #00c6ff, #0072ff);
+        }
+        .text-white, .text-white\/80, .text-white\/60 {
+            color: #FFFCDE !important;
+        }
+        .card {
+            background-color: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .theme-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        .theme-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+        .theme-card.selected {
+            border-color: #00ff88;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+        }
+        .led-strip {
+            display: flex;
+            gap: 2px;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            justify-content: center;
+        }
+        .led {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: ledGlow 2s ease-in-out infinite alternate;
+        }
+        @keyframes ledGlow {
+            0% { opacity: 0.8; }
+            100% { opacity: 1; }
+        }
+        .back-btn {
+            background-color: rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        .back-btn:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+            transform: translateX(-2px);
+        }
+        .apply-btn {
+            background-color: #00ff88;
+            color: #001a0a;
+            transition: all 0.3s ease;
+        }
+        .apply-btn:hover {
+            background-color: #00cc6a;
+            transform: translateY(-1px);
+        }
+        .preview-container {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            padding: 16px;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4">
+
+    <!-- Header -->
+    <div class="max-w-6xl mx-auto mb-8">
+        <div class="card rounded-2xl p-6 shadow-2xl">
+            <div class="flex justify-between items-center">
+                <a href="{{ url_for('dashboard') }}" class="back-btn px-4 py-2 rounded-lg text-white font-semibold">
+                    ← Back to Dashboard
+                </a>
+                <div class="text-center">
+                    <h1 class="text-3xl font-bold text-white">LED Theme Configuration</h1>
+                    <p class="text-white/80 mt-1">Choose your surf lamp LED colors</p>
+                </div>
+                <div class="w-32"></div> <!-- Spacer for centering -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Current Theme Preview -->
+    <div class="max-w-6xl mx-auto mb-8">
+        <div class="card rounded-2xl p-6 shadow-2xl">
+            <h2 class="text-xl font-bold text-white mb-4">Current Theme Preview</h2>
+            <div class="preview-container">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Wave Height Strip -->
+                    <div class="text-center">
+                        <h3 class="text-white font-semibold mb-3">Wave Height (0-8 LEDs)</h3>
+                        <div class="led-strip" id="current-wave-strip">
+                            <!-- LEDs will be populated by JavaScript -->
+                        </div>
+                        <p class="text-white/60 text-sm mt-2">Shows wave height in meters</p>
+                    </div>
+
+                    <!-- Wind Speed Strip -->
+                    <div class="text-center">
+                        <h3 class="text-white font-semibold mb-3">Wind Speed (0-13 LEDs)</h3>
+                        <div class="led-strip" id="current-wind-strip">
+                            <!-- LEDs will be populated by JavaScript -->
+                        </div>
+                        <p class="text-white/60 text-sm mt-2">Shows wind speed in m/s</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Theme Selection Grid -->
+    <div class="max-w-6xl mx-auto">
+        <h2 class="text-2xl font-bold text-white mb-6 text-center">Available Themes</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="themes-grid">
+            <!-- Theme cards will be populated by JavaScript -->
+        </div>
+    </div>
+
+    <!-- Apply Theme Button -->
+    <div class="max-w-6xl mx-auto mt-8 text-center">
+        <button id="apply-theme" class="apply-btn px-8 py-3 rounded-lg font-bold text-lg shadow-lg" disabled>
+            Apply Selected Theme
+        </button>
+        <div id="theme-status" class="text-white/80 text-sm mt-4"></div>
+    </div>
+
+    <script>
+        // FastLED-compatible HSV to RGB conversion
+        function hsvToRgb(h, s, v) {
+            // FastLED uses 0-255 range for all values
+            h = h / 255.0 * 360; // Convert to 0-360 degrees
+            s = s / 255.0;       // Convert to 0-1 range
+            v = v / 255.0;       // Convert to 0-1 range
+
+            const c = v * s;
+            const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+            const m = v - c;
+
+            let r, g, b;
+
+            if (h >= 0 && h < 60) {
+                r = c; g = x; b = 0;
+            } else if (h >= 60 && h < 120) {
+                r = x; g = c; b = 0;
+            } else if (h >= 120 && h < 180) {
+                r = 0; g = c; b = x;
+            } else if (h >= 180 && h < 240) {
+                r = 0; g = x; b = c;
+            } else if (h >= 240 && h < 300) {
+                r = x; g = 0; b = c;
+            } else {
+                r = c; g = 0; b = x;
+            }
+
+            return {
+                r: Math.round((r + m) * 255),
+                g: Math.round((g + m) * 255),
+                b: Math.round((b + m) * 255)
+            };
+        }
+
+        // Predefined LED themes with FastLED CHSV values
+        const ledThemes = [
+            {
+                id: 'ocean_breeze',
+                name: 'Ocean Breeze',
+                description: 'Cool blues and teals like ocean waves',
+                wave_hue: 160,    // Cyan-blue
+                wind_hue: 200,    // Deep blue
+                saturation: 255,
+                brightness: 200
+            },
+            {
+                id: 'sunset_surf',
+                name: 'Sunset Surf',
+                description: 'Warm oranges and reds like sunset',
+                wave_hue: 20,     // Orange
+                wind_hue: 0,      // Red
+                saturation: 255,
+                brightness: 220
+            },
+            {
+                id: 'tropical_paradise',
+                name: 'Tropical Paradise',
+                description: 'Vibrant greens and blues',
+                wave_hue: 85,     // Green
+                wind_hue: 140,    // Teal
+                saturation: 255,
+                brightness: 200
+            },
+            {
+                id: 'arctic_wind',
+                name: 'Arctic Wind',
+                description: 'Cool whites and ice blues',
+                wave_hue: 170,    // Light blue
+                wind_hue: 200,    // Deeper blue
+                saturation: 180,  // Less saturated for icy effect
+                brightness: 255
+            },
+            {
+                id: 'fire_storm',
+                name: 'Fire Storm',
+                description: 'Intense reds and yellows',
+                wave_hue: 40,     // Yellow-orange
+                wind_hue: 10,     // Red-orange
+                saturation: 255,
+                brightness: 240
+            },
+            {
+                id: 'midnight_ocean',
+                name: 'Midnight Ocean',
+                description: 'Deep purples and dark blues',
+                wave_hue: 210,    // Dark blue
+                wind_hue: 240,    // Purple
+                saturation: 255,
+                brightness: 150
+            },
+            {
+                id: 'spring_meadow',
+                name: 'Spring Meadow',
+                description: 'Fresh greens and yellows',
+                wave_hue: 60,     // Yellow-green
+                wind_hue: 90,     // Green
+                saturation: 200,
+                brightness: 200
+            },
+            {
+                id: 'royal_purple',
+                name: 'Royal Purple',
+                description: 'Majestic purples and magentas',
+                wave_hue: 240,    // Purple
+                wind_hue: 220,    // Magenta-purple
+                saturation: 255,
+                brightness: 180
+            },
+            {
+                id: 'golden_hour',
+                name: 'Golden Hour',
+                description: 'Warm golds and amber tones',
+                wave_hue: 30,     // Gold
+                wind_hue: 45,     // Amber
+                saturation: 200,
+                brightness: 220
+            }
+        ];
+
+        let selectedTheme = null;
+        let currentUserTheme = '{{ data.user.theme if data.user.theme else "ocean_breeze" }}';
+
+        function createLedStrip(containerId, ledCount, hue, saturation, brightness) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+
+            for (let i = 0; i < ledCount; i++) {
+                const led = document.createElement('div');
+                led.className = 'led';
+
+                // Calculate color intensity based on position
+                const intensity = Math.min(255, brightness * (i + 1) / ledCount + 50);
+                const rgb = hsvToRgb(hue, saturation, intensity);
+
+                led.style.backgroundColor = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+                led.style.boxShadow = `0 0 8px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)`;
+
+                container.appendChild(led);
+            }
+        }
+
+        function updateCurrentThemePreview() {
+            // Find current theme or default to ocean_breeze
+            const theme = ledThemes.find(t => t.id === currentUserTheme) || ledThemes[0];
+
+            // Create preview strips (showing 5 LEDs for wave, 8 for wind as example)
+            createLedStrip('current-wave-strip', 5, theme.wave_hue, theme.saturation, theme.brightness);
+            createLedStrip('current-wind-strip', 8, theme.wind_hue, theme.saturation, theme.brightness);
+        }
+
+        function createThemeCard(theme) {
+            const card = document.createElement('div');
+            card.className = `theme-card card rounded-2xl p-6 shadow-2xl ${theme.id === currentUserTheme ? 'selected' : ''}`;
+            card.dataset.themeId = theme.id;
+
+            card.innerHTML = `
+                <h3 class="text-white font-bold text-lg mb-2">${theme.name}</h3>
+                <p class="text-white/80 text-sm mb-4">${theme.description}</p>
+
+                <div class="space-y-3">
+                    <div>
+                        <div class="text-white/60 text-xs mb-1">Wave Height</div>
+                        <div class="led-strip" id="preview-wave-${theme.id}"></div>
+                    </div>
+                    <div>
+                        <div class="text-white/60 text-xs mb-1">Wind Speed</div>
+                        <div class="led-strip" id="preview-wind-${theme.id}"></div>
+                    </div>
+                </div>
+
+                ${theme.id === currentUserTheme ? '<div class="text-center mt-4"><span class="text-green-400 font-semibold text-sm">● ACTIVE</span></div>' : ''}
+            `;
+
+            // Create preview strips for this theme
+            setTimeout(() => {
+                createLedStrip(`preview-wave-${theme.id}`, 4, theme.wave_hue, theme.saturation, theme.brightness);
+                createLedStrip(`preview-wind-${theme.id}`, 6, theme.wind_hue, theme.saturation, theme.brightness);
+            }, 10);
+
+            card.addEventListener('click', () => selectTheme(theme.id));
+
+            return card;
+        }
+
+        function selectTheme(themeId) {
+            // Remove selected class from all cards
+            document.querySelectorAll('.theme-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+
+            // Add selected class to clicked card
+            const selectedCard = document.querySelector(`[data-theme-id="${themeId}"]`);
+            selectedCard.classList.add('selected');
+
+            selectedTheme = themeId;
+
+            // Enable apply button if different from current theme
+            const applyBtn = document.getElementById('apply-theme');
+            if (themeId !== currentUserTheme) {
+                applyBtn.disabled = false;
+                applyBtn.textContent = `Apply "${ledThemes.find(t => t.id === themeId).name}" Theme`;
+            } else {
+                applyBtn.disabled = true;
+                applyBtn.textContent = 'Current Theme Selected';
+            }
+        }
+
+        function applyTheme() {
+            if (!selectedTheme || selectedTheme === currentUserTheme) return;
+
+            const statusDiv = document.getElementById('theme-status');
+            const applyBtn = document.getElementById('apply-theme');
+
+            applyBtn.disabled = true;
+            applyBtn.textContent = 'Applying Theme...';
+            statusDiv.textContent = 'Updating LED theme...';
+            statusDiv.style.color = '#FFFCDE';
+
+            fetch('/update-led-theme', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ theme_id: selectedTheme })
+            })
+            .then(response => response.json().then(data => ({ok: response.ok, body: data})))
+            .then(({ok, body}) => {
+                if (ok && body.success) {
+                    currentUserTheme = selectedTheme;
+                    statusDiv.textContent = `Theme updated! Your Arduino will receive the new colors within 13 minutes.`;
+                    statusDiv.style.color = '#00ff88';
+
+                    // Update current theme preview
+                    updateCurrentThemePreview();
+
+                    // Update active status on cards
+                    document.querySelectorAll('.theme-card').forEach(card => {
+                        const activeSpan = card.querySelector('span');
+                        if (activeSpan) activeSpan.remove();
+
+                        if (card.dataset.themeId === selectedTheme) {
+                            card.innerHTML += '<div class="text-center mt-4"><span class="text-green-400 font-semibold text-sm">● ACTIVE</span></div>';
+                        }
+                    });
+
+                    applyBtn.disabled = true;
+                    applyBtn.textContent = 'Current Theme Selected';
+                } else {
+                    statusDiv.textContent = body.message || 'Theme update failed';
+                    statusDiv.style.color = '#ef4444';
+                    applyBtn.disabled = false;
+                    applyBtn.textContent = `Apply "${ledThemes.find(t => t.id === selectedTheme).name}" Theme`;
+                }
+            })
+            .catch(error => {
+                statusDiv.textContent = 'Network error. Please try again.';
+                statusDiv.style.color = '#ef4444';
+                applyBtn.disabled = false;
+                applyBtn.textContent = `Apply "${ledThemes.find(t => t.id === selectedTheme).name}" Theme`;
+            });
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Update current theme preview
+            updateCurrentThemePreview();
+
+            // Create theme cards
+            const grid = document.getElementById('themes-grid');
+            ledThemes.forEach(theme => {
+                grid.appendChild(createThemeCard(theme));
+            });
+
+            // Set up apply button
+            document.getElementById('apply-theme').addEventListener('click', applyTheme);
+        });
+    </script>
+</body>
+</html>

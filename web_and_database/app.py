@@ -922,7 +922,7 @@ def arduino_status_overview():
             results = db.query(Lamp, CurrentConditions).outerjoin(
                 CurrentConditions, Lamp.lamp_id == CurrentConditions.lamp_id
             ).all()
-            
+
             arduino_status = []
             for lamp, conditions in results:
                 status_info = {
@@ -932,7 +932,7 @@ def arduino_status_overview():
                     'has_conditions': conditions is not None,
                     'conditions_updated': conditions.last_updated.isoformat() if conditions and conditions.last_updated else None
                 }
-                
+
                 if conditions:
                     status_info.update({
                         'wave_height_m': conditions.wave_height_m,
@@ -940,22 +940,81 @@ def arduino_status_overview():
                         'wind_speed_mps': conditions.wind_speed_mps,
                         'wind_direction_deg': conditions.wind_direction_deg
                     })
-                
+
                 arduino_status.append(status_info)
-            
+
             return {
                 'success': True,
                 'arduino_count': len(arduino_status),
                 'devices': arduino_status,
                 'timestamp': datetime.now().isoformat()
             }, 200
-            
+
         finally:
             db.close()
-            
+
     except Exception as e:
         logger.error(f"❌ Error getting Arduino status overview: {e}")
         return {'success': False, 'message': str(e)}, 500
+
+@app.route("/themes")
+@login_required
+def themes_page():
+    """
+    Displays the LED theme configuration page.
+    Shows available LED color themes with visual previews.
+    """
+    user_email = session.get('user_email')
+    user, lamp, conditions = get_user_lamp_data(user_email)
+
+    if not user or not lamp:
+        flash('Error loading your lamp data. Please contact support.', 'error')
+        return redirect(url_for('login'))
+
+    # Prepare user data for template
+    user_data = {
+        'user': {
+            'username': user.username,
+            'theme': user.theme or 'ocean_breeze'
+        }
+    }
+
+    return render_template('themes.html', data=user_data)
+
+@app.route("/update-led-theme", methods=['POST'])
+@login_required
+def update_led_theme():
+    """Update user's LED color theme to one of the predefined themes"""
+    try:
+        data = request.get_json()
+        theme_id = data.get('theme_id')
+        user_id = session.get('user_id')
+
+        # Valid LED theme IDs
+        valid_themes = [
+            'ocean_breeze', 'sunset_surf', 'tropical_paradise', 'arctic_wind',
+            'fire_storm', 'midnight_ocean', 'spring_meadow', 'royal_purple', 'golden_hour'
+        ]
+
+        if theme_id not in valid_themes:
+            return {'success': False, 'message': 'Invalid LED theme selected'}, 400
+
+        db = SessionLocal()
+        try:
+            user = db.query(User).filter(User.user_id == user_id).first()
+            if user:
+                user.theme = theme_id
+                db.commit()
+                logger.info(f"✅ User {user.username} updated LED theme to: {theme_id}")
+                return {'success': True, 'message': f'LED theme updated to {theme_id}'}
+            else:
+                return {'success': False, 'message': 'User not found'}, 404
+        finally:
+            db.close()
+
+    except Exception as e:
+        logger.error(f"❌ Error updating LED theme: {e}")
+        return {'success': False, 'message': f'Server error: {str(e)}'}, 500
 
 
 if __name__ == '__main__':
