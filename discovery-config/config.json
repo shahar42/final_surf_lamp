@@ -1,5 +1,5 @@
 {
-  "api_server": "final-surf-lamp.onrender.com",
+  "api_server": "final-surf-lamp-web.onrender.com",
   "backup_servers": [
     "backup-api.herokuapp.com", 
     "api.surflamp.com"
