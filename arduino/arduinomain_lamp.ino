@@ -131,7 +131,7 @@ CHSV colorMapWind[] = {
 
 // ---------------------------- Theme Color Functions ----------------------------
 
-String currentTheme = "ocean_breeze";  // Default theme
+String currentTheme = "classic_surf";  // Default theme
 
 struct ThemeColors {
     CHSV wave_color;
@@ -140,31 +140,23 @@ struct ThemeColors {
 };
 
 ThemeColors getThemeColors(String theme) {
-    // Professional LED theme system with FastLED CHSV values
-    if (theme == "ocean_breeze") {
-        return {{160, 255, 200}, {200, 255, 200}, {180, 255, 200}}; // Cool blues and teals
-    } else if (theme == "sunset_surf") {
-        return {{20, 255, 220}, {0, 255, 220}, {10, 255, 220}}; // Warm oranges and reds
+    // 5 LED themes with completely distinct colors (minimal red)
+    if (theme == "classic_surf") {
+        return {{160, 255, 200}, {0, 50, 255}, {60, 255, 200}}; // Blue waves, white wind, yellow period
+    } else if (theme == "vibrant_mix") {
+        return {{240, 255, 200}, {85, 255, 200}, {160, 255, 200}}; // Purple waves, green wind, blue period
     } else if (theme == "tropical_paradise") {
-        return {{85, 255, 200}, {140, 255, 200}, {110, 255, 200}}; // Vibrant greens and blues
-    } else if (theme == "arctic_wind") {
-        return {{170, 180, 255}, {200, 180, 255}, {185, 180, 255}}; // Cool whites and ice blues
-    } else if (theme == "fire_storm") {
-        return {{40, 255, 240}, {10, 255, 240}, {25, 255, 240}}; // Intense reds and yellows
-    } else if (theme == "midnight_ocean") {
-        return {{210, 255, 150}, {240, 255, 150}, {225, 255, 150}}; // Deep purples and dark blues
-    } else if (theme == "spring_meadow") {
-        return {{60, 200, 200}, {90, 200, 200}, {75, 200, 200}}; // Fresh greens and yellows
-    } else if (theme == "royal_purple") {
-        return {{240, 255, 180}, {220, 255, 180}, {230, 255, 180}}; // Majestic purples and magentas
-    } else if (theme == "golden_hour") {
-        return {{30, 200, 220}, {45, 200, 220}, {37, 200, 220}}; // Warm golds and amber tones
+        return {{85, 255, 200}, {140, 255, 200}, {200, 255, 200}}; // Green waves, cyan wind, magenta period
+    } else if (theme == "ocean_sunset") {
+        return {{160, 255, 220}, {20, 255, 220}, {212, 255, 220}}; // Blue waves, orange wind, pink period
+    } else if (theme == "electric_vibes") {
+        return {{140, 255, 240}, {60, 255, 240}, {240, 255, 240}}; // Cyan waves, yellow wind, purple period
     } else if (theme == "dark") {
         // Legacy dark theme
         return {{135, 255, 255}, {24, 250, 240}, {85, 155, 205}};
     } else {
-        // Legacy day theme / fallback
-        return {{150, 230, 255}, {15, 0, 255}, {45, 230, 255}};
+        // Legacy day theme / fallback - now defaults to classic_surf
+        return {{160, 255, 200}, {0, 50, 255}, {60, 255, 200}};
     }
 }
 
@@ -820,25 +812,36 @@ bool processSurfData(const String &jsonData) {
 
 
 void updateSurfDisplay(int waveHeight_cm, float wavePeriod, int windSpeed, int windDirection, int waveThreshold_cm, int windSpeedThreshold_knots) {
+    // Check for quiet hours - show only top LEDs
+    if (lastSurfData.quietHoursActive) {
+        // Calculate LED counts but force to only top LED
+        updateLEDsOneColor(1, NUM_LEDS_CENTER, leds_center, getWindSpeedColor(currentTheme));
+        updateLEDsOneColor(1, NUM_LEDS_RIGHT, leds_side_right, getWaveHeightColor(currentTheme));
+        updateLEDsOneColor(1, NUM_LEDS_LEFT, leds_side_left, getWavePeriodColor(currentTheme));
+        FastLED.show();
+        Serial.println("🌙 Quiet hours: Only top LEDs active");
+        return;
+    }
+
     // Calculate LED counts based on surf data
     // Scale wind speed to use full LED range (0-13 m/s maps to 0-18 LEDs)
     int windSpeedLEDs = constrain(static_cast<int>(windSpeed * WIND_SCALE_NUMERATOR / WIND_SCALE_DENOMINATOR), 1, NUM_LEDS_CENTER - 2);
     int waveHeightLEDs = constrain(static_cast<int>(waveHeight_cm / WAVE_HEIGHT_DIVISOR) + 1, 0, NUM_LEDS_RIGHT);
     int wavePeriodLEDs = constrain(static_cast<int>(wavePeriod), 0, NUM_LEDS_LEFT);
-    
+
     // Set wind direction indicator
     setWindDirection(windDirection);
-    
+
     // Set wave period LEDs with theme color
     updateLEDsOneColor(wavePeriodLEDs, NUM_LEDS_LEFT, leds_side_left, getWavePeriodColor(currentTheme));
-    
+
     // Apply threshold logic for wind speed and wave height
     applyWindSpeedThreshold(windSpeedLEDs, windSpeed, windSpeedThreshold_knots);
     applyWaveHeightThreshold(waveHeightLEDs, waveHeight_cm, waveThreshold_cm);
-    
+
     FastLED.show();
-    
-    Serial.printf("🎨 LEDs Updated - Wind: %d, Wave: %d, Period: %d, Direction: %d° [Wave Threshold: %dcm, Wind Threshold: %dkts]\n", 
+
+    Serial.printf("🎨 LEDs Updated - Wind: %d, Wave: %d, Period: %d, Direction: %d° [Wave Threshold: %dcm, Wind Threshold: %dkts]\n",
                   windSpeedLEDs, waveHeightLEDs, wavePeriodLEDs, windDirection, waveThreshold_cm, windSpeedThreshold_knots);
 }
 
