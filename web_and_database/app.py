@@ -975,7 +975,7 @@ def themes_page():
     user_data = {
         'user': {
             'username': user.username,
-            'theme': user.theme or 'ocean_breeze'
+            'theme': user.theme or 'classic_surf'
         }
     }
 
@@ -992,7 +992,7 @@ def update_led_theme():
 
         # Valid LED theme IDs
         valid_themes = [
-            'ocean_breeze', 'sunset_surf', 'tropical_paradise', 'arctic_wind',
+            'classic_surf', 'ocean_breeze', 'sunset_surf', 'tropical_paradise', 'arctic_wind',
             'fire_storm', 'midnight_ocean', 'spring_meadow', 'royal_purple', 'golden_hour'
         ]
 

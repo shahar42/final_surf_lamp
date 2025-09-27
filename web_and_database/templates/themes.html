@@ -101,10 +101,10 @@
         <div class="card rounded-2xl p-6 shadow-2xl">
             <h2 class="text-xl font-bold text-white mb-4">Current Theme Preview</h2>
             <div class="preview-container">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <!-- Wave Height Strip -->
                     <div class="text-center">
-                        <h3 class="text-white font-semibold mb-3">Wave Height (0-8 LEDs)</h3>
+                        <h3 class="text-white font-semibold mb-3">Wave Height (8 LEDs)</h3>
                         <div class="led-strip" id="current-wave-strip">
                             <!-- LEDs will be populated by JavaScript -->
                         </div>
@@ -113,11 +113,20 @@
 
                     <!-- Wind Speed Strip -->
                     <div class="text-center">
-                        <h3 class="text-white font-semibold mb-3">Wind Speed (0-13 LEDs)</h3>
+                        <h3 class="text-white font-semibold mb-3">Wind Speed (13 LEDs)</h3>
                         <div class="led-strip" id="current-wind-strip">
                             <!-- LEDs will be populated by JavaScript -->
                         </div>
                         <p class="text-white/60 text-sm mt-2">Shows wind speed in m/s</p>
+                    </div>
+
+                    <!-- Wave Period Strip -->
+                    <div class="text-center">
+                        <h3 class="text-white font-semibold mb-3">Wave Period (8 LEDs)</h3>
+                        <div class="led-strip" id="current-period-strip">
+                            <!-- LEDs will be populated by JavaScript -->
+                        </div>
+                        <p class="text-white/60 text-sm mt-2">Shows wave period in seconds</p>
                     </div>
                 </div>
             </div>
@@ -178,11 +187,23 @@
         // Predefined LED themes with FastLED CHSV values
         const ledThemes = [
             {
+                id: 'classic_surf',
+                name: 'Classic Surf',
+                description: 'Traditional blue waves, white wind, yellow period',
+                wave_hue: 160,    // Blue
+                wind_hue: 0,      // White (any hue works for white)
+                period_hue: 60,   // Yellow
+                saturation: 200,  // Used for wave and period
+                brightness: 200,
+                wind_saturation: 50  // Low saturation for white wind
+            },
+            {
                 id: 'ocean_breeze',
                 name: 'Ocean Breeze',
                 description: 'Cool blues and teals like ocean waves',
                 wave_hue: 160,    // Cyan-blue
                 wind_hue: 200,    // Deep blue
+                period_hue: 180,  // Cyan
                 saturation: 255,
                 brightness: 200
             },
@@ -192,6 +213,7 @@
                 description: 'Warm oranges and reds like sunset',
                 wave_hue: 20,     // Orange
                 wind_hue: 0,      // Red
+                period_hue: 10,   // Red-orange
                 saturation: 255,
                 brightness: 220
             },
@@ -201,6 +223,7 @@
                 description: 'Vibrant greens and blues',
                 wave_hue: 85,     // Green
                 wind_hue: 140,    // Teal
+                period_hue: 110,  // Green-cyan
                 saturation: 255,
                 brightness: 200
             },
@@ -210,6 +233,7 @@
                 description: 'Cool whites and ice blues',
                 wave_hue: 170,    // Light blue
                 wind_hue: 200,    // Deeper blue
+                period_hue: 185,  // Ice blue
                 saturation: 180,  // Less saturated for icy effect
                 brightness: 255
             },
@@ -219,6 +243,7 @@
                 description: 'Intense reds and yellows',
                 wave_hue: 40,     // Yellow-orange
                 wind_hue: 10,     // Red-orange
+                period_hue: 25,   // Orange
                 saturation: 255,
                 brightness: 240
             },
@@ -228,6 +253,7 @@
                 description: 'Deep purples and dark blues',
                 wave_hue: 210,    // Dark blue
                 wind_hue: 240,    // Purple
+                period_hue: 225,  // Purple-blue
                 saturation: 255,
                 brightness: 150
             },
@@ -237,6 +263,7 @@
                 description: 'Fresh greens and yellows',
                 wave_hue: 60,     // Yellow-green
                 wind_hue: 90,     // Green
+                period_hue: 75,   // Green-yellow
                 saturation: 200,
                 brightness: 200
             },
@@ -246,6 +273,7 @@
                 description: 'Majestic purples and magentas',
                 wave_hue: 240,    // Purple
                 wind_hue: 220,    // Magenta-purple
+                period_hue: 230,  // Purple
                 saturation: 255,
                 brightness: 180
             },
@@ -255,13 +283,14 @@
                 description: 'Warm golds and amber tones',
                 wave_hue: 30,     // Gold
                 wind_hue: 45,     // Amber
+                period_hue: 37,   // Gold-amber
                 saturation: 200,
                 brightness: 220
             }
         ];
 
         let selectedTheme = null;
-        let currentUserTheme = '{{ data.user.theme if data.user.theme else "ocean_breeze" }}';
+        let currentUserTheme = '{{ data.user.theme if data.user.theme else "classic_surf" }}';
 
         function createLedStrip(containerId, ledCount, hue, saturation, brightness) {
             const container = document.getElementById(containerId);
@@ -283,12 +312,13 @@
         }
 
         function updateCurrentThemePreview() {
-            // Find current theme or default to ocean_breeze
+            // Find current theme or default to classic_surf
             const theme = ledThemes.find(t => t.id === currentUserTheme) || ledThemes[0];
 
-            // Create preview strips (showing 5 LEDs for wave, 8 for wind as example)
+            // Create preview strips (showing 5 LEDs for wave, 8 for wind, 6 for period as example)
             createLedStrip('current-wave-strip', 5, theme.wave_hue, theme.saturation, theme.brightness);
-            createLedStrip('current-wind-strip', 8, theme.wind_hue, theme.saturation, theme.brightness);
+            createLedStrip('current-wind-strip', 8, theme.wind_hue, theme.wind_saturation || theme.saturation, theme.brightness);
+            createLedStrip('current-period-strip', 6, theme.period_hue, theme.saturation, theme.brightness);
         }
 
         function createThemeCard(theme) {
@@ -300,7 +330,7 @@
                 <h3 class="text-white font-bold text-lg mb-2">${theme.name}</h3>
                 <p class="text-white/80 text-sm mb-4">${theme.description}</p>
 
-                <div class="space-y-3">
+                <div class="space-y-2">
                     <div>
                         <div class="text-white/60 text-xs mb-1">Wave Height</div>
                         <div class="led-strip" id="preview-wave-${theme.id}"></div>
@@ -308,6 +338,10 @@
                     <div>
                         <div class="text-white/60 text-xs mb-1">Wind Speed</div>
                         <div class="led-strip" id="preview-wind-${theme.id}"></div>
+                    </div>
+                    <div>
+                        <div class="text-white/60 text-xs mb-1">Wave Period</div>
+                        <div class="led-strip" id="preview-period-${theme.id}"></div>
                     </div>
                 </div>
 
@@ -317,7 +351,8 @@
             // Create preview strips for this theme
             setTimeout(() => {
                 createLedStrip(`preview-wave-${theme.id}`, 4, theme.wave_hue, theme.saturation, theme.brightness);
-                createLedStrip(`preview-wind-${theme.id}`, 6, theme.wind_hue, theme.saturation, theme.brightness);
+                createLedStrip(`preview-wind-${theme.id}`, 6, theme.wind_hue, theme.wind_saturation || theme.saturation, theme.brightness);
+                createLedStrip(`preview-period-${theme.id}`, 4, theme.period_hue, theme.saturation, theme.brightness);
             }, 10);
 
             card.addEventListener('click', () => selectTheme(theme.id));
