@@ -184,108 +184,58 @@
             };
         }
 
-        // Predefined LED themes with FastLED CHSV values
+        // 5 LED themes with completely distinct colors
         const ledThemes = [
             {
                 id: 'classic_surf',
                 name: 'Classic Surf',
-                description: 'Traditional blue waves, white wind, yellow period',
+                description: 'Blue waves, white wind, yellow period',
                 wave_hue: 160,    // Blue
-                wind_hue: 0,      // White (any hue works for white)
+                wind_hue: 0,      // White
                 period_hue: 60,   // Yellow
-                saturation: 200,  // Used for wave and period
+                saturation: 255,
                 brightness: 200,
                 wind_saturation: 50  // Low saturation for white wind
             },
             {
-                id: 'ocean_breeze',
-                name: 'Ocean Breeze',
-                description: 'Cool blues and teals like ocean waves',
-                wave_hue: 160,    // Cyan-blue
-                wind_hue: 200,    // Deep blue
-                period_hue: 180,  // Cyan
+                id: 'rainbow_bright',
+                name: 'Rainbow Bright',
+                description: 'Red waves, green wind, blue period',
+                wave_hue: 0,      // Red
+                wind_hue: 85,     // Green
+                period_hue: 160,  // Blue
                 saturation: 255,
                 brightness: 200
-            },
-            {
-                id: 'sunset_surf',
-                name: 'Sunset Surf',
-                description: 'Warm oranges and reds like sunset',
-                wave_hue: 20,     // Orange
-                wind_hue: 0,      // Red
-                period_hue: 10,   // Red-orange
-                saturation: 255,
-                brightness: 220
             },
             {
                 id: 'tropical_paradise',
                 name: 'Tropical Paradise',
-                description: 'Vibrant greens and blues',
+                description: 'Green waves, cyan wind, magenta period',
                 wave_hue: 85,     // Green
-                wind_hue: 140,    // Teal
-                period_hue: 110,  // Green-cyan
+                wind_hue: 140,    // Cyan
+                period_hue: 200,  // Magenta
                 saturation: 255,
                 brightness: 200
             },
             {
-                id: 'arctic_wind',
-                name: 'Arctic Wind',
-                description: 'Cool whites and ice blues',
-                wave_hue: 170,    // Light blue
-                wind_hue: 200,    // Deeper blue
-                period_hue: 185,  // Ice blue
-                saturation: 180,  // Less saturated for icy effect
-                brightness: 255
+                id: 'neon_nights',
+                name: 'Neon Nights',
+                description: 'Purple waves, yellow wind, cyan period',
+                wave_hue: 240,    // Purple
+                wind_hue: 60,     // Yellow
+                period_hue: 140,  // Cyan
+                saturation: 255,
+                brightness: 220
             },
             {
                 id: 'fire_storm',
                 name: 'Fire Storm',
-                description: 'Intense reds and yellows',
-                wave_hue: 40,     // Yellow-orange
-                wind_hue: 10,     // Red-orange
-                period_hue: 25,   // Orange
+                description: 'Orange waves, red wind, yellow period',
+                wave_hue: 20,     // Orange
+                wind_hue: 0,      // Red
+                period_hue: 60,   // Yellow
                 saturation: 255,
                 brightness: 240
-            },
-            {
-                id: 'midnight_ocean',
-                name: 'Midnight Ocean',
-                description: 'Deep purples and dark blues',
-                wave_hue: 210,    // Dark blue
-                wind_hue: 240,    // Purple
-                period_hue: 225,  // Purple-blue
-                saturation: 255,
-                brightness: 150
-            },
-            {
-                id: 'spring_meadow',
-                name: 'Spring Meadow',
-                description: 'Fresh greens and yellows',
-                wave_hue: 60,     // Yellow-green
-                wind_hue: 90,     // Green
-                period_hue: 75,   // Green-yellow
-                saturation: 200,
-                brightness: 200
-            },
-            {
-                id: 'royal_purple',
-                name: 'Royal Purple',
-                description: 'Majestic purples and magentas',
-                wave_hue: 240,    // Purple
-                wind_hue: 220,    // Magenta-purple
-                period_hue: 230,  // Purple
-                saturation: 255,
-                brightness: 180
-            },
-            {
-                id: 'golden_hour',
-                name: 'Golden Hour',
-                description: 'Warm golds and amber tones',
-                wave_hue: 30,     // Gold
-                wind_hue: 45,     // Amber
-                period_hue: 37,   // Gold-amber
-                saturation: 200,
-                brightness: 220
             }
         ];
 
