@@ -184,7 +184,7 @@
             };
         }
 
-        // 5 LED themes with completely distinct colors
+        // 5 LED themes with completely distinct colors (minimal red)
         const ledThemes = [
             {
                 id: 'classic_surf',
@@ -198,10 +198,10 @@
                 wind_saturation: 50  // Low saturation for white wind
             },
             {
-                id: 'rainbow_bright',
-                name: 'Rainbow Bright',
-                description: 'Red waves, green wind, blue period',
-                wave_hue: 0,      // Red
+                id: 'vibrant_mix',
+                name: 'Vibrant Mix',
+                description: 'Purple waves, green wind, blue period',
+                wave_hue: 240,    // Purple
                 wind_hue: 85,     // Green
                 period_hue: 160,  // Blue
                 saturation: 255,
@@ -218,22 +218,22 @@
                 brightness: 200
             },
             {
-                id: 'neon_nights',
-                name: 'Neon Nights',
-                description: 'Purple waves, yellow wind, cyan period',
-                wave_hue: 240,    // Purple
-                wind_hue: 60,     // Yellow
-                period_hue: 140,  // Cyan
+                id: 'ocean_sunset',
+                name: 'Ocean Sunset',
+                description: 'Blue waves, orange wind, pink period',
+                wave_hue: 160,    // Blue
+                wind_hue: 20,     // Orange
+                period_hue: 300,  // Pink
                 saturation: 255,
                 brightness: 220
             },
             {
-                id: 'fire_storm',
-                name: 'Fire Storm',
-                description: 'Orange waves, red wind, yellow period',
-                wave_hue: 20,     // Orange
-                wind_hue: 0,      // Red
-                period_hue: 60,   // Yellow
+                id: 'electric_vibes',
+                name: 'Electric Vibes',
+                description: 'Cyan waves, yellow wind, purple period',
+                wave_hue: 140,    // Cyan
+                wind_hue: 60,     // Yellow
+                period_hue: 240,  // Purple
                 saturation: 255,
                 brightness: 240
             }

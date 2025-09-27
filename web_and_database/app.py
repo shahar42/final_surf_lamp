@@ -990,9 +990,9 @@ def update_led_theme():
         theme_id = data.get('theme_id')
         user_id = session.get('user_id')
 
-        # Valid LED theme IDs - 5 themes with distinct colors
+        # Valid LED theme IDs - 5 themes with distinct colors (minimal red)
         valid_themes = [
-            'classic_surf', 'rainbow_bright', 'tropical_paradise', 'neon_nights', 'fire_storm'
+            'classic_surf', 'vibrant_mix', 'tropical_paradise', 'ocean_sunset', 'electric_vibes'
         ]
 
         if theme_id not in valid_themes:
