@@ -37,6 +37,9 @@ venv.bak/
 .env.development.local
 .env.test.local
 .env.production.local
+*config.env
+monitor_config.env
+insights_config.env
 
 # Docker
 Dockerfile.dockerignore
