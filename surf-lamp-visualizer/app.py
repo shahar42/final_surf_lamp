@@ -93,16 +93,13 @@ def manpage(module_id):
     # Convert markdown to HTML with extras
     html_content = markdown2.markdown(markdown_content, extras=['fenced-code-blocks', 'tables', 'header-ids'])
 
-    # Find module info from SYSTEM_DATA
-    module_node = next((node for node in SYSTEM_DATA['nodes'] if node['id'] == module_id), None)
-    module_name = module_node['name'] if module_node else module_id
-    module_type = module_node['type'] if module_node else 'unknown'
+    # Find module name from SYSTEM_DATA
+    module_name = next((node['name'] for node in SYSTEM_DATA['nodes'] if node['id'] == module_id), module_id)
 
     return render_template('manpage.html',
                          content=html_content,
                          module_name=module_name,
-                         module_id=module_id,
-                         module_type=module_type)
+                         module_id=module_id)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
