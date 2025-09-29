@@ -96,10 +96,42 @@ def manpage(module_id):
     # Find module name from SYSTEM_DATA
     module_name = next((node['name'] for node in SYSTEM_DATA['nodes'] if node['id'] == module_id), module_id)
 
+    # Check if extension file exists
+    extension_path = os.path.join(os.path.dirname(__file__), 'manpages', 'extensions', f'{module_id}_tools.md')
+    has_extension = os.path.exists(extension_path)
+
     return render_template('manpage.html',
                          content=html_content,
                          module_name=module_name,
-                         module_id=module_id)
+                         module_id=module_id,
+                         has_extension=has_extension)
+
+@app.route('/manpage/<module_id>/tools')
+def manpage_extension(module_id):
+    """Serve extension page with tool descriptions"""
+    # Security: only allow alphanumeric and underscore
+    if not module_id.replace('_', '').isalnum():
+        abort(404)
+
+    extension_path = os.path.join(os.path.dirname(__file__), 'manpages', 'extensions', f'{module_id}_tools.md')
+
+    if not os.path.exists(extension_path):
+        abort(404)
+
+    with open(extension_path, 'r') as f:
+        markdown_content = f.read()
+
+    # Convert markdown to HTML with extras
+    html_content = markdown2.markdown(markdown_content, extras=['fenced-code-blocks', 'tables', 'header-ids'])
+
+    # Find module name from SYSTEM_DATA
+    module_name = next((node['name'] for node in SYSTEM_DATA['nodes'] if node['id'] == module_id), module_id)
+
+    return render_template('manpage.html',
+                         content=html_content,
+                         module_name=f"{module_name} - Tools Reference",
+                         module_id=module_id,
+                         has_extension=False)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
