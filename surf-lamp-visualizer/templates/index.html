@@ -194,6 +194,23 @@
             color: #333;
         }
 
+        .manpage-btn {
+            display: block;
+            margin-top: 20px;
+            padding: 12px 20px;
+            background: #667eea;
+            color: white;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .manpage-btn:hover {
+            background: #5568d3;
+        }
+
         #graph {
             width: 100vw;
             height: 100vh;
@@ -323,6 +340,7 @@
         <div class="details-type" id="details-type"></div>
         <div class="details-description" id="details-description"></div>
         <div class="details-meta" id="details-meta"></div>
+        <a id="manpage-link" class="manpage-btn" href="#" target="_blank">📖 View Full Manual</a>
     </div>
     <svg id="graph"></svg>
 
@@ -513,6 +531,10 @@
                     <span class="details-meta-label">Module ID:</span> ${d.id}
                 </div>
             `;
+
+            // Update manual page link
+            const manpageLink = document.getElementById('manpage-link');
+            manpageLink.href = `/manpage/${d.id}`;
 
             panel.classList.add('visible');
         }

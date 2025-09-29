@@ -2,10 +2,11 @@
 Surf Lamp System Visualization Server
 Serves interactive D3.js visualization of system architecture
 """
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, abort
 from flask_cors import CORS
 import os
 from dotenv import load_dotenv
+import markdown2
 
 load_dotenv()
 
@@ -73,6 +74,32 @@ def get_stats():
 def health_check():
     """Health check endpoint for Render"""
     return jsonify({"status": "healthy", "service": "surf-lamp-visualizer"})
+
+@app.route('/manpage/<module_id>')
+def manpage(module_id):
+    """Serve manual page for a specific module"""
+    # Security: only allow alphanumeric and underscore
+    if not module_id.replace('_', '').isalnum():
+        abort(404)
+
+    manpage_path = os.path.join(os.path.dirname(__file__), 'manpages', f'{module_id}.md')
+
+    if not os.path.exists(manpage_path):
+        abort(404)
+
+    with open(manpage_path, 'r') as f:
+        markdown_content = f.read()
+
+    # Convert markdown to HTML with extras
+    html_content = markdown2.markdown(markdown_content, extras=['fenced-code-blocks', 'tables', 'header-ids'])
+
+    # Find module name from SYSTEM_DATA
+    module_name = next((node['name'] for node in SYSTEM_DATA['nodes'] if node['id'] == module_id), module_id)
+
+    return render_template('manpage.html',
+                         content=html_content,
+                         module_name=module_name,
+                         module_id=module_id)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
