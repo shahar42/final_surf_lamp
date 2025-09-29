@@ -112,6 +112,88 @@
             font-size: 12px;
         }
 
+        #details-panel {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.98);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 16px 64px rgba(0, 0, 0, 0.3);
+            z-index: 3000;
+            max-width: 500px;
+            display: none;
+        }
+
+        #details-panel.visible {
+            display: block;
+        }
+
+        .details-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .details-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .close-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .close-btn:hover {
+            background: #d32f2f;
+        }
+
+        .details-type {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 15px;
+        }
+
+        .details-description {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .details-meta {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .details-meta-item {
+            margin: 8px 0;
+            color: #666;
+        }
+
+        .details-meta-label {
+            font-weight: 600;
+            color: #333;
+        }
+
         #graph {
             width: 100vw;
             height: 100vh;
@@ -233,6 +315,15 @@
     </div>
 
     <div id="tooltip"></div>
+    <div id="details-panel">
+        <div class="details-header">
+            <div class="details-title" id="details-title"></div>
+            <button class="close-btn" onclick="closeDetails()">&times;</button>
+        </div>
+        <div class="details-type" id="details-type"></div>
+        <div class="details-description" id="details-description"></div>
+        <div class="details-meta" id="details-meta"></div>
+    </div>
     <svg id="graph"></svg>
 
     <script>
@@ -345,6 +436,7 @@
                 .attr('stroke-width', 2)
                 .on('mouseover', showTooltip)
                 .on('mouseout', hideTooltip)
+                .on('click', showDetails)
                 .call(d3.drag()
                     .on('start', dragStarted)
                     .on('drag', dragged)
@@ -399,6 +491,43 @@
         function hideTooltip() {
             document.getElementById('tooltip').style.opacity = 0;
         }
+
+        function showDetails(event, d) {
+            event.stopPropagation();
+
+            const panel = document.getElementById('details-panel');
+            document.getElementById('details-title').textContent = d.name;
+            document.getElementById('details-description').textContent = d.description;
+
+            const typeDiv = document.getElementById('details-type');
+            typeDiv.textContent = d.type.toUpperCase();
+            typeDiv.style.background = typeColors[d.type];
+
+            // Add metadata
+            const metaDiv = document.getElementById('details-meta');
+            metaDiv.innerHTML = `
+                <div class="details-meta-item">
+                    <span class="details-meta-label">Module Type:</span> ${d.type}
+                </div>
+                <div class="details-meta-item">
+                    <span class="details-meta-label">Module ID:</span> ${d.id}
+                </div>
+            `;
+
+            panel.classList.add('visible');
+        }
+
+        function closeDetails() {
+            document.getElementById('details-panel').classList.remove('visible');
+        }
+
+        // Close panel when clicking outside
+        document.addEventListener('click', (event) => {
+            const panel = document.getElementById('details-panel');
+            if (panel.classList.contains('visible') && !panel.contains(event.target)) {
+                closeDetails();
+            }
+        });
 
         function dragStarted(event, d) {
             if (!event.active) simulation.alphaTarget(0.3).restart();
