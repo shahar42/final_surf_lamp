@@ -74,6 +74,24 @@
             font-weight: bold;
         }
 
+        .reset-btn {
+            margin-top: 15px;
+            padding: 10px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            width: 100%;
+            transition: background 0.3s;
+        }
+
+        .reset-btn:hover {
+            background: #5568d3;
+        }
+
         #tooltip {
             position: absolute;
             background: rgba(0, 0, 0, 0.9);
@@ -232,35 +250,6 @@
             50% { opacity: 1; }
         }
 
-        #controls {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 1000;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 15px;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-        }
-
-        .control-btn {
-            display: block;
-            width: 100%;
-            padding: 10px;
-            margin: 5px 0;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 600;
-            transition: background 0.3s;
-        }
-
-        .control-btn:hover {
-            background: #5568d3;
-        }
     </style>
 </head>
 <body>
@@ -268,12 +257,7 @@
         <h1>🏄 Surf Lamp System</h1>
         <div class="subtitle">Interactive Architecture Visualization</div>
         <div class="stats" id="stats"></div>
-    </div>
-
-
-    <div id="controls">
-        <button class="control-btn" onclick="resetSimulation()">Reset Layout</button>
-        <button class="control-btn" onclick="toggleAnimation()">Toggle Animation</button>
+        <button class="reset-btn" onclick="resetSimulation()">🔄 Reset Layout</button>
     </div>
 
     <div id="tooltip"></div>
@@ -301,7 +285,6 @@
             'analytics': '#FFEB3B'
         };
 
-        let animationEnabled = true;
         let simulation;
         let svg, g, link, linkLabel, node, nodeLabel;
 
@@ -418,9 +401,7 @@
             simulation.on('tick', ticked);
 
             // Start animation loop
-            if (animationEnabled) {
-                animateDataFlow();
-            }
+            animateDataFlow();
         }
 
         function ticked() {
@@ -517,15 +498,7 @@
             simulation.alpha(1).restart();
         }
 
-        function toggleAnimation() {
-            animationEnabled = !animationEnabled;
-            if (animationEnabled) {
-                animateDataFlow();
-            }
-        }
-
         function animateDataFlow() {
-            if (!animationEnabled) return;
 
             // Pulse specific nodes based on their update frequency
             const processorNode = d3.selectAll('.node').filter(d => d.id === 'processor');
