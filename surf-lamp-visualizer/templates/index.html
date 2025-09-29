@@ -74,37 +74,6 @@
             font-weight: bold;
         }
 
-        #legend {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            z-index: 1000;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 15px;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-        }
-
-        .legend-title {
-            font-weight: 600;
-            margin-bottom: 10px;
-            color: #333;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            margin: 5px 0;
-            font-size: 12px;
-        }
-
-        .legend-color {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            margin-right: 8px;
-        }
-
         #tooltip {
             position: absolute;
             background: rgba(0, 0, 0, 0.9);
@@ -301,37 +270,6 @@
         <div class="stats" id="stats"></div>
     </div>
 
-    <div id="legend">
-        <div class="legend-title">Module Types</div>
-        <div class="legend-item">
-            <div class="legend-color" style="background: #4CAF50;"></div>
-            <span>Backend Services</span>
-        </div>
-        <div class="legend-item">
-            <div class="legend-color" style="background: #2196F3;"></div>
-            <span>Storage Systems</span>
-        </div>
-        <div class="legend-item">
-            <div class="legend-color" style="background: #FF9800;"></div>
-            <span>Hardware (Arduino)</span>
-        </div>
-        <div class="legend-item">
-            <div class="legend-color" style="background: #9C27B0;"></div>
-            <span>External APIs</span>
-        </div>
-        <div class="legend-item">
-            <div class="legend-color" style="background: #F44336;"></div>
-            <span>MCP Tools</span>
-        </div>
-        <div class="legend-item">
-            <div class="legend-color" style="background: #00BCD4;"></div>
-            <span>Configuration</span>
-        </div>
-        <div class="legend-item">
-            <div class="legend-color" style="background: #FFEB3B; color: #333;"></div>
-            <span>Analytics</span>
-        </div>
-    </div>
 
     <div id="controls">
         <button class="control-btn" onclick="resetSimulation()">Reset Layout</button>
