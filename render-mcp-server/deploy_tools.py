@@ -294,7 +294,8 @@ The service is now building and will be available at the URL above once deployed
             api_key: Render API key
         """
 
-        payload = {"clearCache": clear_cache}
+        # Render API expects string values: "clear" or "do_not_clear"
+        payload = {"clearCache": "clear" if clear_cache else "do_not_clear"}
 
         try:
             result = await make_render_request("POST", f"/services/{service_id}/deploys", api_key, payload)
