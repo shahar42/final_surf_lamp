@@ -82,6 +82,19 @@
             color: #FFFCDE;
             padding: 4px 8px;
         }
+        /* LED Strip Styles */
+        .led-strip-canvas {
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            box-shadow: 0 0 20px rgba(0, 198, 255, 0.3);
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        .blinking {
+            animation: blink 0.8s ease-in-out infinite;
+        }
     </style>
 </head>
 <body class="min-h-screen p-4">
@@ -97,14 +110,37 @@
       {% endif %}
     {% endwith %}
 
-    <!-- Header -->
+    <!-- LED Strip Visualization -->
     <div class="max-w-6xl mx-auto mb-8">
         <div class="card rounded-2xl p-6 shadow-2xl">
-            <div class="flex justify-center items-center">
-                <div class="text-center">
-                    <h1 class="text-3xl font-bold text-white">Surf Lamp Dashboard <span class="lamp-indicator"></span></h1>
-                    <p class="text-white/80 mt-1">Welcome back, {{ data.user.username }}!</p>
+            <div class="flex flex-col items-center">
+                <h2 class="text-xl font-bold text-white mb-4">Your Lamp - Live Status <span class="lamp-indicator"></span></h2>
+
+                <!-- LED Strips Container -->
+                <div class="flex justify-center items-end space-x-8 mb-4" style="height: 300px;">
+                    <!-- Right Strip: Wave Height -->
+                    <div class="flex flex-col items-center">
+                        <canvas id="rightStrip" width="40" height="250"></canvas>
+                        <p class="text-white/80 text-xs mt-2">Wave Height</p>
+                        <p class="text-white font-semibold text-sm" id="waveHeightLabel">--</p>
+                    </div>
+
+                    <!-- Center Strip: Wind Speed -->
+                    <div class="flex flex-col items-center">
+                        <canvas id="centerStrip" width="40" height="250"></canvas>
+                        <p class="text-white/80 text-xs mt-2">Wind Speed</p>
+                        <p class="text-white font-semibold text-sm" id="windSpeedLabel">--</p>
+                    </div>
+
+                    <!-- Left Strip: Wave Period -->
+                    <div class="flex flex-col items-center">
+                        <canvas id="leftStrip" width="40" height="250"></canvas>
+                        <p class="text-white/80 text-xs mt-2">Wave Period</p>
+                        <p class="text-white font-semibold text-sm" id="wavePeriodLabel">--</p>
+                    </div>
                 </div>
+
+                <p class="text-white/60 text-xs">Updates every 13 minutes • Last updated: <span id="lastUpdateTime">--</span></p>
             </div>
         </div>
     </div>
@@ -406,6 +442,221 @@
             statusDiv.style.color = '#ef4444';
         });
     });
+
+    // ==============================
+    // LED STRIP VISUALIZATION CODE
+    // ==============================
+
+    const LED_COUNT = 10;
+    const LED_SPACING = 25;
+    const LED_RADIUS = 15;
+
+    // Wind direction to color mapping (Arduino wind direction system)
+    const WIND_DIRECTION_COLORS = {
+        0: [0, 255, 0],      // North - Green
+        45: [128, 255, 0],   // Northeast - Yellow-Green
+        90: [255, 255, 0],   // East - Yellow
+        135: [255, 128, 0],  // Southeast - Orange
+        180: [255, 0, 0],    // South - Red
+        225: [128, 0, 255],  // Southwest - Purple
+        270: [0, 0, 255],    // West - Blue
+        315: [0, 255, 255]   // Northwest - Cyan
+    };
+
+    // Color theme palettes (matching Arduino themes)
+    const COLOR_THEMES = {
+        'ocean_breeze': {
+            wave: [0, 150, 255],
+            period: [0, 255, 200],
+            wind: [100, 200, 255]
+        },
+        'sunset_glow': {
+            wave: [255, 100, 50],
+            period: [255, 150, 0],
+            wind: [255, 50, 100]
+        },
+        'tropical_vibes': {
+            wave: [0, 255, 150],
+            period: [255, 200, 0],
+            wind: [255, 100, 200]
+        },
+        'day': { // Default theme
+            wave: [0, 150, 255],
+            period: [0, 255, 200],
+            wind: [100, 200, 255]
+        }
+    };
+
+    let currentTheme = '{{ data.user.theme }}' || 'ocean_breeze';
+    let arduinoId = {{ data.lamp.arduino_id }};
+    let isBlinking = false;
+    let blinkState = true;
+
+    // Get canvas contexts
+    const rightCanvas = document.getElementById('rightStrip');
+    const centerCanvas = document.getElementById('centerStrip');
+    const leftCanvas = document.getElementById('leftStrip');
+
+    const rightCtx = rightCanvas.getContext('2d');
+    const centerCtx = centerCanvas.getContext('2d');
+    const leftCtx = leftCanvas.getContext('2d');
+
+    // Apply canvas styling
+    [rightCanvas, centerCanvas, leftCanvas].forEach(canvas => {
+        canvas.classList.add('led-strip-canvas');
+    });
+
+    function getWindDirectionColor(degrees) {
+        // Find closest direction
+        const directions = Object.keys(WIND_DIRECTION_COLORS).map(Number);
+        let closest = directions[0];
+        let minDiff = Math.abs(degrees - closest);
+
+        for (let dir of directions) {
+            const diff = Math.abs(degrees - dir);
+            if (diff < minDiff) {
+                minDiff = diff;
+                closest = dir;
+            }
+        }
+
+        return WIND_DIRECTION_COLORS[closest];
+    }
+
+    function drawLED(ctx, x, y, color, isLit, glow = true) {
+        if (!isLit) {
+            // Dim LED (off state)
+            ctx.fillStyle = 'rgba(50, 50, 50, 0.3)';
+            ctx.beginPath();
+            ctx.arc(x, y, LED_RADIUS, 0, Math.PI * 2);
+            ctx.fill();
+            return;
+        }
+
+        // Draw glow effect
+        if (glow) {
+            const gradient = ctx.createRadialGradient(x, y, 0, x, y, LED_RADIUS * 2);
+            gradient.addColorStop(0, `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.8)`);
+            gradient.addColorStop(0.5, `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.4)`);
+            gradient.addColorStop(1, `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0)`);
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(x, y, LED_RADIUS * 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Draw LED core
+        ctx.fillStyle = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+        ctx.beginPath();
+        ctx.arc(x, y, LED_RADIUS, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Add bright center highlight
+        const highlightGradient = ctx.createRadialGradient(x - 5, y - 5, 0, x, y, LED_RADIUS);
+        highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+        highlightGradient.addColorStop(0.5, `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.5)`);
+        highlightGradient.addColorStop(1, `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0)`);
+        ctx.fillStyle = highlightGradient;
+        ctx.beginPath();
+        ctx.arc(x, y, LED_RADIUS, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    function drawStrip(ctx, litCount, color, topLEDColor = null, blink = false) {
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+        const centerX = ctx.canvas.width / 2;
+
+        for (let i = 0; i < LED_COUNT; i++) {
+            const y = ctx.canvas.height - (i * LED_SPACING) - 20;
+            const isTopLED = (i === LED_COUNT - 1);
+
+            // Use special color for top LED if provided (wind direction)
+            const ledColor = (isTopLED && topLEDColor) ? topLEDColor : color;
+
+            // LED is lit if below litCount, or if blinking and blinkState is true
+            let isLit = (i < litCount);
+            if (blink && blinkState) {
+                isLit = isLit && blinkState;
+            }
+
+            drawLED(ctx, centerX, y, ledColor, isLit);
+        }
+    }
+
+    function updateLEDVisualization(data) {
+        const theme = COLOR_THEMES[currentTheme] || COLOR_THEMES['day'];
+
+        // Calculate LED counts (0-10 scale)
+        // Wave height: 0-5m maps to 0-10 LEDs
+        const waveHeightM = data.wave_height_cm / 100;
+        const waveLEDCount = Math.min(10, Math.round(waveHeightM * 2));
+
+        // Wave period: 0-20s maps to 0-10 LEDs
+        const periodLEDCount = Math.min(10, Math.round(data.wave_period_s / 2));
+
+        // Wind speed: 0-20 m/s maps to 0-10 LEDs
+        const windLEDCount = Math.min(10, Math.round(data.wind_speed_mps / 2));
+
+        // Get wind direction color for center strip top LED
+        const windDirColor = getWindDirectionColor(data.wind_direction_deg);
+
+        // Check threshold alerts
+        const waveThresholdExceeded = waveHeightM > (data.wave_threshold_cm / 100);
+        const windThresholdExceeded = data.wind_speed_mps > (data.wind_speed_threshold_knots / 1.944); // Convert knots to m/s
+
+        isBlinking = waveThresholdExceeded || windThresholdExceeded;
+
+        // Draw strips
+        drawStrip(rightCtx, waveLEDCount, theme.wave, null, waveThresholdExceeded);
+        drawStrip(leftCtx, periodLEDCount, theme.period, null, false);
+        drawStrip(centerCtx, windLEDCount, theme.wind, windDirColor, windThresholdExceeded);
+
+        // Update labels
+        document.getElementById('waveHeightLabel').textContent = `${waveHeightM.toFixed(1)}m`;
+        document.getElementById('wavePeriodLabel').textContent = `${data.wave_period_s.toFixed(1)}s`;
+        document.getElementById('windSpeedLabel').textContent = `${data.wind_speed_mps.toFixed(1)} m/s`;
+
+        // Update last update time
+        const lastUpdate = new Date(data.last_updated);
+        const now = new Date();
+        const diffMinutes = Math.floor((now - lastUpdate) / 1000 / 60);
+        document.getElementById('lastUpdateTime').textContent = diffMinutes < 1 ? 'just now' : `${diffMinutes} min ago`;
+    }
+
+    function fetchLampData() {
+        fetch(`/api/arduino/${arduinoId}/data`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.data_available) {
+                    updateLEDVisualization(data);
+                } else {
+                    console.log('No lamp data available yet');
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching lamp data:', error);
+            });
+    }
+
+    // Blink animation loop
+    function blinkLoop() {
+        if (isBlinking) {
+            blinkState = !blinkState;
+        } else {
+            blinkState = true;
+        }
+        // Re-fetch data to update (this will redraw with current blink state)
+    }
+
+    // Initial fetch
+    fetchLampData();
+
+    // Update every 13 minutes (780000 ms)
+    setInterval(fetchLampData, 780000);
+
+    // Blink animation at 0.8s intervals
+    setInterval(blinkLoop, 800);
 
     </script>
 </body>
