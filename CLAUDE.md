@@ -213,3 +213,5 @@
 *"doing the same thing twice and expecting a different result is the definition of crazy"* - The user's reminder that true problem-solving requires changing approach, not just repeating failed solutions with minor variations.
 - always prefer permenet long time fixes over quick immediate fixes
 - if a task takes to long and youre doing your fourth iteration and still you have nothing to show the user take a break stop admit you failed and asuer user for help
+- to set python version on render Create a .python-version file in the repository root with the version number (e.g., 3.11.4).
+- the update env vars render tool overrides currect env vars
