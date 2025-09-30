@@ -164,7 +164,13 @@ mail = Mail(app)
 def send_reset_email(user_email, username, token):
     reset_link = url_for('reset_password_form', token=token, _external=True)
     subject = "Password Reset Request"
-    
+
+    logger.info(f"Attempting to send password reset email to {user_email}")
+    logger.info(f"MAIL_SERVER: {app.config.get('MAIL_SERVER')}")
+    logger.info(f"MAIL_PORT: {app.config.get('MAIL_PORT')}")
+    logger.info(f"MAIL_USERNAME: {app.config.get('MAIL_USERNAME')}")
+    logger.info(f"MAIL_DEFAULT_SENDER: {app.config.get('MAIL_DEFAULT_SENDER')}")
+
     msg = Message(subject, recipients=[user_email])
     msg.body = f"""Hello {username},
 
@@ -174,12 +180,14 @@ Click this link to reset your password:
 This link expires in 20 minutes.
 If you didn't request this, ignore this email.
 """
-    
+
     try:
         mail.send(msg)
+        logger.info(f"✓ Email sent successfully to {user_email}")
         return True
     except Exception as e:
-        logger.error(f"Email send failed: {e}")
+        logger.error(f"✗ Email send failed to {user_email}: {e}")
+        logger.exception("Full traceback:")
         return False
 
 def login_required(f):
