@@ -121,23 +121,7 @@
                     <canvas id="surfboardCanvas" width="300" height="400"></canvas>
                 </div>
 
-                <!-- Data Labels Below Surfboard -->
-                <div class="flex justify-center space-x-8 mb-2">
-                    <div class="text-center">
-                        <p class="text-white/80 text-xs">Wave Height</p>
-                        <p class="text-white font-semibold text-sm" id="waveHeightLabel">--</p>
-                    </div>
-                    <div class="text-center">
-                        <p class="text-white/80 text-xs">Wave Period</p>
-                        <p class="text-white font-semibold text-sm" id="wavePeriodLabel">--</p>
-                    </div>
-                    <div class="text-center">
-                        <p class="text-white/80 text-xs">Wind Speed</p>
-                        <p class="text-white font-semibold text-sm" id="windSpeedLabel">--</p>
-                    </div>
-                </div>
-
-                <p class="text-white/60 text-xs">Updates every 13 minutes • Last updated: <span id="lastUpdateTime">--</span></p>
+                <p class="text-white/60 text-xs mt-2">Updates every 13 minutes • Last updated: <span id="lastUpdateTime">--</span></p>
             </div>
         </div>
     </div>
@@ -551,29 +535,30 @@
         ctx.fill();
     }
 
-    // Surfboard LED positions (from nose to tail)
+    // Surfboard LED positions (Arduino LED 0 = bottom/tail, LED 9 = top/nose)
     function getSurfboardLEDPositions() {
         const width = surfboardCanvas.width;
         const height = surfboardCanvas.height;
         const centerX = width / 2;
 
         // Define 10 rows of LEDs forming surfboard shape
+        // Array index matches Arduino LED index (0=bottom, 9=top)
         return [
-            // Row 0 (nose - single LED)
-            { left: null, center: {x: centerX, y: 40}, right: null },
+            // LED 0 (tail - narrows to point) - BOTTOM
+            { left: {x: centerX - 25, y: 355}, center: {x: centerX, y: 355}, right: {x: centerX + 25, y: 355} },
 
-            // Row 1-8 (body - widens then narrows)
-            { left: {x: centerX - 30, y: 75}, center: {x: centerX, y: 75}, right: {x: centerX + 30, y: 75} },
-            { left: {x: centerX - 45, y: 110}, center: {x: centerX, y: 110}, right: {x: centerX + 45, y: 110} },
-            { left: {x: centerX - 55, y: 145}, center: {x: centerX, y: 145}, right: {x: centerX + 55, y: 145} },
+            // LED 1-8 (body - narrows then widens going up)
+            { left: {x: centerX - 35, y: 320}, center: {x: centerX, y: 320}, right: {x: centerX + 35, y: 320} },
+            { left: {x: centerX - 45, y: 285}, center: {x: centerX, y: 285}, right: {x: centerX + 45, y: 285} },
+            { left: {x: centerX - 50, y: 250}, center: {x: centerX, y: 250}, right: {x: centerX + 50, y: 250} },
+            { left: {x: centerX - 55, y: 215}, center: {x: centerX, y: 215}, right: {x: centerX + 55, y: 215} },
             { left: {x: centerX - 60, y: 180}, center: {x: centerX, y: 180}, right: {x: centerX + 60, y: 180} },
-            { left: {x: centerX - 60, y: 215}, center: {x: centerX, y: 215}, right: {x: centerX + 60, y: 215} },
-            { left: {x: centerX - 55, y: 250}, center: {x: centerX, y: 250}, right: {x: centerX + 55, y: 250} },
-            { left: {x: centerX - 50, y: 285}, center: {x: centerX, y: 285}, right: {x: centerX + 50, y: 285} },
-            { left: {x: centerX - 40, y: 320}, center: {x: centerX, y: 320}, right: {x: centerX + 40, y: 320} },
+            { left: {x: centerX - 60, y: 145}, center: {x: centerX, y: 145}, right: {x: centerX + 60, y: 145} },
+            { left: {x: centerX - 50, y: 110}, center: {x: centerX, y: 110}, right: {x: centerX + 50, y: 110} },
+            { left: {x: centerX - 35, y: 75}, center: {x: centerX, y: 75}, right: {x: centerX + 35, y: 75} },
 
-            // Row 9 (tail - narrows to point)
-            { left: {x: centerX - 20, y: 355}, center: {x: centerX, y: 355}, right: {x: centerX + 20, y: 355} }
+            // LED 9 (nose - single LED) - TOP
+            { left: null, center: {x: centerX, y: 40}, right: null }
         ];
     }
 
@@ -599,9 +584,9 @@
                 drawLED(ctx, row.left.x, row.left.y, theme.period, leftLit && !shouldBlink);
             }
 
-            // Draw center stringer LED (wave height) - top LED uses wind direction color
+            // Draw center stringer LED (wave height) - nose (LED 9) uses wind direction color
             if (row.center) {
-                const isNose = (i === 0);
+                const isNose = (i === 9);
                 const centerColor = isNose ? windDirColor : theme.wave;
                 drawLED(ctx, row.center.x, row.center.y, centerColor, centerLit && !shouldBlink);
             }
@@ -616,16 +601,15 @@
     function updateLEDVisualization(data) {
         const theme = COLOR_THEMES[currentTheme] || COLOR_THEMES['day'];
 
-        // Calculate LED counts (0-10 scale)
-        // Wave height: 0-5m maps to 0-10 LEDs
-        const waveHeightM = data.wave_height_cm / 100;
-        const waveLEDCount = Math.min(10, Math.round(waveHeightM * 2));
+        // Calculate LED counts matching Arduino formulas EXACTLY
+        // Wave height: waveHeight_cm / 25 + 1 (Arduino line 829)
+        const waveLEDCount = Math.max(0, Math.min(10, Math.floor(data.wave_height_cm / 25) + 1));
 
-        // Wave period: 0-20s maps to 0-10 LEDs
-        const periodLEDCount = Math.min(10, Math.round(data.wave_period_s / 2));
+        // Wave period: Direct value (Arduino line 830)
+        const periodLEDCount = Math.max(0, Math.min(10, Math.floor(data.wave_period_s)));
 
-        // Wind speed: 0-20 m/s maps to 0-10 LEDs
-        const windLEDCount = Math.min(10, Math.round(data.wind_speed_mps / 2));
+        // Wind speed: windSpeed * 18.0 / 13.0 (Arduino line 828)
+        const windLEDCount = Math.max(1, Math.min(10, Math.floor(data.wind_speed_mps * 18.0 / 13.0)));
 
         // Get wind direction color for nose LED
         const windDirColor = getWindDirectionColor(data.wind_direction_deg);
@@ -639,11 +623,6 @@
         // Draw surfboard with LED data
         // Left rail = period, Center = wave height, Right rail = wind
         drawSurfboard(periodLEDCount, waveLEDCount, windLEDCount, theme, windDirColor, isBlinking);
-
-        // Update labels
-        document.getElementById('waveHeightLabel').textContent = `${waveHeightM.toFixed(1)}m`;
-        document.getElementById('wavePeriodLabel').textContent = `${data.wave_period_s.toFixed(1)}s`;
-        document.getElementById('windSpeedLabel').textContent = `${data.wind_speed_mps.toFixed(1)} m/s`;
 
         // Update last update time
         const lastUpdate = new Date(data.last_updated);
