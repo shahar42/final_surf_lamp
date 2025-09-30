@@ -65,3 +65,7 @@ logs/
 
 # Backups
 backups/
+
+# Project-specific
+.mcp.json
+CLAUDE.md
