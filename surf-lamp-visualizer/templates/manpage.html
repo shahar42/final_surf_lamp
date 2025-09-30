@@ -1,26 +1,18 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ module_name }} - Manual Page</title>
+{% extends "base.html" %}
+
+{% block title %}{{ module_name }} - Manual Page{% endblock %}
+
+{% block head_links %}
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+{% endblock %}
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #93A5A6 0%, #607B7D 100%);
-            min-height: 100vh;
-            padding: 40px 20px;
-        }
+{% block body_style %}
+    padding: 40px 20px;
+{% endblock %}
 
+{% block styles %}
         .container {
             max-width: 900px;
             margin: 0 auto;
@@ -206,9 +198,9 @@
         .toc a:hover {
             text-decoration: underline;
         }
-    </style>
-</head>
-<body>
+{% endblock %}
+
+{% block body_content %}
     <div class="container">
         <div class="header">
             <div class="breadcrumb">
@@ -234,7 +226,9 @@
 
         <a href="/" class="back-btn">← Back to Visualization</a>
     </div>
+{% endblock %}
 
+{% block scripts %}
     <script>
         // Syntax highlighting for code blocks
         hljs.highlightAll();
@@ -270,5 +264,4 @@
             }
         }
     </script>
-</body>
-</html>
+{% endblock %}
