@@ -1,0 +1,15 @@
+{
+  "name": "Surf Lamp",
+  "short_name": "SurfLamp", 
+  "description": "Real-time surf conditions on your desk",
+  "theme_color": "#00c6ff",
+  "background_color": "#0072ff",
+  "display": "standalone",
+  "icons": [
+    {
+      "src": "/static/favicon.ico?v=1",
+      "type": "image/x-icon",
+      "sizes": "48x48"
+    }
+  ]
+}

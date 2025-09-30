@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surf Lamp - Sign In</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Primary Van Gogh favicon with cache-busting -->
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}?v=1" sizes="32x32">
+
+    <!-- Apple Touch Icon (iOS home screen) -->
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.ico') }}?v=1">
+
+    <!-- Web App Manifest (Android/PWA) -->
+    <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
+
+    <!-- Theme colors matching your blue gradient -->
+    <meta name="theme-color" content="#00c6ff">
+    <meta name="msapplication-TileColor" content="#00c6ff">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Using the same styles as the registration page for consistency */
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #00c6ff, #0072ff); /* Blue gradient */
+        }
+        .form-container {
+            background-color: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .form-input {
+            background-color: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+        }
+        .form-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        .form-input:focus {
+            background-color: rgba(255, 255, 255, 0.3);
+            outline: none;
+            box-shadow: 0 0 0 2px #ff007f; /* Bright pink focus */
+        }
+        .form-input.error {
+            border: 1px solid #ef4444;
+            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.3);
+        }
+        .submit-btn {
+            background-color: #c2185b; /* Darker pink */
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        .submit-btn:hover {
+            background-color: #ad1457;
+            transform: translateY(-2px);
+        }
+        .flash-message {
+            position: fixed;
+            top: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 50;
+        }
+        .field-error {
+            color: #fca5a5;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash-message px-6 py-3 rounded-lg text-white font-semibold {{ 'bg-green-500' if category == 'success' else 'bg-red-500' }}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="form-container w-full max-w-md p-8 rounded-2xl shadow-2xl">
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-white">Welcome Back</h1>
+            <p class="text-white/80 mt-2">Sign in to your Surf Lamp account.</p>
+        </div>
+
+        <form action="{{ url_for('login') }}" method="POST" class="space-y-6">
+            {{ form.hidden_tag() }}
+            
+            <!-- Email Field -->
+            <div>
+                {{ form.email(class="form-input w-full px-4 py-3 rounded-lg" + (" error" if form.email.errors else ""), placeholder="Email Address") }}
+                {% if form.email.errors %}
+                    <div class="field-error">
+                        {% for error in form.email.errors %}
+                            <div>• {{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Password Field -->
+            <div>
+                {{ form.password(class="form-input w-full px-4 py-3 rounded-lg" + (" error" if form.password.errors else ""), placeholder="Password") }}
+                {% if form.password.errors %}
+                    <div class="field-error">
+                        {% for error in form.password.errors %}
+                            <div>• {{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="submit-btn w-full text-white font-bold py-3 px-4 rounded-lg shadow-lg">Sign In</button>
+        </form>
+
+        <p class="text-center text-white/70 mt-4">
+            <a href="{{ url_for('forgot_password') }}" class="font-semibold text-white hover:text-pink-300">Forgot Password?</a>
+        </p>
+
+        <p class="text-center text-white/70 mt-6">
+            Don't have an account? <a href="{{ url_for('register') }}" class="font-semibold text-white hover:text-pink-300">Register Now</a>
+        </p>
+    </div>
+
+</body>
+</html>
