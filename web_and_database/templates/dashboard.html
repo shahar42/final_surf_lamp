@@ -648,7 +648,7 @@
         const windDirColor = getWindDirectionColor(data.wind_direction_deg);
 
         // Check threshold alerts
-        const waveThresholdExceeded = waveHeightM > (data.wave_threshold_cm / 100);
+        const waveThresholdExceeded = data.wave_height_cm > data.wave_threshold_cm;
         const windThresholdExceeded = data.wind_speed_mps > (data.wind_speed_threshold_knots / 1.944); // Convert knots to m/s
 
         isBlinking = waveThresholdExceeded || windThresholdExceeded;
