@@ -171,7 +171,7 @@ def send_reset_email(user_email, username, token):
     logger.info(f"MAIL_USERNAME: {app.config.get('MAIL_USERNAME')}")
     logger.info(f"MAIL_DEFAULT_SENDER: {app.config.get('MAIL_DEFAULT_SENDER')}")
 
-    msg = Message(subject, recipients=[user_email])
+    msg = Message(subject, sender=("Surf Lamp", app.config.get('MAIL_DEFAULT_SENDER')), recipients=[user_email])
     msg.body = f"""Hello {username},
 
 Click this link to reset your password:
@@ -179,6 +179,9 @@ Click this link to reset your password:
 
 This link expires in 20 minutes.
 If you didn't request this, ignore this email.
+
+---
+Surf Lamp Team
 """
 
     try:
