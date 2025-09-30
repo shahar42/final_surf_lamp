@@ -84,8 +84,6 @@
         }
         /* LED Strip Styles */
         .led-strip-canvas {
-            border-radius: 8px;
-            background: rgba(0, 0, 0, 0.3);
             box-shadow: 0 0 20px rgba(0, 198, 255, 0.3);
         }
         @keyframes blink {
@@ -591,6 +589,37 @@
         ctx.clearRect(0, 0, surfboardCanvas.width, surfboardCanvas.height);
 
         const positions = getSurfboardLEDPositions();
+
+        // Draw surfboard-shaped background
+        const centerX = surfboardCanvas.width / 2;
+        ctx.beginPath();
+        ctx.moveTo(centerX, 30); // Nose point
+
+        // Right edge (nose to tail)
+        for (let i = NUM_LEDS_CENTER - 1; i >= 0; i--) {
+            const row = positions[i];
+            if (row.right) {
+                ctx.lineTo(row.right.x + 12, row.right.y);
+            }
+        }
+
+        // Tail curve
+        ctx.quadraticCurveTo(centerX, surfboardCanvas.height - 15, positions[0].left.x - 12, positions[0].left.y);
+
+        // Left edge (tail to nose)
+        for (let i = 0; i < NUM_LEDS_CENTER; i++) {
+            const row = positions[i];
+            if (row.left) {
+                ctx.lineTo(row.left.x - 12, row.left.y);
+            }
+        }
+
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
 
         // Draw each row of LEDs
         for (let i = 0; i < NUM_LEDS_CENTER; i++) {
