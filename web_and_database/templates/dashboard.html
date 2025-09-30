@@ -116,27 +116,24 @@
             <div class="flex flex-col items-center">
                 <h2 class="text-xl font-bold text-white mb-4">Your Lamp - Live Status <span class="lamp-indicator"></span></h2>
 
-                <!-- LED Strips Container -->
-                <div class="flex justify-center items-end space-x-8 mb-4" style="height: 300px;">
-                    <!-- Right Strip: Wave Height -->
-                    <div class="flex flex-col items-center">
-                        <canvas id="rightStrip" width="40" height="250"></canvas>
-                        <p class="text-white/80 text-xs mt-2">Wave Height</p>
+                <!-- Surfboard LED Visualization -->
+                <div class="flex flex-col items-center mb-4">
+                    <canvas id="surfboardCanvas" width="300" height="400"></canvas>
+                </div>
+
+                <!-- Data Labels Below Surfboard -->
+                <div class="flex justify-center space-x-8 mb-2">
+                    <div class="text-center">
+                        <p class="text-white/80 text-xs">Wave Height</p>
                         <p class="text-white font-semibold text-sm" id="waveHeightLabel">--</p>
                     </div>
-
-                    <!-- Center Strip: Wind Speed -->
-                    <div class="flex flex-col items-center">
-                        <canvas id="centerStrip" width="40" height="250"></canvas>
-                        <p class="text-white/80 text-xs mt-2">Wind Speed</p>
-                        <p class="text-white font-semibold text-sm" id="windSpeedLabel">--</p>
-                    </div>
-
-                    <!-- Left Strip: Wave Period -->
-                    <div class="flex flex-col items-center">
-                        <canvas id="leftStrip" width="40" height="250"></canvas>
-                        <p class="text-white/80 text-xs mt-2">Wave Period</p>
+                    <div class="text-center">
+                        <p class="text-white/80 text-xs">Wave Period</p>
                         <p class="text-white font-semibold text-sm" id="wavePeriodLabel">--</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-white/80 text-xs">Wind Speed</p>
+                        <p class="text-white font-semibold text-sm" id="windSpeedLabel">--</p>
                     </div>
                 </div>
 
@@ -444,12 +441,11 @@
     });
 
     // ==============================
-    // LED STRIP VISUALIZATION CODE
+    // SURFBOARD LED VISUALIZATION CODE
     // ==============================
 
     const LED_COUNT = 10;
-    const LED_SPACING = 25;
-    const LED_RADIUS = 15;
+    const LED_RADIUS = 12;
 
     // Wind direction to color mapping (Arduino wind direction system)
     const WIND_DIRECTION_COLORS = {
@@ -492,19 +488,12 @@
     let isBlinking = false;
     let blinkState = true;
 
-    // Get canvas contexts
-    const rightCanvas = document.getElementById('rightStrip');
-    const centerCanvas = document.getElementById('centerStrip');
-    const leftCanvas = document.getElementById('leftStrip');
-
-    const rightCtx = rightCanvas.getContext('2d');
-    const centerCtx = centerCanvas.getContext('2d');
-    const leftCtx = leftCanvas.getContext('2d');
+    // Get canvas context
+    const surfboardCanvas = document.getElementById('surfboardCanvas');
+    const ctx = surfboardCanvas.getContext('2d');
 
     // Apply canvas styling
-    [rightCanvas, centerCanvas, leftCanvas].forEach(canvas => {
-        canvas.classList.add('led-strip-canvas');
-    });
+    surfboardCanvas.classList.add('led-strip-canvas');
 
     function getWindDirectionColor(degrees) {
         // Find closest direction
@@ -562,25 +551,65 @@
         ctx.fill();
     }
 
-    function drawStrip(ctx, litCount, color, topLEDColor = null, blink = false) {
-        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    // Surfboard LED positions (from nose to tail)
+    function getSurfboardLEDPositions() {
+        const width = surfboardCanvas.width;
+        const height = surfboardCanvas.height;
+        const centerX = width / 2;
 
-        const centerX = ctx.canvas.width / 2;
+        // Define 10 rows of LEDs forming surfboard shape
+        return [
+            // Row 0 (nose - single LED)
+            { left: null, center: {x: centerX, y: 40}, right: null },
 
+            // Row 1-8 (body - widens then narrows)
+            { left: {x: centerX - 30, y: 75}, center: {x: centerX, y: 75}, right: {x: centerX + 30, y: 75} },
+            { left: {x: centerX - 45, y: 110}, center: {x: centerX, y: 110}, right: {x: centerX + 45, y: 110} },
+            { left: {x: centerX - 55, y: 145}, center: {x: centerX, y: 145}, right: {x: centerX + 55, y: 145} },
+            { left: {x: centerX - 60, y: 180}, center: {x: centerX, y: 180}, right: {x: centerX + 60, y: 180} },
+            { left: {x: centerX - 60, y: 215}, center: {x: centerX, y: 215}, right: {x: centerX + 60, y: 215} },
+            { left: {x: centerX - 55, y: 250}, center: {x: centerX, y: 250}, right: {x: centerX + 55, y: 250} },
+            { left: {x: centerX - 50, y: 285}, center: {x: centerX, y: 285}, right: {x: centerX + 50, y: 285} },
+            { left: {x: centerX - 40, y: 320}, center: {x: centerX, y: 320}, right: {x: centerX + 40, y: 320} },
+
+            // Row 9 (tail - narrows to point)
+            { left: {x: centerX - 20, y: 355}, center: {x: centerX, y: 355}, right: {x: centerX + 20, y: 355} }
+        ];
+    }
+
+    function drawSurfboard(leftLEDCount, centerLEDCount, rightLEDCount, theme, windDirColor, blink) {
+        ctx.clearRect(0, 0, surfboardCanvas.width, surfboardCanvas.height);
+
+        const positions = getSurfboardLEDPositions();
+
+        // Draw each row of LEDs
         for (let i = 0; i < LED_COUNT; i++) {
-            const y = ctx.canvas.height - (i * LED_SPACING) - 20;
-            const isTopLED = (i === LED_COUNT - 1);
+            const row = positions[i];
 
-            // Use special color for top LED if provided (wind direction)
-            const ledColor = (isTopLED && topLEDColor) ? topLEDColor : color;
+            // Determine if LEDs should be lit based on counts
+            const leftLit = (i < leftLEDCount);
+            const centerLit = (i < centerLEDCount);
+            const rightLit = (i < rightLEDCount);
 
-            // LED is lit if below litCount, or if blinking and blinkState is true
-            let isLit = (i < litCount);
-            if (blink && blinkState) {
-                isLit = isLit && blinkState;
+            // Apply blinking effect if threshold exceeded
+            const shouldBlink = blink && !blinkState;
+
+            // Draw left rail LED (wave period)
+            if (row.left) {
+                drawLED(ctx, row.left.x, row.left.y, theme.period, leftLit && !shouldBlink);
             }
 
-            drawLED(ctx, centerX, y, ledColor, isLit);
+            // Draw center stringer LED (wave height) - top LED uses wind direction color
+            if (row.center) {
+                const isNose = (i === 0);
+                const centerColor = isNose ? windDirColor : theme.wave;
+                drawLED(ctx, row.center.x, row.center.y, centerColor, centerLit && !shouldBlink);
+            }
+
+            // Draw right rail LED (wind speed)
+            if (row.right) {
+                drawLED(ctx, row.right.x, row.right.y, theme.wind, rightLit && !shouldBlink);
+            }
         }
     }
 
@@ -598,7 +627,7 @@
         // Wind speed: 0-20 m/s maps to 0-10 LEDs
         const windLEDCount = Math.min(10, Math.round(data.wind_speed_mps / 2));
 
-        // Get wind direction color for center strip top LED
+        // Get wind direction color for nose LED
         const windDirColor = getWindDirectionColor(data.wind_direction_deg);
 
         // Check threshold alerts
@@ -607,10 +636,9 @@
 
         isBlinking = waveThresholdExceeded || windThresholdExceeded;
 
-        // Draw strips
-        drawStrip(rightCtx, waveLEDCount, theme.wave, null, waveThresholdExceeded);
-        drawStrip(leftCtx, periodLEDCount, theme.period, null, false);
-        drawStrip(centerCtx, windLEDCount, theme.wind, windDirColor, windThresholdExceeded);
+        // Draw surfboard with LED data
+        // Left rail = period, Center = wave height, Right rail = wind
+        drawSurfboard(periodLEDCount, waveLEDCount, windLEDCount, theme, windDirColor, isBlinking);
 
         // Update labels
         document.getElementById('waveHeightLabel').textContent = `${waveHeightM.toFixed(1)}m`;
