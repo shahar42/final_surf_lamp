@@ -120,8 +120,6 @@
                 <div class="flex flex-col items-center mb-4">
                     <canvas id="surfboardCanvas" width="350" height="550"></canvas>
                 </div>
-
-                <p class="text-white/60 text-xs mt-2">Updates every 13 minutes • Last updated: <span id="lastUpdateTime">--</span></p>
             </div>
         </div>
     </div>
@@ -553,19 +551,25 @@
         for (let i = 0; i < NUM_LEDS_CENTER; i++) {
             const y = height - 30 - (i * spacing); // Bottom to top
 
-            // Calculate surfboard width at this position (surfboard shape)
+            // Calculate surfboard width at this position (classic surfboard shape)
             let widthAtPosition;
             const normalizedPos = i / (NUM_LEDS_CENTER - 1); // 0 to 1
 
-            if (normalizedPos < 0.15) {
-                // Tail (narrow)
-                widthAtPosition = 25 + (normalizedPos / 0.15) * 35;
+            if (normalizedPos < 0.2) {
+                // Tail (narrow) - LEDs 0-3
+                widthAtPosition = 30 + (normalizedPos / 0.2) * 30;
+            } else if (normalizedPos < 0.4) {
+                // Lower body (widening) - LEDs 4-7
+                widthAtPosition = 60 + ((normalizedPos - 0.2) / 0.2) * 25;
             } else if (normalizedPos < 0.7) {
-                // Body (widest)
-                widthAtPosition = 60 + Math.sin((normalizedPos - 0.15) * Math.PI * 1.2) * 15;
+                // Mid body (widest point) - LEDs 8-13
+                widthAtPosition = 85;
+            } else if (normalizedPos < 0.85) {
+                // Upper body (tapering) - LEDs 14-16
+                widthAtPosition = 85 - ((normalizedPos - 0.7) / 0.15) * 35;
             } else {
-                // Nose (tapering)
-                widthAtPosition = 70 - ((normalizedPos - 0.7) / 0.3) * 70;
+                // Nose (sharp taper) - LEDs 17-19
+                widthAtPosition = 50 - ((normalizedPos - 0.85) / 0.15) * 50;
             }
 
             const row = {
