@@ -654,8 +654,8 @@
         isBlinking = waveThresholdExceeded || windThresholdExceeded;
 
         // Draw surfboard with LED data
-        // Left rail = period, Center = wave height, Right rail = wind
-        drawSurfboard(periodLEDCount, waveLEDCount, windLEDCount, theme, windDirColor, isBlinking);
+        // Left rail = period, Center = WIND speed, Right rail = wave height
+        drawSurfboard(periodLEDCount, windLEDCount, waveLEDCount, theme, windDirColor, isBlinking);
 
         // Update last update time
         const lastUpdate = new Date(data.last_updated);
