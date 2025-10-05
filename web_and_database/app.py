@@ -636,6 +636,7 @@ def update_location():
 
 @app.route("/update-threshold", methods=['POST'])
 @login_required
+@limiter.limit("30/minute")
 def update_threshold():
     try:
         data = request.get_json()
@@ -662,6 +663,7 @@ def update_threshold():
 
 @app.route("/update-wind-threshold", methods=['POST'])
 @login_required
+@limiter.limit("30/minute")
 def update_wind_threshold():
     try:
         data = request.get_json()
@@ -688,6 +690,7 @@ def update_wind_threshold():
 
 @app.route("/update-theme", methods=['POST'])
 @login_required
+@limiter.limit("20/minute")
 def update_theme():
     """Update user's LED color theme preference"""
     try:
