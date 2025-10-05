@@ -116,9 +116,28 @@
             <div class="flex flex-col items-center">
                 <h2 class="text-xl font-bold text-white mb-4">Your Lamp - Live Status <span class="lamp-indicator"></span></h2>
 
-                <!-- Surfboard LED Visualization -->
-                <div class="flex flex-col items-center mb-4">
+                <!-- Surfboard LED Visualization with Labels -->
+                <div class="flex items-center justify-center mb-4 gap-4">
+                    <!-- Left Label: Wave Period -->
+                    <div class="flex flex-col items-end text-white/90 text-sm font-semibold" style="width: 120px;">
+                        <img src="{{ url_for('static', filename='icons/wave_period_icon_4x.png') }}" alt="Wave Period" class="w-12 h-12 mb-1 png-icon">
+                        <span>Wave Period</span>
+                    </div>
+
+                    <!-- Surfboard Canvas -->
                     <canvas id="surfboardCanvas" width="350" height="550"></canvas>
+
+                    <!-- Right Label: Wave Height -->
+                    <div class="flex flex-col items-start text-white/90 text-sm font-semibold" style="width: 120px;">
+                        <img src="{{ url_for('static', filename='icons/wave_height_icon_4x.png') }}" alt="Wave Height" class="w-12 h-12 mb-1 png-icon">
+                        <span>Wave Height</span>
+                    </div>
+                </div>
+
+                <!-- Center Label: Wind Speed (below surfboard) -->
+                <div class="flex flex-col items-center text-white/90 text-sm font-semibold mt-2">
+                    <img src="{{ url_for('static', filename='icons/wind_speed_icon_4x.png') }}" alt="Wind Speed" class="w-12 h-12 mb-1 png-icon">
+                    <span>Wind Speed</span>
                 </div>
             </div>
         </div>
