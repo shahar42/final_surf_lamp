@@ -291,7 +291,7 @@ def forgot_password():
         email = form.email.data.lower()
         
         # Always show same message (prevent enumeration)
-        flash('If an account exists with that email, a reset link has been sent.', 'info')
+        flash('If an account exists with that email, a reset link has been sent.', 'success')
         
         db = SessionLocal()
         try:
