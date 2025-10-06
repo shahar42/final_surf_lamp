@@ -872,12 +872,12 @@ bool processSurfData(const String &jsonData) {
     // Update LEDs with the new data
     updateSurfDisplay(wave_height_cm, wave_period_s, wind_speed_mps, wind_direction_deg, wave_threshold_cm, wind_speed_threshold_knots);
 
-    // Store remaining data for status reporting (converting height back to meters for consistency if needed)
+    // Store remaining data for status reporting (converting height and threshold to meters for consistency)
     lastSurfData.waveHeight = wave_height_cm / 100.0;
     lastSurfData.wavePeriod = wave_period_s;
     lastSurfData.windSpeed = wind_speed_mps;
     lastSurfData.windDirection = wind_direction_deg;
-    lastSurfData.waveThreshold = wave_threshold_cm;
+    lastSurfData.waveThreshold = wave_threshold_cm / 100.0;  // Convert cm to meters for consistent comparison
     lastSurfData.windSpeedThreshold = wind_speed_threshold_knots;
     lastSurfData.lastUpdate = millis();
     lastSurfData.dataReceived = true;
