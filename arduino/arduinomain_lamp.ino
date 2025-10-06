@@ -27,15 +27,13 @@ ServerDiscovery serverDiscovery;
 
 #define WIFI_TIMEOUT 30  // Timeout for WiFi connection in seconds
 
-// LED Calculation Constants
-#define WIND_SCALE_NUMERATOR 18.0    // Wind speed scaling factor (numerator)
-#define WIND_SCALE_DENOMINATOR 13.0  // Wind speed scaling factor (denominator)
-#define MPS_TO_KNOTS_FACTOR 1.94384  // Conversion factor from m/s to knots
-#define WAVE_HEIGHT_DIVISOR 25       // Wave height scaling divisor (cm to LEDs)
-#define THRESHOLD_BRIGHTNESS_MULTIPLIER 1.6  // Brightness multiplier for threshold alerts
+// System Constants (non-LED related)
 #define MAX_BRIGHTNESS 255           // Maximum LED brightness value
 #define HTTP_TIMEOUT_MS 15000        // HTTP request timeout in milliseconds
 #define JSON_CAPACITY 1024           // JSON document capacity for Arduino data
+
+// NOTE: LED calculation constants (wind scale, wave divisor, threshold multiplier)
+// are now in LEDMappingConfig struct (see lines 104-152)
 
 // Device Configuration
 const int ARDUINO_ID = 4433;  // ✨ CHANGE THIS for each Arduino device
@@ -76,6 +74,80 @@ struct SurfData {
     bool dataReceived = false;
 } lastSurfData;
 
+
+// ---------------------------- Wave Animation Configuration ----------------------------
+
+struct WaveConfig {
+    // User-adjustable parameters
+    uint8_t brightness_min_percent = 50;   // Minimum brightness during wave (0-100%)
+    uint8_t brightness_max_percent = 110;  // Maximum brightness during wave (0-100%)
+    float wave_length_side = 6.0;          // Wave length for side strips (LEDs per cycle)
+    float wave_length_center = 8.0;        // Wave length for center strip (LEDs per cycle)
+    float wave_speed = 1.2;                // Wave speed multiplier
+
+    // Calculated properties
+    float getBaseIntensity() const {
+        return (brightness_min_percent + brightness_max_percent) / 200.0;
+    }
+    float getAmplitude() const {
+        return (brightness_max_percent - brightness_min_percent) / 200.0;
+    }
+};
+
+// Global wave configuration instance
+WaveConfig waveConfig;
+
+// ---------------------------- LED Mapping Configuration ----------------------------
+
+struct LEDMappingConfig {
+    // User-adjustable parameters
+    float wind_scale_numerator = 18.0;      // Wind speed scaling: maps 0-13 m/s to 0-18 LEDs
+    float wind_scale_denominator = 13.0;
+    float mps_to_knots_factor = 1.94384;    // Conversion constant: m/s to knots
+    uint8_t wave_height_divisor = 25;       // Wave height scaling: cm per LED (25cm = 1 LED)
+    float threshold_brightness_multiplier = 1.4;  // Brightness boost when threshold exceeded (60% brighter)
+
+    // Helper: Calculate wind speed LEDs from m/s (used by all wind speed calculations)
+    int calculateWindLEDs(float windSpeed_mps) const {
+        return constrain(
+            static_cast<int>(windSpeed_mps * wind_scale_numerator / wind_scale_denominator),
+            1,
+            NUM_LEDS_CENTER - 2  // Reserve LED 0 for wind direction, top LED for status
+        );
+    }
+
+    // Helper: Calculate wave height LEDs from centimeters (used by updateSurfDisplay)
+    int calculateWaveLEDsFromCm(int waveHeight_cm) const {
+        return constrain(
+            static_cast<int>(waveHeight_cm / wave_height_divisor) + 1,  // +1 ensures at least 1 LED
+            0,
+            NUM_LEDS_RIGHT
+        );
+    }
+
+    // Helper: Calculate wave height LEDs from meters (used by status endpoint)
+    int calculateWaveLEDsFromMeters(float waveHeight_m) const {
+        return calculateWaveLEDsFromCm(static_cast<int>(waveHeight_m * 100));  // Convert m to cm
+    }
+
+    // Helper: Calculate wave period LEDs (1:1 mapping: seconds to LEDs)
+    int calculateWavePeriodLEDs(float wavePeriod_s) const {
+        return constrain(static_cast<int>(wavePeriod_s), 0, NUM_LEDS_LEFT);
+    }
+
+    // Helper: Convert wind speed from m/s to knots
+    float windSpeedToKnots(float windSpeed_mps) const {
+        return windSpeed_mps * mps_to_knots_factor;
+    }
+
+    // Helper: Get threshold alert brightness value (pre-calculated, clamped to MAX_BRIGHTNESS)
+    uint8_t getThresholdBrightness() const {
+        return min(MAX_BRIGHTNESS, static_cast<int>(MAX_BRIGHTNESS * threshold_brightness_multiplier));
+    }
+};
+
+// Global LED mapping configuration instance
+LEDMappingConfig ledMapping;
 
 // Forward declarations
 void setupHTTPEndpoints();
@@ -251,21 +323,17 @@ void updateLEDs(int numActiveLeds, int segmentLen, CRGB* leds, CHSV* colorMap) {
 
 void updateBlinkingLEDs(int numActiveLeds, int segmentLen, CRGB* leds, CHSV baseColor) {
     // Enhanced wave effect: traveling wave from bottom (LED 0) to top
-    const float waveLength = 6.0;      // Longer wave - more LEDs per cycle for smoother flow
-    const float waveSpeed = 1.0;       // Consistent speed to avoid discontinuity
-    const float baseIntensity = 0.8;   // Higher base brightness (80%)
-    const float waveAmplitude = 0.2;   // Smaller amplitude (20% variation) for smoother effect
+    const float minBrightness = waveConfig.brightness_min_percent / 100.0;
+    const float maxBrightness = waveConfig.brightness_max_percent / 100.0;
 
     for (int i = 0; i < segmentLen; i++) {
         if (i < numActiveLeds) {
             // Calculate wave position: wave travels up from LED 0
-            float wavePhase = blinkPhase * waveSpeed - (i * 2.0 * PI / waveLength);
+            float wavePhase = blinkPhase * waveConfig.wave_speed - (i * 2.0 * PI / waveConfig.wave_length_side);
 
-            // Create traveling wave with base intensity + wave component
-            float brightnessFactor = baseIntensity + waveAmplitude * sin(wavePhase);
-
-            // Ensure brightness stays within reasonable bounds
-            brightnessFactor = constrain(brightnessFactor, 0.52, 1.0);
+            // Create traveling wave that smoothly oscillates between min and max brightness
+            // Map sin output from [-1, 1] to [minBrightness, maxBrightness]
+            float brightnessFactor = minBrightness + ((sin(wavePhase) + 1.0) / 2.0) * (maxBrightness - minBrightness);
 
             int adjustedBrightness = min(MAX_BRIGHTNESS, (int)(baseColor.val * brightnessFactor));
             leds[i] = CHSV(baseColor.hue, baseColor.sat, adjustedBrightness);
@@ -277,22 +345,18 @@ void updateBlinkingLEDs(int numActiveLeds, int segmentLen, CRGB* leds, CHSV base
 
 void updateBlinkingCenterLEDs(int numActiveLeds, CHSV baseColor) {
     // Enhanced wave effect for center LEDs: traveling wave from bottom (LED 1) to top
-    const float waveLength = 8.0;      // Longer wave for center strip - smoother flow
-    const float waveSpeed = 1.0;       // Consistent speed to avoid discontinuity
-    const float baseIntensity = 0.8;   // Higher base brightness (80%)
-    const float waveAmplitude = 0.2;   // Smaller amplitude (20% variation) for smoother effect
+    const float minBrightness = waveConfig.brightness_min_percent / 100.0;
+    const float maxBrightness = waveConfig.brightness_max_percent / 100.0;
 
     // Start from LED 1, skip LED 0 (reserved for wind direction)
     for (int i = 1; i < NUM_LEDS_CENTER - 1; i++) {
         if (i < numActiveLeds + 1) {
             // Calculate wave position: wave travels up from LED 1
-            float wavePhase = blinkPhase * waveSpeed - ((i - 1) * 2.0 * PI / waveLength);
+            float wavePhase = blinkPhase * waveConfig.wave_speed - ((i - 1) * 2.0 * PI / waveConfig.wave_length_center);
 
-            // Create traveling wave with base intensity + wave component
-            float brightnessFactor = baseIntensity + waveAmplitude * sin(wavePhase);
-
-            // Ensure brightness stays within reasonable bounds
-            brightnessFactor = constrain(brightnessFactor, 0.52, 1.0);
+            // Create traveling wave that smoothly oscillates between min and max brightness
+            // Map sin output from [-1, 1] to [minBrightness, maxBrightness]
+            float brightnessFactor = minBrightness + ((sin(wavePhase) + 1.0) / 2.0) * (maxBrightness - minBrightness);
 
             int adjustedBrightness = min(MAX_BRIGHTNESS, (int)(baseColor.val * brightnessFactor));
             leds_center[i] = CHSV(baseColor.hue, baseColor.sat, adjustedBrightness);
@@ -314,7 +378,7 @@ void updateLEDsOneColor(int numActiveLeds, int segmentLen, CRGB* leds, CHSV colo
 
 void applyWindSpeedThreshold(int windSpeedLEDs, int windSpeed_mps, int windSpeedThreshold_knots) {
     // Convert wind speed from m/s to knots for threshold comparison
-    float windSpeedInKnots = windSpeed_mps * MPS_TO_KNOTS_FACTOR;
+    float windSpeedInKnots = ledMapping.windSpeedToKnots(windSpeed_mps);
 
     // Check if quiet hours are active - disable threshold blinking during sleep time
     if (lastSurfData.quietHoursActive || windSpeedInKnots < windSpeedThreshold_knots) {
@@ -323,7 +387,7 @@ void applyWindSpeedThreshold(int windSpeedLEDs, int windSpeed_mps, int windSpeed
     } else {
         // ALERT MODE: Blinking theme-based wind speed LEDs (starting from second LED)
         CHSV themeColor = getWindSpeedColor(currentTheme);
-        updateBlinkingCenterLEDs(windSpeedLEDs, CHSV(themeColor.hue, themeColor.sat, min(MAX_BRIGHTNESS, (int)(MAX_BRIGHTNESS * THRESHOLD_BRIGHTNESS_MULTIPLIER)))); // Blinking theme color
+        updateBlinkingCenterLEDs(windSpeedLEDs, CHSV(themeColor.hue, themeColor.sat, ledMapping.getThresholdBrightness())); // Blinking theme color
     }
 }
 
@@ -335,7 +399,7 @@ void applyWaveHeightThreshold(int waveHeightLEDs, int waveHeight_cm, int waveThr
     } else {
         // ALERT MODE: Blinking theme-based wave height LEDs
         CHSV themeColor = getWaveHeightColor(currentTheme);
-        updateBlinkingLEDs(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, CHSV(themeColor.hue, themeColor.sat, min(MAX_BRIGHTNESS, (int)(MAX_BRIGHTNESS * THRESHOLD_BRIGHTNESS_MULTIPLIER)))); // Blinking theme color
+        updateBlinkingLEDs(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, CHSV(themeColor.hue, themeColor.sat, ledMapping.getThresholdBrightness())); // Blinking theme color
     }
 }
 
@@ -350,26 +414,26 @@ void updateBlinkingAnimation() {
     unsigned long currentMillis = millis();
     if (currentMillis - lastBlinkUpdate >= 5) { // 200 FPS for ultra-smooth animation
         blinkPhase += 0.0419; // 1.5-second cycle (slower threshold alerts)
-        if (blinkPhase >= 2 * PI) blinkPhase -= 2 * PI;  // Smooth wrap instead of hard reset
+        // Don't wrap blinkPhase - sin() is naturally periodic, wrapping causes discontinuity
         lastBlinkUpdate = currentMillis;
     }
 
     bool needsUpdate = false;
 
     // Check if wind speed threshold is exceeded
-    float windSpeedInKnots = lastSurfData.windSpeed * MPS_TO_KNOTS_FACTOR;
+    float windSpeedInKnots = ledMapping.windSpeedToKnots(lastSurfData.windSpeed);
     if (windSpeedInKnots >= lastSurfData.windSpeedThreshold) {
-        int windSpeedLEDs = constrain(static_cast<int>(lastSurfData.windSpeed * WIND_SCALE_NUMERATOR / WIND_SCALE_DENOMINATOR), 1, NUM_LEDS_CENTER - 2);
+        int windSpeedLEDs = ledMapping.calculateWindLEDs(lastSurfData.windSpeed);
         CHSV themeColor = getWindSpeedColor(currentTheme);
-        updateBlinkingCenterLEDs(windSpeedLEDs, CHSV(themeColor.hue, themeColor.sat, min(MAX_BRIGHTNESS, (int)(MAX_BRIGHTNESS * THRESHOLD_BRIGHTNESS_MULTIPLIER))));
+        updateBlinkingCenterLEDs(windSpeedLEDs, CHSV(themeColor.hue, themeColor.sat, ledMapping.getThresholdBrightness()));
         needsUpdate = true;
     }
 
-    // Check if wave height threshold is exceeded
+    // Check if wave height threshold is exceeded (lastSurfData.waveHeight is in METERS)
     if (lastSurfData.waveHeight >= lastSurfData.waveThreshold) {
-        int waveHeightLEDs = constrain(static_cast<int>(lastSurfData.waveHeight / WAVE_HEIGHT_DIVISOR) + 1, 0, NUM_LEDS_RIGHT);
+        int waveHeightLEDs = ledMapping.calculateWaveLEDsFromMeters(lastSurfData.waveHeight);
         CHSV themeColor = getWaveHeightColor(currentTheme);
-        updateBlinkingLEDs(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, CHSV(themeColor.hue, themeColor.sat, min(MAX_BRIGHTNESS, (int)(MAX_BRIGHTNESS * THRESHOLD_BRIGHTNESS_MULTIPLIER))));
+        updateBlinkingLEDs(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, CHSV(themeColor.hue, themeColor.sat, ledMapping.getThresholdBrightness()));
         needsUpdate = true;
     }
 
@@ -635,17 +699,17 @@ void handleStatusRequest() {
 
     // LED calculation debug info
     if (lastSurfData.dataReceived) {
-        int windSpeedLEDs = constrain(static_cast<int>(lastSurfData.windSpeed * WIND_SCALE_NUMERATOR / WIND_SCALE_DENOMINATOR), 1, NUM_LEDS_CENTER - 2);
-        int waveHeightLEDs = constrain(static_cast<int>(lastSurfData.waveHeight * 100 / WAVE_HEIGHT_DIVISOR) + 1, 0, NUM_LEDS_RIGHT);
-        int wavePeriodLEDs = constrain(static_cast<int>(lastSurfData.wavePeriod), 0, NUM_LEDS_LEFT);
+        int windSpeedLEDs = ledMapping.calculateWindLEDs(lastSurfData.windSpeed);
+        int waveHeightLEDs = ledMapping.calculateWaveLEDsFromMeters(lastSurfData.waveHeight);
+        int wavePeriodLEDs = ledMapping.calculateWavePeriodLEDs(lastSurfData.wavePeriod);
 
         statusDoc["led_calculations"]["wind_speed_leds"] = windSpeedLEDs;
-        statusDoc["led_calculations"]["wind_formula"] = "windSpeed * " + String(WIND_SCALE_NUMERATOR) + " / " + String(WIND_SCALE_DENOMINATOR);
-        statusDoc["led_calculations"]["wind_calculation"] = String(lastSurfData.windSpeed) + " * " + String(WIND_SCALE_NUMERATOR) + " / " + String(WIND_SCALE_DENOMINATOR) + " = " + String(lastSurfData.windSpeed * WIND_SCALE_NUMERATOR / WIND_SCALE_DENOMINATOR);
+        statusDoc["led_calculations"]["wind_formula"] = "windSpeed * " + String(ledMapping.wind_scale_numerator) + " / " + String(ledMapping.wind_scale_denominator);
+        statusDoc["led_calculations"]["wind_calculation"] = String(lastSurfData.windSpeed) + " * " + String(ledMapping.wind_scale_numerator) + " / " + String(ledMapping.wind_scale_denominator) + " = " + String(lastSurfData.windSpeed * ledMapping.wind_scale_numerator / ledMapping.wind_scale_denominator);
         statusDoc["led_calculations"]["wave_height_leds"] = waveHeightLEDs;
         statusDoc["led_calculations"]["wave_period_leds"] = wavePeriodLEDs;
-        statusDoc["led_calculations"]["wind_speed_knots"] = lastSurfData.windSpeed * MPS_TO_KNOTS_FACTOR;
-        statusDoc["led_calculations"]["wind_threshold_exceeded"] = (lastSurfData.windSpeed * MPS_TO_KNOTS_FACTOR) >= lastSurfData.windSpeedThreshold;
+        statusDoc["led_calculations"]["wind_speed_knots"] = ledMapping.windSpeedToKnots(lastSurfData.windSpeed);
+        statusDoc["led_calculations"]["wind_threshold_exceeded"] = ledMapping.windSpeedToKnots(lastSurfData.windSpeed) >= lastSurfData.windSpeedThreshold;
     }
     
     String statusJson;
@@ -792,18 +856,29 @@ bool processSurfData(const String &jsonData) {
     Serial.printf("   Wind Speed Threshold: %d knots\n", wind_speed_threshold_knots);
     Serial.printf("   Quiet Hours Active: %s\n", quiet_hours_active ? "true" : "false");
     Serial.printf("   LED Theme: %s\n", currentTheme.c_str());
-    
+
+    // Calculate LED counts for logging
+    int windSpeedLEDs = ledMapping.calculateWindLEDs(wind_speed_mps);
+    int waveHeightLEDs = ledMapping.calculateWaveLEDsFromCm(wave_height_cm);
+    int wavePeriodLEDs = ledMapping.calculateWavePeriodLEDs(wave_period_s);
+
+    // Log timestamp and LED counts
+    Serial.printf("⏰ Timestamp: %lu ms (uptime)\n", millis());
+    Serial.printf("💡 LEDs Active - Wind: %d, Wave: %d, Period: %d\n", windSpeedLEDs, waveHeightLEDs, wavePeriodLEDs);
+
+    // Store quiet hours state BEFORE updating display (critical: updateSurfDisplay checks this!)
+    lastSurfData.quietHoursActive = quiet_hours_active;
+
     // Update LEDs with the new data
     updateSurfDisplay(wave_height_cm, wave_period_s, wind_speed_mps, wind_direction_deg, wave_threshold_cm, wind_speed_threshold_knots);
-    
-    // Store data for status reporting (converting height back to meters for consistency if needed)
+
+    // Store remaining data for status reporting (converting height back to meters for consistency if needed)
     lastSurfData.waveHeight = wave_height_cm / 100.0;
     lastSurfData.wavePeriod = wave_period_s;
     lastSurfData.windSpeed = wind_speed_mps;
     lastSurfData.windDirection = wind_direction_deg;
     lastSurfData.waveThreshold = wave_threshold_cm;
     lastSurfData.windSpeedThreshold = wind_speed_threshold_knots;
-    lastSurfData.quietHoursActive = quiet_hours_active;
     lastSurfData.lastUpdate = millis();
     lastSurfData.dataReceived = true;
     
@@ -812,22 +887,30 @@ bool processSurfData(const String &jsonData) {
 
 
 void updateSurfDisplay(int waveHeight_cm, float wavePeriod, int windSpeed, int windDirection, int waveThreshold_cm, int windSpeedThreshold_knots) {
-    // Check for quiet hours - show only top LEDs
+    // Check for quiet hours - show only the highest LED that would normally be on
     if (lastSurfData.quietHoursActive) {
-        // Calculate LED counts but force to only top LED
-        updateLEDsOneColor(1, NUM_LEDS_CENTER, leds_center, getWindSpeedColor(currentTheme));
-        updateLEDsOneColor(1, NUM_LEDS_RIGHT, leds_side_right, getWaveHeightColor(currentTheme));
-        updateLEDsOneColor(1, NUM_LEDS_LEFT, leds_side_left, getWavePeriodColor(currentTheme));
+        // Calculate how many LEDs would be on during daytime
+        int windSpeedLEDs = ledMapping.calculateWindLEDs(windSpeed);
+        int waveHeightLEDs = ledMapping.calculateWaveLEDsFromCm(waveHeight_cm);
+        int wavePeriodLEDs = ledMapping.calculateWavePeriodLEDs(wavePeriod);
+
+        // Turn off all LEDs first
+        FastLED.clear();
+
+        // Light only the top LED that would normally be on (highest index)
+        if (windSpeedLEDs > 0) leds_center[windSpeedLEDs - 1] = getWindSpeedColor(currentTheme);
+        if (waveHeightLEDs > 0) leds_side_right[waveHeightLEDs - 1] = getWaveHeightColor(currentTheme);
+        if (wavePeriodLEDs > 0) leds_side_left[wavePeriodLEDs - 1] = getWavePeriodColor(currentTheme);
+
         FastLED.show();
         Serial.println("🌙 Quiet hours: Only top LEDs active");
         return;
     }
 
-    // Calculate LED counts based on surf data
-    // Scale wind speed to use full LED range (0-13 m/s maps to 0-18 LEDs)
-    int windSpeedLEDs = constrain(static_cast<int>(windSpeed * WIND_SCALE_NUMERATOR / WIND_SCALE_DENOMINATOR), 1, NUM_LEDS_CENTER - 2);
-    int waveHeightLEDs = constrain(static_cast<int>(waveHeight_cm / WAVE_HEIGHT_DIVISOR) + 1, 0, NUM_LEDS_RIGHT);
-    int wavePeriodLEDs = constrain(static_cast<int>(wavePeriod), 0, NUM_LEDS_LEFT);
+    // Calculate LED counts based on surf data using centralized mapping configuration
+    int windSpeedLEDs = ledMapping.calculateWindLEDs(windSpeed);
+    int waveHeightLEDs = ledMapping.calculateWaveLEDsFromCm(waveHeight_cm);
+    int wavePeriodLEDs = ledMapping.calculateWavePeriodLEDs(wavePeriod);
 
     // Set wind direction indicator
     setWindDirection(windDirection);
