@@ -1,19 +1,17 @@
-# MCP Supabase
+# MCP Supabase 
 
 ## 1. Overview
 
-**What it does:** This server acts as a secure, read-only gateway that exposes specialized tools for an AI agent (Claude) to query and analyze the production Supabase (PostgreSQL) database.
+**What it does:** This server acts as a read-only pipe that allows a maintainer to interact with supabase using natural language.
 
-**Why it exists:** It exists to empower AI-assisted debugging and monitoring. Instead of giving an AI raw, potentially dangerous database credentials, this server provides a safe, curated API. This allows for rapid, complex analysis of production data during incident response without the risk of accidental modification or the slowness of manual queries.
+**Why it exists:** To make debugging and retriving information from the database easier and also for any future llm integration to the project.
 
 ---
 
 ## 2. Technical Details
 
 **What would break if this disappeared?**
-- The core user-facing application (web app, lamps) would **not** be affected.
-- The AI agent's ability to perform deep, real-time analysis of the database would be completely lost.
-- Debugging and operational monitoring would revert to being a slow, manual process of writing SQL queries by hand. It is a critical component of the **maintenance and operations** workflow.
+- would be harder to interact with the database
 
 **What assumptions does it make?**
 - **Environment:** Assumes `DATABASE_URL` is present and correct in its environment to connect to Supabase.
@@ -22,15 +20,11 @@
 - **Client:** Assumes it is being called by an MCP-compatible client that understands how to format tool-use requests.
 
 **Where does complexity hide?**
-- **Embedded Business Logic:** The real complexity is in the SQL queries inside each tool. `get_lamp_status_summary` contains the specific business logic for what constitutes an "online," "stale," or "offline" lamp (`NOW() - INTERVAL '1 hour'`). This logic must be kept in sync with any similar logic elsewhere in the system.
-- **Fuzzy Search:** The `search_users_and_locations` and `get_surf_conditions_by_location` tools use `ILIKE` for fuzzy string matching, which can have performance implications on very large datasets.
-- **`execute_safe_query`:** This tool is a potential security risk. While it blocks keywords like `UPDATE` or `DELETE`, a sufficiently creative `SELECT` statement could still cause high database load. Its use should be monitored.
-
-**What stories does the code tell?**
-- The very existence of this server tells a story of a system that grew too complex for simple manual debugging.
-- The creation of specific tools like `get_user_dashboard_data` and `get_lamp_status_summary` indicates that these were common, repetitive debugging tasks that were automated to save maintainer time.
-- The use of `asyncpg` and `FastMCP` shows a need for an efficient, asynchronous server to handle concurrent requests from the AI without blocking.
-- The `statement_cache_size=0` setting is a critical lesson learned from working with Supabase's connection pooler (PgBouncer), which requires session-level settings and doesn't play well with prepared statements.
+- **Centralized Configuration:** Business logic thresholds now live in `shared_config.py` (LAMP_ONLINE_THRESHOLD_SECONDS, LAMP_STALE_THRESHOLD_SECONDS). The `get_lamp_status_summary` tool dynamically references these values via `get_online_interval_sql()` and `get_stale_interval_sql()`. This ensures synchronization with the monitor and processor components.
+- **SQL Injection Protection:** The `validate_where_clause()` function uses regex patterns to block dangerous SQL patterns (semicolons, comments, DROP/DELETE/UNION keywords) and always-true conditions (1=1, 2>1). Applied to `query_table()` and `delete_record()`.
+- **Connection Safety:** All database functions use the `DatabaseConnection` async context manager, which guarantees connection cleanup even during exceptions. Prevents connection pool exhaustion.
+- **Error Sanitization:** User-facing errors are generic ("Database query failed. Check server logs.") while detailed errors go to `logger.error()` for admin access only. Prevents schema information leakage.
+- **Fuzzy Search:** The `search_users_and_locations` and `get_surf_conditions_by_location` tools use `ILIKE` for fuzzy string matching. Performance impact negligible at current scale (7 lamps, <10 users).
 
 ---
 
@@ -46,24 +40,26 @@
 
 **Key Functions/Classes:**
 - `FastMCP("surf-lamp-supabase")`: The server instance.
-- `get_connection()`: Establishes a connection to the database, crucially disabling the statement cache for Supabase compatibility.
+- `DatabaseConnection`: Async context manager that guarantees connection cleanup. All tools use `async with DatabaseConnection() as conn:` pattern.
+- `get_connection()`: Legacy connection method, deprecated in favor of context manager.
+- `validate_where_clause()`: SQL injection protection using regex pattern matching.
+- `shared_config.py`: Centralized business logic constants (timing thresholds, intervals).
 - `@mcp.tool()` decorated functions: Each function is a standalone capability exposed to the AI. They are organized by purpose:
     - **Admin/Schema:** `get_database_schema`, `check_database_health`
-    - **Read/Query:** `query_table`, `execute_safe_query`
+    - **Read/Query:** `query_table` (injection-protected), `execute_safe_query`
     - **Analytics:** `get_table_stats`
-    - **Business-Logic Specific:** `get_user_dashboard_data`, `get_surf_conditions_by_location`, `get_lamp_status_summary`, `search_users_and_locations`
-    - **Write/Delete:** `insert_record`, `delete_record` (the most dangerous tools).
+    - **Business-Logic Specific:** `get_user_dashboard_data`, `get_surf_conditions_by_location`, `get_lamp_status_summary` (uses centralized config), `search_users_and_locations`
+    - **Write/Delete:** `insert_record`, `delete_record` (injection-protected, most dangerous tools).
 
 **Configuration:**
 - The server is configured via a single environment variable: `DATABASE_URL`.
-- It runs as a Python application, typically started with `uvicorn` or a similar ASGI server, and communicates over `stdio`.
 
 ---
 
 ## 4. Integration Points
 
 **What calls this component?**
-- An AI agent (Claude) that acts as an MCP client. It is not designed for human or programmatic use otherwise.
+- Any AI agent that acts as an MCP client.
 
 **What does this component call?**
 - It makes direct SQL queries to the production Supabase PostgreSQL database.
@@ -89,5 +85,5 @@
 5. **Restart the Service:** A simple restart from the Render dashboard can resolve transient connection issues.
 
 **What scaling concerns exist?**
-- This is a low-traffic, internal-facing tool. Standard application scaling concerns (load balancing, etc.) do not apply.
-- The primary bottleneck is the connection limit on the Supabase database instance. Each tool call opens a new connection. If the AI were to make many concurrent requests, it could exhaust the connection pool. However, this is unlikely with the current single-agent usage pattern.
+- None
+
