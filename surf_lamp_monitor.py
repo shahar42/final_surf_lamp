@@ -18,6 +18,10 @@ import os
 import sys
 import json
 import smtplib
+
+# Add shared configuration
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from shared_config import MONITOR_CHECK_INTERVAL_SECONDS
 import requests
 from datetime import datetime, timedelta
 from email.mime.text import MIMEText
@@ -116,20 +120,18 @@ class SurfLampMonitor:
         try:
             # Check web service status
             web_status = await self.render_service_status()
-            if "❌" in web_status:
-                issues.append("🌐 Web service status check failed")
-            elif "✅" not in web_status:
-                issues.append("🌐 Web service appears unhealthy")
+            if "SUCCESS:" not in web_status:
+                issues.append("Web service status check failed")
 
             # Check recent deployments for failures
             deployments = await self.render_deployments(limit=3)
             if "build_failed" in deployments or "pre_deploy_failed" in deployments:
-                issues.append("🚀 Recent deployment failures detected")
+                issues.append("Recent deployment failures detected")
 
         except Exception as e:
-            issues.append(f"🔧 Service health check failed: {str(e)}")
+            issues.append(f"Service health check failed: {str(e)}")
 
-        status = "🔴 CRITICAL" if issues else "🟢 HEALTHY"
+        status = "CRITICAL" if issues else "HEALTHY"
         return status, issues
 
     async def check_recent_errors(self) -> Tuple[str, List[str]]:
@@ -138,7 +140,7 @@ class SurfLampMonitor:
 
         try:
             # Check web service errors
-            web_errors = await self.render_recent_errors(limit=50, service_type="web")
+            web_errors = await self.render_recent_errors(service_id="final-surf-lamp-web", limit=50)
             if "Found" in web_errors and "errors/warnings" in web_errors:
                 # Extract error count
                 if "Found" in web_errors:
@@ -148,12 +150,12 @@ class SurfLampMonitor:
                             try:
                                 error_count = int(line.split()[1])
                                 if error_count > self.error_threshold:
-                                    issues.append(f"🌐 Web service: {error_count} errors/warnings in recent logs")
+                                    issues.append(f"Web service: {error_count} errors/warnings in recent logs")
                             except:
                                 pass
 
             # Check background service errors
-            bg_errors = await self.render_recent_errors(limit=50, service_type="background")
+            bg_errors = await self.render_recent_errors(service_id="final-surf-lamp-worker", limit=50)
             if "Found" in bg_errors and "errors/warnings" in bg_errors:
                 lines = bg_errors.split('\n')
                 for line in lines:
@@ -161,17 +163,17 @@ class SurfLampMonitor:
                         try:
                             error_count = int(line.split()[1])
                             if error_count > self.error_threshold:
-                                issues.append(f"🔧 Background service: {error_count} errors/warnings in recent logs")
+                                issues.append(f"Background service: {error_count} errors/warnings in recent logs")
                         except:
                             pass
 
         except Exception as e:
-            issues.append(f"📋 Error log check failed: {str(e)}")
+            issues.append(f"Error log check failed: {str(e)}")
 
         if issues:
-            status = "🔴 CRITICAL" if any("error" in issue.lower() for issue in issues) else "🟡 WARNING"
+            status = "CRITICAL" if any("error" in issue.lower() for issue in issues) else "WARNING"
         else:
-            status = "🟢 HEALTHY"
+            status = "HEALTHY"
 
         return status, issues
 
@@ -181,11 +183,11 @@ class SurfLampMonitor:
 
         try:
             # Get recent background service logs
-            bg_logs = await self.render_logs(limit=20, service_type="background")
+            bg_logs = await self.render_logs(service_id="final-surf-lamp-worker", limit=20)
 
             # Look for successful processing completion
             if "Status: SUCCESS" not in bg_logs:
-                issues.append("🔧 No successful processing cycles found in recent logs")
+                issues.append("No successful processing cycles found in recent logs")
 
             # Check for timeout/stuck processing
             if "Duration:" in bg_logs:
@@ -197,14 +199,14 @@ class SurfLampMonitor:
                             if "seconds" in duration_str:
                                 duration = float(duration_str.split()[0])
                                 if duration > (self.processing_timeout * 60):
-                                    issues.append(f"🔧 Processing cycle too slow: {duration:.1f}s")
+                                    issues.append(f"Processing cycle too slow: {duration:.1f}s")
                         except:
                             pass
 
         except Exception as e:
-            issues.append(f"🔄 Processing cycle check failed: {str(e)}")
+            issues.append(f"Processing cycle check failed: {str(e)}")
 
-        status = "🔴 CRITICAL" if issues else "🟢 HEALTHY"
+        status = "CRITICAL" if issues else "HEALTHY"
         return status, issues
 
     async def check_api_responses(self) -> Tuple[str, List[str]]:
@@ -213,20 +215,20 @@ class SurfLampMonitor:
 
         try:
             # Search for recent Arduino API calls in web service logs
-            api_logs = await self.search_render_logs("arduino", limit=20, service_type="web")
+            api_logs = await self.search_render_logs("arduino", service_id="final-surf-lamp-web", limit=20)
 
             if "No logs found" in api_logs:
-                issues.append("🤖 No recent Arduino API activity detected")
+                issues.append("No recent Arduino API activity detected")
             else:
                 # Check for API errors
-                error_api_logs = await self.search_render_logs("400\\|500\\|error", limit=10, service_type="web")
+                error_api_logs = await self.search_render_logs("400\\|500\\|error", service_id="final-surf-lamp-web", limit=10)
                 if "Found" in error_api_logs:
-                    issues.append("🤖 API errors detected in recent requests")
+                    issues.append("API errors detected in recent requests")
 
         except Exception as e:
-            issues.append(f"🔌 API response check failed: {str(e)}")
+            issues.append(f"API response check failed: {str(e)}")
 
-        status = "🟡 WARNING" if issues else "🟢 HEALTHY"
+        status = "WARNING" if issues else "HEALTHY"
         return status, issues
 
     async def check_database_connectivity(self) -> Tuple[str, List[str]]:
@@ -238,17 +240,17 @@ class SurfLampMonitor:
             db_errors = await self.search_render_logs("database\\|psycopg2\\|connection", limit=30)
 
             if "Found" in db_errors and "entries matching" in db_errors:
-                issues.append("🗄️ Database connection issues detected")
+                issues.append("Database connection issues detected")
 
             # Check for specific database errors
             critical_db_errors = await self.search_render_logs("UndefinedColumn\\|OperationalError", limit=10)
             if "Found" in critical_db_errors:
-                issues.append("🗄️ Critical database errors detected")
+                issues.append("Critical database errors detected")
 
         except Exception as e:
-            issues.append(f"🗄️ Database check failed: {str(e)}")
+            issues.append(f"Database check failed: {str(e)}")
 
-        status = "🔴 CRITICAL" if any("Critical" in issue for issue in issues) else "🟡 WARNING" if issues else "🟢 HEALTHY"
+        status = "CRITICAL" if any("Critical" in issue for issue in issues) else "WARNING" if issues else "HEALTHY"
         return status, issues
 
     async def run_health_check(self) -> Dict:
@@ -265,12 +267,12 @@ class SurfLampMonitor:
 
         # Determine overall status
         statuses = [check[0] for check in checks.values()]
-        if any("🔴 CRITICAL" in status for status in statuses):
-            overall_status = "🔴 CRITICAL"
-        elif any("🟡 WARNING" in status for status in statuses):
-            overall_status = "🟡 WARNING"
+        if any("CRITICAL" in status for status in statuses):
+            overall_status = "CRITICAL"
+        elif any("WARNING" in status for status in statuses):
+            overall_status = "WARNING"
         else:
-            overall_status = "🟢 HEALTHY"
+            overall_status = "HEALTHY"
 
         # Collect all issues
         all_issues = []
@@ -295,7 +297,7 @@ class SurfLampMonitor:
             return
 
         try:
-            subject = f"🚨 Surf Lamp Alert - {health_result['overall_status']}"
+            subject = f"Surf Lamp Alert - {health_result['overall_status']}"
 
             body = f"""
 Surf Lamp System Health Alert
@@ -335,9 +337,9 @@ Detailed Check Results:
 
         try:
             color = {
-                "🔴 CRITICAL": 0xFF0000,  # Red
-                "🟡 WARNING": 0xFFFF00,   # Yellow
-                "🟢 HEALTHY": 0x00FF00    # Green
+                "CRITICAL": 0xFF0000,  # Red
+                "WARNING": 0xFFFF00,   # Yellow
+                "HEALTHY": 0x00FF00    # Green
             }.get(health_result['overall_status'], 0x808080)
 
             embed = {
@@ -376,11 +378,11 @@ Detailed Check Results:
     def should_send_alert(self, health_result: Dict) -> bool:
         """Determine if an alert should be sent based on status"""
         # Always alert on critical issues
-        if "🔴 CRITICAL" in health_result['overall_status']:
+        if "CRITICAL" in health_result['overall_status']:
             return True
 
         # Alert on warnings (but could add logic to reduce noise)
-        if "🟡 WARNING" in health_result['overall_status']:
+        if "WARNING" in health_result['overall_status']:
             return True
 
         # Optional: Send "all clear" notifications after issues are resolved
@@ -427,8 +429,8 @@ async def main():
         while True:
             try:
                 await monitor.monitor_once()
-                logger.info("😴 Sleeping for 1 hour...")
-                await asyncio.sleep(3600)  # 1 hour
+                logger.info(f"😴 Sleeping for {MONITOR_CHECK_INTERVAL_SECONDS} seconds...")
+                await asyncio.sleep(MONITOR_CHECK_INTERVAL_SECONDS)  # Uses shared_config.py value
             except KeyboardInterrupt:
                 logger.info("👋 Monitoring stopped by user")
                 break
