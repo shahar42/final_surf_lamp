@@ -18,72 +18,6 @@
 {% endblock %}
 
 {% block styles %}
-        #header {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            z-index: 1000;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-            max-width: 400px;
-        }
-
-        h1 {
-            font-size: 24px;
-            margin-bottom: 10px;
-            color: #667eea;
-        }
-
-        .subtitle {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 15px;
-        }
-
-        .stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            font-size: 12px;
-        }
-
-        .stat-item {
-            background: #f8f9fa;
-            padding: 8px;
-            border-radius: 6px;
-        }
-
-        .stat-label {
-            color: #666;
-            font-weight: 600;
-        }
-
-        .stat-value {
-            color: #667eea;
-            font-size: 16px;
-            font-weight: bold;
-        }
-
-        .reset-btn {
-            margin-top: 15px;
-            padding: 10px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
-            width: 100%;
-            transition: background 0.3s;
-        }
-
-        .reset-btn:hover {
-            background: #5568d3;
-        }
-
         #tooltip {
             position: absolute;
             background: rgba(0, 0, 0, 0.9);
@@ -287,6 +221,7 @@
 
         function renderStats(stats) {
             const statsDiv = document.getElementById('stats');
+            if (!statsDiv) return; // Gracefully handle missing stats element
             statsDiv.innerHTML = `
                 <div class="stat-item">
                     <div class="stat-label">Modules</div>
