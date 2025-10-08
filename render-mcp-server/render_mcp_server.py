@@ -33,9 +33,11 @@ register_deployment_tools(mcp)
 
 # Configuration
 RENDER_API_KEY = os.getenv("RENDER_API_KEY")
-SERVICE_ID = os.getenv("SERVICE_ID", "srv-d2chm8mr433s73anlc0g")
 OWNER_ID = os.getenv("OWNER_ID")
-BACKGROUND_SERVICE_ID = os.getenv("BACKGROUND_SERVICE_ID")
+RENDER_BASE_URL = "https://api.render.com"
+
+# Service cache - will be populated on first use
+SERVICES_CACHE = {}
 
 if not RENDER_API_KEY:
     logger.error("ERROR: RENDER_API_KEY environment variable is required")
@@ -43,7 +45,63 @@ if not RENDER_API_KEY:
 if not OWNER_ID:
     logger.error("ERROR: OWNER_ID environment variable is required for log access")
     sys.exit(1)
-RENDER_BASE_URL = "https://api.render.com"
+
+async def fetch_all_services() -> Dict[str, Dict[str, Any]]:
+    """Fetch all services and cache them by name and ID"""
+    global SERVICES_CACHE
+
+    if SERVICES_CACHE:
+        return SERVICES_CACHE
+
+    try:
+        url = f"{RENDER_BASE_URL}/v1/services?limit=100"
+        response = await run_curl(url)
+
+        services = {}
+        for service in response:
+            name = service.get('service', {}).get('name', '')
+            service_id = service.get('service', {}).get('id', '')
+            service_type = service.get('service', {}).get('type', '')
+
+            if name and service_id:
+                services[name] = {
+                    'id': service_id,
+                    'type': service_type,
+                    'name': name,
+                    'url': service.get('service', {}).get('serviceDetails', {}).get('url', '')
+                }
+                # Also index by ID for quick lookup
+                services[service_id] = services[name]
+
+        SERVICES_CACHE = services
+        logger.info(f"Cached {len([s for s in services.values() if 'name' in s])} services")
+        return services
+
+    except Exception as e:
+        logger.error(f"Failed to fetch services: {e}")
+        return {}
+
+async def get_service_id(service_name_or_id: Optional[str] = None) -> Optional[str]:
+    """Get service ID by name or return the ID if already an ID"""
+    if not service_name_or_id:
+        # Return first web service as default
+        services = await fetch_all_services()
+        web_services = [s for s in services.values() if s.get('type') == 'web_service' and 'name' in s]
+        if web_services:
+            return web_services[0]['id']
+        return None
+
+    # If it's already a service ID, return it
+    if service_name_or_id.startswith('srv-'):
+        return service_name_or_id
+
+    # Look up by name
+    services = await fetch_all_services()
+    service = services.get(service_name_or_id)
+    if service:
+        return service['id']
+
+    return None
 
 async def run_curl(url: str, method: str = "GET", data: Optional[Dict] = None) -> Dict[str, Any]:
     """Run curl command and return parsed JSON response"""
@@ -104,17 +162,20 @@ async def run_curl(url: str, method: str = "GET", data: Optional[Dict] = None) -
 @mcp.tool()
 async def render_deployments(service_id: Optional[str] = None, limit: int = 10) -> str:
     """
-    Get recent deployment history for the surf lamp service.
+    Get recent deployment history for a Render service.
 
     Args:
-        service_id: Render service ID (defaults to configured SERVICE_ID)
+        service_id: Service name or ID (e.g., 'final-surf-lamp-web' or 'srv-xxx'). Defaults to first web service.
         limit: Number of recent deployments to show (max 50)
 
     Returns:
         Formatted deployment history (all timestamps in UTC - add 3 hours for Israel time)
     """
     try:
-        target_service_id = service_id or SERVICE_ID
+        target_service_id = await get_service_id(service_id)
+        if not target_service_id:
+            return "❌ No service found. Please specify a service name or ID."
+
         limit = min(limit, 50)
 
         url = f"{RENDER_BASE_URL}/v1/services/{target_service_id}/deploys?limit={limit}"
@@ -195,7 +256,9 @@ async def render_service_status(service_id: Optional[str] = None) -> str:
         Current service status and details (timestamps in UTC - add 3 hours for Israel time)
     """
     try:
-        target_service_id = service_id or SERVICE_ID
+        target_service_id = await get_service_id(service_id)
+        if not target_service_id:
+            return "❌ No service found. Please specify a service name or ID."
 
         url = f"{RENDER_BASE_URL}/v1/services/{target_service_id}"
         response = await run_curl(url)
@@ -251,7 +314,9 @@ async def render_service_events(service_id: Optional[str] = None, limit: int = 2
         Structured analysis with status summary, problems, and recommended actions
     """
     try:
-        target_service_id = service_id or SERVICE_ID
+        target_service_id = await get_service_id(service_id)
+        if not target_service_id:
+            return "❌ No service found. Please specify a service name or ID."
         limit = min(limit, 50)
 
         url = f"{RENDER_BASE_URL}/v1/services/{target_service_id}/events?limit={limit}"
@@ -378,7 +443,9 @@ async def render_environment_vars(service_id: Optional[str] = None) -> str:
         Formatted environment variables (values partially masked for security)
     """
     try:
-        target_service_id = service_id or SERVICE_ID
+        target_service_id = await get_service_id(service_id)
+        if not target_service_id:
+            return "❌ No service found. Please specify a service name or ID."
 
         url = f"{RENDER_BASE_URL}/v1/services/{target_service_id}/env-vars"
         response = await run_curl(url)
@@ -486,7 +553,9 @@ async def render_deploy_details(deploy_id: str, service_id: Optional[str] = None
         Detailed deployment information including commit details
     """
     try:
-        target_service_id = service_id or SERVICE_ID
+        target_service_id = await get_service_id(service_id)
+        if not target_service_id:
+            return "❌ No service found. Please specify a service name or ID."
 
         url = f"{RENDER_BASE_URL}/v1/services/{target_service_id}/deploys/{deploy_id}"
         response = await run_curl(url)
@@ -785,7 +854,9 @@ async def render_restart_service(service_id: Optional[str] = None) -> str:
         Restart operation result
     """
     try:
-        target_service_id = service_id or SERVICE_ID
+        target_service_id = await get_service_id(service_id)
+        if not target_service_id:
+            return "❌ No service found. Please specify a service name or ID."
 
         url = f"{RENDER_BASE_URL}/v1/services/{target_service_id}/restart"
         response = await run_curl(url, method="POST")
@@ -807,7 +878,9 @@ async def render_suspend_service(service_id: Optional[str] = None) -> str:
         Suspend operation result
     """
     try:
-        target_service_id = service_id or SERVICE_ID
+        target_service_id = await get_service_id(service_id)
+        if not target_service_id:
+            return "❌ No service found. Please specify a service name or ID."
 
         url = f"{RENDER_BASE_URL}/v1/services/{target_service_id}/suspend"
         response = await run_curl(url, method="POST")
@@ -829,7 +902,9 @@ async def render_resume_service(service_id: Optional[str] = None) -> str:
         Resume operation result
     """
     try:
-        target_service_id = service_id or SERVICE_ID
+        target_service_id = await get_service_id(service_id)
+        if not target_service_id:
+            return "❌ No service found. Please specify a service name or ID."
 
         url = f"{RENDER_BASE_URL}/v1/services/{target_service_id}/resume"
         response = await run_curl(url, method="POST")
@@ -852,7 +927,9 @@ async def render_scale_service(num_instances: int, service_id: Optional[str] = N
         Scaling operation result with cost implications
     """
     try:
-        target_service_id = service_id or SERVICE_ID
+        target_service_id = await get_service_id(service_id)
+        if not target_service_id:
+            return "❌ No service found. Please specify a service name or ID."
 
         if num_instances < 0:
             return "ERROR: Number of instances must be 0 or greater"
@@ -885,7 +962,9 @@ async def render_get_custom_domains(service_id: Optional[str] = None) -> str:
         List of custom domains and their status
     """
     try:
-        target_service_id = service_id or SERVICE_ID
+        target_service_id = await get_service_id(service_id)
+        if not target_service_id:
+            return "❌ No service found. Please specify a service name or ID."
 
         url = f"{RENDER_BASE_URL}/v1/services/{target_service_id}/custom-domains"
         response = await run_curl(url)
@@ -921,7 +1000,9 @@ async def render_get_secret_files(service_id: Optional[str] = None) -> str:
         List of secret files and their details
     """
     try:
-        target_service_id = service_id or SERVICE_ID
+        target_service_id = await get_service_id(service_id)
+        if not target_service_id:
+            return "❌ No service found. Please specify a service name or ID."
 
         url = f"{RENDER_BASE_URL}/v1/services/{target_service_id}/secret-files"
         response = await run_curl(url)
@@ -959,7 +1040,9 @@ async def render_get_service_instances(service_id: Optional[str] = None) -> str:
         List of service instances with creation times and status
     """
     try:
-        target_service_id = service_id or SERVICE_ID
+        target_service_id = await get_service_id(service_id)
+        if not target_service_id:
+            return "❌ No service found. Please specify a service name or ID."
 
         url = f"{RENDER_BASE_URL}/v1/services/{target_service_id}/instances"
         response = await run_curl(url)
@@ -1193,9 +1276,9 @@ async def render_logs(
     Get recent service runtime logs.
 
     Args:
-        service_id: Render service ID (defaults to configured SERVICE_ID for web, BACKGROUND_SERVICE_ID for background)
+        service_id: Service name or ID (e.g., 'final-surf-lamp-web' or 'srv-xxx')
         limit: Number of recent log entries to show (max 100)
-        service_type: Either 'web' or 'background' to choose which service
+        service_type: Either 'web' or 'background' to choose default service type if no ID specified
 
     Returns:
         Formatted service logs with timestamps and log levels
@@ -1203,13 +1286,19 @@ async def render_logs(
     try:
         # Determine target service ID
         if service_id:
-            target_service_id = service_id
-        elif service_type == "background":
-            target_service_id = BACKGROUND_SERVICE_ID
-            if not target_service_id:
-                return "ERROR: BACKGROUND_SERVICE_ID not configured in environment"
+            target_service_id = await get_service_id(service_id)
         else:
-            target_service_id = SERVICE_ID
+            # Auto-select based on service type
+            services = await fetch_all_services()
+            if service_type == "background":
+                bg_services = [s for s in services.values() if s.get('type') == 'background_worker' and 'name' in s]
+                target_service_id = bg_services[0]['id'] if bg_services else None
+            else:
+                web_services = [s for s in services.values() if s.get('type') == 'web_service' and 'name' in s]
+                target_service_id = web_services[0]['id'] if web_services else None
+
+        if not target_service_id:
+            return f"❌ No {service_type} service found"
 
         limit = min(limit, 100)
 
@@ -1376,7 +1465,9 @@ async def render_latest_deployment_logs(service_id: Optional[str] = None, lines:
         Recent logs that may help debug deployment issues
     """
     try:
-        target_service_id = service_id or SERVICE_ID
+        target_service_id = await get_service_id(service_id)
+        if not target_service_id:
+            return "❌ No service found. Please specify a service name or ID."
 
         # Get recent deployments to find the latest one
         deployments_result = await render_deployments(service_id=target_service_id, limit=1)

@@ -8,5 +8,8 @@ if [ -f .env ]; then
     export $(grep -v '^#' .env | xargs)
 fi
 
+# Activate virtual environment (relative path)
+source ../esurf/bin/activate
+
 # Run the server
-python3 render_mcp_server.py
+exec python3 render_mcp_server.py

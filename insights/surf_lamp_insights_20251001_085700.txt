@@ -1,0 +1,207 @@
+SURF LAMP SYSTEM INSIGHTS REPORT
+Generated: 2025-10-01T08:56:57.766975
+Analysis Period: 24 hours
+
+Raw Data Summary:
+- Web Service Logs: 50 entries
+- Background Service Logs: 50 entries
+- Service Status: healthy
+- Recent Deployments: 5
+- API Requests: 0
+- Processing Avg Duration: 0.0s
+
+--------------------------------------------------------------------------------
+
+*   **System Health:** Service healthy; no web or background errors reported. Uptime appears continuous within the timeframe.
+*   **Performance Analysis:** Zero API requests from Arduinos. Processing performance metrics (cycle times, success rate, duration) are all zero, indicating no recent processing.
+
+*   **Notable Patterns:** Zero Arduino requests are a major anomaly. Recent deployments (5) suggest possible instability. "Quiet hours active" is at zero.
+*   **Issues & Recommendations:** Critical issue: No Arduino communication. Investigate network connectivity, API endpoint configuration, and Arduino device status. Prioritize root cause analysis for missing Arduino requests.
+
+*   **Optimization Opportunities:** Optimize background processing to ensure regular weather data updates and lamp status checks. Reduce deployments until root cause of no Arduino requests is found.
+
+*   **Trends & Predictions:** Without Arduino data, system is blind. Failure to resolve will lead to complete lack of functionality. Recent deployments could be the source of the problem.
+
+
+--------------------------------------------------------------------------------
+
+Technical Data Details:
+{
+  "timestamp": "2025-10-01T08:56:57.766975",
+  "timeframe": "24 hours",
+  "web_service_logs": [
+    "LOG: 22:23:22 | 127.0.0.1 - - [30/Sep/2025:22:23:22 +0000] \"HEAD / HTTP/1.1\" 200 0 \"-\" \"Go-http-client/1.1\"",
+    "LOG: 22:23:21 | [2025-09-30 22:23:21 +0000] [55] [INFO] Booting worker with pid: 55",
+    "LOG: 22:23:21 | [2025-09-30 22:23:21 +0000] [54] [INFO] Using worker: sync",
+    "LOG: 22:23:21 | [2025-09-30 22:23:21 +0000] [54] [INFO] Listening at: http://0.0.0.0:10000 (54)",
+    "LOG: 22:23:21 | [2025-09-30 22:23:21 +0000] [54] [INFO] Starting gunicorn 21.2.0",
+    "LOG: 22:23:21 | \u001b[32m\u001b[1m==>\u001b(B\u001b[m \u001b[1mRunning 'cd surf-lamp-visualizer && gunicorn app:app'\u001b(B\u001b[m",
+    "LOG: 22:22:55 | \u001b[0;34m\u001b[1m==> \u001b[0m\u001b[1mDeploying...\u001b[0m",
+    "LOG: 22:22:54 | \u001b[32;1m==>\u001b[0;22m \u001b[1mBuild successful \ud83c\udf89\u001b[22m",
+    "LOG: 22:22:53 | \u001b[34;1m==>\u001b[0;22m \u001b[1mUploaded in 8.8s. Compression took 2.8s\u001b[22m",
+    "LOG: 22:22:42 | \u001b[34;1m==>\u001b[0;22m \u001b[1mUploading build...\u001b[22m",
+    "NOTE: 22:22:38 | [notice] To update, run: pip install --upgrade pip",
+    "NOTE: 22:22:38 | [notice] A new release of pip available: 22.3 -> 25.2",
+    "LOG: 22:22:38 |",
+    "LOG: 22:22:38 | Successfully installed Flask-3.0.0 Jinja2-3.1.6 MarkupSafe-3.0.3 Werkzeug-3.1.3 blinker-1.9.0 click-8.3.0 flask-cors-4.0.0 gunicorn-21.2.0 itsdangerous-2.2.0 markdown2-2.4.12 packaging-25.0 python-dotenv-1.0.0",
+    "LOG: 22:22:37 | Installing collected packages: python-dotenv, packaging, MarkupSafe, markdown2, itsdangerous, click, blinker, Werkzeug, Jinja2, gunicorn, Flask, flask-cors",
+    "LOG: 22:22:37 |   Using cached markupsafe-3.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (22 kB)",
+    "LOG: 22:22:37 | Collecting MarkupSafe>=2.0",
+    "LOG: 22:22:37 |   Using cached packaging-25.0-py3-none-any.whl (66 kB)",
+    "LOG: 22:22:37 | Collecting packaging",
+    "LOG: 22:22:37 |   Using cached blinker-1.9.0-py3-none-any.whl (8.5 kB)",
+    "LOG: 22:22:37 | Collecting blinker>=1.6.2",
+    "LOG: 22:22:37 |   Using cached click-8.3.0-py3-none-any.whl (107 kB)",
+    "LOG: 22:22:37 | Collecting click>=8.1.3",
+    "LOG: 22:22:37 |   Using cached itsdangerous-2.2.0-py3-none-any.whl (16 kB)",
+    "LOG: 22:22:37 | Collecting itsdangerous>=2.1.2",
+    "LOG: 22:22:37 |   Using cached jinja2-3.1.6-py3-none-any.whl (134 kB)",
+    "LOG: 22:22:37 | Collecting Jinja2>=3.1.2",
+    "LOG: 22:22:37 |   Using cached werkzeug-3.1.3-py3-none-any.whl (224 kB)",
+    "LOG: 22:22:37 | Collecting Werkzeug>=3.0.0",
+    "LOG: 22:22:37 |   Using cached markdown2-2.4.12-py2.py3-none-any.whl (41 kB)",
+    "LOG: 22:22:37 | Collecting markdown2==2.4.12",
+    "LOG: 22:22:37 |   Using cached gunicorn-21.2.0-py3-none-any.whl (80 kB)",
+    "LOG: 22:22:37 | Collecting gunicorn==21.2.0",
+    "LOG: 22:22:37 |   Using cached python_dotenv-1.0.0-py3-none-any.whl (19 kB)",
+    "LOG: 22:22:37 | Collecting python-dotenv==1.0.0",
+    "LOG: 22:22:37 |   Using cached Flask_Cors-4.0.0-py2.py3-none-any.whl (14 kB)",
+    "LOG: 22:22:37 | Collecting flask-cors==4.0.0",
+    "LOG: 22:22:37 |   Using cached flask-3.0.0-py3-none-any.whl (99 kB)",
+    "LOG: 22:22:37 | Collecting Flask==3.0.0",
+    "LOG: 22:22:36 | \u001b[34m\u001b[1m==>\u001b(B\u001b[m \u001b[1mRunning build command 'cd surf-lamp-visualizer && pip install -r requirements.txt'...\u001b(B\u001b[m",
+    "LOG: 22:22:36 | \u001b[34m\u001b[1m==>\u001b(B\u001b[m \u001b[1mDocs on specifying a Poetry version: https://render.com/docs/poetry-version\u001b(B\u001b[m",
+    "LOG: 22:22:36 | \u001b[34m\u001b[1m==>\u001b(B\u001b[m \u001b[1mUsing Poetry version 2.1.3 (default)\u001b(B\u001b[m",
+    "LOG: 22:22:31 | \u001b[34m\u001b[1m==>\u001b(B\u001b[m \u001b[1mDocs on specifying a Python version: https://render.com/docs/python-version\u001b(B\u001b[m",
+    "LOG: 22:09:44 | \u001b[0;32m\u001b[1m==> \u001b[0m\u001b[1mDocs on specifying a port: https://render.com/docs/web-services#port-binding\u001b[0m",
+    "LOG: 22:09:44 | \u001b[0;32m\u001b[1m==> \u001b[0m\u001b[1mDetected service running on port 10000\u001b[0m",
+    "LOG: 22:05:44 | [2025-09-30 22:05:44 +0000] [54] [INFO] Shutting down: Master",
+    "LOG: 22:05:44 | [2025-09-30 22:05:44 +0000] [56] [INFO] Worker exiting (pid: 56)",
+    "LOG: 22:05:44 | [2025-09-30 22:05:44 +0000] [54] [INFO] Handling signal: term",
+    "LOG: 22:04:46 | 10.204.190.5 - - [30/Sep/2025:22:04:46 +0000] \"GET / HTTP/1.1\" 200 16355 \"-\" \"Go-http-client/2.0\"",
+    "LOG: 22:04:46 | \u001b[0;32m\u001b[1m==> \u001b[0m\u001b[1m///////////////////////////////////////////////////////////\u001b[0m"
+  ],
+  "background_service_logs": [
+    "LOG: 05:47:10 | 2025-10-01 05:47:10,128 - __main__ - INFO -   Updating lamp 46528 (Arduino 2545)",
+    "LOG: 05:47:10 | 2025-10-01 05:47:10,128 - __main__ - INFO - \ud83d\udcca Combined data for Hadera, Israel: ['wave_height_m', 'wave_period_s', 'timestamp', 'source_endpoint', 'wind_speed_mps', 'wind_direction_deg', 'location', 'temperature_c', 'humidity_percent']",
+    "LOG: 05:47:10 | 2025-10-01 05:47:10,128 - __main__ - INFO - \u2705 Got data: ['wind_speed_mps', 'wind_direction_deg', 'location', 'temperature_c', 'humidity_percent', 'timestamp', 'source_endpoint']",
+    "LOG: 05:47:10 | 2025-10-01 05:47:10,128 - __main__ - INFO - \u2705 Surf data standardized successfully",
+    "LOG: 05:47:10 | }",
+    "LOG: 05:47:10 |   \"source_endpoint\": \"http://api.openweathermap.org/data/2.5/weather?q=Hadera&appid=d6ef64df6585b7e88e51c221bbd41c2b\"",
+    "LOG: 05:47:10 |   \"timestamp\": 1759297630,",
+    "LOG: 05:47:10 |   \"humidity_percent\": 66,",
+    "LOG: 05:47:10 |   \"temperature_c\": 25.140000000000043,",
+    "LOG: 05:47:10 |   \"location\": \"Hadera\",",
+    "LOG: 05:47:10 |   \"wind_direction_deg\": 268,",
+    "LOG: 05:47:10 |   \"wind_speed_mps\": 3.37,",
+    "LOG: 05:47:10 | 2025-10-01 05:47:10,128 - __main__ - INFO - \u2705 Standardized data: {",
+    "LOG: 05:47:10 | 2025-10-01 05:47:10,128 - __main__ - INFO - \u2705 Found config with 7 field mappings",
+    "LOG: 05:47:10 | 2025-10-01 05:47:10,127 - __main__ - INFO - \ud83d\udd27 Standardizing data from: http://api.openweathermap.org/data/2.5/weather?q=Hadera&appid=d6ef64df6585b7e88e51c221bbd41c2b",
+    "LOG: 05:47:10 | 2025-10-01 05:47:10,127 - __main__ - INFO - \u2705 API call successful: 200",
+    "LOG: 05:46:40 | 2025-10-01 05:46:40,106 - __main__ - INFO - \ud83d\udce4 Using 30s timeout for this API",
+    "LOG: 05:46:40 | 2025-10-01 05:46:40,106 - __main__ - INFO - \ud83d\udce4 Headers: {'User-Agent': 'SurfLamp-Agent/1.0'}",
+    "LOG: 05:46:40 | 2025-10-01 05:46:40,106 - __main__ - INFO - \ud83d\udce4 Making API request without authentication (public endpoint)",
+    "LOG: 05:46:40 | 2025-10-01 05:46:40,106 - __main__ - INFO - \ud83c\udf0a Fetching surf data from: http://api.openweathermap.org/data/2.5/weather?q=Hadera&appid=d6ef64df6585b7e88e51c221bbd41c2b",
+    "LOG: 05:46:40 | 2025-10-01 05:46:40,106 - __main__ - INFO -   Trying API: http://api.openweathermap.org/data/2.5/weather?q=Hadera&appid=d6ef64df6585b7e88e51c221bbd41c2b (Priority: 2)",
+    "LOG: 05:46:40 | 2025-10-01 05:46:40,105 - __main__ - INFO - \u2705 Got data: ['wave_height_m', 'wave_period_s', 'timestamp', 'source_endpoint']",
+    "LOG: 05:46:40 | 2025-10-01 05:46:40,104 - __main__ - INFO - \u2705 Surf data standardized successfully",
+    "LOG: 05:46:40 | }",
+    "LOG: 05:46:40 |   \"source_endpoint\": \"https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json\"",
+    "LOG: 05:46:40 |   \"timestamp\": 1759297600,",
+    "LOG: 05:46:40 |   \"wave_period_s\": 7.3,",
+    "LOG: 05:46:40 |   \"wave_height_m\": 0.98,",
+    "LOG: 05:46:40 | 2025-10-01 05:46:40,104 - __main__ - INFO - \u2705 Standardized data: {",
+    "LOG: 05:46:40 | 2025-10-01 05:46:40,104 - __main__ - INFO - \u2705 Found config with 2 field mappings",
+    "LOG: 05:46:40 | 2025-10-01 05:46:40,103 - __main__ - INFO - \ud83d\udd27 Standardizing data from: https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json",
+    "LOG: 05:46:40 | 2025-10-01 05:46:40,103 - __main__ - INFO - \u2705 API call successful: 200",
+    "LOG: 05:46:09 | 2025-10-01 05:46:09,180 - __main__ - INFO - \ud83d\udce4 Using 15s timeout for this API",
+    "LOG: 05:46:09 | 2025-10-01 05:46:09,179 - __main__ - INFO - \ud83d\udce4 Headers: {'User-Agent': 'SurfLamp-Agent/1.0'}",
+    "LOG: 05:46:09 | 2025-10-01 05:46:09,179 - __main__ - INFO - \ud83d\udce4 Making API request without authentication (public endpoint)",
+    "LOG: 05:46:09 | 2025-10-01 05:46:09,179 - __main__ - INFO - \ud83c\udf0a Fetching surf data from: https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json",
+    "LOG: 05:46:09 | 2025-10-01 05:46:09,179 - __main__ - INFO -   Trying API: https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json (Priority: 1)",
+    "LOG: 05:46:09 | 2025-10-01 05:46:09,178 - __main__ - INFO -    - Arduino 4433 (Lamp 4422)",
+    "LOG: 05:46:09 | 2025-10-01 05:46:09,178 - __main__ - INFO -    - Arduino 4321 (Lamp 4321)",
+    "LOG: 05:46:09 | 2025-10-01 05:46:09,178 - __main__ - INFO -    - Arduino 420 (Lamp 420)",
+    "LOG: 05:46:09 | 2025-10-01 05:46:09,178 - __main__ - INFO -    - Arduino 12325 (Lamp 65485)",
+    "LOG: 05:46:09 | 2025-10-01 05:46:09,178 - __main__ - INFO -    - Arduino 1 (Lamp 1)",
+    "LOG: 05:46:09 | 2025-10-01 05:46:09,178 - __main__ - INFO -    - Arduino 6122 (Lamp 4421)",
+    "LOG: 05:46:09 | 2025-10-01 05:46:09,178 - __main__ - INFO -    - Arduino 2545 (Lamp 46528)",
+    "LOG: 05:46:09 | 2025-10-01 05:46:09,178 - __main__ - INFO - \u2705 Found 7 lamps in Hadera, Israel:",
+    "LOG: 05:46:08 | 2025-10-01 05:46:08,974 - __main__ - INFO - \ud83d\udd0d Getting lamps for location: Hadera, Israel",
+    "LOG: 05:46:08 | 2025-10-01 05:46:08,974 - __main__ - INFO - Available API sources: 2",
+    "LOG: 05:46:08 | --- Processing Location: Hadera, Israel ---",
+    "LOG: 05:46:08 | 2025-10-01 05:46:08,974 - __main__ - INFO -",
+    "WARNING: 05:46:08 | 2025-10-01 05:46:08,974 - __main__ - WARNING - \u26a0\ufe0f  No lamps found for location: Netanya, Israel"
+  ],
+  "service_status": {
+    "status": "healthy",
+    "details": {
+      "type": "web_service",
+      "url": "https://surf-lamp-visualizer.onrender.com",
+      "instances": "1",
+      "plan": "starter"
+    }
+  },
+  "recent_deployments": [
+    {
+      "entry": "[01] LIVE Deploy dep-d3e5g21r0fns73fgirg0",
+      "status": "live",
+      "created": "2025-09-30T22:22:01.103315Z"
+    },
+    {
+      "entry": "[02] UNKNOWN Deploy dep-d3e579ruibrs73bs2q30",
+      "status": "deactivated",
+      "created": "2025-09-30T22:03:20.487398Z"
+    },
+    {
+      "entry": "[03] UNKNOWN Deploy dep-d3e4m0hr0fns73fgd5mg",
+      "status": "deactivated",
+      "created": "2025-09-30T21:26:27.953795Z"
+    },
+    {
+      "entry": "[04] UNKNOWN Deploy dep-d3e4heripnbc73a7netg",
+      "status": "deactivated",
+      "created": "2025-09-30T21:16:45.776496Z"
+    },
+    {
+      "entry": "[05] UNKNOWN Deploy dep-d3e4fnk9c44c73ffio00",
+      "status": "deactivated",
+      "created": "2025-09-30T21:13:03.816023Z"
+    }
+  ],
+  "service_events": [],
+  "error_summary": {
+    "web_errors": {
+      "count": 0,
+      "types": [],
+      "recent": []
+    },
+    "background_errors": {
+      "count": 0,
+      "types": [],
+      "recent": []
+    }
+  },
+  "api_activity": {
+    "arduino_requests": {
+      "total_requests": 0,
+      "unique_devices": [],
+      "request_patterns": []
+    },
+    "error_patterns": {
+      "status_codes": {},
+      "error_types": []
+    }
+  },
+  "processing_performance": {
+    "cycle_times": [],
+    "success_rate": 0,
+    "avg_duration": 0
+  },
+  "alert_history": [],
+  "system_health_trends": {
+    "quiet_hours_active": 0,
+    "threshold_alerts": 0,
+    "locations": []
+  }
+}

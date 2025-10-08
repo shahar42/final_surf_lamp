@@ -74,6 +74,9 @@ class SurfLampInsights:
                 for line in f:
                     if '=' in line and not line.startswith('#'):
                         key, value = line.strip().split('=', 1)
+                        # Remove quotes if present
+                        if value.startswith('"') and value.endswith('"'):
+                            value = value[1:-1]
                         os.environ[key] = value
 
         # Load render MCP environment
@@ -83,6 +86,9 @@ class SurfLampInsights:
                 for line in f:
                     if '=' in line and not line.startswith('#'):
                         key, value = line.strip().split('=', 1)
+                        # Remove quotes if present
+                        if value.startswith('"') and value.endswith('"'):
+                            value = value[1:-1]
                         os.environ[key] = value
 
         # LLM configuration
@@ -101,7 +107,7 @@ class SurfLampInsights:
         self.save_to_file = os.getenv('INSIGHTS_SAVE_FILE', 'true').lower() == 'true'
         self.output_format = os.getenv('INSIGHTS_OUTPUT_FORMAT', 'txt').lower()
         self.output_dir = os.getenv('INSIGHTS_OUTPUT_DIR', './insights')
-        self.send_email = os.getenv('INSIGHTS_EMAIL', 'false').lower() == 'true'
+        self.email_enabled = os.getenv('INSIGHTS_EMAIL', 'false').lower() == 'true'
 
         # Email configuration
         self.email_smtp_server = os.getenv('EMAIL_SMTP_SERVER', 'smtp.gmail.com')
@@ -186,8 +192,8 @@ class SurfLampInsights:
 
             # Collect service logs
             logger.info("📋 Collecting service logs...")
-            web_logs = await self.render_logs(limit=log_limit, service_type="web")
-            bg_logs = await self.render_logs(limit=log_limit, service_type="background")
+            web_logs = await self.render_logs(service_id="final-surf-lamp-web", limit=log_limit)
+            bg_logs = await self.render_logs(service_id="final-surf-lamp-worker", limit=log_limit)
 
             # Collect service status and events
             logger.info("⚙️ Collecting service status...")
@@ -197,18 +203,18 @@ class SurfLampInsights:
 
             # Analyze errors and patterns
             logger.info("🔍 Analyzing error patterns...")
-            web_errors = await self.render_recent_errors(limit=100, service_type="web")
-            bg_errors = await self.render_recent_errors(limit=100, service_type="background")
+            web_errors = await self.render_recent_errors(service_id="final-surf-lamp-web", limit=100)
+            bg_errors = await self.render_recent_errors(service_id="final-surf-lamp-worker", limit=100)
 
             # Collect API activity data
             logger.info("🔌 Analyzing API activity...")
-            arduino_activity = await self.search_render_logs("arduino", limit=200, service_type="web")
-            api_errors = await self.search_render_logs("400\\|500\\|error", limit=50, service_type="web")
+            arduino_activity = await self.search_render_logs("arduino", service_id="final-surf-lamp-web", limit=200)
+            api_errors = await self.search_render_logs("400\\|500\\|error", service_id="final-surf-lamp-web", limit=50)
 
             # Performance analysis
             logger.info("📈 Analyzing performance...")
-            processing_logs = await self.search_render_logs("Duration:\\|Status:", limit=100, service_type="background")
-            threshold_activity = await self.search_render_logs("threshold\\|Quiet hours", limit=100, service_type="web")
+            processing_logs = await self.search_render_logs("CYCLE COMPLETED\\|Fetching surf data", service_id="final-surf-lamp-worker", limit=100)
+            threshold_activity = await self.search_render_logs("threshold\\|Quiet hours", service_id="final-surf-lamp-web", limit=100)
 
             # Structure the data
             snapshot = SystemSnapshot(
@@ -265,10 +271,14 @@ class SurfLampInsights:
         """Extract key service status information"""
         status_data = {"status": "unknown", "details": {}}
 
-        if "✅" in status_text:
+        # Check for success/error indicators
+        if "SUCCESS:" in status_text or "✅" in status_text:
             status_data["status"] = "healthy"
-        elif "❌" in status_text:
+        elif "ERROR:" in status_text or "❌" in status_text or "FAILED" in status_text:
             status_data["status"] = "error"
+        elif "INFO:" in status_text and "Type:" in status_text:
+            # Has service info, assume operational
+            status_data["status"] = "operational"
 
         # Extract key details
         lines = status_text.split('\n')
@@ -279,6 +289,8 @@ class SurfLampInsights:
                 status_data["details"]["url"] = line.split('URL:')[1].strip()
             elif 'Instances:' in line:
                 status_data["details"]["instances"] = line.split('Instances:')[1].strip()
+            elif 'Plan:' in line:
+                status_data["details"]["plan"] = line.split('Plan:')[1].strip()
 
         return status_data
 
@@ -341,17 +353,21 @@ class SurfLampInsights:
         """Analyze Arduino API request patterns"""
         activity = {"total_requests": 0, "unique_devices": set(), "request_patterns": []}
 
-        if "Found" in api_logs:
-            lines = api_logs.split('\n')
-            for line in lines:
-                if '/arduino/' in line and 'GET' in line:
-                    activity["total_requests"] += 1
-                    # Extract Arduino ID
-                    try:
-                        arduino_id = line.split('/arduino/')[1].split('/')[0]
+        if not api_logs or api_logs.startswith("❌"):
+            return activity
+
+        lines = api_logs.split('\n')
+        for line in lines:
+            # Look for Arduino API requests in logs
+            if '/arduino/' in line and ('GET' in line or 'requesting surf data' in line):
+                activity["total_requests"] += 1
+                # Extract Arduino ID from path or log message
+                try:
+                    if '/arduino/' in line:
+                        arduino_id = line.split('/arduino/')[1].split('/')[0].split()[0]
                         activity["unique_devices"].add(arduino_id)
-                    except:
-                        pass
+                except:
+                    pass
 
         activity["unique_devices"] = list(activity["unique_devices"])
         return activity
@@ -374,13 +390,21 @@ class SurfLampInsights:
         """Analyze background processing performance"""
         performance = {"cycle_times": [], "success_rate": 0, "avg_duration": 0}
 
-        if "Found" in processing_logs:
+        if processing_logs and not processing_logs.startswith("❌"):
             lines = processing_logs.split('\n')
             durations = []
             successes = 0
             total = 0
 
             for line in lines:
+                # Look for actual success patterns in the logs
+                if "LOCATION-BASED PROCESSING CYCLE COMPLETED" in line or "CYCLE COMPLETED" in line:
+                    successes += 1
+                    total += 1
+                elif "Fetching surf data from:" in line or "Standardizing data from:" in line:
+                    total += 1
+
+                # Legacy duration parsing (keep for backward compatibility)
                 if "Duration:" in line:
                     try:
                         duration_str = line.split("Duration:")[1].strip()
@@ -390,17 +414,16 @@ class SurfLampInsights:
                     except:
                         pass
 
-                if "Status:" in line:
-                    total += 1
-                    if "SUCCESS" in line:
-                        successes += 1
-
             if durations:
                 performance["avg_duration"] = sum(durations) / len(durations)
                 performance["cycle_times"] = durations[-10:]  # Last 10 cycles
 
             if total > 0:
                 performance["success_rate"] = successes / total
+            else:
+                # If no processing logs found with old pattern, check for new pattern
+                if "CYCLE COMPLETED" in processing_logs:
+                    performance["success_rate"] = 1.0  # At least one successful cycle
 
         return performance
 
@@ -454,19 +477,14 @@ class SurfLampInsights:
             prompt = f"""
 You are an expert DevOps ANALYST for a surf lamp IoT system. Your role is STRICTLY READ-ONLY analysis and reporting.
 
-CRITICAL ROLE CONSTRAINTS:
-- You are an ANALYST ONLY - never suggest code changes, SQL queries, or implementations
-- Your role is to OBSERVE and REPORT on system patterns and trends
-- Provide insights and high-level recommendations but DO NOT provide technical solutions
-- Focus on WHAT is happening, not HOW to implement fixes
-- You cannot and must not write, modify, or suggest any code, configuration, or database changes
-- Think of yourself as a consultant who reports findings to the development team
+CRITICAL CONSTRAINTS:
+- Maximum 20 lines total output
+- Be extremely concise - use bullet points
+- Focus only on critical issues and key metrics
+- No technical implementation details
+- No code, SQL, or configuration suggestions
 
-SYSTEM OVERVIEW:
-- Web service: Serves Arduino devices with surf/weather data
-- Background service: Processes weather APIs and updates database
-- Multiple Arduino devices request data via HTTP API
-- System serves surf conditions for Israeli beaches
+SYSTEM: IoT surf lamps serving Israeli beaches via web API + background weather processor
 
 DATA SUMMARY:
 {json.dumps(data_summary, indent=2)}
@@ -474,35 +492,27 @@ DATA SUMMARY:
 RECENT LOG SAMPLES:
 {json.dumps(recent_logs_sample, indent=2)}
 
-Provide ANALYSIS-ONLY insights in this format:
+Provide ULTRA-CONCISE analysis (MAX 20 LINES):
 
 System Health Summary
-[Overall health assessment - describe current state and observations only]
+[2-3 lines: Current status, errors, uptime]
 
 Performance Analysis
-[Key performance trends and metrics - what you observe in the data]
+[2-3 lines: Key metrics, response times, throughput]
 
 Notable Patterns
-[Interesting patterns in the data - observations and correlations only]
+[2-3 lines: Unusual activity or trends]
 
-Issues & Operational Recommendations
-[Problems identified and HIGH-LEVEL operational recommendations - no technical implementation details]
+Issues & Recommendations
+[3-4 lines: Critical problems and high-level fixes needed]
 
 Optimization Opportunities
-[Conceptual suggestions for improvements - describe opportunities, not solutions]
+[2-3 lines: Areas for improvement]
 
 Trends & Predictions
-[What trends suggest for the future - analytical predictions based on data]
+[2-3 lines: What data suggests for future]
 
-ANALYSIS FOCUS - OBSERVE AND REPORT ONLY:
-- Performance bottlenecks and patterns (describe what you see, don't provide fixes)
-- Error patterns and their operational impact
-- API usage patterns and efficiency trends
-- Processing cycle health observations
-- Predictive warnings based on data trends
-- Cost and resource utilization patterns
-
-REMEMBER: You are a data analyst reporting findings. Be specific about what you observe but provide NO code, SQL, configuration changes, or technical implementation details. Your insights help inform decisions but you do not provide solutions.
+STRICT REQUIREMENT: Total output must NOT exceed 20 lines. Use bullet points. Be ruthlessly concise.
 """
 
             if self.llm_provider == 'gemini':
@@ -581,7 +591,7 @@ Detected patterns: {', '.join(detected_patterns)}
 
     def send_email(self, subject: str, body: str, is_alert: bool = False):
         """Send email notification"""
-        if not self.send_email or not self.email_from or not self.email_password:
+        if not self.email_enabled or not self.email_from or not self.email_password:
             logger.warning("Email configuration incomplete, skipping email")
             return False
 
@@ -732,7 +742,7 @@ This is an automated alert from your Surf Lamp monitoring system.
                     self.save_insights_report(snapshot, llm_insights)
 
                 # Send regular insights email
-                if self.send_email and llm_insights:
+                if self.email_enabled and llm_insights:
                     insights_body = f"""📊 SURF LAMP SYSTEM INSIGHTS
 
 Generated: {snapshot.timestamp}

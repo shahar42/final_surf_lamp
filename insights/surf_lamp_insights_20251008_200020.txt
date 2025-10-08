@@ -1,0 +1,226 @@
+SURF LAMP SYSTEM INSIGHTS REPORT
+Generated: 2025-10-08T20:00:17.405183
+Analysis Period: 24 hours
+
+Raw Data Summary:
+- Web Service Logs: 50 entries
+- Background Service Logs: 50 entries
+- Service Status: healthy
+- Recent Deployments: 5
+- API Requests: 11
+- Processing Avg Duration: 0.0s
+
+--------------------------------------------------------------------------------
+
+**System Health Summary**
+*   Overall system healthy, no errors reported in web or background services.
+*   Web service running on a starter plan with a single instance.
+
+**Performance Analysis**
+*   Low API activity: Only 11 total Arduino requests in 24 hours.
+*   Processing performance shows 100% success, avg duration: 0 (check this).
+
+**Notable Patterns**
+*   Very low request volume from the 3 unique devices.
+*   Background service logs show activity focused on Hadera.
+
+**Issues & Recommendations**
+*   Extremely low Arduino request volume suggests connectivity or usage issues.
+*   Starter web plan is likely insufficient to support many active users.
+*   Investigate the zero duration of the processing performance
+
+**Optimization Opportunities**
+*   Consider scaling web service plan based on user demand.
+*   Investigate background service location focus and 'No lamps found' warning.
+
+**Trends & Predictions**
+*   Low API usage could indicate device outages.
+*   Without increased traffic, the system might be over-provisioned after scaling.
+
+
+--------------------------------------------------------------------------------
+
+Technical Data Details:
+{
+  "timestamp": "2025-10-08T20:00:17.405183",
+  "timeframe": "24 hours",
+  "web_service_logs": [
+    "LOG: 15:40:49 | 172.71.150.104 - - [08/Oct/2025:15:40:49 +0000] \"GET /reset-password/hRK3htUoByYMGTKvo7IEVzhHapnZK6DPJmpjfvRg2C6yAErF_YW_2wVOQmK3IOYS HTTP/1.1\" 200 2704 \"-\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36 (compatible; Google-Read-Aloud; +https://support.google.com/webmasters/answer/1061943)\"",
+    "LOG: 15:40:49 | 172.71.150.26 - - [08/Oct/2025:15:40:49 +0000] \"GET /reset-password/hRK3htUoByYMGTKvo7IEVzhHapnZK6DPJmpjfvRg2C6yAErF_YW_2wVOQmK3IOYS HTTP/1.1\" 200 2704 \"-\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36 (compatible; Google-Read-Aloud; +https://support.google.com/webmasters/answer/1061943)\"",
+    "LOG: 15:40:45 | 172.70.238.148 - - [08/Oct/2025:15:40:45 +0000] \"GET /reset-password/hRK3htUoByYMGTKvo7IEVzhHapnZK6DPJmpjfvRg2C6yAErF_YW_2wVOQmK3IOYS HTTP/1.1\" 200 2704 \"android-app://com.google.android.gm/\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 15:40:26 | 172.71.151.198 - - [08/Oct/2025:15:40:26 +0000] \"GET /static/site.webmanifest HTTP/1.1\" 304 0 \"https://final-surf-lamp-web.onrender.com/login\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 15:40:26 | 172.71.147.156 - - [08/Oct/2025:15:40:26 +0000] \"GET /forgot-password HTTP/1.1\" 200 2532 \"-\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36 (compatible; Google-Read-Aloud; +https://support.google.com/webmasters/answer/1061943)\"",
+    "LOG: 15:40:26 | 172.71.151.52 - - [08/Oct/2025:15:40:26 +0000] \"GET /login HTTP/1.1\" 200 4571 \"https://final-surf-lamp-web.onrender.com/forgot-password\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 15:40:26 | 172.71.150.145 - - [08/Oct/2025:15:40:26 +0000] \"GET /forgot-password HTTP/1.1\" 200 2532 \"-\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36 (compatible; Google-Read-Aloud; +https://support.google.com/webmasters/answer/1061943)\"",
+    "LOG: 15:40:25 | 104.23.229.122 - - [08/Oct/2025:15:40:25 +0000] \"GET /forgot-password HTTP/1.1\" 200 2532 \"-\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36 (compatible; Google-Read-Aloud; +https://support.google.com/webmasters/answer/1061943)\"",
+    "LOG: 15:40:25 | 172.70.238.148 - - [08/Oct/2025:15:40:25 +0000] \"POST /forgot-password HTTP/1.1\" 302 199 \"https://final-surf-lamp-web.onrender.com/forgot-password\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 15:40:25 | INFO:app:\u2713 Email sent successfully to benroditi123@gmail.com",
+    "LOG: 15:40:25 | INFO:app:MAIL_DEFAULT_SENDER: shaharisn1@gmail.com",
+    "LOG: 15:40:25 | INFO:app:MAIL_USERNAME: 956602001@smtp-brevo.com",
+    "LOG: 15:40:25 | INFO:app:MAIL_PORT: 587",
+    "LOG: 15:40:25 | INFO:app:MAIL_SERVER: smtp-relay.brevo.com",
+    "LOG: 15:40:25 | INFO:app:Attempting to send password reset email to benroditi123@gmail.com",
+    "LOG: 15:40:20 | 172.71.151.217 - - [08/Oct/2025:15:40:20 +0000] \"GET /forgot-password HTTP/1.1\" 200 2532 \"https://final-surf-lamp-web.onrender.com/login\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 15:35:57 | 104.23.160.209 - - [08/Oct/2025:15:35:57 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 261 \"-\" \"ESP32HTTPClient\"",
+    "LOG: 15:35:57 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=35cm",
+    "LOG: 15:35:57 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 15:29:39 | 108.162.241.28 - - [08/Oct/2025:15:29:39 +0000] \"GET /static/site.webmanifest HTTP/1.1\" 304 0 \"https://final-surf-lamp-web.onrender.com/dashboard\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 15:29:39 | 172.70.200.140 - - [08/Oct/2025:15:29:39 +0000] \"GET /static/icons/wind_direction_4x.png HTTP/1.1\" 304 0 \"https://final-surf-lamp-web.onrender.com/dashboard\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 15:29:39 | 108.162.241.98 - - [08/Oct/2025:15:29:39 +0000] \"GET /api/arduino/2545/data HTTP/1.1\" 200 261 \"https://final-surf-lamp-web.onrender.com/dashboard\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 15:29:39 | INFO:app:\u2705 Returning surf data for Arduino 2545: wave=35cm",
+    "LOG: 15:29:38 | INFO:app:\ud83d\udce5 Arduino 2545 requesting surf data (PULL mode)",
+    "LOG: 15:29:38 | 108.162.241.244 - - [08/Oct/2025:15:29:38 +0000] \"GET /static/icons/wind_speed_icon_4x.png HTTP/1.1\" 304 0 \"https://final-surf-lamp-web.onrender.com/dashboard\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 15:29:38 | 172.69.214.54 - - [08/Oct/2025:15:29:38 +0000] \"GET /static/icons/wave_period_icon_4x.png HTTP/1.1\" 304 0 \"https://final-surf-lamp-web.onrender.com/dashboard\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 15:29:38 | 172.70.200.140 - - [08/Oct/2025:15:29:38 +0000] \"GET /static/icons/wave_height_icon_4x.png HTTP/1.1\" 304 0 \"https://final-surf-lamp-web.onrender.com/dashboard\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 15:29:38 | 108.162.241.67 - - [08/Oct/2025:15:29:38 +0000] \"GET /dashboard HTTP/1.1\" 200 28781 \"https://final-surf-lamp-web.onrender.com/login\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 15:29:38 | INFO:data_base:Found user shahar with lamp 46528",
+    "LOG: 15:29:38 | INFO:data_base:Fetching lamp data for user: shaharisn1@gmail.com",
+    "LOG: 15:29:37 | 172.70.200.140 - - [08/Oct/2025:15:29:37 +0000] \"POST /login HTTP/1.1\" 302 207 \"https://final-surf-lamp-web.onrender.com/login\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 15:29:18 | 172.71.146.232 - - [08/Oct/2025:15:29:18 +0000] \"GET /static/site.webmanifest HTTP/1.1\" 304 0 \"https://final-surf-lamp-web.onrender.com/login\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 15:29:18 | 172.71.151.144 - - [08/Oct/2025:15:29:18 +0000] \"GET /login HTTP/1.1\" 200 4548 \"https://final-surf-lamp-web.onrender.com/login\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 15:29:17 | 172.71.151.7 - - [08/Oct/2025:15:29:17 +0000] \"POST /login HTTP/1.1\" 302 199 \"https://final-surf-lamp-web.onrender.com/login\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 15:28:57 | 172.69.128.154 - - [08/Oct/2025:15:28:57 +0000] \"GET /static/site.webmanifest HTTP/1.1\" 304 0 \"https://final-surf-lamp-web.onrender.com/login\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 15:28:57 | 172.71.151.55 - - [08/Oct/2025:15:28:57 +0000] \"GET /login HTTP/1.1\" 200 4548 \"https://final-surf-lamp-web.onrender.com/login\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 15:28:56 | 172.69.128.154 - - [08/Oct/2025:15:28:56 +0000] \"POST /login HTTP/1.1\" 302 199 \"https://final-surf-lamp-web.onrender.com/login\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 15:28:39 | 172.69.128.154 - - [08/Oct/2025:15:28:39 +0000] \"GET /static/site.webmanifest HTTP/1.1\" 304 0 \"https://final-surf-lamp-web.onrender.com/login\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 15:28:38 | 172.69.128.154 - - [08/Oct/2025:15:28:38 +0000] \"POST /login HTTP/1.1\" 200 4587 \"https://final-surf-lamp-web.onrender.com/login\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 15:28:38 | 172.68.174.99 - - [08/Oct/2025:15:28:38 +0000] \"GET /login HTTP/1.1\" 200 4354 \"-\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36 (compatible; Google-Read-Aloud; +https://support.google.com/webmasters/answer/1061943)\"",
+    "LOG: 15:28:38 | 104.23.160.19 - - [08/Oct/2025:15:28:38 +0000] \"GET /dashboard HTTP/1.1\" 302 199 \"-\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36 (compatible; Google-Read-Aloud; +https://support.google.com/webmasters/answer/1061943)\"",
+    "LOG: 15:28:35 | 172.69.214.243 - - [08/Oct/2025:15:28:35 +0000] \"GET /static/site.webmanifest HTTP/1.1\" 304 0 \"https://final-surf-lamp-web.onrender.com/dashboard\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 15:28:34 | 108.162.241.36 - - [08/Oct/2025:15:28:34 +0000] \"GET /api/arduino/2545/data HTTP/1.1\" 200 261 \"https://final-surf-lamp-web.onrender.com/dashboard\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 15:28:34 | INFO:app:\u2705 Returning surf data for Arduino 2545: wave=35cm",
+    "LOG: 15:28:34 | INFO:app:\ud83d\udce5 Arduino 2545 requesting surf data (PULL mode)",
+    "LOG: 15:28:34 | 108.162.242.43 - - [08/Oct/2025:15:28:34 +0000] \"GET /static/icons/wave_height_icon_4x.png HTTP/1.1\" 304 0 \"https://final-surf-lamp-web.onrender.com/dashboard\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 15:28:34 | 172.69.214.220 - - [08/Oct/2025:15:28:34 +0000] \"GET /static/icons/wind_speed_icon_4x.png HTTP/1.1\" 304 0 \"https://final-surf-lamp-web.onrender.com/dashboard\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 15:28:34 | 172.69.214.98 - - [08/Oct/2025:15:28:34 +0000] \"GET /static/icons/wave_period_icon_4x.png HTTP/1.1\" 304 0 \"https://final-surf-lamp-web.onrender.com/dashboard\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 15:28:34 | 172.69.214.173 - - [08/Oct/2025:15:28:34 +0000] \"GET /static/icons/wind_direction_4x.png HTTP/1.1\" 200 0 \"https://final-surf-lamp-web.onrender.com/dashboard\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 15:28:33 | 108.162.241.66 - - [08/Oct/2025:15:28:33 +0000] \"GET /dashboard HTTP/1.1\" 200 28781 \"https://final-surf-lamp-web.onrender.com/login\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36\""
+  ],
+  "background_service_logs": [
+    "LOG: 16:43:40 | 2025-10-08 16:43:40,923 - __main__ - INFO -   Updating lamp 46528 (Arduino 2545)",
+    "LOG: 16:43:40 | 2025-10-08 16:43:40,923 - __main__ - INFO - \ud83d\udcca Combined data for Hadera, Israel: ['wave_height_m', 'wave_period_s', 'timestamp', 'source_endpoint', 'wind_speed_mps', 'wind_direction_deg', 'location', 'temperature_c', 'humidity_percent']",
+    "LOG: 16:43:40 | 2025-10-08 16:43:40,923 - __main__ - INFO - \u2705 Got data: ['wind_speed_mps', 'wind_direction_deg', 'location', 'temperature_c', 'humidity_percent', 'timestamp', 'source_endpoint']",
+    "LOG: 16:43:40 | 2025-10-08 16:43:40,923 - __main__ - INFO - \u2705 Surf data standardized successfully",
+    "LOG: 16:43:40 | }",
+    "LOG: 16:43:40 |   \"source_endpoint\": \"http://api.openweathermap.org/data/2.5/weather?q=Hadera&appid=d6ef64df6585b7e88e51c221bbd41c2b\"",
+    "LOG: 16:43:40 |   \"timestamp\": 1759941820,",
+    "LOG: 16:43:40 |   \"humidity_percent\": 59,",
+    "LOG: 16:43:40 |   \"temperature_c\": 25.350000000000023,",
+    "LOG: 16:43:40 |   \"location\": \"Hadera\",",
+    "LOG: 16:43:40 |   \"wind_direction_deg\": 348,",
+    "LOG: 16:43:40 |   \"wind_speed_mps\": 2.26,",
+    "LOG: 16:43:40 | 2025-10-08 16:43:40,923 - __main__ - INFO - \u2705 Standardized data: {",
+    "LOG: 16:43:40 | 2025-10-08 16:43:40,923 - __main__ - INFO - \u2705 Found config with 7 field mappings",
+    "LOG: 16:43:40 | 2025-10-08 16:43:40,923 - __main__ - INFO - \ud83d\udd27 Standardizing data from: http://api.openweathermap.org/data/2.5/weather?q=Hadera&appid=d6ef64df6585b7e88e51c221bbd41c2b",
+    "LOG: 16:43:40 | 2025-10-08 16:43:40,922 - __main__ - INFO - \u2705 API call successful: 200",
+    "LOG: 16:43:10 | 2025-10-08 16:43:10,894 - __main__ - INFO - \ud83d\udce4 Using 30s timeout for this API",
+    "LOG: 16:43:10 | 2025-10-08 16:43:10,894 - __main__ - INFO - \ud83d\udce4 Headers: {'User-Agent': 'SurfLamp-Agent/1.0'}",
+    "LOG: 16:43:10 | 2025-10-08 16:43:10,894 - __main__ - INFO - \ud83d\udce4 Making API request without authentication (public endpoint)",
+    "LOG: 16:43:10 | 2025-10-08 16:43:10,894 - __main__ - INFO - \ud83c\udf0a Fetching surf data from: http://api.openweathermap.org/data/2.5/weather?q=Hadera&appid=d6ef64df6585b7e88e51c221bbd41c2b",
+    "LOG: 16:43:10 | 2025-10-08 16:43:10,894 - __main__ - INFO -   Trying API: http://api.openweathermap.org/data/2.5/weather?q=Hadera&appid=d6ef64df6585b7e88e51c221bbd41c2b (Priority: 2)",
+    "LOG: 16:43:10 | 2025-10-08 16:43:10,893 - __main__ - INFO - \u2705 Got data: ['wave_height_m', 'wave_period_s', 'timestamp', 'source_endpoint']",
+    "LOG: 16:43:10 | 2025-10-08 16:43:10,892 - __main__ - INFO - \u2705 Surf data standardized successfully",
+    "LOG: 16:43:10 | }",
+    "LOG: 16:43:10 |   \"source_endpoint\": \"https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json\"",
+    "LOG: 16:43:10 |   \"timestamp\": 1759941790,",
+    "LOG: 16:43:10 |   \"wave_period_s\": 6.5,",
+    "LOG: 16:43:10 |   \"wave_height_m\": 0.36,",
+    "LOG: 16:43:10 | 2025-10-08 16:43:10,892 - __main__ - INFO - \u2705 Standardized data: {",
+    "LOG: 16:43:10 | 2025-10-08 16:43:10,892 - __main__ - INFO - \u2705 Found config with 2 field mappings",
+    "LOG: 16:43:10 | 2025-10-08 16:43:10,892 - __main__ - INFO - \ud83d\udd27 Standardizing data from: https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json",
+    "LOG: 16:43:10 | 2025-10-08 16:43:10,892 - __main__ - INFO - \u2705 API call successful: 200",
+    "LOG: 16:42:39 | 2025-10-08 16:42:39,970 - __main__ - INFO - \ud83d\udce4 Using 15s timeout for this API",
+    "LOG: 16:42:39 | 2025-10-08 16:42:39,970 - __main__ - INFO - \ud83d\udce4 Headers: {'User-Agent': 'SurfLamp-Agent/1.0'}",
+    "LOG: 16:42:39 | 2025-10-08 16:42:39,970 - __main__ - INFO - \ud83d\udce4 Making API request without authentication (public endpoint)",
+    "LOG: 16:42:39 | 2025-10-08 16:42:39,970 - __main__ - INFO - \ud83c\udf0a Fetching surf data from: https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json",
+    "LOG: 16:42:39 | 2025-10-08 16:42:39,970 - __main__ - INFO -   Trying API: https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json (Priority: 1)",
+    "LOG: 16:42:39 | 2025-10-08 16:42:39,970 - __main__ - INFO -    - Arduino 4433 (Lamp 4422)",
+    "LOG: 16:42:39 | 2025-10-08 16:42:39,970 - __main__ - INFO -    - Arduino 4321 (Lamp 4321)",
+    "LOG: 16:42:39 | 2025-10-08 16:42:39,970 - __main__ - INFO -    - Arduino 420 (Lamp 420)",
+    "LOG: 16:42:39 | 2025-10-08 16:42:39,970 - __main__ - INFO -    - Arduino 12325 (Lamp 65485)",
+    "LOG: 16:42:39 | 2025-10-08 16:42:39,970 - __main__ - INFO -    - Arduino 1 (Lamp 1)",
+    "LOG: 16:42:39 | 2025-10-08 16:42:39,969 - __main__ - INFO -    - Arduino 6122 (Lamp 4421)",
+    "LOG: 16:42:39 | 2025-10-08 16:42:39,969 - __main__ - INFO -    - Arduino 2545 (Lamp 46528)",
+    "LOG: 16:42:39 | 2025-10-08 16:42:39,969 - __main__ - INFO - \u2705 Found 7 lamps in Hadera, Israel:",
+    "LOG: 16:42:39 | 2025-10-08 16:42:39,769 - __main__ - INFO - \ud83d\udd0d Getting lamps for location: Hadera, Israel",
+    "LOG: 16:42:39 | 2025-10-08 16:42:39,769 - __main__ - INFO - Available API sources: 2",
+    "LOG: 16:42:39 | --- Processing Location: Hadera, Israel ---",
+    "LOG: 16:42:39 | 2025-10-08 16:42:39,769 - __main__ - INFO -",
+    "WARNING: 16:42:39 | 2025-10-08 16:42:39,769 - __main__ - WARNING - \u26a0\ufe0f  No lamps found for location: Netanya, Israel"
+  ],
+  "service_status": {
+    "status": "healthy",
+    "details": {
+      "type": "web_service",
+      "url": "https://surf-lamp-visualizer.onrender.com",
+      "instances": "1",
+      "plan": "starter"
+    }
+  },
+  "recent_deployments": [
+    {
+      "entry": "[01] LIVE Deploy dep-d3ip4r3e5dus739al6hg",
+      "status": "live",
+      "created": "2025-10-07T22:21:33.301109Z"
+    },
+    {
+      "entry": "[02] CANCELED Deploy dep-d3ip4a7diees73ci3o60",
+      "status": "canceled",
+      "created": "2025-10-07T22:20:25.431248Z"
+    },
+    {
+      "entry": "[03] UNKNOWN Deploy dep-d3iosr3ipnbc73c045m0",
+      "status": "deactivated",
+      "created": "2025-10-07T22:04:29.078937Z"
+    },
+    {
+      "entry": "[04] UNKNOWN Deploy dep-d3ij6u3e5dus7396kdt0",
+      "status": "deactivated",
+      "created": "2025-10-07T15:36:26.467385Z"
+    },
+    {
+      "entry": "[05] CANCELED Deploy dep-d3ij6gqdbo4c73d325ig",
+      "status": "canceled",
+      "created": "2025-10-07T15:35:32.368421Z"
+    }
+  ],
+  "service_events": [],
+  "error_summary": {
+    "web_errors": {
+      "count": 0,
+      "types": [],
+      "recent": []
+    },
+    "background_errors": {
+      "count": 0,
+      "types": [],
+      "recent": []
+    }
+  },
+  "api_activity": {
+    "arduino_requests": {
+      "total_requests": 11,
+      "unique_devices": [
+        "2469",
+        "4433",
+        "2545"
+      ],
+      "request_patterns": []
+    },
+    "error_patterns": {
+      "status_codes": {},
+      "error_types": []
+    }
+  },
+  "processing_performance": {
+    "cycle_times": [],
+    "success_rate": 1.0,
+    "avg_duration": 0
+  },
+  "alert_history": [],
+  "system_health_trends": {
+    "quiet_hours_active": 0,
+    "threshold_alerts": 0,
+    "locations": []
+  }
+}

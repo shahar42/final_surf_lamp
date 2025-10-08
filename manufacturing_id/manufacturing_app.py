@@ -62,7 +62,7 @@ def check_id(arduino_id):
 
 @app.route('/api/generate-qr', methods=['POST'])
 def generate_qr():
-    """Generate QR code for a specific Arduino ID with duplicate checking"""
+    """Generate QR code for a specific Arduino ID - silently skip duplicates"""
     try:
         data = request.get_json()
         arduino_id = data.get('arduino_id')
@@ -72,19 +72,16 @@ def generate_qr():
 
         arduino_id = int(arduino_id)
 
-        # Check if ID already exists in database
+        # Check if ID already exists in database - silently skip
         is_available = id_manager.is_id_available(arduino_id)
 
         if not is_available:
-            # ID already registered - show warning
-            next_id = id_manager.get_next_available_id()
+            # ID already registered - skip silently
             return jsonify({
-                "success": False,
-                "error": f"Arduino ID {arduino_id} is already registered in the database",
-                "warning": True,
-                "next_available_id": next_id,
-                "suggestion": f"Use ID {next_id} instead"
-            }), 409  # 409 Conflict
+                "success": True,
+                "skipped": True,
+                "arduino_id": arduino_id
+            })
 
         # ID is available - generate QR code
         filepath = qr_generator.generate_qr_code(arduino_id)
@@ -107,7 +104,7 @@ def generate_qr():
 
 @app.route('/api/generate-batch', methods=['POST'])
 def generate_batch():
-    """Generate batch of QR codes (auto-skips duplicates)"""
+    """Generate batch of QR codes (silently skips duplicates)"""
     try:
         data = request.get_json()
         start_id = int(data.get('start_id', 1))
@@ -119,15 +116,12 @@ def generate_batch():
         if (end_id - start_id) > 100:
             return jsonify({"success": False, "error": "Maximum batch size is 100"}), 400
 
-        # Check which IDs are available (skip duplicates)
+        # Check which IDs are available (silently skip duplicates)
         ids_to_generate = []
-        skipped_ids = []
 
         for arduino_id in range(start_id, end_id + 1):
             if id_manager.is_id_available(arduino_id):
                 ids_to_generate.append(arduino_id)
-            else:
-                skipped_ids.append(arduino_id)
 
         # Generate QR codes only for available IDs
         paths = []
@@ -135,20 +129,12 @@ def generate_batch():
             path = qr_generator.generate_qr_code(arduino_id)
             paths.append(path)
 
-        response = {
+        return jsonify({
             "success": True,
-            "count": len(paths),
-            "start_id": start_id,
-            "end_id": end_id,
             "generated": len(paths),
-            "skipped": len(skipped_ids)
-        }
-
-        if skipped_ids:
-            response["skipped_ids"] = skipped_ids
-            response["message"] = f"Generated {len(paths)} QR codes. Skipped {len(skipped_ids)} already registered IDs."
-
-        return jsonify(response)
+            "start_id": start_id,
+            "end_id": end_id
+        })
 
     except Exception as e:
         logger.error(f"Error generating batch: {e}")

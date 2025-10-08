@@ -1,0 +1,214 @@
+SURF LAMP SYSTEM INSIGHTS REPORT
+Generated: 2025-10-01T09:33:45.961262
+Analysis Period: 24 hours
+
+Raw Data Summary:
+- Web Service Logs: 50 entries
+- Background Service Logs: 50 entries
+- Service Status: healthy
+- Recent Deployments: 5
+- API Requests: 29
+- Processing Avg Duration: 0.0s
+
+--------------------------------------------------------------------------------
+
+*   **System Health:** Healthy web service. Zero web/background errors.
+
+*   **Performance Analysis:** Very few API requests. Weather processing success rate is zero.
+
+*   **Notable Patterns:** Single Arduino (4433) dominates requests. "Quiet hours" active and disabling threshold alerts.
+
+*   **Issues & Recommendations:**
+    *   Weather data processing failing; investigate root cause.
+    *   Low API usage needs attention, expected more devices
+    *   Starter plan may be underutilized; consider cost optimization
+
+*   **Optimization Opportunities:** Improve weather processing reliability; drive more device adoption/API usage.
+
+*   **Trends & Predictions:** Weather data remains a problem, impacting downstream data. Need to focus on more lamp activations.
+
+
+--------------------------------------------------------------------------------
+
+Technical Data Details:
+{
+  "timestamp": "2025-10-01T09:33:45.961262",
+  "timeframe": "24 hours",
+  "web_service_logs": [
+    "LOG: 02:54:52 | INFO:app:\ud83c\udf19 Quiet hours active for Hadera, Israel - threshold alerts disabled",
+    "LOG: 02:54:52 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 02:41:50 | 172.71.146.143 - - [01/Oct/2025:02:41:50 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 263 \"-\" \"ESP32HTTPClient\"",
+    "LOG: 02:41:50 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=85cm",
+    "LOG: 02:41:50 | INFO:app:\ud83c\udf19 Quiet hours active for Hadera, Israel - threshold alerts disabled",
+    "LOG: 02:41:50 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 02:28:49 | 172.71.151.131 - - [01/Oct/2025:02:28:49 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 263 \"-\" \"ESP32HTTPClient\"",
+    "LOG: 02:28:49 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=93cm",
+    "LOG: 02:28:49 | INFO:app:\ud83c\udf19 Quiet hours active for Hadera, Israel - threshold alerts disabled",
+    "LOG: 02:28:48 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 02:15:47 | 172.71.150.250 - - [01/Oct/2025:02:15:47 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 263 \"-\" \"ESP32HTTPClient\"",
+    "LOG: 02:15:47 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=93cm",
+    "LOG: 02:15:47 | INFO:app:\ud83c\udf19 Quiet hours active for Hadera, Israel - threshold alerts disabled",
+    "LOG: 02:15:47 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 02:02:46 | 172.71.150.140 - - [01/Oct/2025:02:02:46 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 263 \"-\" \"ESP32HTTPClient\"",
+    "LOG: 02:02:45 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=93cm",
+    "LOG: 02:02:45 | INFO:app:\ud83c\udf19 Quiet hours active for Hadera, Israel - threshold alerts disabled",
+    "LOG: 02:02:45 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 01:49:44 | 172.71.151.153 - - [01/Oct/2025:01:49:44 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 263 \"-\" \"ESP32HTTPClient\"",
+    "LOG: 01:49:44 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=78cm",
+    "LOG: 01:49:44 | INFO:app:\ud83c\udf19 Quiet hours active for Hadera, Israel - threshold alerts disabled",
+    "LOG: 01:49:43 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 01:36:42 | 172.71.150.144 - - [01/Oct/2025:01:36:42 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 263 \"-\" \"ESP32HTTPClient\"",
+    "LOG: 01:36:42 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=78cm",
+    "LOG: 01:36:42 | INFO:app:\ud83c\udf19 Quiet hours active for Hadera, Israel - threshold alerts disabled",
+    "LOG: 01:36:41 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 01:23:39 | 172.71.150.33 - - [01/Oct/2025:01:23:39 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 263 \"-\" \"ESP32HTTPClient\"",
+    "LOG: 01:23:39 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=84cm",
+    "LOG: 01:23:39 | INFO:app:\ud83c\udf19 Quiet hours active for Hadera, Israel - threshold alerts disabled",
+    "LOG: 01:23:39 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 01:10:36 | 172.71.151.233 - - [01/Oct/2025:01:10:36 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 263 \"-\" \"ESP32HTTPClient\"",
+    "LOG: 01:10:36 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=84cm",
+    "LOG: 01:10:36 | INFO:app:\ud83c\udf19 Quiet hours active for Hadera, Israel - threshold alerts disabled",
+    "LOG: 01:10:36 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 00:57:34 | 172.71.151.193 - - [01/Oct/2025:00:57:34 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 263 \"-\" \"ESP32HTTPClient\"",
+    "LOG: 00:57:34 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=84cm",
+    "LOG: 00:57:34 | INFO:app:\ud83c\udf19 Quiet hours active for Hadera, Israel - threshold alerts disabled",
+    "LOG: 00:57:34 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 00:44:32 | 172.71.151.75 - - [01/Oct/2025:00:44:32 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 263 \"-\" \"ESP32HTTPClient\"",
+    "LOG: 00:44:32 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=65cm",
+    "LOG: 00:44:32 | INFO:app:\ud83c\udf19 Quiet hours active for Hadera, Israel - threshold alerts disabled",
+    "LOG: 00:44:32 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 00:31:31 | 172.71.146.47 - - [01/Oct/2025:00:31:31 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 263 \"-\" \"ESP32HTTPClient\"",
+    "LOG: 00:31:31 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=65cm",
+    "LOG: 00:31:31 | INFO:app:\ud83c\udf19 Quiet hours active for Hadera, Israel - threshold alerts disabled",
+    "LOG: 00:31:30 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 00:18:29 | 172.71.150.143 - - [01/Oct/2025:00:18:29 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 263 \"-\" \"ESP32HTTPClient\"",
+    "LOG: 00:18:29 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=84cm",
+    "LOG: 00:18:29 | INFO:app:\ud83c\udf19 Quiet hours active for Hadera, Israel - threshold alerts disabled",
+    "LOG: 00:18:29 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)"
+  ],
+  "background_service_logs": [
+    "LOG: 06:29:20 | 2025-10-01 06:29:20,459 - __main__ - INFO -   Updating lamp 46528 (Arduino 2545)",
+    "LOG: 06:29:20 | 2025-10-01 06:29:20,459 - __main__ - INFO - \ud83d\udcca Combined data for Hadera, Israel: ['wave_height_m', 'wave_period_s', 'timestamp', 'source_endpoint', 'wind_speed_mps', 'wind_direction_deg', 'location', 'temperature_c', 'humidity_percent']",
+    "LOG: 06:29:20 | 2025-10-01 06:29:20,459 - __main__ - INFO - \u2705 Got data: ['wind_speed_mps', 'wind_direction_deg', 'location', 'temperature_c', 'humidity_percent', 'timestamp', 'source_endpoint']",
+    "LOG: 06:29:20 | 2025-10-01 06:29:20,459 - __main__ - INFO - \u2705 Surf data standardized successfully",
+    "LOG: 06:29:20 | }",
+    "LOG: 06:29:20 |   \"source_endpoint\": \"http://api.openweathermap.org/data/2.5/weather?q=Hadera&appid=d6ef64df6585b7e88e51c221bbd41c2b\"",
+    "LOG: 06:29:20 |   \"timestamp\": 1759300160,",
+    "LOG: 06:29:20 |   \"humidity_percent\": 64,",
+    "LOG: 06:29:20 |   \"temperature_c\": 25.510000000000048,",
+    "LOG: 06:29:20 |   \"location\": \"Hadera\",",
+    "LOG: 06:29:20 |   \"wind_direction_deg\": 268,",
+    "LOG: 06:29:20 |   \"wind_speed_mps\": 3.37,",
+    "LOG: 06:29:20 | 2025-10-01 06:29:20,458 - __main__ - INFO - \u2705 Standardized data: {",
+    "LOG: 06:29:20 | 2025-10-01 06:29:20,458 - __main__ - INFO - \u2705 Found config with 7 field mappings",
+    "LOG: 06:29:20 | 2025-10-01 06:29:20,458 - __main__ - INFO - \ud83d\udd27 Standardizing data from: http://api.openweathermap.org/data/2.5/weather?q=Hadera&appid=d6ef64df6585b7e88e51c221bbd41c2b",
+    "LOG: 06:29:20 | 2025-10-01 06:29:20,458 - __main__ - INFO - \u2705 API call successful: 200",
+    "LOG: 06:28:50 | 2025-10-01 06:28:50,434 - __main__ - INFO - \ud83d\udce4 Using 30s timeout for this API",
+    "LOG: 06:28:50 | 2025-10-01 06:28:50,434 - __main__ - INFO - \ud83d\udce4 Headers: {'User-Agent': 'SurfLamp-Agent/1.0'}",
+    "LOG: 06:28:50 | 2025-10-01 06:28:50,434 - __main__ - INFO - \ud83d\udce4 Making API request without authentication (public endpoint)",
+    "LOG: 06:28:50 | 2025-10-01 06:28:50,434 - __main__ - INFO - \ud83c\udf0a Fetching surf data from: http://api.openweathermap.org/data/2.5/weather?q=Hadera&appid=d6ef64df6585b7e88e51c221bbd41c2b",
+    "LOG: 06:28:50 | 2025-10-01 06:28:50,434 - __main__ - INFO -   Trying API: http://api.openweathermap.org/data/2.5/weather?q=Hadera&appid=d6ef64df6585b7e88e51c221bbd41c2b (Priority: 2)",
+    "LOG: 06:28:50 | 2025-10-01 06:28:50,433 - __main__ - INFO - \u2705 Got data: ['wave_height_m', 'wave_period_s', 'timestamp', 'source_endpoint']",
+    "LOG: 06:28:50 | 2025-10-01 06:28:50,432 - __main__ - INFO - \u2705 Surf data standardized successfully",
+    "LOG: 06:28:50 | }",
+    "LOG: 06:28:50 |   \"source_endpoint\": \"https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json\"",
+    "LOG: 06:28:50 |   \"timestamp\": 1759300130,",
+    "LOG: 06:28:50 |   \"wave_period_s\": 7.7,",
+    "LOG: 06:28:50 |   \"wave_height_m\": 0.84,",
+    "LOG: 06:28:50 | 2025-10-01 06:28:50,432 - __main__ - INFO - \u2705 Standardized data: {",
+    "LOG: 06:28:50 | 2025-10-01 06:28:50,432 - __main__ - INFO - \u2705 Found config with 2 field mappings",
+    "LOG: 06:28:50 | 2025-10-01 06:28:50,432 - __main__ - INFO - \ud83d\udd27 Standardizing data from: https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json",
+    "LOG: 06:28:50 | 2025-10-01 06:28:50,432 - __main__ - INFO - \u2705 API call successful: 200",
+    "LOG: 06:28:19 | 2025-10-01 06:28:19,441 - __main__ - INFO - \ud83d\udce4 Using 15s timeout for this API",
+    "LOG: 06:28:19 | 2025-10-01 06:28:19,441 - __main__ - INFO - \ud83d\udce4 Headers: {'User-Agent': 'SurfLamp-Agent/1.0'}",
+    "LOG: 06:28:19 | 2025-10-01 06:28:19,441 - __main__ - INFO - \ud83d\udce4 Making API request without authentication (public endpoint)",
+    "LOG: 06:28:19 | 2025-10-01 06:28:19,441 - __main__ - INFO - \ud83c\udf0a Fetching surf data from: https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json",
+    "LOG: 06:28:19 | 2025-10-01 06:28:19,441 - __main__ - INFO -   Trying API: https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json (Priority: 1)",
+    "LOG: 06:28:19 | 2025-10-01 06:28:19,441 - __main__ - INFO -    - Arduino 4433 (Lamp 4422)",
+    "LOG: 06:28:19 | 2025-10-01 06:28:19,441 - __main__ - INFO -    - Arduino 4321 (Lamp 4321)",
+    "LOG: 06:28:19 | 2025-10-01 06:28:19,441 - __main__ - INFO -    - Arduino 420 (Lamp 420)",
+    "LOG: 06:28:19 | 2025-10-01 06:28:19,441 - __main__ - INFO -    - Arduino 12325 (Lamp 65485)",
+    "LOG: 06:28:19 | 2025-10-01 06:28:19,441 - __main__ - INFO -    - Arduino 1 (Lamp 1)",
+    "LOG: 06:28:19 | 2025-10-01 06:28:19,441 - __main__ - INFO -    - Arduino 6122 (Lamp 4421)",
+    "LOG: 06:28:19 | 2025-10-01 06:28:19,441 - __main__ - INFO -    - Arduino 2545 (Lamp 46528)",
+    "LOG: 06:28:19 | 2025-10-01 06:28:19,441 - __main__ - INFO - \u2705 Found 7 lamps in Hadera, Israel:",
+    "LOG: 06:28:19 | 2025-10-01 06:28:19,232 - __main__ - INFO - \ud83d\udd0d Getting lamps for location: Hadera, Israel",
+    "LOG: 06:28:19 | 2025-10-01 06:28:19,232 - __main__ - INFO - Available API sources: 2",
+    "LOG: 06:28:19 | --- Processing Location: Hadera, Israel ---",
+    "LOG: 06:28:19 | 2025-10-01 06:28:19,232 - __main__ - INFO -",
+    "WARNING: 06:28:19 | 2025-10-01 06:28:19,232 - __main__ - WARNING - \u26a0\ufe0f  No lamps found for location: Netanya, Israel"
+  ],
+  "service_status": {
+    "status": "healthy",
+    "details": {
+      "type": "web_service",
+      "url": "https://surf-lamp-visualizer.onrender.com",
+      "instances": "1",
+      "plan": "starter"
+    }
+  },
+  "recent_deployments": [
+    {
+      "entry": "[01] LIVE Deploy dep-d3e5g21r0fns73fgirg0",
+      "status": "live",
+      "created": "2025-09-30T22:22:01.103315Z"
+    },
+    {
+      "entry": "[02] UNKNOWN Deploy dep-d3e579ruibrs73bs2q30",
+      "status": "deactivated",
+      "created": "2025-09-30T22:03:20.487398Z"
+    },
+    {
+      "entry": "[03] UNKNOWN Deploy dep-d3e4m0hr0fns73fgd5mg",
+      "status": "deactivated",
+      "created": "2025-09-30T21:26:27.953795Z"
+    },
+    {
+      "entry": "[04] UNKNOWN Deploy dep-d3e4heripnbc73a7netg",
+      "status": "deactivated",
+      "created": "2025-09-30T21:16:45.776496Z"
+    },
+    {
+      "entry": "[05] UNKNOWN Deploy dep-d3e4fnk9c44c73ffio00",
+      "status": "deactivated",
+      "created": "2025-09-30T21:13:03.816023Z"
+    }
+  ],
+  "service_events": [],
+  "error_summary": {
+    "web_errors": {
+      "count": 0,
+      "types": [],
+      "recent": []
+    },
+    "background_errors": {
+      "count": 0,
+      "types": [],
+      "recent": []
+    }
+  },
+  "api_activity": {
+    "arduino_requests": {
+      "total_requests": 29,
+      "unique_devices": [
+        "4433"
+      ],
+      "request_patterns": []
+    },
+    "error_patterns": {
+      "status_codes": {},
+      "error_types": []
+    }
+  },
+  "processing_performance": {
+    "cycle_times": [],
+    "success_rate": 0,
+    "avg_duration": 0
+  },
+  "alert_history": [],
+  "system_health_trends": {
+    "quiet_hours_active": 0,
+    "threshold_alerts": 0,
+    "locations": []
+  }
+}
