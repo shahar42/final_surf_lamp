@@ -239,21 +239,65 @@
                 });
             }
 
-            // Apply same logic to other fields
-            const allFields = ['name', 'email', 'arduino_id'];
-            allFields.forEach(fieldName => {
-                const field = document.getElementById(fieldName);
-                if (field) {
-                    field.addEventListener('input', function() {
-                        // Remove error styling when user starts typing
+            // Real-time validation for name field
+            const nameField = document.getElementById('name');
+            if (nameField) {
+                nameField.addEventListener('input', function() {
+                    const name = this.value;
+                    const nameRegex = /^[a-zA-Z\s\-']{2,50}$/;
+                    const isValid = nameRegex.test(name);
+
+                    if (isValid) {
                         this.classList.remove('error');
-                        const errorDiv = this.parentNode.querySelector('.field-error');
-                        if (errorDiv) {
-                            errorDiv.style.display = 'none';
-                        }
-                    });
-                }
-            });
+                        this.classList.add('success');
+                    } else if (name.length > 0) {
+                        this.classList.remove('success');
+                        this.classList.add('error');
+                    } else {
+                        this.classList.remove('error', 'success');
+                    }
+                });
+            }
+
+            // Real-time validation for email field
+            const emailField = document.getElementById('email');
+            if (emailField) {
+                emailField.addEventListener('input', function() {
+                    const email = this.value;
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    const isValid = emailRegex.test(email) && email.length <= 255;
+
+                    if (isValid) {
+                        this.classList.remove('error');
+                        this.classList.add('success');
+                    } else if (email.length > 0) {
+                        this.classList.remove('success');
+                        this.classList.add('error');
+                    } else {
+                        this.classList.remove('error', 'success');
+                    }
+                });
+            }
+
+            // Real-time validation for arduino_id field
+            const arduinoIdField = document.getElementById('arduino_id');
+            if (arduinoIdField) {
+                arduinoIdField.addEventListener('input', function() {
+                    const arduinoId = this.value;
+                    const numValue = parseInt(arduinoId);
+                    const isValid = !isNaN(numValue) && numValue >= 1 && numValue <= 999999;
+
+                    if (isValid) {
+                        this.classList.remove('error');
+                        this.classList.add('success');
+                    } else if (arduinoId.length > 0) {
+                        this.classList.remove('success');
+                        this.classList.add('error');
+                    } else {
+                        this.classList.remove('error', 'success');
+                    }
+                });
+            }
         });
     </script>
 
