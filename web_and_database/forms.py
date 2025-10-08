@@ -52,14 +52,8 @@ class RegistrationForm(FlaskForm):
         DataRequired(message="Password is required"),
         Length(min=8, max=128, message="Password must be between 8 and 128 characters")
     ])
-    
-    # Lamp ID - positive integer only
-    lamp_id = IntegerField('Lamp ID', validators=[
-        DataRequired(message="Lamp ID is required"),
-        NumberRange(min=1, max=999999, message="Lamp ID must be between 1 and 999999")
-    ])
-    
-    # Arduino ID - positive integer only
+
+    # Arduino ID - positive integer only (this is the device serial number)
     arduino_id = IntegerField('Arduino ID', validators=[
         DataRequired(message="Arduino ID is required"),
         NumberRange(min=1, max=999999, message="Arduino ID must be between 1 and 999999")

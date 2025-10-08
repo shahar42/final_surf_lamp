@@ -416,7 +416,6 @@ def register():
         name = form.name.data
         email = form.email.data
         password = form.password.data
-        lamp_id = form.lamp_id.data
         arduino_id = form.arduino_id.data
         location = form.location.data
         sport_type = form.sport_type.data
@@ -430,7 +429,6 @@ def register():
             name=name,
             email=email,
             password_hash=hashed_password,
-            lamp_id=int(lamp_id),
             arduino_id=int(arduino_id),
             location=location,
             theme=theme,

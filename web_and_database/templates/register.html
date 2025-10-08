@@ -47,6 +47,10 @@
             border: 1px solid #ef4444;
             box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.3);
         }
+        .form-input.success {
+            border: 1px solid #10b981;
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
+        }
         .submit-btn {
             background-color: #c2185b; /* Darker pink */
             transition: background-color 0.3s ease, transform 0.2s ease;
@@ -139,29 +143,16 @@
                 {% endif %}
             </div>
             
-            <!-- Lamp ID and Arduino ID -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    {{ form.lamp_id(class="form-input w-full px-4 py-3 rounded-lg" + (" error" if form.lamp_id.errors else ""), placeholder="Lamp ID (1-999999)") }}
-                    {% if form.lamp_id.errors %}
-                        <div class="field-error">
-                            {% for error in form.lamp_id.errors %}
-                                <div>• {{ error }}</div>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                </div>
-                
-                <div>
-                    {{ form.arduino_id(class="form-input w-full px-4 py-3 rounded-lg" + (" error" if form.arduino_id.errors else ""), placeholder="Arduino ID (1-999999)") }}
-                    {% if form.arduino_id.errors %}
-                        <div class="field-error">
-                            {% for error in form.arduino_id.errors %}
-                                <div>• {{ error }}</div>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                </div>
+            <!-- Arduino ID (Device Serial Number) -->
+            <div>
+                {{ form.arduino_id(class="form-input w-full px-4 py-3 rounded-lg" + (" error" if form.arduino_id.errors else ""), placeholder="Arduino ID - The number on your device (e.g., 4433)") }}
+                {% if form.arduino_id.errors %}
+                    <div class="field-error">
+                        {% for error in form.arduino_id.errors %}
+                            <div>• {{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
             </div>
 
             <!-- Location Field -->
@@ -228,23 +219,28 @@
                     const isValid = password.length >= 8 && password.length <= 128;
 
                     if (isValid) {
-                        // Remove error styling
+                        // Add success styling, remove error
                         this.classList.remove('error');
+                        this.classList.add('success');
                         if (passwordErrorDiv) {
                             passwordErrorDiv.style.display = 'none';
                         }
                     } else if (password.length > 0) {
-                        // Add error styling only if user has started typing
+                        // Add error styling, remove success
+                        this.classList.remove('success');
                         this.classList.add('error');
                         if (passwordErrorDiv) {
                             passwordErrorDiv.style.display = 'block';
                         }
+                    } else {
+                        // Empty field - remove all styling
+                        this.classList.remove('error', 'success');
                     }
                 });
             }
 
             // Apply same logic to other fields
-            const allFields = ['name', 'email', 'lamp_id', 'arduino_id'];
+            const allFields = ['name', 'email', 'arduino_id'];
             allFields.forEach(fieldName => {
                 const field = document.getElementById(fieldName);
                 if (field) {
