@@ -73,7 +73,7 @@ class QRGenerator:
 
     def _add_label(self, qr_img, arduino_id, qr_size):
         """
-        Add text label below QR code.
+        Add text label below QR code with Arduino ID and URL.
 
         Args:
             qr_img: PIL Image of QR code
@@ -83,8 +83,8 @@ class QRGenerator:
         Returns:
             PIL.Image: QR code with label
         """
-        # Create new image with space for label
-        label_height = 80
+        # Create new image with space for label (increased height for URL)
+        label_height = 110
         total_height = qr_size + label_height
         final_img = Image.new('RGB', (qr_size, total_height), 'white')
 
@@ -96,29 +96,32 @@ class QRGenerator:
 
         # Try to use a nice font, fallback to default
         try:
-            font_large = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 24)
-            font_small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 16)
+            font_large = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 22)
+            font_medium = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 14)
+            font_small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 11)
         except:
             font_large = ImageFont.load_default()
+            font_medium = ImageFont.load_default()
             font_small = ImageFont.load_default()
 
         # Text content
-        text_large = f"Arduino ID: {arduino_id}"
-        text_small = "Scan to register"
+        text_id = f"Arduino ID: {arduino_id}"
+        text_scan = "Scan to register"
+        text_url = f"{self.base_url}/register?id={arduino_id}"
 
-        # Calculate text position (centered)
-        bbox_large = draw.textbbox((0, 0), text_large, font=font_large)
-        bbox_small = draw.textbbox((0, 0), text_small, font=font_small)
+        # Calculate text positions (centered)
+        bbox_id = draw.textbbox((0, 0), text_id, font=font_large)
+        bbox_scan = draw.textbbox((0, 0), text_scan, font=font_medium)
+        bbox_url = draw.textbbox((0, 0), text_url, font=font_small)
 
-        text_width_large = bbox_large[2] - bbox_large[0]
-        text_width_small = bbox_small[2] - bbox_small[0]
+        x_id = (qr_size - (bbox_id[2] - bbox_id[0])) // 2
+        x_scan = (qr_size - (bbox_scan[2] - bbox_scan[0])) // 2
+        x_url = (qr_size - (bbox_url[2] - bbox_url[0])) // 2
 
-        x_large = (qr_size - text_width_large) // 2
-        x_small = (qr_size - text_width_small) // 2
-
-        # Draw text
-        draw.text((x_large, qr_size + 10), text_large, fill='black', font=font_large)
-        draw.text((x_small, qr_size + 45), text_small, fill='gray', font=font_small)
+        # Draw text (3 lines)
+        draw.text((x_id, qr_size + 5), text_id, fill='black', font=font_large)
+        draw.text((x_scan, qr_size + 35), text_scan, fill='gray', font=font_medium)
+        draw.text((x_url, qr_size + 60), text_url, fill='#4a5568', font=font_small)
 
         return final_img
 
