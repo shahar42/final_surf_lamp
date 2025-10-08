@@ -145,7 +145,7 @@
             
             <!-- Arduino ID (Device Serial Number) -->
             <div>
-                {{ form.arduino_id(class="form-input w-full px-4 py-3 rounded-lg" + (" error" if form.arduino_id.errors else ""), placeholder="Arduino ID - The number on your device (e.g., 4433)") }}
+                {{ form.arduino_id(class="form-input w-full px-4 py-3 rounded-lg" + (" error" if form.arduino_id.errors else ""), placeholder="Arduino ID - Scan QR code or check card in box", value=form.arduino_id.data if form.arduino_id.data else '') }}
                 {% if form.arduino_id.errors %}
                     <div class="field-error">
                         {% for error in form.arduino_id.errors %}

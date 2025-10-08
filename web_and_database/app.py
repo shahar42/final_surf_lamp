@@ -407,9 +407,22 @@ def register():
     """
     if 'user_email' in session:
         return redirect(url_for('dashboard'))
-        
+
     form = RegistrationForm()
     form.location.choices = [(loc, loc) for loc in SURF_LOCATIONS]
+
+    # Pre-fill Arduino ID from QR code URL parameter (e.g., /register?id=4433)
+    if request.method == 'GET':
+        arduino_id_param = request.args.get('id', '')
+        if arduino_id_param:
+            try:
+                # Validate it's a number in valid range
+                arduino_id_int = int(arduino_id_param)
+                if 1 <= arduino_id_int <= 999999:
+                    form.arduino_id.data = arduino_id_int
+                    logger.info(f"Pre-filled Arduino ID from QR code: {arduino_id_int}")
+            except (ValueError, TypeError):
+                logger.warning(f"Invalid Arduino ID in URL parameter: {arduino_id_param}")
 
     if form.validate_on_submit():
         # Get Form Data
