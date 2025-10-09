@@ -411,8 +411,8 @@
 
         function dragEnded(event, d) {
             if (!event.active) simulation.alphaTarget(0);
-            d.fx = null;
-            d.fy = null;
+            d.fx = d.x;  // Lock node to current position
+            d.fy = d.y;  // Lock node to current position
         }
 
         function resetSimulation() {
