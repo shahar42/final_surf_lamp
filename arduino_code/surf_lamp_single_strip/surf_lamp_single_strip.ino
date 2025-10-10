@@ -1,3 +1,23 @@
+/*
+ * SURF LAMP - SINGLE WRAPPED STRIP VERSION
+ *
+ * Hardware: Single continuous WS2812B LED strip wrapped to appear as 3 visual strips
+ *
+ * LED MAPPING (Based on physical testing):
+ * - Strip 1 (Wave Height - Right): LEDs 1-14 (14 total, bottom-up)
+ * - Strip 2 (Wave Period - Left):  LEDs 33-46 (14 total, bottom-up)
+ * - Strip 3 (Wind Speed - Center):  LEDs 30-17 (14 total, REVERSE - bottom 30 to top 17)
+ *
+ * Special LEDs:
+ * - LED 30: Status indicator (blue/green/red/yellow for WiFi/data status)
+ * - LED 17: Wind direction indicator (green/yellow/red/blue for N/E/S/W)
+ *
+ * CHANGES FROM ORIGINAL 3-STRIP VERSION:
+ * - Single LED array instead of 3 separate arrays
+ * - Custom index mapping functions for each visual strip
+ * - Reverse direction handling for wind strip (30→17)
+ * - ALL OTHER LOGIC IDENTICAL (WiFi, server, thresholds, themes, etc.)
+ */
 
 #include <WiFi.h>
 #include <WebServer.h>
@@ -14,31 +34,48 @@ ServerDiscovery serverDiscovery;
 
 // ---------------------------- Configuration ----------------------------
 #define BUTTON_PIN 0  // ESP32 boot button
-#define LED_PIN_CENTER 4
-#define LED_PIN_SIDE 2
-#define LED_PIN_SIDE_LEFT 5
 
-#define NUM_LEDS_RIGHT 15
-#define NUM_LEDS_LEFT 15
-#define NUM_LEDS_CENTER 20
+// *** SINGLE STRIP CONFIGURATION ***
+#define LED_PIN 2            // GPIO 2 - Single continuous strip
+#define TOTAL_LEDS 47        // Total LEDs in the strip (0-46)
 #define BRIGHTNESS 100
 #define LED_TYPE WS2812B
 #define COLOR_ORDER GRB
 
+// LED STRIP SECTION MAPPING
+// Wave Height (Right Side) - Forward direction
+#define WAVE_HEIGHT_START 1
+#define WAVE_HEIGHT_END 14
+#define WAVE_HEIGHT_LENGTH 14
+
+// Wave Period (Left Side) - Forward direction
+#define WAVE_PERIOD_START 33
+#define WAVE_PERIOD_END 46
+#define WAVE_PERIOD_LENGTH 14
+
+// Wind Speed (Center) - REVERSE direction (30 down to 17)
+#define WIND_SPEED_START 30      // Bottom LED (also status LED)
+#define WIND_SPEED_END 17        // Top LED (also wind direction LED)
+#define WIND_SPEED_LENGTH 14     // Total including status + direction
+
+// Special LEDs
+#define STATUS_LED_INDEX 30      // Status indicator (bottom of wind strip)
+#define WIND_DIRECTION_INDEX 17  // Wind direction (top of wind strip)
+
+// For compatibility with original code calculations
+#define NUM_LEDS_RIGHT WAVE_HEIGHT_LENGTH
+#define NUM_LEDS_LEFT WAVE_PERIOD_LENGTH
+#define NUM_LEDS_CENTER WIND_SPEED_LENGTH
+
 #define WIFI_TIMEOUT 30  // Timeout for WiFi connection in seconds
 
-// LED Calculation Constants
-#define WIND_SCALE_NUMERATOR 18.0    // Wind speed scaling factor (numerator)
-#define WIND_SCALE_DENOMINATOR 13.0  // Wind speed scaling factor (denominator)
-#define MPS_TO_KNOTS_FACTOR 1.94384  // Conversion factor from m/s to knots
-#define WAVE_HEIGHT_DIVISOR 25       // Wave height scaling divisor (cm to LEDs)
-#define THRESHOLD_BRIGHTNESS_MULTIPLIER 1.6  // Brightness multiplier for threshold alerts
+// System Constants (non-LED related)
 #define MAX_BRIGHTNESS 255           // Maximum LED brightness value
 #define HTTP_TIMEOUT_MS 15000        // HTTP request timeout in milliseconds
 #define JSON_CAPACITY 1024           // JSON document capacity for Arduino data
 
 // Device Configuration
-const int ARDUINO_ID = 4433;  // ✨ CHANGE THIS for each Arduino device
+const int ARDUINO_ID = 1;  // ✨ Single-strip surf lamp
 
 // Global Variables
 Preferences preferences;
@@ -58,10 +95,8 @@ float blinkPhase = 0.0; // Phase for smooth sine wave blinking
 char ssid[32] = "Sunrise";
 char password[64] = "4085429360";
 
-// LED Arrays
-CRGB leds_center[NUM_LEDS_CENTER];
-CRGB leds_side_right[NUM_LEDS_RIGHT];
-CRGB leds_side_left[NUM_LEDS_LEFT];
+// *** SINGLE LED ARRAY (CRITICAL CHANGE) ***
+CRGB leds[TOTAL_LEDS];
 
 // Last received surf data (for status reporting)
 struct SurfData {
@@ -81,11 +116,11 @@ struct SurfData {
 
 struct WaveConfig {
     // User-adjustable parameters
-    uint8_t brightness_min_percent = 60;   // Minimum brightness during wave (0-100%)
-    uint8_t brightness_max_percent = 100;  // Maximum brightness during wave (0-100%)
+    uint8_t brightness_min_percent = 50;   // Minimum brightness during wave (0-100%)
+    uint8_t brightness_max_percent = 110;  // Maximum brightness during wave (0-100%)
     float wave_length_side = 6.0;          // Wave length for side strips (LEDs per cycle)
     float wave_length_center = 8.0;        // Wave length for center strip (LEDs per cycle)
-    float wave_speed = 1.0;                // Wave speed multiplier
+    float wave_speed = 1.2;                // Wave speed multiplier
 
     // Calculated properties
     float getBaseIntensity() const {
@@ -98,6 +133,58 @@ struct WaveConfig {
 
 // Global wave configuration instance
 WaveConfig waveConfig;
+
+// ---------------------------- LED Mapping Configuration ----------------------------
+
+struct LEDMappingConfig {
+    // User-adjustable parameters
+    float wind_scale_numerator = 12.0;      // Wind speed scaling: maps 0-13 m/s to 0-12 LEDs (single-strip config)
+    float wind_scale_denominator = 13.0;
+    float mps_to_knots_factor = 1.94384;    // Conversion constant: m/s to knots
+    uint8_t wave_height_divisor = 25;       // Wave height scaling: cm per LED (25cm = 1 LED)
+    float threshold_brightness_multiplier = 1.4;  // Brightness boost when threshold exceeded (60% brighter)
+
+    // Helper: Calculate wind speed LEDs from m/s (used by all wind speed calculations)
+    int calculateWindLEDs(float windSpeed_mps) const {
+        return constrain(
+            static_cast<int>(windSpeed_mps * wind_scale_numerator / wind_scale_denominator),
+            1,
+            WIND_SPEED_LENGTH - 2  // Reserve LED 30 for status, LED 17 for wind direction
+        );
+    }
+
+    // Helper: Calculate wave height LEDs from centimeters (used by updateSurfDisplay)
+    int calculateWaveLEDsFromCm(int waveHeight_cm) const {
+        return constrain(
+            static_cast<int>(waveHeight_cm / wave_height_divisor) + 1,  // +1 ensures at least 1 LED
+            0,
+            WAVE_HEIGHT_LENGTH
+        );
+    }
+
+    // Helper: Calculate wave height LEDs from meters (used by status endpoint)
+    int calculateWaveLEDsFromMeters(float waveHeight_m) const {
+        return calculateWaveLEDsFromCm(static_cast<int>(waveHeight_m * 100));  // Convert m to cm
+    }
+
+    // Helper: Calculate wave period LEDs (1:1 mapping: seconds to LEDs)
+    int calculateWavePeriodLEDs(float wavePeriod_s) const {
+        return constrain(static_cast<int>(wavePeriod_s), 0, WAVE_PERIOD_LENGTH);
+    }
+
+    // Helper: Convert wind speed from m/s to knots
+    float windSpeedToKnots(float windSpeed_mps) const {
+        return windSpeed_mps * mps_to_knots_factor;
+    }
+
+    // Helper: Get threshold alert brightness value (pre-calculated, clamped to MAX_BRIGHTNESS)
+    uint8_t getThresholdBrightness() const {
+        return min(MAX_BRIGHTNESS, static_cast<int>(MAX_BRIGHTNESS * threshold_brightness_multiplier));
+    }
+};
+
+// Global LED mapping configuration instance
+LEDMappingConfig ledMapping;
 
 // Forward declarations
 void setupHTTPEndpoints();
@@ -113,8 +200,6 @@ void handleManualFetchRequest();
 void handleDiscoveryTest();
 void applyWindSpeedThreshold(int windSpeedLEDs, int windSpeed_mps, int windSpeedThreshold_knots);
 void applyWaveHeightThreshold(int waveHeightLEDs, int waveHeight_cm, int waveThreshold_cm);
-void updateBlinkingLEDs(int numActiveLeds, int segmentLen, CRGB* leds, CHSV baseColor);
-void updateBlinkingCenterLEDs(int numActiveLeds, CHSV baseColor);
 void updateBlinkingAnimation();
 
 // ---------------------------- Theme Functions ----------------------------
@@ -213,13 +298,13 @@ void loadCredentials() {
 
     storedSSID.toCharArray(ssid, sizeof(ssid));
     storedPassword.toCharArray(password, sizeof(password));
-    
+
     Serial.printf("📝 Loaded credentials - SSID: %s\n", ssid);
 }
 
 // ---------------------------- LED Status Functions ----------------------------
 
-void blinkStatusLED(CRGB color) 
+void blinkStatusLED(CRGB color)
 {
     static unsigned long lastStatusUpdate = 0;
     static float statusPhase = 0.0;
@@ -239,7 +324,8 @@ void blinkStatusLED(CRGB color)
     CHSV hsvColor = rgb2hsv_approximate(color);
     hsvColor.val = adjustedBrightness;
 
-    leds_center[0] = hsvColor;
+    // *** CHANGE: Use STATUS_LED_INDEX (30) instead of leds_center[0] ***
+    leds[STATUS_LED_INDEX] = hsvColor;
     FastLED.show();
 }
 
@@ -254,88 +340,112 @@ void clearLEDs() {
 }
 
 void setStatusLED(CRGB color) {
-    leds_center[0] = color;
+    leds[STATUS_LED_INDEX] = color;
     FastLED.show();
 }
 
-// ---------------------------- LED Control Functions ----------------------------
+// ---------------------------- LED Control Functions (MODIFIED FOR SINGLE STRIP) ----------------------------
 
-void updateLEDs(int numActiveLeds, int segmentLen, CRGB* leds, CHSV* colorMap) {
-    for (int i = 0; i < segmentLen; i++) {
-        int colorIndex = map(i, 0, segmentLen - 1, 0, 23); // Map to color array size
+// *** NEW: Wave Height Strip (LEDs 1-14, forward) ***
+void updateWaveHeightLEDs(int numActiveLeds, CHSV color) {
+    for (int i = 0; i < WAVE_HEIGHT_LENGTH; i++) {
+        int index = WAVE_HEIGHT_START + i;
         if (i < numActiveLeds) {
-            leds[i] = CHSV(colorMap[colorIndex].hue, colorMap[colorIndex].sat, colorMap[colorIndex].val);
+            leds[index] = color;
         } else {
-            leds[i] = CRGB::Black;
+            leds[index] = CRGB::Black;
         }
     }
 }
 
-void updateBlinkingLEDs(int numActiveLeds, int segmentLen, CRGB* leds, CHSV baseColor) {
-    // Enhanced wave effect: traveling wave from bottom (LED 0) to top
-    const float baseIntensity = waveConfig.getBaseIntensity();
-    const float waveAmplitude = waveConfig.getAmplitude();
+// *** NEW: Wave Height Strip with Blinking (threshold exceeded) ***
+void updateBlinkingWaveHeightLEDs(int numActiveLeds, CHSV baseColor) {
+    const float minBrightness = waveConfig.brightness_min_percent / 100.0;
+    const float maxBrightness = waveConfig.brightness_max_percent / 100.0;
 
-    for (int i = 0; i < segmentLen; i++) {
+    for (int i = 0; i < WAVE_HEIGHT_LENGTH; i++) {
+        int index = WAVE_HEIGHT_START + i;
+
         if (i < numActiveLeds) {
-            // Calculate wave position: wave travels up from LED 0
+            // Calculate wave position
             float wavePhase = blinkPhase * waveConfig.wave_speed - (i * 2.0 * PI / waveConfig.wave_length_side);
-
-            // Create traveling wave with base intensity + wave component
-            float brightnessFactor = baseIntensity + waveAmplitude * sin(wavePhase);
-
+            float brightnessFactor = minBrightness + ((sin(wavePhase) + 1.0) / 2.0) * (maxBrightness - minBrightness);
             int adjustedBrightness = min(MAX_BRIGHTNESS, (int)(baseColor.val * brightnessFactor));
-            leds[i] = CHSV(baseColor.hue, baseColor.sat, adjustedBrightness);
+
+            leds[index] = CHSV(baseColor.hue, baseColor.sat, adjustedBrightness);
         } else {
-            leds[i] = CRGB::Black;
+            leds[index] = CRGB::Black;
         }
     }
 }
 
-void updateBlinkingCenterLEDs(int numActiveLeds, CHSV baseColor) {
-    // Enhanced wave effect for center LEDs: traveling wave from bottom (LED 1) to top
-    const float baseIntensity = waveConfig.getBaseIntensity();
-    const float waveAmplitude = waveConfig.getAmplitude();
-
-    // Start from LED 1, skip LED 0 (reserved for wind direction)
-    for (int i = 1; i < NUM_LEDS_CENTER - 1; i++) {
-        if (i < numActiveLeds + 1) {
-            // Calculate wave position: wave travels up from LED 1
-            float wavePhase = blinkPhase * waveConfig.wave_speed - ((i - 1) * 2.0 * PI / waveConfig.wave_length_center);
-
-            // Create traveling wave with base intensity + wave component
-            float brightnessFactor = baseIntensity + waveAmplitude * sin(wavePhase);
-
-            int adjustedBrightness = min(MAX_BRIGHTNESS, (int)(baseColor.val * brightnessFactor));
-            leds_center[i] = CHSV(baseColor.hue, baseColor.sat, adjustedBrightness);
-        } else {
-            leds_center[i] = CRGB::Black;
-        }
-    }
-}
-
-void updateLEDsOneColor(int numActiveLeds, int segmentLen, CRGB* leds, CHSV color) {
-    for (int i = 0; i < segmentLen; i++) {
+// *** NEW: Wave Period Strip (LEDs 33-46, forward) ***
+void updateWavePeriodLEDs(int numActiveLeds, CHSV color) {
+    for (int i = 0; i < WAVE_PERIOD_LENGTH; i++) {
+        int index = WAVE_PERIOD_START + i;
         if (i < numActiveLeds) {
-            leds[i] = color;
+            leds[index] = color;
         } else {
-            leds[i] = CRGB::Black;
+            leds[index] = CRGB::Black;
         }
     }
 }
 
+// *** NEW: Wind Speed Strip (LEDs 30-17, REVERSE) ***
+void updateWindSpeedLEDs(int numActiveLeds, CHSV color) {
+    // Wind strip runs BACKWARDS: 30 (bottom) -> 17 (top)
+    // Skip LED 30 (status) and LED 17 (wind direction)
+
+    for (int i = 1; i < WIND_SPEED_LENGTH - 1; i++) {
+        int index = WIND_SPEED_START - i;  // Count backwards from 30
+        int ledPosition = i - 1;  // Logical position (0-based)
+
+        if (ledPosition < numActiveLeds) {
+            leds[index] = color;
+        } else {
+            leds[index] = CRGB::Black;
+        }
+    }
+}
+
+// *** NEW: Wind Speed Strip with Blinking (threshold exceeded) ***
+void updateBlinkingWindSpeedLEDs(int numActiveLeds, CHSV baseColor) {
+    const float minBrightness = waveConfig.brightness_min_percent / 100.0;
+    const float maxBrightness = waveConfig.brightness_max_percent / 100.0;
+
+    // Wind strip runs BACKWARDS: 30 -> 17
+    // Skip LED 30 (status) and LED 17 (wind direction)
+
+    for (int i = 1; i < WIND_SPEED_LENGTH - 1; i++) {
+        int index = WIND_SPEED_START - i;  // Count backwards
+        int ledPosition = i - 1;  // Logical position
+
+        if (ledPosition < numActiveLeds) {
+            // Calculate wave position
+            float wavePhase = blinkPhase * waveConfig.wave_speed - (ledPosition * 2.0 * PI / waveConfig.wave_length_center);
+            float brightnessFactor = minBrightness + ((sin(wavePhase) + 1.0) / 2.0) * (maxBrightness - minBrightness);
+            int adjustedBrightness = min(MAX_BRIGHTNESS, (int)(baseColor.val * brightnessFactor));
+
+            leds[index] = CHSV(baseColor.hue, baseColor.sat, adjustedBrightness);
+        } else {
+            leds[index] = CRGB::Black;
+        }
+    }
+}
+
+// *** MODIFIED: Threshold functions to use new LED mapping ***
 void applyWindSpeedThreshold(int windSpeedLEDs, int windSpeed_mps, int windSpeedThreshold_knots) {
     // Convert wind speed from m/s to knots for threshold comparison
-    float windSpeedInKnots = windSpeed_mps * MPS_TO_KNOTS_FACTOR;
+    float windSpeedInKnots = ledMapping.windSpeedToKnots(windSpeed_mps);
 
     // Check if quiet hours are active - disable threshold blinking during sleep time
     if (lastSurfData.quietHoursActive || windSpeedInKnots < windSpeedThreshold_knots) {
         // NORMAL MODE: Theme-based wind speed visualization (no blinking during quiet hours)
-        updateLEDsOneColor(windSpeedLEDs, NUM_LEDS_CENTER - 2, &leds_center[1], getWindSpeedColor(currentTheme));
+        updateWindSpeedLEDs(windSpeedLEDs, getWindSpeedColor(currentTheme));
     } else {
-        // ALERT MODE: Blinking theme-based wind speed LEDs (starting from second LED)
+        // ALERT MODE: Blinking theme-based wind speed LEDs
         CHSV themeColor = getWindSpeedColor(currentTheme);
-        updateBlinkingCenterLEDs(windSpeedLEDs, CHSV(themeColor.hue, themeColor.sat, min(MAX_BRIGHTNESS, (int)(MAX_BRIGHTNESS * THRESHOLD_BRIGHTNESS_MULTIPLIER)))); // Blinking theme color
+        updateBlinkingWindSpeedLEDs(windSpeedLEDs, CHSV(themeColor.hue, themeColor.sat, ledMapping.getThresholdBrightness()));
     }
 }
 
@@ -343,11 +453,11 @@ void applyWaveHeightThreshold(int waveHeightLEDs, int waveHeight_cm, int waveThr
     // Check if quiet hours are active - disable threshold blinking during sleep time
     if (lastSurfData.quietHoursActive || waveHeight_cm < waveThreshold_cm) {
         // NORMAL MODE: Theme-based wave height visualization (no blinking during quiet hours)
-        updateLEDsOneColor(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, getWaveHeightColor(currentTheme));
+        updateWaveHeightLEDs(waveHeightLEDs, getWaveHeightColor(currentTheme));
     } else {
         // ALERT MODE: Blinking theme-based wave height LEDs
         CHSV themeColor = getWaveHeightColor(currentTheme);
-        updateBlinkingLEDs(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, CHSV(themeColor.hue, themeColor.sat, min(MAX_BRIGHTNESS, (int)(MAX_BRIGHTNESS * THRESHOLD_BRIGHTNESS_MULTIPLIER)))); // Blinking theme color
+        updateBlinkingWaveHeightLEDs(waveHeightLEDs, CHSV(themeColor.hue, themeColor.sat, ledMapping.getThresholdBrightness()));
     }
 }
 
@@ -362,26 +472,25 @@ void updateBlinkingAnimation() {
     unsigned long currentMillis = millis();
     if (currentMillis - lastBlinkUpdate >= 5) { // 200 FPS for ultra-smooth animation
         blinkPhase += 0.0419; // 1.5-second cycle (slower threshold alerts)
-        if (blinkPhase >= 2 * PI) blinkPhase -= 2 * PI;  // Smooth wrap instead of hard reset
         lastBlinkUpdate = currentMillis;
     }
 
     bool needsUpdate = false;
 
     // Check if wind speed threshold is exceeded
-    float windSpeedInKnots = lastSurfData.windSpeed * MPS_TO_KNOTS_FACTOR;
+    float windSpeedInKnots = ledMapping.windSpeedToKnots(lastSurfData.windSpeed);
     if (windSpeedInKnots >= lastSurfData.windSpeedThreshold) {
-        int windSpeedLEDs = constrain(static_cast<int>(lastSurfData.windSpeed * WIND_SCALE_NUMERATOR / WIND_SCALE_DENOMINATOR), 1, NUM_LEDS_CENTER - 2);
+        int windSpeedLEDs = ledMapping.calculateWindLEDs(lastSurfData.windSpeed);
         CHSV themeColor = getWindSpeedColor(currentTheme);
-        updateBlinkingCenterLEDs(windSpeedLEDs, CHSV(themeColor.hue, themeColor.sat, min(MAX_BRIGHTNESS, (int)(MAX_BRIGHTNESS * THRESHOLD_BRIGHTNESS_MULTIPLIER))));
+        updateBlinkingWindSpeedLEDs(windSpeedLEDs, CHSV(themeColor.hue, themeColor.sat, ledMapping.getThresholdBrightness()));
         needsUpdate = true;
     }
 
-    // Check if wave height threshold is exceeded
+    // Check if wave height threshold is exceeded (lastSurfData.waveHeight is in METERS)
     if (lastSurfData.waveHeight >= lastSurfData.waveThreshold) {
-        int waveHeightLEDs = constrain(static_cast<int>(lastSurfData.waveHeight / WAVE_HEIGHT_DIVISOR) + 1, 0, NUM_LEDS_RIGHT);
+        int waveHeightLEDs = ledMapping.calculateWaveLEDsFromMeters(lastSurfData.waveHeight);
         CHSV themeColor = getWaveHeightColor(currentTheme);
-        updateBlinkingLEDs(waveHeightLEDs, NUM_LEDS_RIGHT, leds_side_right, CHSV(themeColor.hue, themeColor.sat, min(MAX_BRIGHTNESS, (int)(MAX_BRIGHTNESS * THRESHOLD_BRIGHTNESS_MULTIPLIER))));
+        updateBlinkingWaveHeightLEDs(waveHeightLEDs, CHSV(themeColor.hue, themeColor.sat, ledMapping.getThresholdBrightness()));
         needsUpdate = true;
     }
 
@@ -393,45 +502,62 @@ void updateBlinkingAnimation() {
 
 void setWindDirection(int windDirection) {
     Serial.printf("🐛 DEBUG: Wind direction = %d°\n", windDirection);
-    int northLED = NUM_LEDS_CENTER - 1;
 
+    // *** CHANGE: Use WIND_DIRECTION_INDEX (17) instead of leds_center[last] ***
     // Wind direction color coding (ALWAYS consistent for navigation)
     if ((windDirection >= 0 && windDirection <= 10) || (windDirection >= 300 && windDirection <= 360)) {
-        leds_center[northLED] = CRGB::Green;   // North - Green
+        leds[WIND_DIRECTION_INDEX] = CRGB::Green;   // North - Green
     } else if (windDirection > 10 && windDirection <= 180) {
-        leds_center[northLED] = CRGB::Yellow;  // East - Yellow
+        leds[WIND_DIRECTION_INDEX] = CRGB::Yellow;  // East - Yellow
     } else if (windDirection > 180 && windDirection <= 250) {
-        leds_center[northLED] = CRGB::Red;     // South - Red
+        leds[WIND_DIRECTION_INDEX] = CRGB::Red;     // South - Red
     } else if (windDirection > 250 && windDirection < 300) {
-        leds_center[northLED] = CRGB::Blue;    // West - Blue
+        leds[WIND_DIRECTION_INDEX] = CRGB::Blue;    // West - Blue
     }
 }
 
 void performLEDTest() {
     Serial.println("🧪 Running LED test sequence...");
-    
-    // Test each strip with different colors
-    updateLEDs(NUM_LEDS_CENTER, NUM_LEDS_CENTER, leds_center, colorMapWind);
-    updateLEDs(NUM_LEDS_RIGHT, NUM_LEDS_RIGHT, leds_side_right, colorMapWave);
-    updateLEDs(NUM_LEDS_LEFT, NUM_LEDS_LEFT, leds_side_left, colorMap);
+
+    // Test each visual strip section with different colors
+    Serial.println("   Testing Wave Height strip (LEDs 1-14)...");
+    updateWaveHeightLEDs(WAVE_HEIGHT_LENGTH, CHSV(160, 255, 255));  // Blue
     FastLED.show();
-    
-    delay(2000);
-    
-    // Rainbow test
+    delay(1000);
+
+    Serial.println("   Testing Wave Period strip (LEDs 33-46)...");
+    updateWavePeriodLEDs(WAVE_PERIOD_LENGTH, CHSV(60, 255, 255));   // Yellow
+    FastLED.show();
+    delay(1000);
+
+    Serial.println("   Testing Wind Speed strip (LEDs 30-17)...");
+    updateWindSpeedLEDs(WIND_SPEED_LENGTH - 2, CHSV(0, 50, 255));   // White
+    FastLED.show();
+    delay(1000);
+
+    Serial.println("   Testing status LED (LED 30)...");
+    leds[STATUS_LED_INDEX] = CRGB::Green;
+    FastLED.show();
+    delay(1000);
+
+    Serial.println("   Testing wind direction LED (LED 17)...");
+    leds[WIND_DIRECTION_INDEX] = CRGB::Red;
+    FastLED.show();
+    delay(1000);
+
+    // Rainbow test on entire strip
+    Serial.println("   Running rainbow test on all LEDs...");
     for (int hue = 0; hue < 256; hue += 5) {
-        fill_solid(leds_center, NUM_LEDS_CENTER, CHSV(hue, 255, 255));
-        fill_solid(leds_side_right, NUM_LEDS_RIGHT, CHSV(hue + 85, 255, 255));
-        fill_solid(leds_side_left, NUM_LEDS_LEFT, CHSV(hue + 170, 255, 255));
+        fill_solid(leds, TOTAL_LEDS, CHSV(hue, 255, 255));
         FastLED.show();
         delay(20);
     }
-    
+
     clearLEDs();
     Serial.println("✅ LED test completed");
 }
 
-// ---------------------------- WiFi Functions ----------------------------
+// ---------------------------- WiFi Functions (UNCHANGED) ----------------------------
 
 bool connectToWiFi() {
     Serial.println("🔄 Attempting WiFi connection...");
@@ -452,7 +578,7 @@ bool connectToWiFi() {
         Serial.printf("📍 IP Address: %s\n", WiFi.localIP().toString().c_str());
         Serial.printf("📶 SSID: %s\n", WiFi.SSID().c_str());
         Serial.printf("💪 Signal Strength: %d dBm\n", WiFi.RSSI());
-        
+
         setupHTTPEndpoints();
         return true;
     } else {
@@ -490,7 +616,7 @@ void startConfigMode() {
         html += "<label>Password:</label><input type='password' name='password' placeholder='Enter WiFi Password' required>";
         html += "<button type='submit'>🚀 Connect to WiFi</button>";
         html += "</form></div></body></html>";
-        
+
         server.send(200, "text/html", html);
     });
 
@@ -498,9 +624,9 @@ void startConfigMode() {
         if (server.hasArg("ssid") && server.hasArg("password")) {
             String newSSID = server.arg("ssid");
             String newPassword = server.arg("password");
-            
+
             saveCredentials(newSSID.c_str(), newPassword.c_str());
-            
+
             String html = "<!DOCTYPE html><html><head><meta charset='UTF-8'>";
             html += "<meta name='viewport' content='width=device-width,initial-scale=1'>";
             html += "<title>Connecting...</title>";
@@ -508,11 +634,11 @@ void startConfigMode() {
             html += "</head><body><h1>🔄 Connecting to WiFi...</h1>";
             html += "<p>Surf Lamp is connecting to your network.</p>";
             html += "<p>This page will close automatically.</p></body></html>";
-            
+
             server.send(200, "text/html", html);
-            
+
             delay(2000);
-            
+
             // Attempt connection with new credentials
             WiFi.softAPdisconnect(true);
             WiFi.mode(WIFI_STA);
@@ -549,7 +675,7 @@ void handleAPTimeout() {
     if (configure_wifi && (millis() - apStartTime > AP_TIMEOUT)) {
         Serial.println("⏰ AP mode timeout - retrying WiFi connection");
         configure_wifi = false;
-        
+
         while (!connectToWiFi()) {
             Serial.println("🔄 Retrying WiFi connection in 5 seconds...");
             delay(5000);
@@ -557,30 +683,30 @@ void handleAPTimeout() {
     }
 }
 
-// ---------------------------- HTTP Server Endpoints ----------------------------
+// ---------------------------- HTTP Server Endpoints (UNCHANGED) ----------------------------
 
 void setupHTTPEndpoints() {
     // Main endpoint for receiving surf data from background processor
     server.on("/api/update", HTTP_POST, handleSurfDataUpdate);
-    
+
     // Status endpoint for monitoring
     server.on("/api/status", HTTP_GET, handleStatusRequest);
-    
+
     // Test endpoint for manual testing
     server.on("/api/test", HTTP_GET, handleTestRequest);
-    
+
     // LED test endpoint
     server.on("/api/led-test", HTTP_GET, handleLEDTestRequest);
-    
+
     // Device info endpoint
     server.on("/api/info", HTTP_GET, handleDeviceInfoRequest);
-    
+
     // Manual surf data fetch endpoint
     server.on("/api/fetch", HTTP_GET, handleManualFetchRequest);
 
     server.on("/api/discovery-test", HTTP_GET, handleDiscoveryTest);
-    
-    
+
+
     server.begin();
     Serial.println("🌐 HTTP server started with endpoints:");
     Serial.println("   POST /api/update    - Receive surf data");
@@ -594,7 +720,7 @@ void setupHTTPEndpoints() {
 
 void handleSurfDataUpdate() {
     Serial.println("📥 Received surf data request");
-    
+
     if (!server.hasArg("plain")) {
         server.send(400, "application/json", "{\"ok\":false}");
         Serial.println("❌ No JSON data in request");
@@ -616,7 +742,7 @@ void handleSurfDataUpdate() {
 
 void handleStatusRequest() {
     DynamicJsonDocument statusDoc(1024);
-    
+
     statusDoc["arduino_id"] = ARDUINO_ID;
     statusDoc["status"] = "online";
     statusDoc["wifi_connected"] = WiFi.status() == WL_CONNECTED;
@@ -626,8 +752,8 @@ void handleStatusRequest() {
     statusDoc["uptime_ms"] = millis();
     statusDoc["free_heap"] = ESP.getFreeHeap();
     statusDoc["chip_model"] = ESP.getChipModel();
-    statusDoc["firmware_version"] = "1.0.0";
-    
+    statusDoc["firmware_version"] = "2.0.0-single-strip";
+
     // Last surf data
     statusDoc["last_surf_data"]["received"] = lastSurfData.dataReceived;
     statusDoc["last_surf_data"]["wave_height_m"] = lastSurfData.waveHeight;
@@ -647,22 +773,22 @@ void handleStatusRequest() {
 
     // LED calculation debug info
     if (lastSurfData.dataReceived) {
-        int windSpeedLEDs = constrain(static_cast<int>(lastSurfData.windSpeed * WIND_SCALE_NUMERATOR / WIND_SCALE_DENOMINATOR), 1, NUM_LEDS_CENTER - 2);
-        int waveHeightLEDs = constrain(static_cast<int>(lastSurfData.waveHeight * 100 / WAVE_HEIGHT_DIVISOR) + 1, 0, NUM_LEDS_RIGHT);
-        int wavePeriodLEDs = constrain(static_cast<int>(lastSurfData.wavePeriod), 0, NUM_LEDS_LEFT);
+        int windSpeedLEDs = ledMapping.calculateWindLEDs(lastSurfData.windSpeed);
+        int waveHeightLEDs = ledMapping.calculateWaveLEDsFromMeters(lastSurfData.waveHeight);
+        int wavePeriodLEDs = ledMapping.calculateWavePeriodLEDs(lastSurfData.wavePeriod);
 
         statusDoc["led_calculations"]["wind_speed_leds"] = windSpeedLEDs;
-        statusDoc["led_calculations"]["wind_formula"] = "windSpeed * " + String(WIND_SCALE_NUMERATOR) + " / " + String(WIND_SCALE_DENOMINATOR);
-        statusDoc["led_calculations"]["wind_calculation"] = String(lastSurfData.windSpeed) + " * " + String(WIND_SCALE_NUMERATOR) + " / " + String(WIND_SCALE_DENOMINATOR) + " = " + String(lastSurfData.windSpeed * WIND_SCALE_NUMERATOR / WIND_SCALE_DENOMINATOR);
+        statusDoc["led_calculations"]["wind_formula"] = "windSpeed * " + String(ledMapping.wind_scale_numerator) + " / " + String(ledMapping.wind_scale_denominator);
+        statusDoc["led_calculations"]["wind_calculation"] = String(lastSurfData.windSpeed) + " * " + String(ledMapping.wind_scale_numerator) + " / " + String(ledMapping.wind_scale_denominator) + " = " + String(lastSurfData.windSpeed * ledMapping.wind_scale_numerator / ledMapping.wind_scale_denominator);
         statusDoc["led_calculations"]["wave_height_leds"] = waveHeightLEDs;
         statusDoc["led_calculations"]["wave_period_leds"] = wavePeriodLEDs;
-        statusDoc["led_calculations"]["wind_speed_knots"] = lastSurfData.windSpeed * MPS_TO_KNOTS_FACTOR;
-        statusDoc["led_calculations"]["wind_threshold_exceeded"] = (lastSurfData.windSpeed * MPS_TO_KNOTS_FACTOR) >= lastSurfData.windSpeedThreshold;
+        statusDoc["led_calculations"]["wind_speed_knots"] = ledMapping.windSpeedToKnots(lastSurfData.windSpeed);
+        statusDoc["led_calculations"]["wind_threshold_exceeded"] = ledMapping.windSpeedToKnots(lastSurfData.windSpeed) >= lastSurfData.windSpeedThreshold;
     }
-    
+
     String statusJson;
     serializeJson(statusDoc, statusJson);
-    
+
     server.send(200, "application/json", statusJson);
     Serial.println("📊 Status request served");
 }
@@ -673,10 +799,10 @@ void handleTestRequest() {
     testDoc["message"] = "Arduino is responding";
     testDoc["arduino_id"] = ARDUINO_ID;
     testDoc["timestamp"] = millis();
-    
+
     String testJson;
     serializeJson(testDoc, testJson);
-    
+
     server.send(200, "application/json", testJson);
     Serial.println("🧪 Test request served");
 }
@@ -684,45 +810,46 @@ void handleTestRequest() {
 void handleLEDTestRequest() {
     Serial.println("🧪 LED test requested via HTTP");
     performLEDTest();
-    
+
     server.send(200, "application/json", "{\"status\":\"ok\",\"message\":\"LED test completed\"}");
 }
 
 void handleDeviceInfoRequest() {
     DynamicJsonDocument infoDoc(512);
-    
-    infoDoc["device_name"] = "Surf Lamp";
+
+    infoDoc["device_name"] = "Surf Lamp (Single Strip)";
     infoDoc["arduino_id"] = ARDUINO_ID;
     infoDoc["model"] = ESP.getChipModel();
     infoDoc["revision"] = ESP.getChipRevision();
     infoDoc["cores"] = ESP.getChipCores();
     infoDoc["flash_size"] = ESP.getFlashChipSize();
     infoDoc["psram_size"] = ESP.getPsramSize();
-    infoDoc["firmware_version"] = "1.0.0";
-    infoDoc["led_strips"]["center"] = NUM_LEDS_CENTER;
-    infoDoc["led_strips"]["right"] = NUM_LEDS_RIGHT;
-    infoDoc["led_strips"]["left"] = NUM_LEDS_LEFT;
-    
+    infoDoc["firmware_version"] = "2.0.0-single-strip";
+    infoDoc["led_strips"]["wave_height"] = WAVE_HEIGHT_LENGTH;
+    infoDoc["led_strips"]["wave_period"] = WAVE_PERIOD_LENGTH;
+    infoDoc["led_strips"]["wind_speed"] = WIND_SPEED_LENGTH;
+    infoDoc["led_strips"]["total"] = TOTAL_LEDS;
+
     String infoJson;
     serializeJson(infoDoc, infoJson);
-    
+
     server.send(200, "application/json", infoJson);
     Serial.println("ℹ️ Device info request served");
 }
 
 void handleDiscoveryTest() {
     Serial.println("🧪 Discovery test requested");
-    
+
     bool result = serverDiscovery.forceDiscovery();
     String current = serverDiscovery.getCurrentServer();
-    
+
     String response = "{\"server\":\"" + current + "\"}";
     server.send(200, "application/json", response);
 }
 
 void handleManualFetchRequest() {
     Serial.println("🔄 Manual surf data fetch requested");
-    
+
     if (fetchSurfDataFromServer()) {
         lastDataFetch = millis();
         server.send(200, "application/json", "{\"status\":\"ok\",\"message\":\"Surf data fetched successfully\"}");
@@ -733,7 +860,7 @@ void handleManualFetchRequest() {
     }
 }
 
-// ---------------------------- Surf Data Fetching ----------------------------
+// ---------------------------- Surf Data Fetching (UNCHANGED) ----------------------------
 
 bool fetchSurfDataFromServer() {
     String apiServer = serverDiscovery.getApiServer();
@@ -768,17 +895,17 @@ bool fetchSurfDataFromServer() {
     }
 }
 
-// ---------------------------- Surf Data Processing ----------------------------
+// ---------------------------- Surf Data Processing (UNCHANGED) ----------------------------
 
 bool processSurfData(const String &jsonData) {
     DynamicJsonDocument doc(1024);
     DeserializationError error = deserializeJson(doc, jsonData);
-    
+
     if (error) {
         Serial.printf("❌ JSON parsing failed: %s\n", error.c_str());
         return false;
     }
-    
+
     // Extract values using the correct keys sent by the server
     int wave_height_cm = doc["wave_height_cm"] | 0;
     float wave_period_s = doc["wave_period_s"] | 0.0;
@@ -805,49 +932,78 @@ bool processSurfData(const String &jsonData) {
     Serial.printf("   Quiet Hours Active: %s\n", quiet_hours_active ? "true" : "false");
     Serial.printf("   LED Theme: %s\n", currentTheme.c_str());
 
+    // Calculate LED counts for logging
+    int windSpeedLEDs = ledMapping.calculateWindLEDs(wind_speed_mps);
+    int waveHeightLEDs = ledMapping.calculateWaveLEDsFromCm(wave_height_cm);
+    int wavePeriodLEDs = ledMapping.calculateWavePeriodLEDs(wave_period_s);
+
+    // Log timestamp and LED counts
+    Serial.printf("⏰ Timestamp: %lu ms (uptime)\n", millis());
+    Serial.printf("💡 LEDs Active - Wind: %d, Wave: %d, Period: %d\n", windSpeedLEDs, waveHeightLEDs, wavePeriodLEDs);
+
     // Store quiet hours state BEFORE updating display (critical: updateSurfDisplay checks this!)
     lastSurfData.quietHoursActive = quiet_hours_active;
 
     // Update LEDs with the new data
     updateSurfDisplay(wave_height_cm, wave_period_s, wind_speed_mps, wind_direction_deg, wave_threshold_cm, wind_speed_threshold_knots);
 
-    // Store remaining data for status reporting (converting height back to meters for consistency if needed)
+    // Store remaining data for status reporting (converting height and threshold to meters for consistency)
     lastSurfData.waveHeight = wave_height_cm / 100.0;
     lastSurfData.wavePeriod = wave_period_s;
     lastSurfData.windSpeed = wind_speed_mps;
     lastSurfData.windDirection = wind_direction_deg;
-    lastSurfData.waveThreshold = wave_threshold_cm;
+    lastSurfData.waveThreshold = wave_threshold_cm / 100.0;  // Convert cm to meters for consistent comparison
     lastSurfData.windSpeedThreshold = wind_speed_threshold_knots;
     lastSurfData.lastUpdate = millis();
     lastSurfData.dataReceived = true;
-    
+
     return true;
 }
 
 
 void updateSurfDisplay(int waveHeight_cm, float wavePeriod, int windSpeed, int windDirection, int waveThreshold_cm, int windSpeedThreshold_knots) {
-    // Check for quiet hours - show only top LEDs
+    // Check for quiet hours - show only the highest LED that would normally be on
     if (lastSurfData.quietHoursActive) {
-        // Calculate LED counts but force to only top LED
-        updateLEDsOneColor(1, NUM_LEDS_CENTER, leds_center, getWindSpeedColor(currentTheme));
-        updateLEDsOneColor(1, NUM_LEDS_RIGHT, leds_side_right, getWaveHeightColor(currentTheme));
-        updateLEDsOneColor(1, NUM_LEDS_LEFT, leds_side_left, getWavePeriodColor(currentTheme));
+        // Calculate how many LEDs would be on during daytime
+        int windSpeedLEDs = ledMapping.calculateWindLEDs(windSpeed);
+        int waveHeightLEDs = ledMapping.calculateWaveLEDsFromCm(waveHeight_cm);
+        int wavePeriodLEDs = ledMapping.calculateWavePeriodLEDs(wavePeriod);
+
+        // Turn off all LEDs first
+        FastLED.clear();
+
+        // *** MODIFIED: Light only the top LED using correct indices ***
+        // Wind: top = lowest index in reverse strip (LED 18 if 11 LEDs active)
+        if (windSpeedLEDs > 0) {
+            int topWindIndex = WIND_SPEED_START - windSpeedLEDs;
+            leds[topWindIndex] = getWindSpeedColor(currentTheme);
+        }
+        // Wave height: top = highest index (LED 14 if 14 LEDs active)
+        if (waveHeightLEDs > 0) {
+            int topWaveIndex = WAVE_HEIGHT_START + waveHeightLEDs - 1;
+            leds[topWaveIndex] = getWaveHeightColor(currentTheme);
+        }
+        // Wave period: top = highest index (LED 46 if 14 LEDs active)
+        if (wavePeriodLEDs > 0) {
+            int topPeriodIndex = WAVE_PERIOD_START + wavePeriodLEDs - 1;
+            leds[topPeriodIndex] = getWavePeriodColor(currentTheme);
+        }
+
         FastLED.show();
         Serial.println("🌙 Quiet hours: Only top LEDs active");
         return;
     }
 
-    // Calculate LED counts based on surf data
-    // Scale wind speed to use full LED range (0-13 m/s maps to 0-18 LEDs)
-    int windSpeedLEDs = constrain(static_cast<int>(windSpeed * WIND_SCALE_NUMERATOR / WIND_SCALE_DENOMINATOR), 1, NUM_LEDS_CENTER - 2);
-    int waveHeightLEDs = constrain(static_cast<int>(waveHeight_cm / WAVE_HEIGHT_DIVISOR) + 1, 0, NUM_LEDS_RIGHT);
-    int wavePeriodLEDs = constrain(static_cast<int>(wavePeriod), 0, NUM_LEDS_LEFT);
+    // Calculate LED counts based on surf data using centralized mapping configuration
+    int windSpeedLEDs = ledMapping.calculateWindLEDs(windSpeed);
+    int waveHeightLEDs = ledMapping.calculateWaveLEDsFromCm(waveHeight_cm);
+    int wavePeriodLEDs = ledMapping.calculateWavePeriodLEDs(wavePeriod);
 
     // Set wind direction indicator
     setWindDirection(windDirection);
 
     // Set wave period LEDs with theme color
-    updateLEDsOneColor(wavePeriodLEDs, NUM_LEDS_LEFT, leds_side_left, getWavePeriodColor(currentTheme));
+    updateWavePeriodLEDs(wavePeriodLEDs, getWavePeriodColor(currentTheme));
 
     // Apply threshold logic for wind speed and wave height
     applyWindSpeedThreshold(windSpeedLEDs, windSpeed, windSpeedThreshold_knots);
@@ -865,31 +1021,37 @@ void updateSurfDisplay(int waveHeight_cm, float wavePeriod, int windSpeed, int w
 void setup() {
     Serial.begin(115200);
     delay(1000);
-    
+
     Serial.println("\n🌊 ========================================");
-    Serial.println("🌊 SURF LAMP - HTTP SERVER ARCHITECTURE");
+    Serial.println("🌊 SURF LAMP - SINGLE STRIP VERSION");
     Serial.println("🌊 ========================================");
     Serial.printf("🔧 Arduino ID: %d\n", ARDUINO_ID);
-    
+    Serial.printf("📍 LED Configuration:\n");
+    Serial.printf("   Wave Height (Right): LEDs %d-%d (%d total)\n", WAVE_HEIGHT_START, WAVE_HEIGHT_END, WAVE_HEIGHT_LENGTH);
+    Serial.printf("   Wave Period (Left):  LEDs %d-%d (%d total)\n", WAVE_PERIOD_START, WAVE_PERIOD_END, WAVE_PERIOD_LENGTH);
+    Serial.printf("   Wind Speed (Center): LEDs %d-%d (%d total, REVERSE)\n", WIND_SPEED_START, WIND_SPEED_END, WIND_SPEED_LENGTH);
+    Serial.printf("   Status LED:  %d\n", STATUS_LED_INDEX);
+    Serial.printf("   Wind Dir LED: %d\n", WIND_DIRECTION_INDEX);
+    Serial.printf("   Total LEDs:   %d\n", TOTAL_LEDS);
+    Serial.println();
+
     // Initialize button
     pinMode(BUTTON_PIN, INPUT_PULLUP);
-    
-    // Initialize LED strips
-    FastLED.addLeds<LED_TYPE, LED_PIN_CENTER, COLOR_ORDER>(leds_center, NUM_LEDS_CENTER);
-    FastLED.addLeds<LED_TYPE, LED_PIN_SIDE, COLOR_ORDER>(leds_side_right, NUM_LEDS_RIGHT);
-    FastLED.addLeds<LED_TYPE, LED_PIN_SIDE_LEFT, COLOR_ORDER>(leds_side_left, NUM_LEDS_LEFT);
+
+    // *** CHANGE: Initialize single LED strip ***
+    FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, TOTAL_LEDS);
     FastLED.setBrightness(BRIGHTNESS);
     FastLED.clear();
     FastLED.show();
-    
-    Serial.println("💡 LED strips initialized");
-    
+
+    Serial.println("💡 Single LED strip initialized");
+
     // LED startup test
     performLEDTest();
-    
+
     // Initialize preferences
     preferences.begin("wifi-creds", false);
-    
+
     // Attempt WiFi connection
     if (!connectToWiFi()) {
         Serial.println("🔧 Starting configuration mode...");
@@ -897,7 +1059,7 @@ void setup() {
     } else {
         Serial.println("🚀 Surf Lamp ready for operation!");
         Serial.printf("📍 Device accessible at: http://%s\n", WiFi.localIP().toString().c_str());
-        
+
         // Try to fetch surf data immediately on startup
         Serial.println("🔄 Attempting initial surf data fetch...");
         if (fetchSurfDataFromServer()) {
@@ -909,15 +1071,15 @@ void setup() {
     }
 }
 
-// ---------------------------- Main Loop ----------------------------
+// ---------------------------- Main Loop (UNCHANGED) ----------------------------
 
 void loop() {
     // Handle HTTP requests
     server.handleClient();
-    
+
     // Handle configuration mode timeout
     handleAPTimeout();
-    
+
     // WiFi status management
     if (WiFi.status() != WL_CONNECTED) {
         if (!configure_wifi) {
@@ -937,7 +1099,7 @@ void loop() {
             configure_wifi = false;
             Serial.println("✅ Exited configuration mode");
         }
-        
+
         // Periodically fetch surf data from discovered server
         if (millis() - lastDataFetch > FETCH_INTERVAL) {
             Serial.println("🔄 Time to fetch new surf data...");
@@ -960,6 +1122,6 @@ void loop() {
             blinkStatusLED(CRGB::Blue); // No recent data
         }
     }
-    
+
     delay(5); // Small delay to prevent excessive CPU usage
 }

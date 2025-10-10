@@ -127,16 +127,14 @@ class Lamp(Base):
         lamp_id (int): Primary key, auto-generated unique ID.
         user_id (int): Foreign key linking to the User who owns the lamp.
         arduino_id (int): The unique ID of the Arduino microcontroller (device serial number).
-        arduino_ip (str): The IP address of the Arduino, used by the background processor.
         last_updated (datetime): Timestamp of the last successful data sync.
     """
     __tablename__ = 'lamps'
     lamp_id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
     arduino_id = Column(Integer, unique=True, nullable=True)
-    arduino_ip = Column(String(15), unique=True, nullable=True)  # Allow NULL initially
     last_updated = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
-    
+
     user = relationship("User", back_populates="lamp")
     usage_configs = relationship("UsageLamps", back_populates="lamp", cascade="all, delete-orphan")
     current_conditions = relationship("CurrentConditions", back_populates="lamp", uselist=False, cascade="all, delete-orphan")
@@ -362,8 +360,7 @@ def add_user_and_lamp(name, email, password_hash, arduino_id, location, theme, u
         logger.info("Creating new Lamp record")
         new_lamp = Lamp(
             user_id=new_user.user_id,
-            arduino_id=arduino_id,
-            arduino_ip=None
+            arduino_id=arduino_id
         )
         db.add(new_lamp)
         db.flush()  # Flush to get auto-generated lamp_id

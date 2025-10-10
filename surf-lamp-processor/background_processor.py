@@ -46,7 +46,6 @@ from datetime import datetime
 
 from collections import defaultdict
 import json
-from arduino_transport import get_arduino_transport
 from dotenv import load_dotenv
 from endpoint_configs import FIELD_MAPPINGS, get_endpoint_config
 
@@ -62,13 +61,8 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
-arduino_transport = get_arduino_transport()
 
-# Global failure tracking
-arduino_failure_counts = defaultdict(int)
-arduino_last_failure = defaultdict(float)
-ARDUINO_FAILURE_THRESHOLD = 3  # Skip after 3 consecutive failures
-ARDUINO_RETRY_DELAY = 1800     # 30 minutes before retry
+# Arduino failure tracking removed - not needed for pull-based architecture
 
 # Location to timezone mapping
 LOCATION_TIMEZONES = {
@@ -156,92 +150,8 @@ def get_current_hour_index(time_array):
         logger.warning(f"⚠️  Error finding current hour index: {e}, using index 0")
         return 0
 
-def should_skip_arduino(arduino_id):
-    """Check if Arduino should be skipped due to recent failures"""
-    failure_count = arduino_failure_counts[arduino_id]
-    
-    if failure_count < ARDUINO_FAILURE_THRESHOLD:
-        return False  # Normal case - proceed with Arduino
-    
-    last_failure_time = arduino_last_failure[arduino_id]
-    
-    if time.time() - last_failure_time < ARDUINO_RETRY_DELAY:
-        logger.info(f"Skipping Arduino {arduino_id} (failed {failure_count} times, retry in {int(ARDUINO_RETRY_DELAY - (time.time() - last_failure_time))}s)")
-        return True
-    else:
-        # Reset failure count after retry delay
-        arduino_failure_counts[arduino_id] = 0
-        logger.info(f"Retrying Arduino {arduino_id} after cooldown")
-        return False
-
-def record_arduino_result(arduino_id, success):
-    """Record Arduino communication result"""
-    if success:
-        # Reset failure count on success
-        arduino_failure_counts[arduino_id] = 0
-        if arduino_id in arduino_last_failure:
-            del arduino_last_failure[arduino_id]
-    else:
-        # Increment failure count
-        arduino_failure_counts[arduino_id] += 1
-        arduino_last_failure[arduino_id] = time.time()
-        logger.warning(f"Arduino {arduino_id} failure count: {arduino_failure_counts[arduino_id]}")
-
-def send_to_arduino(arduino_id, surf_data, format_type="meters", location=None):
-    """Send surf data to Arduino device via configurable transport with failure tracking"""
-    
-    # Check if we should skip this Arduino due to recent failures
-    if should_skip_arduino(arduino_id):
-        return False
-    
-    logger.info(f"📡 Sending data to Arduino {arduino_id}...")
-    
-    try:
-        # Get Arduino IP address
-        arduino_ip = get_arduino_ip(arduino_id)
-        if not arduino_ip:
-            logger.warning(f"⚠️  No IP address found for Arduino {arduino_id}")
-            # In mock mode, we can still simulate with a placeholder IP
-            if os.environ.get('ARDUINO_TRANSPORT', 'http').lower() == 'mock':
-                arduino_ip = "192.168.1.100"  # Placeholder for mock demonstration
-                logger.info(f"🧪 Using placeholder IP for mock: {arduino_ip}")
-            else:
-                record_arduino_result(arduino_id, False)  # Record failure
-                return False
-        
-        # Get user's thresholds
-        user_wave_threshold = get_user_threshold_for_arduino(arduino_id)
-        user_wind_threshold = get_user_wind_threshold_for_arduino(arduino_id)
-        
-        # Format data based on user preferences
-        formatted_data = format_for_arduino(surf_data, format_type, location)
-        
-        # Add thresholds to Arduino payload
-        formatted_data['wave_threshold_cm'] = int(round(user_wave_threshold * 100))
-        formatted_data['wind_speed_threshold_knots'] = int(round(user_wind_threshold))
-        
-        headers = {'Content-Type': 'application/json'}
-        
-        # Use transport abstraction
-        success, status_code, response_text = arduino_transport.send_data(
-            arduino_id, arduino_ip, formatted_data, headers
-        )
-        
-        # Record the result for failure tracking
-        record_arduino_result(arduino_id, success)
-        
-        if success:
-            logger.info(f"✅ Successfully sent data to Arduino {arduino_id}")
-            return True
-        else:
-            logger.warning(f"⚠️  Arduino {arduino_id} returned status {status_code}: {response_text}")
-            return False
-            
-    except Exception as e:
-        # Record failure for any exception
-        record_arduino_result(arduino_id, False)
-        logger.warning(f"⚠️  Error sending to Arduino {arduino_id}: {e}")
-        return False
+# send_to_arduino() and related functions removed - unused push model
+# Arduinos now pull data via GET /api/arduino/<id>/data endpoint
 
 def apply_conversions(value, conversions, field_name):
     """
@@ -441,32 +351,6 @@ def get_lamps_for_location(location):
         logger.error(f"❌ Failed to get lamps for location: {e}")
         return []
 
-def get_arduino_ip(arduino_id):
-    """Get Arduino IP address from database"""
-    logger.info(f"📍 Looking up IP for Arduino {arduino_id}")
-    
-    query = text("""
-        SELECT arduino_ip 
-        FROM lamps 
-        WHERE arduino_id = :arduino_id
-    """)
-    
-    try:
-        with engine.connect() as conn:
-            result = conn.execute(query, {"arduino_id": arduino_id})
-            row = result.fetchone()
-            
-            if row and row[0]:
-                ip = row[0]
-                logger.info(f"✅ Found IP for Arduino {arduino_id}: {ip}")
-                return ip
-            else:
-                logger.warning(f"⚠️  No IP address found for Arduino {arduino_id} in database")
-                return None
-                
-    except Exception as e:
-        logger.error(f"❌ Database error looking up Arduino IP: {e}")
-        return None
 
 def format_for_arduino(surf_data, format_type="meters", location=None):
     """Format surf data for Arduino consumption with location-aware time"""

@@ -799,13 +799,7 @@ def handle_arduino_callback():
             if not lamp:
                 logger.warning(f"⚠️  Arduino {arduino_id} not found in database")
                 return {'success': False, 'message': f'Arduino {arduino_id} not found'}, 404
-            
-            # Store Arduino IP address from callback
-            arduino_ip = data.get('local_ip')
-            if arduino_ip:
-                lamp.arduino_ip = arduino_ip
-                logger.info(f"📍 Updated Arduino {arduino_id} IP address: {arduino_ip}")
-            
+
             # Update lamp timestamp (confirms delivery)
             lamp.last_updated = datetime.now()
             logger.info(f"✅ Updated lamp {lamp.lamp_id} timestamp")
