@@ -290,7 +290,7 @@
                 .attr('d', 'M 0,-5 L 10,0 L 0,5')
                 .attr('fill', 'rgba(255, 255, 255, 0.6)');
 
-            // Create nodes
+            // Create nodes (fixed positions - no dragging)
             node = g.append('g')
                 .selectAll('circle')
                 .data(data.nodes)
@@ -303,11 +303,7 @@
                 .attr('stroke-width', 2)
                 .on('mouseover', showTooltip)
                 .on('mouseout', hideTooltip)
-                .on('click', showDetails)
-                .call(d3.drag()
-                    .on('start', dragStarted)
-                    .on('drag', dragged)
-                    .on('end', dragEnded));
+                .on('click', showDetails);
 
             // Create node labels
             nodeLabel = g.append('g')
@@ -397,23 +393,6 @@
                 closeDetails();
             }
         });
-
-        function dragStarted(event, d) {
-            if (!event.active) simulation.alphaTarget(0.3).restart();
-            d.fx = d.x;
-            d.fy = d.y;
-        }
-
-        function dragged(event, d) {
-            d.fx = event.x;
-            d.fy = event.y;
-        }
-
-        function dragEnded(event, d) {
-            if (!event.active) simulation.alphaTarget(0);
-            d.fx = d.x;  // Lock node to current position
-            d.fy = d.y;  // Lock node to current position
-        }
 
         function resetSimulation() {
             simulation.alpha(1).restart();
