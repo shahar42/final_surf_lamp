@@ -554,6 +554,52 @@ def update_user_location(user_id, new_location):
     finally:
         db.close()
 
+def cleanup_expired_password_reset_tokens():
+    """
+    Delete expired, used, or invalidated password reset tokens.
+
+    Deletes tokens that are:
+    - Older than 24 hours (regardless of state)
+    - Already used (used_at is not null)
+    - Invalidated (is_invalidated is true)
+
+    This function should be called periodically (e.g., daily via cron job)
+    to prevent unbounded table growth.
+
+    Returns:
+        int: Number of tokens deleted
+    """
+    from datetime import datetime, timezone, timedelta
+
+    db = SessionLocal()
+    try:
+        # Calculate cutoff time (24 hours ago)
+        cutoff_time = datetime.now(timezone.utc) - timedelta(hours=24)
+
+        # Delete tokens matching any of these conditions:
+        # 1. Created more than 24 hours ago
+        # 2. Already used
+        # 3. Manually invalidated
+        deleted_count = db.query(PasswordResetToken).filter(
+            (PasswordResetToken.created_at < cutoff_time) |
+            (PasswordResetToken.used_at.isnot(None)) |
+            (PasswordResetToken.is_invalidated == True)
+        ).delete(synchronize_session=False)
+
+        db.commit()
+
+        if deleted_count > 0:
+            logger.info(f"✅ Cleaned up {deleted_count} password reset tokens")
+
+        return deleted_count
+
+    except Exception as e:
+        logger.error(f"❌ Error cleaning up password reset tokens: {e}")
+        db.rollback()
+        return 0
+    finally:
+        db.close()
+
 # --- Main execution block to create tables ---
 if __name__ == '__main__':
     logger.info("Creating database tables based on the defined schema...")
