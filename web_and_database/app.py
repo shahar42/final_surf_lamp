@@ -21,7 +21,7 @@ import os
 import logging
 import redis
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 import pytz
 
 # Set up logging
@@ -210,7 +210,7 @@ def login_required(f):
 
 def check_location_change_limit(user_id):
     """Check if user has exceeded 5 location changes per day"""
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     
     if user_id not in location_changes:
@@ -300,7 +300,7 @@ def forgot_password():
                 # Generate secure token
                 token = secrets.token_urlsafe(48)
                 token_hash = hashlib.sha256(token.encode()).hexdigest()
-                expiration = datetime.utcnow() + timedelta(minutes=20)
+                expiration = datetime.now(timezone.utc) + timedelta(minutes=20)
                 
                 # Invalidate old tokens
                 db.query(PasswordResetToken).filter(
@@ -348,7 +348,7 @@ def reset_password_form(token):
             user.password_hash = bcrypt.generate_password_hash(form.new_password.data).decode('utf-8')
             
             # Mark token as used
-            reset_token.used_at = datetime.utcnow()
+            reset_token.used_at = datetime.now(timezone.utc)
             db.commit()
             
             flash('Password reset successfully! Please log in.', 'success')
@@ -379,7 +379,7 @@ def test_reset_db():
         # Test with your real user_id
         token = secrets.token_urlsafe(48)
         token_hash = hashlib.sha256(token.encode()).hexdigest()
-        expiration = datetime.utcnow() + timedelta(minutes=20)
+        expiration = datetime.now(timezone.utc) + timedelta(minutes=20)
         
         reset_token = PasswordResetToken(
             user_id=user.user_id,  # Use actual user_id
@@ -801,7 +801,7 @@ def handle_arduino_callback():
                 return {'success': False, 'message': f'Arduino {arduino_id} not found'}, 404
 
             # Update lamp timestamp (confirms delivery)
-            lamp.last_updated = datetime.now()
+            lamp.last_updated = datetime.now(timezone.utc)
             logger.info(f"✅ Updated lamp {lamp.lamp_id} timestamp")
             
             # Commit all changes
@@ -816,7 +816,7 @@ def handle_arduino_callback():
                 'message': 'Callback processed successfully',
                 'lamp_id': lamp.lamp_id,
                 'arduino_id': arduino_id,
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
             
             return response_data, 200
@@ -966,7 +966,7 @@ def arduino_status_overview():
                 'success': True,
                 'arduino_count': len(arduino_status),
                 'devices': arduino_status,
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }, 200
 
         finally:
