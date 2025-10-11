@@ -2,22 +2,9 @@
 
 ## 1. Overview
 
-**What it does**: PostgreSQL database hosted on Supabase storing user accounts, lamp registrations, real-time surf conditions, API endpoint configurations, and password reset tokens. Central data store connecting web app, background processor, and Arduino devices.
-
-**Why it exists**: Persistent storage for multi-user system - tracks which Arduino belongs to which user, what location they monitor, current wave/wind data fetched by background processor, and configuration for weather API calls. Without database, system cannot remember users between sessions or coordinate data between components.
+**What it does**: an Abstraction to the sql database allows cleaner less error prone code.
 
 ## 2. Technical Details
-
-### What Would Break If This Disappeared?
-
-- **User Authentication**: No login/registration - web app cannot validate credentials or track sessions
-- **Lamp Ownership**: Arduinos cannot be linked to users - orphaned devices with no configuration
-- **Surf Conditions Storage**: Background processor has nowhere to write fetched data - Arduino API returns empty
-- **Location Tracking**: Cannot remember user's selected surf location - defaults to hardcoded fallback
-- **Threshold Alerts**: User preferences (wave height, wind speed) lost - Arduino shows raw data only
-- **API Deduplication**: Multiple lamps in same location each trigger separate API calls - rate limits exhausted
-- **Password Recovery**: Reset tokens have no storage - email links broken
-- **Theme Selection**: LED color preferences forgotten - all lamps revert to default theme
 
 ### Critical Assumptions
 
@@ -48,7 +35,7 @@
 - `daily_usage.website_url` unique - API URLs deduplicated across all users
 
 **Timezone Handling**:
-- All `TIMESTAMP` fields stored in UTC (server clock must be UTC-synchronized)
+- All `TIMESTAMP` fields stored in UTC using timezone-aware datetime objects (`datetime.now(timezone.utc)`). Database uses PostgreSQL TIMESTAMPTZ type for automatic UTC handling.
 - Application layer (web app) converts to user's local timezone for display
 - No timezone column in database - pytz handles conversion at query time
 
@@ -61,10 +48,8 @@
 
 **Edge Cases**:
 - **Multiple Lamps Per User**: Schema supports one-to-one `User`→`Lamp` via `uselist=False` - multi-lamp users break relationship
-- **Location String Mismatch**: User registration with "tel aviv" fails - must match exact string "Tel Aviv, Israel" in `MULTI_SOURCE_LOCATIONS`
 - **Duplicate Arduino ID**: Two users register same arduino_id → second registration fails with unique constraint error (no retry logic)
 - **Orphaned CurrentConditions**: Background processor writes conditions but lamp deleted → foreign key cascade deletes row silently
-- **API URL Typo**: `MULTI_SOURCE_LOCATIONS` has typo in URL → DailyUsage created but fetches fail forever
 - **UsageLamps Priority Collision**: Two endpoints with same priority → undefined which runs first (stable sort not guaranteed)
 
 **Race Conditions**:
@@ -75,7 +60,7 @@
 **Data Integrity Risks**:
 - **Manual Database Edits**: Changing `location_websites.location` breaks join with `MULTI_SOURCE_LOCATIONS` dict - processor cannot find endpoints
 - **Deleted DailyUsage**: Removing row from `daily_usage` breaks `usage_lamps` foreign key - lamp configuration broken
-- **Arduino IP Reuse**: Device gets new DHCP lease → `lamps.arduino_ip` stale, processor sends data to wrong device
+
 
 **Schema Evolution Gotchas**:
 - **Adding Columns**: SQLAlchemy `Base.metadata.create_all()` does NOT alter existing tables - new columns require manual migration
@@ -84,11 +69,6 @@
 
 ### Stories the Code Tells
 
-**Git History Insights**:
-- **Sport Type Addition** (line 96): `sport_type` column added late with `default='surfing'` - originally surfing-only, expanded to kitesurfing/windsurfing
-- **Threshold Columns** (lines 97-98): `wave_threshold_m` and `wind_threshold_knots` added mid-development - alerts were hardcoded initially
-- **Password Reset Tokens** (lines 102-120): Entire `PasswordResetToken` model added post-launch - suggests user complaints about locked accounts
-- **Multi-Source API Migration** (lines 231-316): `MULTI_SOURCE_LOCATIONS` dict indicates architectural shift from single API to hybrid wave/wind sources
 
 **Design Philosophy**:
 - **Location-Centric Processing**: `LocationWebsites` table maps one location to one DailyUsage - deduplicates API calls for multiple users in same city
@@ -259,32 +239,13 @@ password_reset_tokens
 - **Expiration**: 20-minute validity window
 - **Invalidation**: New reset request sets `is_invalidated=TRUE` on all previous tokens for that user
 
-**Cleanup**: No automatic deletion - old tokens accumulate (manual cleanup via SQL needed)
+**Cleanup**: No automatic deletion - old tokens accumulate (manual cleanup via SQL needed) a local clean up script exists cleanup_tokens.py
 
 ---
 
 ### API Source Configuration
 
 **File**: `web_and_database/data_base.py:231-316`
-
-**`MULTI_SOURCE_LOCATIONS` Dictionary**:
-```python
-{
-    "Tel Aviv, Israel": [
-        {
-            "url": "https://marine-api.open-meteo.com/v1/marine?...",
-            "priority": 1,
-            "type": "wave"
-        },
-        {
-            "url": "http://api.openweathermap.org/data/2.5/weather?...",
-            "priority": 2,
-            "type": "wind"
-        }
-    ],
-    # ... 7 locations total
-}
-```
 
 **Supported Locations**:
 1. Tel Aviv, Israel (Open-Meteo marine + OpenWeatherMap)
@@ -410,13 +371,6 @@ DB_NAME="postgres"
 - Direct SQL queries via Supabase client
 - Read-only access for monitoring and debugging
 
-### What This Component Calls
-
-**External Services**:
-- PostgreSQL (Supabase): All database operations via SQLAlchemy
-
-**No Outbound Calls**: Database is pure data layer - no API calls, no email, no external dependencies
-
 ### Data Contracts
 
 **User Registration Input**:
@@ -482,60 +436,6 @@ update_user_location(user_id=42, new_location="Haifa, Israel")
 - **Causes**: Environment variable missing in deployment
 - **Recovery**: Set `DATABASE_URL` in Render dashboard (Settings → Environment)
 
-### Diagnostic Queries
-
-**Check User Exists**:
-```sql
-SELECT user_id, email, username, location FROM users WHERE email = 'user@example.com';
-```
-
-**Verify Lamp Registration**:
-```sql
-SELECT l.lamp_id, l.arduino_id, l.arduino_ip, u.username
-FROM lamps l
-JOIN users u ON l.user_id = u.user_id
-WHERE l.arduino_id = 4433;
-```
-
-**Find Lamp's API Endpoints**:
-```sql
-SELECT ul.lamp_id, ul.http_endpoint, ul.endpoint_priority, d.website_url
-FROM usage_lamps ul
-JOIN daily_usage d ON ul.usage_id = d.usage_id
-WHERE ul.lamp_id = 1234
-ORDER BY ul.endpoint_priority;
-```
-
-**Check Current Conditions Freshness**:
-```sql
-SELECT lamp_id, wave_height_m, last_updated,
-       NOW() - last_updated AS age
-FROM current_conditions
-WHERE lamp_id = 1234;
-```
-
-**Find Unused API Sources**:
-```sql
-SELECT du.usage_id, du.website_url, du.last_updated
-FROM daily_usage du
-LEFT JOIN usage_lamps ul ON du.usage_id = ul.usage_id
-WHERE ul.usage_id IS NULL;
-```
-
-**Password Reset Token Status**:
-```sql
-SELECT
-    prt.id, u.email, prt.created_at, prt.expiration_time,
-    CASE
-        WHEN prt.used_at IS NOT NULL THEN 'USED'
-        WHEN prt.is_invalidated THEN 'INVALIDATED'
-        WHEN prt.expiration_time < NOW() THEN 'EXPIRED'
-        ELSE 'VALID'
-    END AS status
-FROM password_reset_tokens prt
-JOIN users u ON prt.user_id = u.user_id
-ORDER BY prt.created_at DESC;
-```
 
 ### Scaling Concerns
 

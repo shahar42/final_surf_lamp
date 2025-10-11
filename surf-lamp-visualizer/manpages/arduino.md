@@ -4,17 +4,8 @@
 
 **What it does**: ESP32 microcontrollers with WS2812B addressable LED strips that visualize real-time surf conditions through color-coded lighting patterns, polling the web server every 13 minutes for location-based wave and wind data.
 
-**Why it exists**: Provides ambient, glanceable surf condition awareness without requiring users to check phones or websites. The physical lamp translates complex surf metrics (wave height, period, wind speed, direction) into intuitive visual patterns that surfers can interpret instantly.
 
 ## 2. Technical Details
-
-### What Would Break If This Disappeared?
-
-- **User Experience Core**: The entire product value proposition disappears - no physical surf condition display
-- **System Architecture**: The pull-based polling model that reduces backend complexity would be wasted (no clients pulling data)
-- **ServerDiscovery System**: The GitHub-hosted config mechanism becomes pointless without devices consuming it
-- **Database `lamps` Table**: Orphaned lamp records (arduino_id, arduino_ip) with no physical devices
-- **Threshold Alert System**: Wave/wind threshold logic becomes purely theoretical without LED visualization
 
 ### Critical Assumptions
 
@@ -35,19 +26,17 @@
 - Blinking animation updates every 1.5 seconds for threshold alerts
 
 **Hardware Assumptions**:
-- LED strip lengths: Center=20 LEDs (19=wind direction, 1-18=wind speed, 0=status), Right=15 LEDs (wave height), Left=15 LEDs (wave period)
+- LED strip lengths: Can vaey depending on the lamp version
 - FastLED library handles WS2812B timing requirements on ESP32
 - Boot button (GPIO 0) can trigger config mode
 
 **Environment Assumptions**:
-- Each Arduino has unique `ARDUINO_ID` hardcoded (line 44: `const int ARDUINO_ID = 4433;`)
+- Each Arduino has unique `ARDUINO_ID` hardcoded (`const int ARDUINO_ID = unique id;`)
 - Configuration mode AP password ("surf123456") is acceptably secure for setup
 - Default WiFi credentials ("Sunrise" / "4085429360") are placeholder-only
 
 ### Where Complexity Hides
 
-**Edge Cases**:
-- **Quiet Hours Single LED Positioning**: `getQuietHoursLedIndex()` calculates which single LED lights up based on normal mode's LED count, but positioning logic assumes strip indexing from 0 - off-by-one errors lurk here (line 865-869)
 - **Wind Direction LED Conflict**: Top LED (index 19) reserved for wind direction can conflict with wind speed calculation if wind speed maxes out (constrained to NUM_LEDS_CENTER - 2 = 18 LEDs max)
 - **Theme Color Fallback**: If server sends unknown theme, defaults to "classic_surf" silently (line 159-161) - no user notification
 - **JSON Parsing Failure**: Returns false but doesn't clear old LED state - stale data persists on screen
@@ -65,16 +54,6 @@
 
 **Commented-Out Code & Workarounds**:
 - Line 338: `// if (lastSurfData.quietHoursActive) return;` - commented out because quiet hours logic moved into display functions instead of short-circuiting animation updates
-- Git history shows LED scaling formulas changed multiple times (`3398fde "Improve wind speed LED scaling"`, `c315af3 "Fix wind speed unit bug"`) - indicates empirical tuning was required
-- Theme system underwent major refactor (`a421ed3 "Simplify to 5 themes"`) suggesting original design was too complex
-
-### Stories the Code Tells
-
-**Git History Insights**:
-- **Nighttime Behavior Evolution** (`7b8c882`, `2394580`): Multiple commits fixing quiet hours - original implementation didn't handle "show only top LED" correctly, indicates this was user-requested feature after initial deployment
-- **Theme System Journey**: Started with many themes (`b804c39 "professional LED theme system"`), simplified to 5 (`a421ed3`), then reduced red colors (`0f53817`) - user feedback drove design evolution
-- **Wind Speed Unit Bug** (`c315af3`, `8818a51`): Critical bug where wind speed units (m/s vs knots) were confused - added validation and maintainer docs to prevent recurrence
-- **Location-Centric Refactor** (`cd0f5d1` "Restore API-based processing from 100 commits ago") - architecture thrashed between approaches before settling on current design
 
 **Design Philosophy**:
 - **Magic Numbers Elimination** (`533f6bd`): Converted hardcoded values to #define constants - maintainability improvement after initial prototype phase
@@ -250,79 +229,6 @@
 }
 ```
 
-## 5. Troubleshooting & Failure Modes
-
-### Common Issues
-
-**Problem: LEDs Don't Update**
-- **Symptoms**: LEDs frozen on old pattern, status LED breathing green (connected)
-- **Detection**: Check serial output for "❌ HTTP error fetching surf data" or "❌ JSON parsing failed"
-- **Causes**:
-  - Server API endpoint changed format (broke JSON contract)
-  - ServerDiscovery cache pointing to dead server (24h stale)
-  - Network firewall blocking HTTPS on port 443
-- **Recovery**:
-  1. Trigger manual fetch: `GET http://{arduino_ip}/api/fetch`
-  2. Check status endpoint: `GET http://{arduino_ip}/api/status` → examine `last_surf_data.last_update_ms`
-  3. Force discovery: `GET http://{arduino_ip}/api/discovery-test`
-  4. If all fail: Power cycle Arduino (forces fresh discovery attempt on boot)
-
-**Problem: WiFi Won't Connect**
-- **Symptoms**: Status LED blinking blue continuously, no IP address after 30 seconds
-- **Detection**: Serial output shows "❌ WiFi connection failed" repeating
-- **Causes**:
-  - Wrong credentials in NVS
-  - WiFi network changed password
-  - Router MAC filtering blocking device
-  - 2.4GHz network disabled (ESP32 doesn't support 5GHz)
-- **Recovery**:
-  1. Hold boot button during power-on → triggers config mode
-  2. Connect phone to "SurfLamp-Setup" AP (password: surf123456)
-  3. Navigate to `192.168.4.1`
-  4. Enter new credentials
-  5. Wait 20 seconds for connection attempt
-
-**Problem: Threshold Alerts Not Blinking**
-- **Symptoms**: LEDs solid even when conditions exceed thresholds
-- **Detection**: Compare `GET /api/status` LED calculations with threshold values
-- **Causes**:
-  - Quiet hours active (server-side flag overrides thresholds)
-  - Thresholds set too high in user preferences
-  - Wind speed unit confusion (threshold in knots, but comparison broken)
-  - Blinking animation disabled by race condition
-- **Recovery**:
-  1. Check `quiet_hours_active` in status endpoint
-  2. Verify threshold comparison: `wind_speed_knots >= wind_speed_threshold_knots`
-  3. Check user dashboard: update thresholds to realistic values
-  4. Restart Arduino if race condition suspected
-
-**Problem: Wrong Wind Direction Color**
-- **Symptoms**: Top center LED showing wrong color for known wind direction
-- **Detection**: Compare `wind_direction_deg` from status endpoint with LED color
-- **Causes**:
-  - Wind direction data inverted (some APIs report "from" vs "to" direction)
-  - Compass calibration issue in API source
-  - Color mapping logic has off-by-one error in degree ranges
-- **Recovery**:
-  1. Verify server API data: check background processor logs for raw API responses
-  2. Cross-reference with third-party weather source
-  3. Test with `setWindDirection()` function directly (modify code to test fixed values)
-
-**Problem: Discovery Fails, Falls Back to Dead Server**
-- **Symptoms**: Arduino never updates after deployment, status shows 404 errors
-- **Detection**: Serial output: "⚠️ Discovery failed, using current: old-server.onrender.com"
-- **Causes**:
-  - GitHub Pages repo deleted or renamed
-  - DNS resolution failing for GitHub domains
-  - Arduino's NTP time wrong, causing TLS handshake failures
-- **Recovery**:
-  1. Verify GitHub repo exists: `curl https://shahar42.github.io/final_surf_lamp/discovery-config/config.json`
-  2. Update fallback servers in code: change `fallback_servers[0]` to current production URL
-  3. Reflash Arduino with updated fallback list
-  4. Consider deploying local DNS/mDNS for discovery as GitHub bypass
-
-### Diagnostic Log Patterns
-
 **Healthy Operation**:
 ```
 🔄 Time to fetch new surf data...
@@ -354,99 +260,6 @@
 ```
 ❌ JSON parsing failed: InvalidInput
 ```
-
-## 6. Evolution & Future Considerations
-
-### Technical Debt
-
-**Hardcoded Configuration**:
-- `ARDUINO_ID` must be manually changed per device before flashing - error-prone at scale
-- **Solution**: Implement provisioning API where Arduino generates unique ID from chip MAC address, registers with server on first boot
-
-**Insecure TLS**:
-- `client.setInsecure()` disables certificate validation - vulnerable to MITM attacks
-- **Solution**: Bundle root CA certificates in firmware or use ESP32's cert store with OTA updates
-
-**Serial Output Spam**:
-- Extensive `Serial.printf()` calls slow down execution if serial buffer fills
-- **Solution**: Implement log levels (DEBUG/INFO/ERROR), disable verbose logs in production builds
-
-**No OTA Updates**:
-- Firmware updates require physical USB access to every device
-- **Solution**: Implement ESP32 OTA update system pulling from GitHub releases or Render-hosted firmware binaries
-
-**NVS Wear Concerns**:
-- WiFi credentials stored in NVS rewritten on every config mode save - flash wear on frequently reconfigured devices
-- **Solution**: Check if credentials changed before writing, implement wear leveling awareness
-
-### What Would You Change with 20/20 Hindsight?
-
-**1. Pull vs Push Architecture**:
-- **Current**: Arduino polls every 13 minutes (simple but wasteful)
-- **Better**: WebSocket persistent connection with server-initiated pushes when conditions change
-- **Why**: Reduces unnecessary API calls when conditions static, enables <1 minute latency for alerts
-
-**2. ServerDiscovery Complexity**:
-- **Current**: GitHub-hosted JSON with 24-hour cache
-- **Better**: mDNS/Bonjour local discovery + cloud fallback, or hardcode multiple production URLs with health checks
-- **Why**: GitHub dependency is single point of failure for entire fleet
-
-**3. Theme System**:
-- **Current**: 5 hardcoded themes with server-selected name
-- **Better**: Server sends RGB/HSV color values directly in API response
-- **Why**: Enables per-user custom colors without firmware updates
-
-**4. Status LED Overload**:
-- **Current**: Bottom LED serves as status indicator (blue/green/red/yellow)
-- **Better**: Separate dedicated status LED or use built-in ESP32 LED
-- **Why**: Status LED competes with wind speed visualization, confusing when strip nearly full
-
-**5. Threshold Alert Timing**:
-- **Current**: Blinking animation requires conditions exceed threshold + not quiet hours
-- **Better**: Audio alert option (buzzer), push notification to phone app, or configurable alert modes
-- **Why**: Visual-only alerts easily missed if user not looking at lamp
-
-**6. Wind Speed Unit Confusion**:
-- **Current**: API sends m/s, Arduino converts to knots, user configures in knots
-- **Better**: API sends both units, Arduino displays user's preferred unit system
-- **Why**: Multiple unit conversions = multiple places for bugs (proven by git history)
-
-### Scaling Concerns
-
-**Network Bandwidth**:
-- **Current Load**: 1 device = 110 requests/day (every 13 min) × ~500 bytes = ~55 KB/day
-- **At Scale**: 10,000 devices = 1.1 million requests/day = ~550 MB/day bandwidth
-- **Mitigation**: Implement request batching (single API call returns data for multiple arduinos), CDN caching with short TTLs
-
-**ServerDiscovery GitHub Limits**:
-- **Current**: Each device fetches config.json once per 24h
-- **At Scale**: 10,000 devices staggered over 24h = ~7 requests/minute to GitHub
-- **GitHub Pages Limits**: 100 GB bandwidth/month, soft quota
-- **Mitigation**: Use CloudFlare CDN in front of GitHub Pages, or migrate to Render-hosted discovery endpoint
-
-**Database Current_Conditions Table Growth**:
-- **Current**: 1 row per lamp (upserted every 20 min by background processor)
-- **At Scale**: 10,000 lamps = 10,000 rows, minimal growth
-- **No Concern**: Primary key on lamp_id prevents unbounded growth
-
-**Background Processor API Quota**:
-- **Current**: Location-centric processing (2-6 API calls per 20-min cycle)
-- **At Scale**: 10,000 lamps across 1,000 unique locations = 1,000 API calls every 20 min = 72,000 calls/day
-- **OpenWeatherMap Free Tier**: 1,000 calls/day (EXCEEDED)
-- **Mitigation**: Paid tier ($40/month for 100k calls/day), or cache weather data per location with 10-min TTL
-
-**WiFi Network Saturation**:
-- **Scenario**: Multiple lamps on same home WiFi network
-- **Concern**: 5 lamps × 13-min polling = 5 concurrent HTTPS connections every 13 min (negligible)
-- **No Action Needed**: Polling interval is conservative
-
-**Flash Memory Exhaustion**:
-- **Current Firmware Size**: ~1.2 MB (ESP32 has 4 MB flash typical)
-- **With OTA**: Requires 2× firmware size for A/B partitions = 2.4 MB (fits)
-- **Future Proofing**: Optimize binary size (remove unused libraries), consider ESP32-S3 with 8 MB flash
-
----
-
 *Last Updated: 2025-09-30*
 *Firmware Version: 1.0.0*
 *Hardware: ESP32-D0WDQ6 + WS2812B LED strips*
