@@ -415,7 +415,19 @@ def add_user_and_lamp(name, email, password_hash, arduino_id, location, theme, u
     except IntegrityError as e:
         logger.error(f"IntegrityError during registration: {e}")
         db.rollback()
-        return False, "An account with this email, username, lamp ID, or Arduino ID already exists."
+
+        # Parse the error to determine which constraint was violated
+        error_msg = str(e.orig)
+
+        if 'users_email_key' in error_msg:
+            return False, "This email address is already registered. Please use a different email or login."
+        elif 'users_username_key' in error_msg:
+            return False, "This username is already taken. Please choose a different username."
+        elif 'lamps_arduino_id_key' in error_msg:
+            return False, "This Device ID is already registered to another user. Please check your Device ID."
+        else:
+            # Fallback for unexpected constraint violations
+            return False, "Registration failed due to duplicate data. Please check your information."
     except Exception as e:
         logger.error(f"Unexpected error during registration: {e}")
         db.rollback()
