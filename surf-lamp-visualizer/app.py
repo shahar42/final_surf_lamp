@@ -16,8 +16,8 @@ CORS(app)
 # System architecture data
 SYSTEM_DATA = {
     "nodes": [
-        {"id": "web", "name": "Web Application", "type": "backend", "description": "Flask-based web server displaying user dashboard at final-surf-lamp-web.onrender.com. Handles user authentication, configuration and data display. Users can update their preferences this trigger Redis rate limiting checks before database writes.", "size": 1800},
-        {"id": "database", "name": "Database (Supabase)", "type": "storage", "description": "PostgreSQL database hosted on Supabase storing all system data. location_websites mapping, Serves as the central source of truth for the entire system.", "size": 1500},
+        {"id": "web", "name": "Web Application", "type": "backend", "description": "Flask web server displaying user dashboard. Handles user authentication, configuration and data display.", "size": 1800},
+        {"id": "database", "name": "Database (Supabase)", "type": "storage", "description": "database hosted on Supabase storing all system data. location_websites mapping, source of truth for the entire system.", "size": 1500},
         {"id": "redis", "name": "Redis Cache", "type": "storage", "description": "In-memory cache service providing rate limiting for user actions. Prevents API abuse by blocking rapid successive changes.", "size": 500},
         {"id": "processor", "name": "Background Processor", "type": "backend", "description": "Location-centric background service running every 20 minutes. Fetches surf data from external APIs, processes conditions against user thresholds, and writes results to database. Uses smart endpoint fallback", "size": 1800},
         {"id": "arduino", "name": "Arduino Lamps", "type": "hardware", "description": "Each lamp polls the web server every 13 minutes for its location's surf conditions. LEDs displays surf data. Supports dynamic server discovery via GitHub-hosted config.", "size": 1200},
