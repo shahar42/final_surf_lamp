@@ -122,10 +122,23 @@
                     <canvas id="surfboardCanvas" width="350" height="550"></canvas>
 
                     <!-- Legend below surfboard -->
-                    <div class="flex items-center justify-center gap-6 mt-4 text-white/90 text-sm font-semibold">
-                        <span>Wave Period</span>
-                        <span>Wind Speed</span>
-                        <span>Wave Height</span>
+                    <div class="flex flex-col items-center justify-center gap-3 mt-4 text-white/90 text-sm font-semibold">
+                        <div class="flex items-center justify-center gap-6">
+                            <span>Wave Period</span>
+                            <span>Wind Speed</span>
+                            <span>Wave Height</span>
+                        </div>
+                        <div class="flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-xs mt-2 text-white/80">
+                            <span class="font-semibold mr-2">Wind Dir:</span>
+                            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(0, 255, 0);"></span><span>N</span></div>
+                            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(128, 255, 0);"></span><span>NE</span></div>
+                            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(255, 255, 0);"></span><span>E</span></div>
+                            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(255, 128, 0);"></span><span>SE</span></div>
+                            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(255, 0, 0);"></span><span>S</span></div>
+                            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(128, 0, 255);"></span><span>SW</span></div>
+                            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(0, 0, 255);"></span><span>W</span></div>
+                            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(0, 255, 255);"></span><span>NW</span></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -270,16 +283,6 @@
                             <div class="text-white/80 text-sm">Wind Direction</div>
                             <div class="text-white font-bold text-xl">
                                 {{ data.conditions.wind_direction_deg | wind_direction }}
-                            </div>
-                            <div class="flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs mt-2 text-white/90">
-                                <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(0, 255, 0);"></span><span>N</span></div>
-                                <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(128, 255, 0);"></span><span>NE</span></div>
-                                <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(255, 255, 0);"></span><span>E</span></div>
-                                <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(255, 128, 0);"></span><span>SE</span></div>
-                                <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(255, 0, 0);"></span><span>S</span></div>
-                                <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(128, 0, 255);"></span><span>SW</span></div>
-                                <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(0, 0, 255);"></span><span>W</span></div>
-                                <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(0, 255, 255);"></span><span>NW</span></div>
                             </div>
                         </div>
                     </div>
