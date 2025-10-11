@@ -11,8 +11,9 @@ The Surf Lamp system displays real-time surf conditions using LED visualizations
 **DO NOT MODIFY these core design decisions without understanding the production issues they solve:**
 
 1. **🔄 PULL-BASED COMMUNICATION**
-   - Arduino devices fetch data from web server (every 16 minutes)
+   - Arduino devices fetch data from web server every 13 minutes (FETCH_INTERVAL = 780000ms)
    - Background processor ONLY updates database, never pushes to Arduino
+   - No Arduino IP tracking needed - Arduino initiates all communication via server discovery
    - Eliminates network complexity, firewall issues, and Arduino reliability problems
 
 2. **📍 LOCATION-BASED PROCESSING**
@@ -40,8 +41,10 @@ The Surf Lamp system displays real-time surf conditions using LED visualizations
    - **Data merging**: Combines wave data (Isramar) with wind data (Open-Meteo) per location
    - **Pull-based architecture**: Only updates database, Arduino devices fetch data independently
 
-3. **Arduino Firmware** (`arduino/arduinomain_lamp.ino`)
-   - ESP32-based device that pulls data from server every 16 minutes
+3. **Arduino Firmware**
+   - **3-Strip Version** (`arduino_code/surf_lamp_3_strips/arduinomain_lamp.ino`) - Original with 3 separate LED strips
+   - **Single-Strip Version** (`arduino_code/surf_lamp_single_strip/surf_lamp_single_strip.ino`) - 47-LED continuous strip
+   - ESP32-based device that pulls data from server every 13 minutes
    - Controls LED strips for visual surf condition display
    - Implements threshold-based blinking alerts
 
@@ -103,7 +106,7 @@ The system uses a **database-driven location mapping** where API endpoints are c
 users (user_id, location, preferred_output, wave_threshold_m, wind_threshold_knots)
 
 -- Lamps belong to users and inherit location
-lamps (lamp_id, user_id, arduino_id, arduino_ip, last_updated)
+lamps (lamp_id, user_id, arduino_id, last_updated)  -- arduino_ip removed in commit 1e96bc8
 
 -- API endpoints are configured per lamp with priorities
 usage_lamps (lamp_id, usage_id, api_key, http_endpoint, endpoint_priority)
@@ -241,17 +244,61 @@ Priority API Calls → Data Storage → Arduino Pull → LED Display
 // Wave Period: Orange (day) / Red (night)
 ```
 
-### LED Configuration
-**File:** `arduino/arduinomain_lamp.ino:16-26`
+### Arduino Hardware Variants
+
+The system supports two hardware configurations with different LED arrangements:
+
+#### **3-Strip Lamp** (Original - Arduino ID 4433)
+**Firmware:** `arduino_code/surf_lamp_3_strips/arduinomain_lamp.ino`
+
+**Hardware:**
+- 3 separate WS2812B LED strips on different GPIO pins
+- Total: 50 LEDs (20 center + 15 right + 15 left)
+
+**LED Configuration:**
 ```cpp
 #define LED_PIN_CENTER 4        // Wind speed + direction
 #define LED_PIN_SIDE 2          // Wave height (right strip)
 #define LED_PIN_SIDE_LEFT 5     // Wave period (left strip)
 
+#define NUM_LEDS_CENTER 20      // Wind speed + direction LEDs
 #define NUM_LEDS_RIGHT 15       // Wave height LEDs
 #define NUM_LEDS_LEFT 15        // Wave period LEDs
-#define NUM_LEDS_CENTER 19      // Wind speed + direction LEDs
 ```
+
+**Wind Scaling:** Maps 0-13 m/s to 0-18 LEDs (formula: `18.0/13.0`)
+
+#### **Single-Strip Wrapped Lamp** (New - Arduino ID 1)
+**Firmware:** `arduino_code/surf_lamp_single_strip/surf_lamp_single_strip.ino`
+**Documentation:** `arduino_code/surf_lamp_single_strip/LED_VALUES_REFERENCE.md`
+
+**Hardware:**
+- Single continuous 47-LED WS2812B strip wrapped to appear as 3 strips
+- Uses array index mapping to simulate 3 separate strips
+
+**LED Configuration:**
+```cpp
+#define LED_PIN 2               // Single GPIO pin
+#define TOTAL_LEDS 47           // One continuous strip
+
+// LED Section Mapping (array indices)
+#define WAVE_HEIGHT_START 1      // LEDs 1-14 (bottom-up)
+#define WAVE_PERIOD_START 33     // LEDs 33-46 (bottom-up)
+#define WIND_SPEED_START 30      // LEDs 30-17 (REVERSE direction)
+
+#define STATUS_LED_INDEX 30      // Status indicator
+#define WIND_DIRECTION_INDEX 17  // Wind direction indicator
+```
+
+**Wind Scaling:** Maps 0-13 m/s to 0-12 LEDs (formula: `12.0/13.0` - fewer available LEDs)
+
+**Key Difference:** Single-strip version uses reverse direction for wind speed LEDs (30→17) due to physical wrapping layout.
+
+**Both variants:**
+- Use identical pull-based communication
+- Support all theme modes and threshold alerts
+- Fetch data every 13 minutes from `/api/arduino/<id>/data`
+- Share the same data processing logic
 
 ### Wind Direction Colors
 **Function:** `setWindDirection()` in `arduinomain_lamp.ino:316-328`
@@ -316,6 +363,7 @@ Returns surf data formatted for Arduino consumption:
 - Converts wave height from meters to centimeters
 - Rounds wind speed to integers
 - Returns safe defaults if no data available
+- **Timezone Handling (Commit 4f38fb6):** All timestamps use `datetime.now(timezone.utc)` for consistent UTC timestamps across deployments
 
 ## Database Schema
 
@@ -339,8 +387,9 @@ users (
 lamps (
     lamp_id PRIMARY KEY,
     user_id FOREIGN KEY,
-    arduino_id UNIQUE,           -- Physical Arduino device ID
-    arduino_ip                   -- Arduino's network IP address
+    arduino_id UNIQUE,           -- Physical Arduino device ID (also called "Device ID" in UI)
+    last_updated TIMESTAMP       -- Last successful data sync
+    -- arduino_ip removed in commit 1e96bc8: pull-based architecture doesn't need IP tracking
 )
 
 -- Current surf conditions
@@ -360,7 +409,22 @@ usage_lamps (
     http_endpoint TEXT,          -- Full API URL with coordinates
     endpoint_priority INTEGER   -- 1=highest priority (wave data), 2=wind data
 )
+
+-- Password reset tokens (added in commit 181ee7d)
+password_reset_tokens (
+    id UUID PRIMARY KEY,
+    user_id FOREIGN KEY,
+    token_hash VARCHAR(128) UNIQUE,  -- Hashed token for security
+    expiration_time TIMESTAMP,       -- Token valid for 20 minutes
+    created_at TIMESTAMP,
+    used_at TIMESTAMP,               -- Prevents token reuse
+    is_invalidated BOOLEAN           -- Manual revocation flag
+)
 ```
+
+**Database Maintenance:**
+- `cleanup_expired_password_reset_tokens()` function deletes tokens older than 24 hours
+- Script: `/cleanup_tokens.py` - recommended cron: daily at 3 AM
 
 ## Timing and Synchronization
 
@@ -446,6 +510,120 @@ usage_lamps (
 - Arduino needs to receive night mode flag from server API
 
 **Current Status**: Requirements documented - implementation needed in both Arduino firmware and web application
+
+## Manufacturing and Production System
+
+**Location:** `manufacturing_id/` directory
+**Documentation:** `manufacturing_id/README.md`
+
+### Overview
+The manufacturing system is a complete production tooling suite that bridges hardware manufacturing and customer onboarding. It enables efficient Arduino ID assignment, QR code generation, and seamless device registration.
+
+### Components
+
+#### 1. **ID Manager** (`id_manager.py`)
+- Queries production database for next available Arduino ID
+- Tracks used IDs and detects gaps in ID sequences
+- Provides statistics for manufacturing team
+
+#### 2. **QR Code Generator** (`qr_generator.py`)
+- Generates QR codes linking to pre-filled registration URLs
+- Format: `https://final-surf-lamp-web.onrender.com/register?id=4433`
+- Creates single codes, batch sets, and print-ready sheets
+- Adds human-readable labels with Arduino ID and URL
+
+#### 3. **Manufacturing Dashboard** (`manufacturing_app.py`)
+- Flask web application (port 5001) for production team
+- Real-time statistics: next available ID, total used, highest ID
+- Three core functions: single generation, batch processing, print sheets
+- Duplicate detection prevents re-generating existing IDs
+
+#### 4. **Database Integration**
+- Connects directly to production Supabase database
+- Real-time ID availability checking
+- Automatic silent skipping of duplicate IDs in batch mode
+
+### Production Workflow
+
+**Phase 1: Device Preparation**
+1. Manufacturing team opens dashboard at `http://localhost:5001`
+2. Flash Arduino firmware with next available ID (e.g., ID 15)
+3. Generate QR code for that ID
+4. Print QR code on card (credit card size)
+5. Package device with QR code card
+
+**Phase 2: Customer Onboarding**
+1. Customer receives device with QR code card
+2. Scans QR code with phone camera
+3. Registration page opens with **Device ID pre-filled** (Arduino ID auto-populated)
+4. Customer enters name, email, password, location
+5. Account created and lamp registered in database
+6. Arduino fetches data and displays surf conditions
+
+### QR Code Auto-Fill System
+
+**Backend Implementation** (`web_and_database/app.py:407-425`):
+- Extracts `?id=` parameter from registration URL
+- Validates Arduino ID range (1-999,999)
+- Pre-fills registration form Device ID field
+- Provides visual green checkmark when valid
+
+**User Terminology:**
+- User-facing: "Device ID" (non-technical)
+- Backend code: `arduino_id` (technical field name)
+- Rationale: Non-technical users don't need to know Arduino platform
+
+### Real-Time Registration Validation (Commit 9416a35)
+
+The registration form provides instant visual feedback:
+
+**Validated Fields:**
+- **Name:** 2-50 characters, letters/spaces/hyphens/apostrophes (regex: `/^[a-zA-Z\s\-']{2,50}$/`)
+- **Email:** Standard email format, max 255 characters
+- **Device ID:** Integer 1-999,999 (green border when valid)
+- **Password:** 8-128 characters
+
+**Visual Feedback:**
+- Green border + shadow: Field valid
+- Red border + shadow: Field invalid
+- No styling: Field empty
+
+### Error Handling (Commit 2f834d3)
+
+**Duplicate Field Detection:**
+Database constraint parsing provides specific error messages:
+
+| Duplicate Field | Error Message |
+|----------------|---------------|
+| Email | "This email address is already registered. Please use a different email or login." |
+| Username | "This username is already taken. Please choose a different username." |
+| Device ID | "This Device ID is already registered to another user. Please check your Device ID." |
+
+**Implementation:** PostgreSQL constraint name parsing from `IntegrityError.orig`
+
+### Benefits
+
+1. **Production Efficiency:** Generate 100 QR codes in one click
+2. **Zero-Error ID Assignment:** Database-driven prevents duplicates
+3. **Customer Experience:** Scan QR → form auto-filled → done! (90% friction reduction)
+4. **Inventory Tracking:** Real-time statistics on ID usage
+5. **Scalability:** Ready for mass production runs
+
+### Files
+
+```
+manufacturing_id/
+├── id_manager.py              # Database queries for ID management
+├── qr_generator.py            # QR code generation with PIL
+├── manufacturing_app.py       # Flask dashboard (port 5001)
+├── requirements.txt           # Flask, qrcode, Pillow, SQLAlchemy
+├── README.md                  # Complete documentation
+├── templates/
+│   └── dashboard.html         # Manufacturing UI
+└── static/qr_codes/           # Generated QR code files
+```
+
+**Security Note:** Manufacturing dashboard is intended for internal use only (no authentication).
 
 ## Configuration Files
 
@@ -661,9 +839,11 @@ After adding the location, the system automatically provides:
 ## Common Issues and Solutions
 
 ### Arduino Not Updating
-1. **Check Arduino IP:** Ensure `arduino_ip` field in database is correct
-2. **Check Background Processor:** Verify lamp_id is being processed in logs
-3. **Manual Fetch:** Use `/api/fetch` endpoint to force immediate update
+1. **Check Arduino Network:** Ensure Arduino can reach the API server (check serial monitor at 115200 baud)
+2. **Check Server Discovery:** Arduino logs show server discovery status and fetch attempts
+3. **Check Database:** Verify lamp_id has current surf data in `current_conditions` table
+4. **Check Background Processor:** Verify lamp_id is being processed in background_processor logs
+5. **Manual Fetch:** Use `http://<arduino_local_ip>/api/fetch` endpoint on Arduino to force immediate update
 
 ### Wrong Location Data
 1. **Check API Endpoints:** Verify `usage_lamps` table has correct coordinates
