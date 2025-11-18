@@ -38,7 +38,7 @@ ServerDiscovery serverDiscovery;
 // *** SINGLE STRIP CONFIGURATION ***
 #define LED_PIN 2            // GPIO 2 - Single continuous strip
 #define TOTAL_LEDS 47        // Total LEDs in the strip (0-46)
-#define BRIGHTNESS 100
+#define BRIGHTNESS 38
 #define LED_TYPE WS2812B
 #define COLOR_ORDER GRB
 
@@ -109,6 +109,7 @@ struct SurfData {
     bool quietHoursActive = false;
     unsigned long lastUpdate = 0;
     bool dataReceived = false;
+    bool needsDisplayUpdate = false;  // Flag to trigger display refresh
 } lastSurfData;
 
 
@@ -190,7 +191,7 @@ LEDMappingConfig ledMapping;
 void setupHTTPEndpoints();
 bool fetchSurfDataFromServer();
 bool processSurfData(const String &jsonData);
-void updateSurfDisplay(int waveHeight_cm, float wavePeriod, int windSpeed, int windDirection, int waveThreshold_cm = 100, int windSpeedThreshold_knots = 15);
+void updateSurfDisplay();  // Now reads from global state, no parameters needed
 void handleSurfDataUpdate();
 void handleStatusRequest();
 void handleTestRequest();
@@ -300,6 +301,54 @@ void loadCredentials() {
     storedPassword.toCharArray(password, sizeof(password));
 
     Serial.printf("📝 Loaded credentials - SSID: %s\n", ssid);
+}
+
+// ---------------------------- Button Press Functions ----------------------------
+
+void set_config_mode_and_restart() {
+    if (digitalRead(BUTTON_PIN) == LOW) {
+        Serial.println("🔘 Button pressed - setting config mode flag");
+
+        // Visual feedback: Turn all LEDs blue
+        fill_solid(leds, TOTAL_LEDS, CRGB::Blue);
+        FastLED.show();
+
+        // Set flag in NVRAM to enter AP mode on next boot
+        preferences.begin("wifi-creds", false);
+        preferences.putInt("button_pressed", 1);
+        preferences.end();
+
+        delay(500);
+        Serial.println("🔄 Restarting to enter configuration mode...");
+        ESP.restart();
+    }
+}
+
+void checkButtonAndEnterAP() {
+    preferences.begin("wifi-creds", false);
+    int bootFlag = preferences.getInt("button_pressed", 0);
+
+    if (bootFlag == 1) {
+        Serial.println("🔘 Boot flag detected - entering AP mode");
+
+        // Clear the flag immediately
+        preferences.putInt("button_pressed", 0);
+        preferences.end();
+
+        // Visual feedback: Blue LEDs
+        fill_solid(leds, TOTAL_LEDS, CRGB::Blue);
+        FastLED.show();
+
+        // Enter configuration mode
+        startConfigMode();
+
+        // Stay in AP mode indefinitely until configured
+        while (true) {
+            server.handleClient();
+            delay(10);
+        }
+    }
+    preferences.end();
 }
 
 // ---------------------------- LED Status Functions ----------------------------
@@ -435,12 +484,14 @@ void updateBlinkingWindSpeedLEDs(int numActiveLeds, CHSV baseColor) {
 
 // *** MODIFIED: Threshold functions to use new LED mapping ***
 void applyWindSpeedThreshold(int windSpeedLEDs, int windSpeed_mps, int windSpeedThreshold_knots) {
+    // Skip all LED updates during quiet hours - quiet hours mode already set the display
+    if (lastSurfData.quietHoursActive) return;
+
     // Convert wind speed from m/s to knots for threshold comparison
     float windSpeedInKnots = ledMapping.windSpeedToKnots(windSpeed_mps);
 
-    // Check if quiet hours are active - disable threshold blinking during sleep time
-    if (lastSurfData.quietHoursActive || windSpeedInKnots < windSpeedThreshold_knots) {
-        // NORMAL MODE: Theme-based wind speed visualization (no blinking during quiet hours)
+    if (windSpeedInKnots < windSpeedThreshold_knots) {
+        // NORMAL MODE: Theme-based wind speed visualization
         updateWindSpeedLEDs(windSpeedLEDs, getWindSpeedColor(currentTheme));
     } else {
         // ALERT MODE: Blinking theme-based wind speed LEDs
@@ -450,9 +501,11 @@ void applyWindSpeedThreshold(int windSpeedLEDs, int windSpeed_mps, int windSpeed
 }
 
 void applyWaveHeightThreshold(int waveHeightLEDs, int waveHeight_cm, int waveThreshold_cm) {
-    // Check if quiet hours are active - disable threshold blinking during sleep time
-    if (lastSurfData.quietHoursActive || waveHeight_cm < waveThreshold_cm) {
-        // NORMAL MODE: Theme-based wave height visualization (no blinking during quiet hours)
+    // Skip all LED updates during quiet hours - quiet hours mode already set the display
+    if (lastSurfData.quietHoursActive) return;
+
+    if (waveHeight_cm < waveThreshold_cm) {
+        // NORMAL MODE: Theme-based wave height visualization
         updateWaveHeightLEDs(waveHeightLEDs, getWaveHeightColor(currentTheme));
     } else {
         // ALERT MODE: Blinking theme-based wave height LEDs
@@ -941,29 +994,42 @@ bool processSurfData(const String &jsonData) {
     Serial.printf("⏰ Timestamp: %lu ms (uptime)\n", millis());
     Serial.printf("💡 LEDs Active - Wind: %d, Wave: %d, Period: %d\n", windSpeedLEDs, waveHeightLEDs, wavePeriodLEDs);
 
-    // Store quiet hours state BEFORE updating display (critical: updateSurfDisplay checks this!)
-    lastSurfData.quietHoursActive = quiet_hours_active;
-
-    // Update LEDs with the new data
-    updateSurfDisplay(wave_height_cm, wave_period_s, wind_speed_mps, wind_direction_deg, wave_threshold_cm, wind_speed_threshold_knots);
-
-    // Store remaining data for status reporting (converting height and threshold to meters for consistency)
+    // *** DECOUPLED ARCHITECTURE: Only update state, don't trigger display ***
+    // Store all data in global state (converting height and threshold to meters for consistency)
     lastSurfData.waveHeight = wave_height_cm / 100.0;
     lastSurfData.wavePeriod = wave_period_s;
     lastSurfData.windSpeed = wind_speed_mps;
     lastSurfData.windDirection = wind_direction_deg;
     lastSurfData.waveThreshold = wave_threshold_cm / 100.0;  // Convert cm to meters for consistent comparison
     lastSurfData.windSpeedThreshold = wind_speed_threshold_knots;
+    lastSurfData.quietHoursActive = quiet_hours_active;
     lastSurfData.lastUpdate = millis();
     lastSurfData.dataReceived = true;
+    lastSurfData.needsDisplayUpdate = true;  // Signal to loop() that display needs refresh
 
     return true;
 }
 
 
-void updateSurfDisplay(int waveHeight_cm, float wavePeriod, int windSpeed, int windDirection, int waveThreshold_cm, int windSpeedThreshold_knots) {
+void updateSurfDisplay() {
+    // *** DECOUPLED ARCHITECTURE: Read from global state instead of parameters ***
+    if (!lastSurfData.dataReceived) {
+        Serial.println("⚠️ No surf data available to display");
+        return;
+    }
+
+    // Convert stored data back to the units needed for display
+    int waveHeight_cm = static_cast<int>(lastSurfData.waveHeight * 100);
+    float wavePeriod = lastSurfData.wavePeriod;
+    int windSpeed = static_cast<int>(lastSurfData.windSpeed);
+    int windDirection = lastSurfData.windDirection;
+    int waveThreshold_cm = static_cast<int>(lastSurfData.waveThreshold * 100);
+    int windSpeedThreshold_knots = lastSurfData.windSpeedThreshold;
+
     // Check for quiet hours - show only the highest LED that would normally be on
     if (lastSurfData.quietHoursActive) {
+        FastLED.setBrightness(BRIGHTNESS * 0.3); // Dim to 30% during quiet hours
+
         // Calculate how many LEDs would be on during daytime
         int windSpeedLEDs = ledMapping.calculateWindLEDs(windSpeed);
         int waveHeightLEDs = ledMapping.calculateWaveLEDsFromCm(waveHeight_cm);
@@ -1052,6 +1118,30 @@ void setup() {
     // Initialize preferences
     preferences.begin("wifi-creds", false);
 
+    // Visual feedback: Green LED for 10 seconds - user can press button during this time
+    Serial.println("🟢 Green LED active - press BOOT button within 10 seconds to enter config mode");
+    fill_solid(leds, TOTAL_LEDS, CRGB::Green);
+    FastLED.show();
+
+    unsigned long greenStart = millis();
+
+    // Check if button was pressed in previous boot
+    checkButtonAndEnterAP();
+
+    // Wait 10 seconds for button press
+    while (millis() - greenStart < 10000) {
+        if (digitalRead(BUTTON_PIN) == LOW) {
+            set_config_mode_and_restart();
+            break;
+        }
+        delay(10);
+    }
+
+    // Turn off green LEDs
+    fill_solid(leds, TOTAL_LEDS, CRGB::Black);
+    FastLED.show();
+    Serial.println("⏱️ Button press window closed");
+
     // Attempt WiFi connection
     if (!connectToWiFi()) {
         Serial.println("🔧 Starting configuration mode...");
@@ -1074,6 +1164,23 @@ void setup() {
 // ---------------------------- Main Loop (UNCHANGED) ----------------------------
 
 void loop() {
+    // Check for button press to enter config mode (check every 1 second)
+    static unsigned long lastButtonCheck = 0;
+    unsigned long now = millis();
+
+    if (now - lastButtonCheck >= 1000) {
+        lastButtonCheck = now;
+        if (digitalRead(BUTTON_PIN) == LOW) {
+            Serial.println("🔘 Button pressed during runtime - setting config mode flag");
+            preferences.begin("wifi-creds", false);
+            preferences.putInt("button_pressed", 1);
+            preferences.end();
+            delay(500);
+            Serial.println("🔄 Restarting to enter configuration mode...");
+            ESP.restart();
+        }
+    }
+
     // Handle HTTP requests
     server.handleClient();
 
@@ -1110,6 +1217,13 @@ void loop() {
                 Serial.println("❌ Surf data fetch failed, will retry later");
                 lastDataFetch = millis(); // Still update to avoid rapid retries
             }
+        }
+
+        // *** DECOUPLED ARCHITECTURE: Check if display needs update ***
+        if (lastSurfData.needsDisplayUpdate) {
+            Serial.println("🔄 Detected state change, updating display...");
+            updateSurfDisplay();
+            lastSurfData.needsDisplayUpdate = false;  // Clear the flag
         }
 
         // Update blinking LEDs if any thresholds are exceeded

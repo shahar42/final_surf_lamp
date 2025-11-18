@@ -855,4 +855,7 @@ After adding the location, the system automatically provides:
 2. **Check Calculations:** Wind direction ranges in `setWindDirection()` function
 3. **LED Indexing:** Ensure `NUM_LEDS_CENTER - 1` points to correct LED
 
+### test_system directory
+a directory with tests that should keep on growing test are indepenent of the system
+
 This documentation reflects the actual implementation as found in the codebase and should prevent future architectural misunderstandings.
