@@ -1088,6 +1088,105 @@ async def render_latest_deployment_logs(service_id: Optional[str] = None, lines:
         return f"ERROR: Error fetching deployment logs: {str(e)}"
 
 
+@mcp.tool()
+async def render_read_error_reports(limit: int = 10) -> str:
+    """
+    ERROR REPORTS: Read user-submitted error reports from the Surf Lamp web service.
+
+    Users can submit error reports via the dashboard's "Report Error" button. This tool
+    fetches those reports from the production web service.
+
+    Args:
+        limit: Number of recent reports to show (default: 10, max: 100)
+
+    Returns:
+        Formatted error reports with user details, timestamps, and descriptions
+    """
+    try:
+        # Validate limit
+        limit = min(max(1, limit), 100)
+
+        # URL to the API endpoint on the web service (unauthenticated)
+        reports_url = "https://final-surf-lamp-web.onrender.com/api/error-reports"
+
+        # Use curl to fetch the reports
+        cmd = ["curl", "-s", "-w", "%{http_code}", "-L", reports_url]
+
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        stdout, stderr = await process.communicate()
+
+        if process.returncode != 0:
+            return f"ERROR: Curl failed: {stderr.decode()}"
+
+        output = stdout.decode()
+
+        # Split response body and status code
+        if len(output) < 3:
+            return "ERROR: Invalid response from web service"
+
+        status_code = int(output[-3:])
+        response_body = output[:-3]
+
+        if status_code >= 400:
+            return f"ERROR: HTTP {status_code} from web service"
+
+        # Check if response is empty
+        if not response_body.strip():
+            return "INFO: No error reports found (empty response)"
+
+        # Parse JSON response
+        try:
+            data = json.loads(response_body)
+            reports = data.get('reports', [])
+        except json.JSONDecodeError as e:
+            return f"ERROR: Invalid JSON response: {e}"
+
+        if not reports:
+            return "INFO: No error reports found"
+
+        # Apply limit (get most recent N reports)
+        recent_reports = reports[-limit:] if len(reports) > limit else reports
+
+        # Format output for Claude
+        formatted = []
+        formatted.append(f"ERROR REPORTS: User-Submitted Error Reports from Surf Lamp")
+        formatted.append(f"INFO: Showing {len(recent_reports)} of {len(reports)} total reports")
+        formatted.append("")
+        formatted.append("=" * 80)
+        formatted.append("")
+
+        # Show most recent first
+        for i, report in enumerate(reversed(recent_reports), 1):
+            timestamp = report.get('timestamp', 'Unknown')
+            username = report.get('username', 'Unknown')
+            user_id = report.get('user_id', 'N/A')
+            email = report.get('email', 'Unknown')
+            location = report.get('location', 'Unknown')
+            lamp_id = report.get('lamp_id', 'N/A')
+            arduino_id = report.get('arduino_id', 'N/A')
+            description = report.get('error_description', 'No description')
+            user_agent = report.get('user_agent', 'Unknown')
+
+            formatted.append(f"[{i:02d}] REPORT")
+            formatted.append(f"     Timestamp: {timestamp}")
+            formatted.append(f"     User: {username} (ID: {user_id})")
+            formatted.append(f"     Email: {email}")
+            formatted.append(f"     Location: {location}")
+            formatted.append(f"     Lamp ID: {lamp_id} | Arduino ID: {arduino_id}")
+            formatted.append(f"     User Agent: {user_agent}")
+            formatted.append(f"     Description: {description}")
+            formatted.append("")
+
+        return "\n".join(formatted)
+
+    except Exception as e:
+        return f"ERROR: Failed to read error reports: {str(e)}"
+
+
 # Test API connection on startup
 async def test_connection():
     """Test Render API connection on startup"""

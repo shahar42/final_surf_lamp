@@ -829,6 +829,37 @@ def download_error_reports():
         flash('Failed to download error reports.', 'error')
         return redirect(url_for('dashboard'))
 
+@app.route("/api/error-reports")
+def api_error_reports():
+    """
+    API endpoint for MCP tools to access error reports without authentication.
+    Returns JSON array of all error reports from error_reports.jsonl file.
+    """
+    try:
+        filepath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'error_reports.jsonl')
+
+        # Return empty list if file doesn't exist
+        if not os.path.exists(filepath):
+            return jsonify({'reports': []}), 200
+
+        # Read all reports from JSONL file
+        reports = []
+        with open(filepath, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    try:
+                        reports.append(json.loads(line))
+                    except json.JSONDecodeError as e:
+                        logger.warning(f"Skipping invalid JSON line in error_reports.jsonl: {e}")
+                        continue
+
+        return jsonify({'reports': reports}), 200
+
+    except Exception as e:
+        logger.error(f"Error in api_error_reports endpoint: {e}")
+        return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
+
 @app.route("/admin/trigger-processor")
 @login_required  # Only logged-in users can trigger
 def trigger_processor():
