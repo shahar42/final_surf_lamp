@@ -147,6 +147,31 @@ def convert_wind_direction(degrees):
 # Add the filter after the function is defined
 app.jinja_env.filters['wind_direction'] = convert_wind_direction
 
+def write_error_report_safe(report_data):
+    """
+    Write error report to file with thread-safe locking.
+    Uses fcntl.flock() to prevent race conditions across gunicorn workers.
+    """
+    import fcntl
+    import json
+
+    filepath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'error_reports.jsonl')
+
+    try:
+        with open(filepath, 'a') as f:
+            # Acquire exclusive lock
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+            try:
+                f.write(json.dumps(report_data) + '\n')
+                f.flush()
+            finally:
+                # Release lock
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+        return True
+    except Exception as e:
+        logger.error(f"Failed to write error report: {e}")
+        return False
+
 # --- Helper Functions ---
 
 app.config.update(
@@ -728,6 +753,81 @@ def update_theme():
     except Exception as e:
         logger.error(f"❌ Error updating theme: {e}")
         return {'success': False, 'message': f'Server error: {str(e)}'}, 500
+
+@app.route("/report-error", methods=['POST'])
+@login_required
+@limiter.limit("5 per hour")
+def report_error():
+    """User-submitted error reporting with auto-captured context"""
+    try:
+        data = request.get_json()
+        error_description = data.get('error_description', '').strip()
+
+        # Validate input
+        if not error_description:
+            return {'success': False, 'message': 'Error description is required'}, 400
+
+        if len(error_description) > 1000:
+            return {'success': False, 'message': 'Error description too long (max 1000 characters)'}, 400
+
+        user_id = session.get('user_id')
+        user_email = session.get('user_email')
+
+        # Get additional context
+        db = SessionLocal()
+        try:
+            user, lamp, _ = get_user_lamp_data(user_email)
+
+            if not user:
+                return {'success': False, 'message': 'User not found'}, 404
+
+            # Build error report with auto-captured context
+            report = {
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'user_id': user.user_id,
+                'username': user.username,
+                'email': user.email,
+                'lamp_id': lamp.lamp_id if lamp else None,
+                'arduino_id': lamp.arduino_id if lamp else None,
+                'location': user.location,
+                'user_agent': request.headers.get('User-Agent', 'Unknown'),
+                'error_description': error_description
+            }
+
+            # Write to file with thread-safe locking
+            if write_error_report_safe(report):
+                logger.info(f"Error report saved from user {user.username} (ID: {user.user_id})")
+                return {'success': True, 'message': 'Error report submitted successfully. Thank you!'}, 200
+            else:
+                return {'success': False, 'message': 'Failed to save error report. Please try again.'}, 500
+
+        finally:
+            db.close()
+
+    except Exception as e:
+        logger.error(f"Error in report_error endpoint: {e}")
+        return {'success': False, 'message': f'Server error: {str(e)}'}, 500
+
+@app.route("/admin/download-error-reports")
+@login_required
+def download_error_reports():
+    """Download error reports file (requires login)"""
+    try:
+        from flask import send_file
+        filepath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'error_reports.jsonl')
+
+        # Check if file exists
+        if not os.path.exists(filepath):
+            flash('No error reports file found.', 'info')
+            return redirect(url_for('dashboard'))
+
+        logger.info(f"User {session.get('username')} downloaded error reports")
+        return send_file(filepath, as_attachment=True, download_name='error_reports.jsonl')
+
+    except Exception as e:
+        logger.error(f"Error downloading error reports: {e}")
+        flash('Failed to download error reports.', 'error')
+        return redirect(url_for('dashboard'))
 
 @app.route("/admin/trigger-processor")
 @login_required  # Only logged-in users can trigger

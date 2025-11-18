@@ -326,11 +326,58 @@
                 </div>
 
                 <div class="text-center">
+                    <button id="reportErrorBtn" class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded-lg shadow-lg mr-2 transition-colors">
+                        Report Error
+                    </button>
                     <a href="{{ url_for('logout') }}" class="logout-btn text-white font-semibold py-2 px-4 rounded-lg shadow-lg">
                         Logout
                     </a>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Error Report Modal -->
+    <div id="errorReportModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-2xl p-8 max-w-lg w-full mx-4 shadow-2xl">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Report an Error</h2>
+
+            <form id="errorReportForm">
+                <div class="mb-4">
+                    <label for="errorDescription" class="block text-gray-700 font-semibold mb-2">
+                        Describe the issue you're experiencing:
+                    </label>
+                    <textarea
+                        id="errorDescription"
+                        rows="6"
+                        maxlength="1000"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800"
+                        placeholder="Example: My lamp LEDs are not updating after I changed my location..."
+                    ></textarea>
+                    <div class="text-right text-sm text-gray-500 mt-1">
+                        <span id="charCount">0</span>/1000 characters
+                    </div>
+                </div>
+
+                <div id="errorReportStatus" class="mb-4 text-sm hidden"></div>
+
+                <div class="flex justify-end space-x-3">
+                    <button
+                        type="button"
+                        id="cancelErrorReport"
+                        class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold rounded-lg transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="submit"
+                        id="submitErrorReport"
+                        class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-colors"
+                    >
+                        Submit Report
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -722,6 +769,104 @@
 
     // Blink animation at 0.8s intervals
     setInterval(blinkLoop, 800);
+
+    // ==============================
+    // ERROR REPORTING MODAL CODE
+    // ==============================
+
+    const modal = document.getElementById('errorReportModal');
+    const reportBtn = document.getElementById('reportErrorBtn');
+    const cancelBtn = document.getElementById('cancelErrorReport');
+    const form = document.getElementById('errorReportForm');
+    const textarea = document.getElementById('errorDescription');
+    const charCount = document.getElementById('charCount');
+    const statusDiv = document.getElementById('errorReportStatus');
+
+    // Open modal
+    reportBtn.addEventListener('click', function() {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        textarea.focus();
+    });
+
+    // Close modal
+    function closeModal() {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        textarea.value = '';
+        charCount.textContent = '0';
+        statusDiv.classList.add('hidden');
+    }
+
+    cancelBtn.addEventListener('click', closeModal);
+
+    // Close on background click
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            closeModal();
+        }
+    });
+
+    // Character counter
+    textarea.addEventListener('input', function() {
+        charCount.textContent = this.value.length;
+    });
+
+    // Submit error report
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const description = textarea.value.trim();
+
+        if (!description) {
+            statusDiv.textContent = 'Please enter a description of the error.';
+            statusDiv.className = 'mb-4 text-sm text-red-600';
+            statusDiv.classList.remove('hidden');
+            return;
+        }
+
+        // Disable submit button during submission
+        const submitBtn = document.getElementById('submitErrorReport');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Submitting...';
+
+        statusDiv.textContent = 'Submitting your report...';
+        statusDiv.className = 'mb-4 text-sm text-blue-600';
+        statusDiv.classList.remove('hidden');
+
+        fetch('/report-error', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ error_description: description })
+        })
+        .then(response => response.json().then(data => ({ok: response.ok, body: data})))
+        .then(({ok, body}) => {
+            if (ok) {
+                statusDiv.textContent = body.message;
+                statusDiv.className = 'mb-4 text-sm text-green-600';
+
+                // Close modal after 2 seconds
+                setTimeout(closeModal, 2000);
+            } else {
+                statusDiv.textContent = 'Error: ' + body.message;
+                statusDiv.className = 'mb-4 text-sm text-red-600';
+
+                // Re-enable submit button
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Report';
+            }
+        })
+        .catch(error => {
+            statusDiv.textContent = 'Network error. Please try again.';
+            statusDiv.className = 'mb-4 text-sm text-red-600';
+
+            // Re-enable submit button
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Submit Report';
+        });
+    });
 
     </script>
 </body>
