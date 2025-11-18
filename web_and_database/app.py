@@ -147,31 +147,6 @@ def convert_wind_direction(degrees):
 # Add the filter after the function is defined
 app.jinja_env.filters['wind_direction'] = convert_wind_direction
 
-def write_error_report_safe(report_data):
-    """
-    Write error report to file with thread-safe locking.
-    Uses fcntl.flock() to prevent race conditions across gunicorn workers.
-    """
-    import fcntl
-    import json
-
-    filepath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'error_reports.jsonl')
-
-    try:
-        with open(filepath, 'a') as f:
-            # Acquire exclusive lock
-            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
-            try:
-                f.write(json.dumps(report_data) + '\n')
-                f.flush()
-            finally:
-                # Release lock
-                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
-        return True
-    except Exception as e:
-        logger.error(f"Failed to write error report: {e}")
-        return False
-
 # --- Helper Functions ---
 
 app.config.update(
@@ -781,25 +756,25 @@ def report_error():
             if not user:
                 return {'success': False, 'message': 'User not found'}, 404
 
-            # Build error report with auto-captured context
-            report = {
-                'timestamp': datetime.now(timezone.utc).isoformat(),
-                'user_id': user.user_id,
-                'username': user.username,
-                'email': user.email,
-                'lamp_id': lamp.lamp_id if lamp else None,
-                'arduino_id': lamp.arduino_id if lamp else None,
-                'location': user.location,
-                'user_agent': request.headers.get('User-Agent', 'Unknown'),
-                'error_description': error_description
-            }
+            # Save error report to database
+            from data_base import ErrorReport
 
-            # Write to file with thread-safe locking
-            if write_error_report_safe(report):
-                logger.info(f"Error report saved from user {user.username} (ID: {user.user_id})")
-                return {'success': True, 'message': 'Error report submitted successfully. Thank you!'}, 200
-            else:
-                return {'success': False, 'message': 'Failed to save error report. Please try again.'}, 500
+            error_report = ErrorReport(
+                user_id=user.user_id,
+                username=user.username,
+                email=user.email,
+                lamp_id=lamp.lamp_id if lamp else None,
+                arduino_id=lamp.arduino_id if lamp else None,
+                location=user.location,
+                user_agent=request.headers.get('User-Agent', 'Unknown'),
+                error_description=error_description
+            )
+
+            db.add(error_report)
+            db.commit()
+
+            logger.info(f"Error report saved from user {user.username} (ID: {user.user_id})")
+            return {'success': True, 'message': 'Error report submitted successfully. Thank you!'}, 200
 
         finally:
             db.close()
@@ -808,53 +783,40 @@ def report_error():
         logger.error(f"Error in report_error endpoint: {e}")
         return {'success': False, 'message': f'Server error: {str(e)}'}, 500
 
-@app.route("/admin/download-error-reports")
-@login_required
-def download_error_reports():
-    """Download error reports file (requires login)"""
-    try:
-        from flask import send_file
-        filepath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'error_reports.jsonl')
-
-        # Check if file exists
-        if not os.path.exists(filepath):
-            flash('No error reports file found.', 'info')
-            return redirect(url_for('dashboard'))
-
-        logger.info(f"User {session.get('username')} downloaded error reports")
-        return send_file(filepath, as_attachment=True, download_name='error_reports.jsonl')
-
-    except Exception as e:
-        logger.error(f"Error downloading error reports: {e}")
-        flash('Failed to download error reports.', 'error')
-        return redirect(url_for('dashboard'))
-
 @app.route("/api/error-reports")
 def api_error_reports():
     """
     API endpoint for MCP tools to access error reports without authentication.
-    Returns JSON array of all error reports from error_reports.jsonl file.
+    Returns JSON array of all error reports from database.
     """
     try:
-        filepath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'error_reports.jsonl')
+        from data_base import ErrorReport
 
-        # Return empty list if file doesn't exist
-        if not os.path.exists(filepath):
-            return jsonify({'reports': []}), 200
+        db = SessionLocal()
+        try:
+            # Query all error reports ordered by timestamp (newest first)
+            error_reports = db.query(ErrorReport).order_by(ErrorReport.timestamp.desc()).all()
 
-        # Read all reports from JSONL file
-        reports = []
-        with open(filepath, 'r') as f:
-            for line in f:
-                line = line.strip()
-                if line:
-                    try:
-                        reports.append(json.loads(line))
-                    except json.JSONDecodeError as e:
-                        logger.warning(f"Skipping invalid JSON line in error_reports.jsonl: {e}")
-                        continue
+            # Convert to list of dictionaries
+            reports = []
+            for report in error_reports:
+                reports.append({
+                    'id': report.id,
+                    'timestamp': report.timestamp.isoformat() if report.timestamp else None,
+                    'user_id': report.user_id,
+                    'username': report.username,
+                    'email': report.email,
+                    'location': report.location,
+                    'lamp_id': report.lamp_id,
+                    'arduino_id': report.arduino_id,
+                    'error_description': report.error_description,
+                    'user_agent': report.user_agent
+                })
 
-        return jsonify({'reports': reports}), 200
+            return jsonify({'reports': reports}), 200
+
+        finally:
+            db.close()
 
     except Exception as e:
         logger.error(f"Error in api_error_reports endpoint: {e}")

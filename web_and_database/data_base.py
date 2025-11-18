@@ -115,9 +115,26 @@ class PasswordResetToken(Base):
     
     def is_valid(self):
         from datetime import datetime
-        return (self.expiration_time > datetime.utcnow() and 
-                self.used_at is None and 
+        return (self.expiration_time > datetime.utcnow() and
+                self.used_at is None and
                 not self.is_invalidated)
+
+class ErrorReport(Base):
+    """Stores user-submitted error reports from the dashboard"""
+    __tablename__ = 'error_reports'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
+    username = Column(String(255), nullable=False)
+    email = Column(String(255), nullable=False)
+    location = Column(String(255), nullable=True)
+    lamp_id = Column(Integer, nullable=True)
+    arduino_id = Column(Integer, nullable=True)
+    error_description = Column(Text, nullable=False)
+    user_agent = Column(Text, nullable=True)
+    timestamp = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+
+    user = relationship("User", backref="error_reports")
 
 class Lamp(Base):
     """
