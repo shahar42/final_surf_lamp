@@ -365,6 +365,73 @@ Returns surf data formatted for Arduino consumption:
 - Returns safe defaults if no data available
 - **Timezone Handling (Commit 4f38fb6):** All timestamps use `datetime.now(timezone.utc)` for consistent UTC timestamps across deployments
 
+### User Error Reporting System
+**Route:** `POST /report-error`
+**File:** `web_and_database/app.py:757-809`
+
+User-facing error reporting feature that allows users to submit problem descriptions directly from the dashboard.
+
+**Features:**
+- **UI:** Yellow "Report Error" button on dashboard (next to Logout button)
+- **Modal Form:** Popup with textarea for error description (max 1000 characters)
+- **Rate Limiting:** 5 reports per hour per user (prevents spam)
+- **Thread-Safe Writes:** Uses `fcntl.flock()` for concurrent write safety across gunicorn workers
+- **Auto-Context Capture:** Automatically records debugging information with each report
+
+**Request Format:**
+```json
+POST /report-error
+{
+    "error_description": "LEDs not updating after location change"
+}
+```
+
+**Auto-Captured Context:**
+```json
+{
+    "timestamp": "2025-11-18T23:30:45.123Z",
+    "user_id": 1,
+    "username": "shahar",
+    "email": "shaharisn1@gmail.com",
+    "lamp_id": 4,
+    "arduino_id": 4433,
+    "location": "Hadera, Israel",
+    "user_agent": "Mozilla/5.0...",
+    "error_description": "LEDs not updating after location change"
+}
+```
+
+**Storage:**
+- File: `error_reports.jsonl` (JSON Lines format - one JSON object per line)
+- Location: Project root directory
+- Gitignored: File excluded from version control to protect user privacy
+
+**Admin Access:**
+**Route:** `GET /admin/download-error-reports`
+**File:** `web_and_database/app.py:811-830`
+
+- Requires login authentication
+- Downloads `error_reports.jsonl` file
+- Returns 404 if no reports exist yet
+- Logs download action for audit trail
+
+**Thread-Safe Implementation:**
+```python
+def write_error_report_safe(report_data):
+    import fcntl
+    with open(filepath, 'a') as f:
+        fcntl.flock(f.fileno(), fcntl.LOCK_EX)  # Exclusive lock
+        f.write(json.dumps(report_data) + '\n')
+        fcntl.flock(f.fileno(), fcntl.LOCK_UN)  # Release lock
+```
+
+**Benefits:**
+- Direct user feedback without email
+- Complete debugging context automatically captured
+- Thread-safe for production deployment with multiple workers
+- Easy to parse programmatically (JSON Lines format)
+- Rate limiting prevents abuse
+
 ## Database Schema
 
 ### Core Tables - Implementation Reference
