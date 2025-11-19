@@ -234,8 +234,17 @@
                         locationSelect.appendChild(option);
                     });
 
-                    // Auto-select first location
-                    currentLocation = data.locations[0];
+                    // Check localStorage for saved location
+                    const savedLocation = localStorage.getItem('selectedLocation');
+
+                    if (savedLocation && data.locations.includes(savedLocation)) {
+                        // Use saved location if it exists in available locations
+                        currentLocation = savedLocation;
+                    } else {
+                        // Fall back to first location
+                        currentLocation = data.locations[0];
+                    }
+
                     locationSelect.value = currentLocation;
                     fetchLampData();
                 }
@@ -250,6 +259,8 @@
     locationSelect.addEventListener('change', function() {
         currentLocation = this.value;
         if (currentLocation) {
+            // Save selected location to localStorage
+            localStorage.setItem('selectedLocation', currentLocation);
             statusText.textContent = `Loading ${currentLocation.replace(', Israel', '')}...`;
             fetchLampData();
         }

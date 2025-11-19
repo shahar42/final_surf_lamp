@@ -54,13 +54,18 @@ def home():
 
 @app.route('/api/locations')
 def get_locations():
-    """Get all unique locations with active lamps"""
+    """Get all unique locations with active lamps that have current condition data"""
     if not DATABASE_URL:
         return jsonify({'error': 'Database not configured'}), 500
 
     session = Session()
     try:
-        locations = session.query(User.location).distinct().filter(User.location.isnot(None)).all()
+        # Only return locations where there's a lamp with current_conditions data
+        locations = session.query(User.location).distinct()\
+            .join(Lamp, User.user_id == Lamp.user_id)\
+            .join(CurrentConditions, Lamp.lamp_id == CurrentConditions.lamp_id)\
+            .filter(User.location.isnot(None))\
+            .all()
         return jsonify({'locations': [loc[0] for loc in locations]})
     finally:
         session.close()
