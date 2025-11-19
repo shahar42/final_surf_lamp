@@ -52,6 +52,12 @@ The Surf Lamp system displays real-time surf conditions using LED visualizations
    - PostgreSQL database with user accounts, lamps, and surf conditions
    - Dynamic location-to-API endpoint mapping
 
+5. **Public Lamp Visualization** (`lamp_viz/`)
+   - Standalone Flask web app for public surf condition viewing
+   - Real-time LED animation visualization matching physical lamp display
+   - Location-based lamp data fetching (no authentication required)
+   - Deployed at: https://surf-lamp-viz.onrender.com
+
 ## Data Flow
 
 ```
@@ -578,6 +584,127 @@ password_reset_tokens (
 
 **Current Status**: Requirements documented - implementation needed in both Arduino firmware and web application
 
+## Public Lamp Visualization Service
+
+**Location:** `lamp_viz/` directory
+**URL:** https://surf-lamp-viz.onrender.com
+**Service Type:** Standalone Flask Web Application
+
+### Overview
+The Public Lamp Visualization is a standalone web application that provides a real-time visual representation of surf conditions through an animated LED display. It replicates the exact LED animation shown on physical Arduino surf lamps, making surf conditions accessible to anyone with a web browser.
+
+### Key Features
+
+#### Public Access
+- **No Authentication Required**: Open to anyone without login or account creation
+- **No Sensitive Data Exposure**: Only displays public surf conditions, no user data
+- **Location-Based Selection**: Users select from available locations (Tel Aviv, Netanya, Hadera)
+- **Real-Time Updates**: Auto-refreshes surf data every 13 minutes
+
+#### Visual Display
+- **3-Strip Surfboard Animation**: Accurate representation of physical lamp hardware
+  - **Left Strip (Yellow)**: Wave period in seconds (15 LEDs)
+  - **Center Strip (Green)**: Wind speed in m/s (20 LEDs)
+  - **Right Strip (Blue)**: Wave height in cm (15 LEDs)
+- **Wind Direction Indicator**: Color-coded top LED showing wind compass direction
+  - North: Green | East: Yellow | South: Red | West: Blue
+- **Threshold Blinking**: Animated alerts when wave/wind exceed user thresholds
+- **Theme Support**: Honors user-selected LED color themes from database
+
+### Technical Architecture
+
+#### Backend (`app.py`)
+```python
+# Flask application with SQLAlchemy ORM
+- Location API: GET /api/locations
+- Lamp Data API: GET /api/lamp-by-location/<location>
+- Database: Direct PostgreSQL connection to production Supabase
+```
+
+#### Frontend (`index.html`)
+```javascript
+// Canvas-based LED rendering
+- HTML5 Canvas for LED visualization
+- JavaScript animation engine (200 FPS for smooth blinking)
+- Real-time data fetching with automatic updates
+```
+
+### API Endpoints
+
+#### 1. GET /api/locations
+**Purpose**: Fetch all available locations with active lamps
+
+**Response**:
+```json
+{
+  "locations": [
+    "Tel Aviv, Israel",
+    "Netanya, Israel",
+    "Hadera, Israel"
+  ]
+}
+```
+
+#### 2. GET /api/lamp-by-location/<location>
+**Purpose**: Get current surf data for a specific location
+
+**Example**: `/api/lamp-by-location/Hadera%2C%20Israel`
+
+**Response**:
+```json
+{
+  "data_available": true,
+  "arduino_id": 4433,
+  "wave_height_cm": 28,
+  "wave_period_s": 6.2,
+  "wind_speed_mps": 3,
+  "wind_direction_deg": 66,
+  "wave_threshold_cm": 100,
+  "wind_speed_threshold_knots": 22,
+  "led_theme": "classic_surf",
+  "quiet_hours_active": false,
+  "last_updated": "2025-11-19T16:56:01"
+}
+```
+
+### LED Calculation Formulas
+Matches Arduino firmware exactly for consistent visualization:
+
+```javascript
+// Wave height: cm / 25 + 1 (max 15 LEDs)
+waveLEDCount = Math.floor(wave_height_cm / 25) + 1
+
+// Wave period: Direct value (max 15 LEDs)
+periodLEDCount = Math.floor(wave_period_s)
+
+// Wind speed: windSpeed * 18 / 13 (max 18 LEDs)
+windLEDCount = Math.floor(wind_speed_mps * 18.0 / 13.0)
+```
+
+### Deployment Configuration
+
+**Render Service**: `surf-lamp-viz`
+**Build Command**: `cd lamp_viz && pip install -r requirements.txt`
+**Start Command**: `cd lamp_viz && gunicorn app:app`
+**Environment Variables**:
+```
+DATABASE_URL=postgresql://postgres.xxx:xxx@xxx.pooler.supabase.com:6543/postgres
+```
+
+### Use Cases
+
+1. **Public Surf Monitoring**: Anyone checking current surf conditions in Israel
+2. **Product Demonstration**: Showcasing lamp functionality without hardware
+3. **Developer Testing**: Visual verification of surf data pipeline
+4. **User Preview**: Potential customers seeing lamp behavior before purchase
+
+### Benefits
+
+- **Accessibility**: Surf conditions available to non-lamp owners
+- **Transparency**: Shows exactly what lamp owners see on their physical devices
+- **Scalability**: Serves unlimited viewers without hardware constraints
+- **Marketing**: Demonstrates product value through live visualization
+
 ## Manufacturing and Production System
 
 **Location:** `manufacturing_id/` directory
@@ -756,13 +883,20 @@ The Surf Lamp system runs on Render cloud platform with the following architectu
    - Continuously fetches surf data from external APIs every 30 minutes
    - Updates database with latest surf conditions for all registered lamps
 
+3. **Public Lamp Visualization** (`lamp_viz/`)
+   - Deployed as a standalone Render Web Service
+   - Public-facing surf condition visualization at https://surf-lamp-viz.onrender.com
+   - Real-time LED animation matching physical Arduino lamp display
+   - No authentication required - open to public viewing
+
 ### Render Configuration
-- **Web Service:** Hosts the Flask application for user interface and Arduino API
+- **Web Service (Main):** Hosts the Flask application for user interface and Arduino API
+- **Web Service (Visualization):** Public lamp visualization app (surf-lamp-viz)
 - **Background Worker:** Runs the background processor for continuous data fetching
 - **Database:** Uses Render's managed PostgreSQL database
 - **Environment Variables:** Database connection strings and configuration managed via Render dashboard
 
-Both services share the same database and work together to provide real-time surf data to Arduino devices and users.
+All services share the same database and work together to provide real-time surf data to Arduino devices, authenticated users, and public viewers.
 
 ## Development and Debugging
 
