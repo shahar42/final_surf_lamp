@@ -78,23 +78,17 @@ def get_lamp_by_location(location):
 
     session = Session()
     try:
-        # Find a user at this location with a lamp
-        user = session.query(User).filter(User.location == location).first()
+        # Find ANY user at this location who has a lamp with current conditions
+        result = session.query(User, Lamp, CurrentConditions)\
+            .join(Lamp, User.user_id == Lamp.user_id)\
+            .join(CurrentConditions, Lamp.lamp_id == CurrentConditions.lamp_id)\
+            .filter(User.location == location)\
+            .first()
 
-        if not user:
+        if not result:
             return jsonify({'data_available': False, 'message': 'No lamp found for this location'}), 404
 
-        # Get their lamp
-        lamp = session.query(Lamp).filter(Lamp.user_id == user.user_id).first()
-
-        if not lamp:
-            return jsonify({'data_available': False, 'message': 'No lamp found for this location'}), 404
-
-        # Get current conditions
-        conditions = session.query(CurrentConditions).filter(CurrentConditions.lamp_id == lamp.lamp_id).first()
-
-        if not conditions:
-            return jsonify({'data_available': False, 'message': 'No data available yet'}), 404
+        user, lamp, conditions = result
 
         # Return data in Arduino API format
         return jsonify({
