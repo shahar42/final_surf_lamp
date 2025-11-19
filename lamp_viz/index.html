@@ -146,9 +146,9 @@
         <canvas id="surfboardCanvas" width="350" height="550"></canvas>
 
         <div class="legend">
-            <span>← Wave Period</span>
-            <span>Wind Speed</span>
-            <span>Wave Height →</span>
+            <span id="periodLabel">← Wave Period</span>
+            <span id="windLabel">Wind Speed</span>
+            <span id="waveLabel">Wave Height →</span>
         </div>
 
         <div class="wind-dir-legend">
@@ -393,6 +393,11 @@
 
     function updateVisualization(data) {
         const theme = COLOR_THEMES[data.led_theme] || COLOR_THEMES[currentTheme];
+
+        // Update legend colors to match theme
+        document.getElementById('periodLabel').style.color = `rgb(${theme.period[0]}, ${theme.period[1]}, ${theme.period[2]})`;
+        document.getElementById('windLabel').style.color = `rgb(${theme.wind[0]}, ${theme.wind[1]}, ${theme.wind[2]})`;
+        document.getElementById('waveLabel').style.color = `rgb(${theme.wave[0]}, ${theme.wave[1]}, ${theme.wave[2]})`;
 
         // Calculate LED counts (Arduino formulas)
         const waveLEDCount = Math.max(0, Math.min(NUM_LEDS_RIGHT, Math.floor(data.wave_height_cm / 25) + 1));
