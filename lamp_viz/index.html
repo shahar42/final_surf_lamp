@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surf Lamp - Live Visualization</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #00c6ff, #0072ff);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            text-align: center;
+        }
+
+        h1 {
+            color: #FFFCDE;
+            font-size: 2em;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            color: rgba(255, 252, 222, 0.8);
+            font-size: 0.9em;
+            margin-bottom: 30px;
+        }
+
+        #surfboardCanvas {
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            box-shadow: 0 0 30px rgba(0, 198, 255, 0.4);
+            margin: 20px auto;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 20px;
+            color: rgba(255, 252, 222, 0.9);
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .wind-dir-legend {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+            color: rgba(255, 252, 222, 0.8);
+            font-size: 0.85em;
+        }
+
+        .wind-dir-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .wind-dir-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .status {
+            margin-top: 20px;
+            color: rgba(255, 252, 222, 0.7);
+            font-size: 0.85em;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #22c55e;
+            margin-right: 5px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .arduino-selector {
+            margin: 20px 0;
+        }
+
+        .arduino-selector input {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 8px 15px;
+            color: #FFFCDE;
+            font-size: 1em;
+            width: 150px;
+            text-align: center;
+        }
+
+        .arduino-selector input::placeholder {
+            color: rgba(255, 252, 222, 0.5);
+        }
+
+        .arduino-selector button {
+            background: #0072ff;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 20px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: background 0.3s;
+        }
+
+        .arduino-selector button:hover {
+            background: #0052cc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏄 Surf Lamp Visualization</h1>
+        <p class="subtitle">Real-time LED animation from your surf lamp</p>
+
+        <div class="arduino-selector">
+            <input type="number" id="arduinoIdInput" placeholder="Arduino ID" value="4433">
+            <button onclick="updateArduinoId()">Load Lamp</button>
+        </div>
+
+        <canvas id="surfboardCanvas" width="350" height="550"></canvas>
+
+        <div class="legend">
+            <span>← Wave Period</span>
+            <span>Wind Speed</span>
+            <span>Wave Height →</span>
+        </div>
+
+        <div class="wind-dir-legend">
+            <span style="font-weight: 600; margin-right: 10px;">Wind Direction:</span>
+            <div class="wind-dir-item"><span class="wind-dir-dot" style="background: rgb(0, 255, 0);"></span><span>N</span></div>
+            <div class="wind-dir-item"><span class="wind-dir-dot" style="background: rgb(128, 255, 0);"></span><span>NE</span></div>
+            <div class="wind-dir-item"><span class="wind-dir-dot" style="background: rgb(255, 255, 0);"></span><span>E</span></div>
+            <div class="wind-dir-item"><span class="wind-dir-dot" style="background: rgb(255, 128, 0);"></span><span>SE</span></div>
+            <div class="wind-dir-item"><span class="wind-dir-dot" style="background: rgb(255, 0, 0);"></span><span>S</span></div>
+            <div class="wind-dir-item"><span class="wind-dir-dot" style="background: rgb(128, 0, 255);"></span><span>SW</span></div>
+            <div class="wind-dir-item"><span class="wind-dir-dot" style="background: rgb(0, 0, 255);"></span><span>W</span></div>
+            <div class="wind-dir-item"><span class="wind-dir-dot" style="background: rgb(0, 255, 255);"></span><span>NW</span></div>
+        </div>
+
+        <div class="status">
+            <span class="status-indicator"></span>
+            <span id="statusText">Connecting...</span>
+        </div>
+    </div>
+
+    <script>
+    // ==============================================
+    // SURF LAMP LED VISUALIZATION - STANDALONE
+    // ==============================================
+
+    // Match Arduino hardware exactly
+    const NUM_LEDS_CENTER = 20;
+    const NUM_LEDS_RIGHT = 15;
+    const NUM_LEDS_LEFT = 15;
+    const LED_RADIUS = 8;
+
+    // Wind direction colors (Arduino mapping)
+    const WIND_DIRECTION_COLORS = {
+        0: [0, 255, 0],      // N - Green
+        45: [128, 255, 0],   // NE
+        90: [255, 255, 0],   // E - Yellow
+        135: [255, 128, 0],  // SE
+        180: [255, 0, 0],    // S - Red
+        225: [128, 0, 255],  // SW
+        270: [0, 0, 255],    // W - Blue
+        315: [0, 255, 255]   // NW - Cyan
+    };
+
+    // Color themes matching Arduino
+    const COLOR_THEMES = {
+        'classic_surf': {
+            wave: [64, 156, 255],
+            wind: [200, 220, 255],
+            period: [153, 217, 140]
+        },
+        'ocean_breeze': {
+            wave: [0, 150, 255],
+            wind: [100, 200, 255],
+            period: [0, 255, 200]
+        },
+        'day': {
+            wave: [0, 150, 255],
+            wind: [100, 200, 255],
+            period: [0, 255, 200]
+        }
+    };
+
+    let arduinoId = parseInt(document.getElementById('arduinoIdInput').value);
+    let currentTheme = 'classic_surf';
+    let isBlinking = false;
+    let blinkState = true;
+
+    const canvas = document.getElementById('surfboardCanvas');
+    const ctx = canvas.getContext('2d');
+    const statusText = document.getElementById('statusText');
+
+    function updateArduinoId() {
+        const input = document.getElementById('arduinoIdInput');
+        arduinoId = parseInt(input.value);
+        statusText.textContent = `Loading Arduino ${arduinoId}...`;
+        fetchLampData();
+    }
+
+    function getWindDirectionColor(degrees) {
+        const directions = Object.keys(WIND_DIRECTION_COLORS).map(Number);
+        let closest = directions[0];
+        let minDiff = Math.abs(degrees - closest);
+
+        for (let dir of directions) {
+            const diff = Math.abs(degrees - dir);
+            if (diff < minDiff) {
+                minDiff = diff;
+                closest = dir;
+            }
+        }
+
+        return WIND_DIRECTION_COLORS[closest];
+    }
+
+    function drawLED(ctx, x, y, color, isLit, glow = true) {
+        if (!isLit) {
+            ctx.fillStyle = 'rgba(50, 50, 50, 0.3)';
+            ctx.beginPath();
+            ctx.arc(x, y, LED_RADIUS, 0, Math.PI * 2);
+            ctx.fill();
+            return;
+        }
+
+        // Glow effect
+        if (glow) {
+            const gradient = ctx.createRadialGradient(x, y, 0, x, y, LED_RADIUS * 2);
+            gradient.addColorStop(0, `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.8)`);
+            gradient.addColorStop(0.5, `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.4)`);
+            gradient.addColorStop(1, `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0)`);
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(x, y, LED_RADIUS * 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // LED core
+        ctx.fillStyle = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+        ctx.beginPath();
+        ctx.arc(x, y, LED_RADIUS, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Highlight
+        const highlight = ctx.createRadialGradient(x - 3, y - 3, 0, x, y, LED_RADIUS);
+        highlight.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+        highlight.addColorStop(0.5, `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.5)`);
+        highlight.addColorStop(1, `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0)`);
+        ctx.fillStyle = highlight;
+        ctx.beginPath();
+        ctx.arc(x, y, LED_RADIUS, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    function getSurfboardLEDPositions() {
+        const width = canvas.width;
+        const height = canvas.height;
+        const centerX = width / 2;
+        const spacing = 26;
+        const positions = [];
+
+        for (let i = 0; i < NUM_LEDS_CENTER; i++) {
+            const y = height - 30 - (i * spacing);
+            const normalizedPos = i / (NUM_LEDS_CENTER - 1);
+
+            let widthAtPosition;
+            if (normalizedPos < 0.2) {
+                widthAtPosition = 30 + (normalizedPos / 0.2) * 30;
+            } else if (normalizedPos < 0.4) {
+                widthAtPosition = 60 + ((normalizedPos - 0.2) / 0.2) * 25;
+            } else if (normalizedPos < 0.7) {
+                widthAtPosition = 85;
+            } else if (normalizedPos < 0.85) {
+                widthAtPosition = 85 - ((normalizedPos - 0.7) / 0.15) * 35;
+            } else {
+                widthAtPosition = 50 - ((normalizedPos - 0.85) / 0.15) * 50;
+            }
+
+            positions.push({
+                left: i < NUM_LEDS_LEFT ? {x: centerX - widthAtPosition, y: y} : null,
+                center: {x: centerX, y: y},
+                right: i < NUM_LEDS_RIGHT ? {x: centerX + widthAtPosition, y: y} : null
+            });
+        }
+
+        return positions;
+    }
+
+    function drawSurfboard(leftLEDCount, centerLEDCount, rightLEDCount, theme, windDirColor, blink) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const positions = getSurfboardLEDPositions();
+        const shouldBlink = blink && !blinkState;
+
+        for (let i = 0; i < NUM_LEDS_CENTER; i++) {
+            const row = positions[i];
+
+            // Left: Wave period
+            if (row.left) {
+                const leftLit = (i < leftLEDCount);
+                drawLED(ctx, row.left.x, row.left.y, theme.period, leftLit && !shouldBlink);
+            }
+
+            // Center: Wind speed
+            if (row.center) {
+                const isWindDirection = (i === NUM_LEDS_CENTER - 1);
+                const isLED0 = (i === 0);
+
+                if (isWindDirection) {
+                    drawLED(ctx, row.center.x, row.center.y, windDirColor, true);
+                } else if (isLED0) {
+                    drawLED(ctx, row.center.x, row.center.y, theme.wind, false);
+                } else {
+                    const centerLit = (i <= centerLEDCount);
+                    drawLED(ctx, row.center.x, row.center.y, theme.wind, centerLit && !shouldBlink);
+                }
+            }
+
+            // Right: Wave height
+            if (row.right) {
+                const rightLit = (i < rightLEDCount);
+                drawLED(ctx, row.right.x, row.right.y, theme.wave, rightLit && !shouldBlink);
+            }
+        }
+    }
+
+    function updateVisualization(data) {
+        const theme = COLOR_THEMES[data.led_theme] || COLOR_THEMES[currentTheme];
+
+        // Calculate LED counts (Arduino formulas)
+        const waveLEDCount = Math.max(0, Math.min(NUM_LEDS_RIGHT, Math.floor(data.wave_height_cm / 25) + 1));
+        const periodLEDCount = Math.max(0, Math.min(NUM_LEDS_LEFT, Math.floor(data.wave_period_s)));
+        const windLEDCount = Math.max(1, Math.min(NUM_LEDS_CENTER - 2, Math.floor(data.wind_speed_mps * 18.0 / 13.0)));
+
+        const windDirColor = getWindDirectionColor(data.wind_direction_deg);
+
+        // Check thresholds
+        const waveThresholdExceeded = data.wave_height_cm > data.wave_threshold_cm;
+        const windThresholdExceeded = data.wind_speed_mps > (data.wind_speed_threshold_knots / 1.944);
+
+        isBlinking = waveThresholdExceeded || windThresholdExceeded;
+
+        drawSurfboard(periodLEDCount, windLEDCount, waveLEDCount, theme, windDirColor, isBlinking);
+
+        // Update status
+        const waveM = (data.wave_height_cm / 100).toFixed(1);
+        const windKts = (data.wind_speed_mps * 1.944).toFixed(1);
+        statusText.textContent = `Wave: ${waveM}m | Wind: ${windKts}kts | Period: ${data.wave_period_s.toFixed(1)}s`;
+    }
+
+    function fetchLampData() {
+        // Use production API endpoint
+        fetch(`https://final-surf-lamp.onrender.com/api/arduino/${arduinoId}/data`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.data_available) {
+                    updateVisualization(data);
+                } else {
+                    statusText.textContent = 'No data available for this lamp';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching lamp data:', error);
+                statusText.textContent = 'Connection error - retrying...';
+            });
+    }
+
+    function blinkLoop() {
+        if (isBlinking) {
+            blinkState = !blinkState;
+        } else {
+            blinkState = true;
+        }
+    }
+
+    // Start
+    fetchLampData();
+    setInterval(fetchLampData, 780000); // 13 minutes
+    setInterval(blinkLoop, 800); // Blink animation
+    </script>
+</body>
+</html>
