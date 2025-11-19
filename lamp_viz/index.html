@@ -109,35 +109,26 @@
             margin: 20px 0;
         }
 
-        .arduino-selector input {
+        .arduino-selector select {
             background: rgba(255, 255, 255, 0.2);
             border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 8px;
-            padding: 8px 15px;
+            padding: 10px 20px;
             color: #FFFCDE;
             font-size: 1em;
-            width: 150px;
-            text-align: center;
-        }
-
-        .arduino-selector input::placeholder {
-            color: rgba(255, 252, 222, 0.5);
-        }
-
-        .arduino-selector button {
-            background: #0072ff;
-            border: none;
-            border-radius: 8px;
-            padding: 8px 20px;
-            color: white;
-            font-weight: 600;
+            min-width: 250px;
             cursor: pointer;
-            margin-left: 10px;
             transition: background 0.3s;
         }
 
-        .arduino-selector button:hover {
+        .arduino-selector select:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .arduino-selector select option {
             background: #0052cc;
+            color: #FFFCDE;
+            padding: 8px;
         }
     </style>
 </head>
@@ -147,8 +138,9 @@
         <p class="subtitle">Real-time LED animation from your surf lamp</p>
 
         <div class="arduino-selector">
-            <input type="number" id="arduinoIdInput" placeholder="Arduino ID" value="4433">
-            <button onclick="updateArduinoId()">Load Lamp</button>
+            <select id="locationSelect">
+                <option value="">Select Location...</option>
+            </select>
         </div>
 
         <canvas id="surfboardCanvas" width="350" height="550"></canvas>
@@ -219,7 +211,7 @@
         }
     };
 
-    let arduinoId = parseInt(document.getElementById('arduinoIdInput').value);
+    let currentLocation = null;
     let currentTheme = 'classic_surf';
     let isBlinking = false;
     let blinkState = true;
@@ -227,13 +219,41 @@
     const canvas = document.getElementById('surfboardCanvas');
     const ctx = canvas.getContext('2d');
     const statusText = document.getElementById('statusText');
+    const locationSelect = document.getElementById('locationSelect');
 
-    function updateArduinoId() {
-        const input = document.getElementById('arduinoIdInput');
-        arduinoId = parseInt(input.value);
-        statusText.textContent = `Loading Arduino ${arduinoId}...`;
-        fetchLampData();
+    // Fetch available locations on load
+    function loadLocations() {
+        fetch('/api/locations')
+            .then(response => response.json())
+            .then(data => {
+                if (data.locations && data.locations.length > 0) {
+                    data.locations.forEach(location => {
+                        const option = document.createElement('option');
+                        option.value = location;
+                        option.textContent = location.replace(', Israel', '');
+                        locationSelect.appendChild(option);
+                    });
+
+                    // Auto-select first location
+                    currentLocation = data.locations[0];
+                    locationSelect.value = currentLocation;
+                    fetchLampData();
+                }
+            })
+            .catch(error => {
+                console.error('Error loading locations:', error);
+                statusText.textContent = 'Error loading locations';
+            });
     }
+
+    // Handle location change
+    locationSelect.addEventListener('change', function() {
+        currentLocation = this.value;
+        if (currentLocation) {
+            statusText.textContent = `Loading ${currentLocation.replace(', Israel', '')}...`;
+            fetchLampData();
+        }
+    });
 
     function getWindDirectionColor(degrees) {
         const directions = Object.keys(WIND_DIRECTION_COLORS).map(Number);
@@ -385,14 +405,17 @@
     }
 
     function fetchLampData() {
-        // Use production API endpoint
-        fetch(`https://final-surf-lamp.onrender.com/api/arduino/${arduinoId}/data`)
+        if (!currentLocation) {
+            return;
+        }
+
+        fetch(`/api/lamp-by-location/${encodeURIComponent(currentLocation)}`)
             .then(response => response.json())
             .then(data => {
                 if (data.data_available) {
                     updateVisualization(data);
                 } else {
-                    statusText.textContent = 'No data available for this lamp';
+                    statusText.textContent = data.message || 'No data available';
                 }
             })
             .catch(error => {
@@ -410,7 +433,7 @@
     }
 
     // Start
-    fetchLampData();
+    loadLocations(); // This will auto-fetch first location's data
     setInterval(fetchLampData, 780000); // 13 minutes
     setInterval(blinkLoop, 800); // Blink animation
     </script>
