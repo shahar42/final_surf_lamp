@@ -75,6 +75,18 @@ def health_check():
     """Health check endpoint for Render"""
     return jsonify({"status": "healthy", "service": "surf-lamp-visualizer"})
 
+@app.route('/sw.js')
+def service_worker():
+    """Serve service worker from root with correct MIME type for PWA"""
+    from flask import send_from_directory
+    return send_from_directory('static', 'sw.js', mimetype='application/javascript')
+
+@app.route('/manifest.json')
+def manifest():
+    """Serve manifest from root for PWA"""
+    from flask import send_from_directory
+    return send_from_directory('static', 'manifest.json', mimetype='application/json')
+
 @app.route('/manpage/<module_id>')
 def manpage(module_id):
     """Serve manual page for a specific module"""
