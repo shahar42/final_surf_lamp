@@ -43,6 +43,7 @@ from datetime import datetime, timedelta
 from data_base import PasswordResetToken
 from data_base import add_user_and_lamp, get_user_lamp_data, SessionLocal, User, Lamp, update_user_location, CurrentConditions
 from forms import RegistrationForm, LoginForm
+from security_config import apply_security_headers, SecurityConfig
 
 
 
@@ -55,6 +56,17 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
 if not app.config['SECRET_KEY']:
     raise ValueError("SECRET_KEY environment variable is required")
+
+# Secure session cookie configuration
+app.config['SESSION_COOKIE_SECURE'] = True  # HTTPS only
+app.config['SESSION_COOKIE_HTTPONLY'] = True  # No JavaScript access
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # CSRF protection
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
+
+# Apply security headers and configuration
+apply_security_headers(app)
+app.config.from_object(SecurityConfig)
+
 bcrypt = Bcrypt(app)
 
 # --- Redis and Rate Limiter Setup ---

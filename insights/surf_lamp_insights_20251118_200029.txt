@@ -1,0 +1,227 @@
+SURF LAMP SYSTEM INSIGHTS REPORT
+Generated: 2025-11-18T20:00:23.832780
+Analysis Period: 24 hours
+
+Raw Data Summary:
+- Web Service Logs: 50 entries
+- Background Service Logs: 50 entries
+- Service Status: healthy
+- Recent Deployments: 5
+- API Requests: 14
+- Processing Avg Duration: 0.0s
+
+--------------------------------------------------------------------------------
+
+*   **System Health Summary:**
+    *   Service status is healthy, but recent 500 error.
+    *   No errors reported for background tasks, but limited data.
+    *   Single web service instance.
+
+*   **Performance Analysis:**
+    *   Arduino requests are low (14).
+    *   Cycle times and average duration is near zero (possibly incorrect).
+    *   Success rate is perfect, but conflicts with the API error log.
+
+*   **Notable Patterns:**
+    *   Very few requests logged in 24 hours.
+    *   Only one unique device making requests.
+    *   Multiple requests for static web icons.
+
+*   **Issues & Recommendations:**
+    *   API returning 500 errors needs investigation.
+    *   Starter service plan may not scale.
+    *   Verify reported performance metrics accuracy.
+
+*   **Optimization Opportunities:**
+    *   Increase the number of web service instances, considering the single node setup.
+    *   Data fetch optimization, prioritize from local cache.
+
+*   **Trends & Predictions:**
+    *   Low usage could indicate a problem with the devices or the application.
+    *   Potentially unsustainable on one instance if load increases.
+
+
+--------------------------------------------------------------------------------
+
+Technical Data Details:
+{
+  "timestamp": "2025-11-18T20:00:23.832780",
+  "timeframe": "24 hours",
+  "web_service_logs": [
+    "LOG: 16:18:30 | FROM lamps LEFT OUTER JOIN current_conditions ON lamps.lamp_id = current_conditions.lamp_id JOIN users ON lamps.user_id = users.user_id",
+    "LOG: 16:18:30 | [SQL: SELECT lamps.lamp_id AS lamps_lamp_id, lamps.user_id AS lamps_user_id, lamps.arduino_id AS lamps_arduino_id, lamps.last_updated AS lamps_last_updated, current_conditions.lamp_id AS current_conditions_lamp_id, current_conditions.wave_height_m AS current_conditions_wave_height_m, current_conditions.wave_period_s AS current_conditions_wave_period_s, current_conditions.wind_speed_mps AS current_conditions_wind_speed_mps, current_conditions.wind_direction_deg AS current_conditions_wind_direction_deg, current_conditions.last_updated AS current_conditions_last_updated, users.user_id AS users_user_id, users.username AS users_username, users.password_hash AS users_password_hash, users.email AS users_email, users.location AS users_location, users.theme AS users_theme, users.preferred_output AS users_preferred_output, users.sport_type AS users_sport_type, users.wave_threshold_m AS users_wave_threshold_m, users.wind_threshold_knots AS users_wind_threshold_knots",
+    "ERROR: 16:18:30 | ERROR:app:\u274c Error getting surf data for Arduino 4433: (psycopg2.OperationalError) unknown error",
+    "LOG: 16:18:30 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 16:05:29 | 172.71.147.141 - - [18/Nov/2025:16:05:29 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 266 \"-\" \"ESP32HTTPClient\"",
+    "LOG: 16:05:29 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=16cm",
+    "LOG: 16:05:28 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 15:52:26 | 172.71.147.2 - - [18/Nov/2025:15:52:26 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 266 \"-\" \"ESP32HTTPClient\"",
+    "LOG: 15:52:26 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=16cm",
+    "LOG: 15:52:25 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 15:43:17 | 172.71.147.135 - - [18/Nov/2025:15:43:17 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 500 25 \"-\" \"ESP32HTTPClient\"",
+    "ERROR: 15:43:17 | (Background on this error at: https://sqlalche.me/e/20/4xp6)",
+    "LOG: 15:43:17 | [parameters: {'arduino_id_1': 4433, 'param_1': 1}]",
+    "LOG: 15:43:17 |  LIMIT %(param_1)s]",
+    "LOG: 15:43:17 | WHERE lamps.arduino_id = %(arduino_id_1)s",
+    "LOG: 15:43:17 | FROM lamps LEFT OUTER JOIN current_conditions ON lamps.lamp_id = current_conditions.lamp_id JOIN users ON lamps.user_id = users.user_id",
+    "LOG: 15:43:17 | [SQL: SELECT lamps.lamp_id AS lamps_lamp_id, lamps.user_id AS lamps_user_id, lamps.arduino_id AS lamps_arduino_id, lamps.last_updated AS lamps_last_updated, current_conditions.lamp_id AS current_conditions_lamp_id, current_conditions.wave_height_m AS current_conditions_wave_height_m, current_conditions.wave_period_s AS current_conditions_wave_period_s, current_conditions.wind_speed_mps AS current_conditions_wind_speed_mps, current_conditions.wind_direction_deg AS current_conditions_wind_direction_deg, current_conditions.last_updated AS current_conditions_last_updated, users.user_id AS users_user_id, users.username AS users_username, users.password_hash AS users_password_hash, users.email AS users_email, users.location AS users_location, users.theme AS users_theme, users.preferred_output AS users_preferred_output, users.sport_type AS users_sport_type, users.wave_threshold_m AS users_wave_threshold_m, users.wind_threshold_knots AS users_wind_threshold_knots",
+    "LOG: 15:43:17 |",
+    "LOG: 15:43:17 | \tbefore or while processing the request.",
+    "LOG: 15:43:17 | \tThis probably means the server terminated abnormally",
+    "ERROR: 15:43:17 | ERROR:app:\u274c Error getting surf data for Arduino 4433: (psycopg2.DatabaseError) server closed the connection unexpectedly",
+    "LOG: 15:43:17 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 15:37:26 | 172.71.151.213 - - [18/Nov/2025:15:37:26 +0000] \"GET /static/site.webmanifest HTTP/1.1\" 304 0 \"https://final-surf-lamp-web.onrender.com/login\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 15:37:26 | 172.71.150.204 - - [18/Nov/2025:15:37:26 +0000] \"GET /login HTTP/1.1\" 200 4354 \"-\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 09:37:39 | 172.71.150.80 - - [18/Nov/2025:09:37:39 +0000] \"GET /static/site.webmanifest HTTP/1.1\" 304 0 \"https://final-surf-lamp-web.onrender.com/dashboard\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 09:27:43 | 172.71.151.175 - - [18/Nov/2025:09:27:43 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 267 \"-\" \"curl/8.5.0\"",
+    "LOG: 09:27:43 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=15cm",
+    "LOG: 09:27:43 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 09:26:37 | 172.71.147.50 - - [18/Nov/2025:09:26:37 +0000] \"GET /static/favicon.ico?v=1 HTTP/1.1\" 304 0 \"https://final-surf-lamp-web.onrender.com/dashboard\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 09:26:37 | 172.70.200.140 - - [18/Nov/2025:09:26:37 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 500 25 \"https://final-surf-lamp-web.onrender.com/dashboard\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Mobile Safari/537.36\"",
+    "ERROR: 09:26:37 | (Background on this error at: https://sqlalche.me/e/20/e3q8)",
+    "LOG: 09:26:37 | [parameters: {'arduino_id_1': 4433, 'param_1': 1}]",
+    "LOG: 09:26:37 |  LIMIT %(param_1)s]",
+    "LOG: 09:26:37 | WHERE lamps.arduino_id = %(arduino_id_1)s",
+    "LOG: 09:26:37 | FROM lamps LEFT OUTER JOIN current_conditions ON lamps.lamp_id = current_conditions.lamp_id JOIN users ON lamps.user_id = users.user_id",
+    "LOG: 09:26:37 | [SQL: SELECT lamps.lamp_id AS lamps_lamp_id, lamps.user_id AS lamps_user_id, lamps.arduino_id AS lamps_arduino_id, lamps.last_updated AS lamps_last_updated, current_conditions.lamp_id AS current_conditions_lamp_id, current_conditions.wave_height_m AS current_conditions_wave_height_m, current_conditions.wave_period_s AS current_conditions_wave_period_s, current_conditions.wind_speed_mps AS current_conditions_wind_speed_mps, current_conditions.wind_direction_deg AS current_conditions_wind_direction_deg, current_conditions.last_updated AS current_conditions_last_updated, users.user_id AS users_user_id, users.username AS users_username, users.password_hash AS users_password_hash, users.email AS users_email, users.location AS users_location, users.theme AS users_theme, users.preferred_output AS users_preferred_output, users.sport_type AS users_sport_type, users.wave_threshold_m AS users_wave_threshold_m, users.wind_threshold_knots AS users_wind_threshold_knots",
+    "ERROR: 09:26:37 | ERROR:app:\u274c Error getting surf data for Arduino 4433: (psycopg2.OperationalError) unknown error",
+    "LOG: 09:26:37 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 09:26:37 | 172.71.151.232 - - [18/Nov/2025:09:26:37 +0000] \"GET /static/favicon.ico?v=1 HTTP/1.1\" 304 0 \"https://final-surf-lamp-web.onrender.com/dashboard\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 09:26:37 | 172.71.151.128 - - [18/Nov/2025:09:26:37 +0000] \"GET /static/site.webmanifest HTTP/1.1\" 304 0 \"https://final-surf-lamp-web.onrender.com/dashboard\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 09:26:37 | 172.71.147.208 - - [18/Nov/2025:09:26:37 +0000] \"GET /static/icons/wind_speed_icon_4x.png HTTP/1.1\" 304 0 \"https://final-surf-lamp-web.onrender.com/dashboard\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 09:26:37 | 172.71.151.211 - - [18/Nov/2025:09:26:37 +0000] \"GET /static/icons/wind_direction_4x.png HTTP/1.1\" 304 0 \"https://final-surf-lamp-web.onrender.com/dashboard\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 09:26:37 | 172.71.146.30 - - [18/Nov/2025:09:26:37 +0000] \"GET /static/icons/wave_height_icon_4x.png HTTP/1.1\" 304 0 \"https://final-surf-lamp-web.onrender.com/dashboard\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 09:26:37 | 172.71.150.89 - - [18/Nov/2025:09:26:37 +0000] \"GET /static/icons/wave_period_icon_4x.png HTTP/1.1\" 304 0 \"https://final-surf-lamp-web.onrender.com/dashboard\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 09:26:36 | 172.71.150.89 - - [18/Nov/2025:09:26:36 +0000] \"GET /dashboard HTTP/1.1\" 200 30510 \"https://final-surf-lamp-web.onrender.com/login\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 09:26:36 | INFO:data_base:Found user shahar with lamp 4422",
+    "LOG: 09:26:36 | INFO:data_base:Fetching lamp data for user: shaharisn1@gmail.com",
+    "LOG: 09:26:32 | 172.71.151.34 - - [18/Nov/2025:09:26:32 +0000] \"GET /static/site.webmanifest HTTP/1.1\" 304 0 \"https://final-surf-lamp-web.onrender.com/dashboard\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Mobile Safari/537.36\"",
+    "LOG: 09:26:30 | 172.71.150.24 - - [18/Nov/2025:09:26:30 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 500 25 \"https://final-surf-lamp-web.onrender.com/dashboard\" \"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Mobile Safari/537.36\"",
+    "ERROR: 09:26:30 | (Background on this error at: https://sqlalche.me/e/20/e3q8)"
+  ],
+  "background_service_logs": [
+    "LOG: 17:40:09 | 2025-11-18 17:40:09,434 - __main__ - INFO -   Updating lamp 4422 (Arduino 4433)",
+    "LOG: 17:40:09 | 2025-11-18 17:40:09,434 - __main__ - INFO - \u2705 Lamp 4321 (Arduino 4321) updated successfully",
+    "LOG: 17:40:09 | 2025-11-18 17:40:09,434 - __main__ - INFO - \u2705 Current conditions updated for lamp 4321",
+    "LOG: 17:40:09 | 2025-11-18 17:40:09,237 - __main__ - INFO -  Updating current conditions for lamp 4321",
+    "LOG: 17:40:09 | 2025-11-18 17:40:09,237 - __main__ - INFO - \u2705 Timestamp updated for lamp 4321",
+    "LOG: 17:40:09 | 2025-11-18 17:40:09,042 - __main__ - INFO - \u23f0 Updating timestamp for lamp 4321",
+    "LOG: 17:40:09 | 2025-11-18 17:40:09,041 - __main__ - INFO -   Updating lamp 4321 (Arduino 4321)",
+    "LOG: 17:40:09 | 2025-11-18 17:40:09,041 - __main__ - INFO - \ud83d\udcca Combined data for Hadera, Israel: ['wave_height_m', 'wave_period_s', 'timestamp', 'source_endpoint', 'wind_speed_mps', 'wind_direction_deg', 'location', 'temperature_c', 'humidity_percent']",
+    "LOG: 17:40:09 | 2025-11-18 17:40:09,041 - __main__ - INFO - \u2705 Got data: ['wind_speed_mps', 'wind_direction_deg', 'location', 'temperature_c', 'humidity_percent', 'timestamp', 'source_endpoint']",
+    "LOG: 17:40:09 | 2025-11-18 17:40:09,041 - __main__ - INFO - \u2705 Surf data standardized successfully",
+    "LOG: 17:40:09 | }",
+    "LOG: 17:40:09 |   \"source_endpoint\": \"http://api.openweathermap.org/data/2.5/weather?q=Hadera&appid=d6ef64df6585b7e88e51c221bbd41c2b\"",
+    "LOG: 17:40:09 |   \"timestamp\": 1763487609,",
+    "LOG: 17:40:09 |   \"humidity_percent\": 46,",
+    "LOG: 17:40:09 |   \"temperature_c\": 21.689999999999998,",
+    "LOG: 17:40:09 |   \"location\": \"Hadera\",",
+    "LOG: 17:40:09 |   \"wind_direction_deg\": 51,",
+    "LOG: 17:40:09 |   \"wind_speed_mps\": 5.73,",
+    "LOG: 17:40:09 | 2025-11-18 17:40:09,041 - __main__ - INFO - \u2705 Standardized data: {",
+    "LOG: 17:40:09 | 2025-11-18 17:40:09,041 - __main__ - INFO - \u2705 Found config with 7 field mappings",
+    "LOG: 17:40:09 | 2025-11-18 17:40:09,041 - __main__ - INFO - \ud83d\udd27 Standardizing data from: http://api.openweathermap.org/data/2.5/weather?q=Hadera&appid=d6ef64df6585b7e88e51c221bbd41c2b",
+    "LOG: 17:40:09 | 2025-11-18 17:40:09,040 - __main__ - INFO - \u2705 API call successful: 200",
+    "LOG: 17:39:39 | 2025-11-18 17:39:39,006 - __main__ - INFO - \ud83d\udce4 Using 30s timeout for this API",
+    "LOG: 17:39:39 | 2025-11-18 17:39:39,006 - __main__ - INFO - \ud83d\udce4 Headers: {'User-Agent': 'SurfLamp-Agent/1.0'}",
+    "LOG: 17:39:39 | 2025-11-18 17:39:39,006 - __main__ - INFO - \ud83d\udce4 Making API request without authentication (public endpoint)",
+    "LOG: 17:39:39 | 2025-11-18 17:39:39,006 - __main__ - INFO - \ud83c\udf0a Fetching surf data from: http://api.openweathermap.org/data/2.5/weather?q=Hadera&appid=d6ef64df6585b7e88e51c221bbd41c2b",
+    "LOG: 17:39:39 | 2025-11-18 17:39:39,006 - __main__ - INFO -   Trying API: http://api.openweathermap.org/data/2.5/weather?q=Hadera&appid=d6ef64df6585b7e88e51c221bbd41c2b (Priority: 2)",
+    "LOG: 17:39:39 | 2025-11-18 17:39:39,005 - __main__ - INFO - \u2705 Got data: ['wave_height_m', 'wave_period_s', 'timestamp', 'source_endpoint']",
+    "LOG: 17:39:39 | 2025-11-18 17:39:39,004 - __main__ - INFO - \u2705 Surf data standardized successfully",
+    "LOG: 17:39:39 | }",
+    "LOG: 17:39:39 |   \"source_endpoint\": \"https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json\"",
+    "LOG: 17:39:39 |   \"timestamp\": 1763487579,",
+    "LOG: 17:39:39 |   \"wave_period_s\": 5.7,",
+    "LOG: 17:39:39 |   \"wave_height_m\": 0.18,",
+    "LOG: 17:39:39 | 2025-11-18 17:39:39,004 - __main__ - INFO - \u2705 Standardized data: {",
+    "LOG: 17:39:39 | 2025-11-18 17:39:39,003 - __main__ - INFO - \u2705 Found config with 2 field mappings",
+    "LOG: 17:39:39 | 2025-11-18 17:39:39,003 - __main__ - INFO - \ud83d\udd27 Standardizing data from: https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json",
+    "LOG: 17:39:39 | 2025-11-18 17:39:39,003 - __main__ - INFO - \u2705 API call successful: 200",
+    "LOG: 17:39:07 | 2025-11-18 17:39:07,948 - __main__ - INFO - \ud83d\udce4 Using 15s timeout for this API",
+    "LOG: 17:39:07 | 2025-11-18 17:39:07,948 - __main__ - INFO - \ud83d\udce4 Headers: {'User-Agent': 'SurfLamp-Agent/1.0'}",
+    "LOG: 17:39:07 | 2025-11-18 17:39:07,948 - __main__ - INFO - \ud83d\udce4 Making API request without authentication (public endpoint)",
+    "LOG: 17:39:07 | 2025-11-18 17:39:07,948 - __main__ - INFO - \ud83c\udf0a Fetching surf data from: https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json",
+    "LOG: 17:39:07 | 2025-11-18 17:39:07,948 - __main__ - INFO -   Trying API: https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json (Priority: 1)",
+    "LOG: 17:39:07 | 2025-11-18 17:39:07,948 - __main__ - INFO -    - Arduino 420 (Lamp 420)",
+    "LOG: 17:39:07 | 2025-11-18 17:39:07,948 - __main__ - INFO -    - Arduino 30 (Lamp 2)",
+    "LOG: 17:39:07 | 2025-11-18 17:39:07,947 - __main__ - INFO -    - Arduino 12325 (Lamp 65485)",
+    "LOG: 17:39:07 | 2025-11-18 17:39:07,947 - __main__ - INFO -    - Arduino 1 (Lamp 1)",
+    "LOG: 17:39:07 | 2025-11-18 17:39:07,947 - __main__ - INFO -    - Arduino 6122 (Lamp 4421)",
+    "LOG: 17:39:07 | 2025-11-18 17:39:07,947 - __main__ - INFO -    - Arduino 2545 (Lamp 46528)",
+    "LOG: 17:39:07 | 2025-11-18 17:39:07,947 - __main__ - INFO -    - Arduino 4433 (Lamp 4422)"
+  ],
+  "service_status": {
+    "status": "healthy",
+    "details": {
+      "type": "web_service",
+      "url": "https://cpp-concept-search.onrender.com",
+      "instances": "1",
+      "plan": "starter"
+    }
+  },
+  "recent_deployments": [
+    {
+      "entry": "[01] FAILED Deploy dep-d42jtss9c44c739bkgqg",
+      "status": "build_failed",
+      "created": "2025-10-31T22:57:56.621236Z"
+    },
+    {
+      "entry": "[02] FAILED Deploy dep-d42jq4umcj7s73a1pbkg",
+      "status": "build_failed",
+      "created": "2025-10-31T22:49:57.051358Z"
+    },
+    {
+      "entry": "[03] FAILED Deploy dep-d42jm7juibrs738b4el0",
+      "status": "build_failed",
+      "created": "2025-10-31T22:41:35.099978Z"
+    },
+    {
+      "entry": "[04] FAILED Deploy dep-d420j395pdvs73ersg1g",
+      "status": "build_failed",
+      "created": "2025-10-31T00:57:50.890168Z"
+    },
+    {
+      "entry": "[05] CANCELED Deploy dep-d420imfdiees73c8u5c0",
+      "status": "canceled",
+      "created": "2025-10-31T00:56:57.99322Z"
+    }
+  ],
+  "service_events": [],
+  "error_summary": {
+    "web_errors": {
+      "count": 0,
+      "types": [],
+      "recent": []
+    },
+    "background_errors": {
+      "count": 0,
+      "types": [],
+      "recent": []
+    }
+  },
+  "api_activity": {
+    "arduino_requests": {
+      "total_requests": 14,
+      "unique_devices": [
+        "4433"
+      ],
+      "request_patterns": []
+    },
+    "error_patterns": {
+      "status_codes": {},
+      "error_types": []
+    }
+  },
+  "processing_performance": {
+    "cycle_times": [],
+    "success_rate": 1.0,
+    "avg_duration": 0
+  },
+  "alert_history": [],
+  "system_health_trends": {
+    "quiet_hours_active": 0,
+    "threshold_alerts": 0,
+    "locations": []
+  }
+}

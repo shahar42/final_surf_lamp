@@ -1,0 +1,222 @@
+SURF LAMP SYSTEM INSIGHTS REPORT
+Generated: 2025-11-19T20:00:41.405233
+Analysis Period: 24 hours
+
+Raw Data Summary:
+- Web Service Logs: 50 entries
+- Background Service Logs: 50 entries
+- Service Status: healthy
+- Recent Deployments: 5
+- API Requests: 2
+- Processing Avg Duration: 0.0s
+
+--------------------------------------------------------------------------------
+
+System Health Summary:
+*   Overall system healthy; no web or background errors reported.
+*   Web service running on a starter plan with a single instance.
+
+Performance Analysis:
+*   Background processing success rate is 100%, average duration near-zero.
+*   Only 2 Arduino requests in the last 24 hours.
+
+Notable Patterns:
+*   Very low API activity.
+
+Issues & Recommendations:
+*   Extremely low Arduino request volume indicates a major problem.
+*   Investigate connectivity issues between devices and the API.
+*   Consider upgrading web service plan if demand increases, current usage is low.
+
+Optimization Opportunities:
+*   Optimize background data fetching to reduce latency when API usage increases.
+
+Trends & Predictions:
+*   With current low usage, infrastructure appears over-provisioned.
+*   If API remains unused, evaluate system decommissioning or pivoting to other areas.
+
+
+--------------------------------------------------------------------------------
+
+Technical Data Details:
+{
+  "timestamp": "2025-11-19T20:00:41.405233",
+  "timeframe": "24 hours",
+  "web_service_logs": [
+    "LOG: 17:36:50 |   Using cached webencodings-0.5.1-py2.py3-none-any.whl (11 kB)",
+    "LOG: 17:36:50 | Collecting webencodings (from bleach==6.0.0->-r web_and_database/requirements.txt (line 10))",
+    "LOG: 17:36:50 |   Using cached six-1.17.0-py2.py3-none-any.whl (11 kB)",
+    "LOG: 17:36:50 | Collecting six>=1.9.0 (from bleach==6.0.0->-r web_and_database/requirements.txt (line 10))",
+    "LOG: 17:36:50 |   Using cached idna-3.11-py3-none-any.whl (71 kB)",
+    "LOG: 17:36:50 | Collecting idna>=2.0.0 (from email-validator==2.0.0->-r web_and_database/requirements.txt (line 9))",
+    "LOG: 17:36:50 |   Using cached dnspython-2.8.0-py3-none-any.whl (331 kB)",
+    "LOG: 17:36:50 | Collecting dnspython>=2.0.0 (from email-validator==2.0.0->-r web_and_database/requirements.txt (line 9))",
+    "LOG: 17:36:50 |   Using cached greenlet-3.2.4-cp311-cp311-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (587 kB)",
+    "LOG: 17:36:50 | Collecting greenlet!=0.4.17 (from SQLAlchemy==2.0.21->-r web_and_database/requirements.txt (line 7))",
+    "LOG: 17:36:50 |   Using cached typing_extensions-4.15.0-py3-none-any.whl (44 kB)",
+    "LOG: 17:36:50 | Collecting typing-extensions>=4 (from Flask-Limiter==3.5.0->-r web_and_database/requirements.txt (line 5))",
+    "LOG: 17:36:50 |   Using cached rich-13.9.4-py3-none-any.whl (242 kB)",
+    "LOG: 17:36:50 | Collecting rich<14,>=12 (from Flask-Limiter==3.5.0->-r web_and_database/requirements.txt (line 5))",
+    "LOG: 17:36:50 |   Using cached ordered_set-4.1.0-py3-none-any.whl (7.6 kB)",
+    "LOG: 17:36:50 | Collecting ordered-set<5,>4 (from Flask-Limiter==3.5.0->-r web_and_database/requirements.txt (line 5))",
+    "LOG: 17:36:50 |   Using cached limits-5.6.0-py3-none-any.whl (60 kB)",
+    "LOG: 17:36:50 | Collecting limits>=2.8 (from Flask-Limiter==3.5.0->-r web_and_database/requirements.txt (line 5))",
+    "LOG: 17:36:50 |   Using cached bcrypt-5.0.0-cp39-abi3-manylinux_2_34_x86_64.whl (278 kB)",
+    "LOG: 17:36:50 | Collecting bcrypt>=3.1.1 (from Flask-Bcrypt==1.0.1->-r web_and_database/requirements.txt (line 3))",
+    "LOG: 17:36:50 |   Using cached markupsafe-3.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (22 kB)",
+    "LOG: 17:36:50 | Collecting MarkupSafe>=2.1.1 (from Werkzeug==2.3.8->-r web_and_database/requirements.txt (line 2))",
+    "LOG: 17:36:50 |   Using cached blinker-1.9.0-py3-none-any.whl (8.5 kB)",
+    "LOG: 17:36:50 | Collecting blinker>=1.6.2 (from Flask==2.3.3->-r web_and_database/requirements.txt (line 1))",
+    "LOG: 17:36:49 |   Using cached click-8.3.1-py3-none-any.whl (108 kB)",
+    "LOG: 17:36:49 | Collecting click>=8.1.3 (from Flask==2.3.3->-r web_and_database/requirements.txt (line 1))",
+    "LOG: 17:36:49 |   Using cached itsdangerous-2.2.0-py3-none-any.whl (16 kB)",
+    "LOG: 17:36:49 | Collecting itsdangerous>=2.1.2 (from Flask==2.3.3->-r web_and_database/requirements.txt (line 1))",
+    "LOG: 17:36:49 |   Using cached jinja2-3.1.6-py3-none-any.whl (134 kB)",
+    "LOG: 17:36:49 | Collecting Jinja2>=3.1.2 (from Flask==2.3.3->-r web_and_database/requirements.txt (line 1))",
+    "LOG: 17:36:49 |   Using cached pytz-2024.1-py2.py3-none-any.whl (505 kB)",
+    "LOG: 17:36:49 | Collecting pytz==2024.1 (from -r web_and_database/requirements.txt (line 14))",
+    "LOG: 17:36:49 |   Using cached flask_mail-0.9.1-py3-none-any.whl",
+    "LOG: 17:36:49 | Collecting Flask-Mail==0.9.1 (from -r web_and_database/requirements.txt (line 13))",
+    "LOG: 17:36:49 |   Using cached gunicorn-23.0.0-py3-none-any.whl (85 kB)",
+    "LOG: 17:36:49 | Collecting gunicorn (from -r web_and_database/requirements.txt (line 12))",
+    "LOG: 17:36:49 |   Using cached redis-5.0.0-py3-none-any.whl (250 kB)",
+    "LOG: 17:36:49 | Collecting redis==5.0.0 (from -r web_and_database/requirements.txt (line 11))",
+    "LOG: 17:36:49 |   Using cached bleach-6.0.0-py3-none-any.whl (162 kB)",
+    "LOG: 17:36:49 | Collecting bleach==6.0.0 (from -r web_and_database/requirements.txt (line 10))",
+    "LOG: 17:36:49 |   Using cached email_validator-2.0.0-py3-none-any.whl (31 kB)",
+    "LOG: 17:36:49 | Collecting email-validator==2.0.0 (from -r web_and_database/requirements.txt (line 9))",
+    "LOG: 17:36:49 |   Using cached psycopg2_binary-2.9.7-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (3.0 MB)",
+    "LOG: 17:36:49 | Collecting psycopg2-binary==2.9.7 (from -r web_and_database/requirements.txt (line 8))",
+    "LOG: 17:36:49 |   Using cached SQLAlchemy-2.0.21-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (3.2 MB)",
+    "LOG: 17:36:49 | Collecting SQLAlchemy==2.0.21 (from -r web_and_database/requirements.txt (line 7))",
+    "LOG: 17:36:48 |   Using cached WTForms-3.0.1-py3-none-any.whl (136 kB)",
+    "LOG: 17:36:48 | Collecting WTForms==3.0.1 (from -r web_and_database/requirements.txt (line 6))",
+    "LOG: 17:36:48 |   Using cached Flask_Limiter-3.5.0-py3-none-any.whl (28 kB)",
+    "LOG: 17:36:48 | Collecting Flask-Limiter==3.5.0 (from -r web_and_database/requirements.txt (line 5))"
+  ],
+  "background_service_logs": [
+    "LOG: 17:40:33 | 2025-11-19 17:40:33,037 - __main__ - INFO - \u23f0 Updating timestamp for lamp 4321",
+    "LOG: 17:40:33 | 2025-11-19 17:40:33,037 - __main__ - INFO -   Updating lamp 4321 (Arduino 4321)",
+    "LOG: 17:40:33 | 2025-11-19 17:40:33,037 - __main__ - INFO - \u2705 Lamp 420 (Arduino 420) updated successfully",
+    "LOG: 17:40:33 | 2025-11-19 17:40:33,037 - __main__ - INFO - \u2705 Current conditions updated for lamp 420",
+    "LOG: 17:40:32 | 2025-11-19 17:40:32,837 - __main__ - INFO -  Updating current conditions for lamp 420",
+    "LOG: 17:40:32 | 2025-11-19 17:40:32,836 - __main__ - INFO - \u2705 Timestamp updated for lamp 420",
+    "LOG: 17:40:32 | 2025-11-19 17:40:32,636 - __main__ - INFO - \u23f0 Updating timestamp for lamp 420",
+    "LOG: 17:40:32 | 2025-11-19 17:40:32,636 - __main__ - INFO -   Updating lamp 420 (Arduino 420)",
+    "LOG: 17:40:32 | 2025-11-19 17:40:32,636 - __main__ - INFO - \ud83d\udcca Combined data for Hadera, Israel: ['wave_height_m', 'wave_period_s', 'timestamp', 'source_endpoint', 'wind_speed_mps', 'wind_direction_deg', 'location', 'temperature_c', 'humidity_percent']",
+    "LOG: 17:40:32 | 2025-11-19 17:40:32,636 - __main__ - INFO - \u2705 Got data: ['wind_speed_mps', 'wind_direction_deg', 'location', 'temperature_c', 'humidity_percent', 'timestamp', 'source_endpoint']",
+    "LOG: 17:40:32 | 2025-11-19 17:40:32,636 - __main__ - INFO - \u2705 Surf data standardized successfully",
+    "LOG: 17:40:32 | }",
+    "LOG: 17:40:32 |   \"source_endpoint\": \"http://api.openweathermap.org/data/2.5/weather?q=Hadera&appid=d6ef64df6585b7e88e51c221bbd41c2b\"",
+    "LOG: 17:40:32 |   \"timestamp\": 1763574032,",
+    "LOG: 17:40:32 |   \"humidity_percent\": 41,",
+    "LOG: 17:40:32 |   \"temperature_c\": 22.450000000000045,",
+    "LOG: 17:40:32 |   \"location\": \"Hadera\",",
+    "LOG: 17:40:32 |   \"wind_direction_deg\": 68,",
+    "LOG: 17:40:32 |   \"wind_speed_mps\": 4.37,",
+    "LOG: 17:40:32 | 2025-11-19 17:40:32,636 - __main__ - INFO - \u2705 Standardized data: {",
+    "LOG: 17:40:32 | 2025-11-19 17:40:32,635 - __main__ - INFO - \u2705 Found config with 7 field mappings",
+    "LOG: 17:40:32 | 2025-11-19 17:40:32,635 - __main__ - INFO - \ud83d\udd27 Standardizing data from: http://api.openweathermap.org/data/2.5/weather?q=Hadera&appid=d6ef64df6585b7e88e51c221bbd41c2b",
+    "LOG: 17:40:32 | 2025-11-19 17:40:32,635 - __main__ - INFO - \u2705 API call successful: 200",
+    "LOG: 17:40:02 | 2025-11-19 17:40:02,607 - __main__ - INFO - \ud83d\udce4 Using 30s timeout for this API",
+    "LOG: 17:40:02 | 2025-11-19 17:40:02,607 - __main__ - INFO - \ud83d\udce4 Headers: {'User-Agent': 'SurfLamp-Agent/1.0'}",
+    "LOG: 17:40:02 | 2025-11-19 17:40:02,607 - __main__ - INFO - \ud83d\udce4 Making API request without authentication (public endpoint)",
+    "LOG: 17:40:02 | 2025-11-19 17:40:02,607 - __main__ - INFO - \ud83c\udf0a Fetching surf data from: http://api.openweathermap.org/data/2.5/weather?q=Hadera&appid=d6ef64df6585b7e88e51c221bbd41c2b",
+    "LOG: 17:40:02 | 2025-11-19 17:40:02,607 - __main__ - INFO -   Trying API: http://api.openweathermap.org/data/2.5/weather?q=Hadera&appid=d6ef64df6585b7e88e51c221bbd41c2b (Priority: 2)",
+    "LOG: 17:40:02 | 2025-11-19 17:40:02,607 - __main__ - INFO - \u2705 Got data: ['wave_height_m', 'wave_period_s', 'timestamp', 'source_endpoint']",
+    "LOG: 17:40:02 | 2025-11-19 17:40:02,606 - __main__ - INFO - \u2705 Surf data standardized successfully",
+    "LOG: 17:40:02 | }",
+    "LOG: 17:40:02 |   \"source_endpoint\": \"https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json\"",
+    "LOG: 17:40:02 |   \"timestamp\": 1763574002,",
+    "LOG: 17:40:02 |   \"wave_period_s\": 5.2,",
+    "LOG: 17:40:02 |   \"wave_height_m\": 0.29,",
+    "LOG: 17:40:02 | 2025-11-19 17:40:02,606 - __main__ - INFO - \u2705 Standardized data: {",
+    "LOG: 17:40:02 | 2025-11-19 17:40:02,605 - __main__ - INFO - \u2705 Found config with 2 field mappings",
+    "LOG: 17:40:02 | 2025-11-19 17:40:02,605 - __main__ - INFO - \ud83d\udd27 Standardizing data from: https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json",
+    "LOG: 17:40:02 | 2025-11-19 17:40:02,605 - __main__ - INFO - \u2705 API call successful: 200",
+    "LOG: 17:39:31 | 2025-11-19 17:39:31,542 - __main__ - INFO - \ud83d\udce4 Using 15s timeout for this API",
+    "LOG: 17:39:31 | 2025-11-19 17:39:31,542 - __main__ - INFO - \ud83d\udce4 Headers: {'User-Agent': 'SurfLamp-Agent/1.0'}",
+    "LOG: 17:39:31 | 2025-11-19 17:39:31,542 - __main__ - INFO - \ud83d\udce4 Making API request without authentication (public endpoint)",
+    "LOG: 17:39:31 | 2025-11-19 17:39:31,542 - __main__ - INFO - \ud83c\udf0a Fetching surf data from: https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json",
+    "LOG: 17:39:31 | 2025-11-19 17:39:31,542 - __main__ - INFO -   Trying API: https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json (Priority: 1)",
+    "LOG: 17:39:31 | 2025-11-19 17:39:31,542 - __main__ - INFO -    - Arduino 30 (Lamp 2)",
+    "LOG: 17:39:31 | 2025-11-19 17:39:31,542 - __main__ - INFO -    - Arduino 12325 (Lamp 65485)",
+    "LOG: 17:39:31 | 2025-11-19 17:39:31,542 - __main__ - INFO -    - Arduino 1 (Lamp 1)",
+    "LOG: 17:39:31 | 2025-11-19 17:39:31,542 - __main__ - INFO -    - Arduino 6122 (Lamp 4421)",
+    "LOG: 17:39:31 | 2025-11-19 17:39:31,542 - __main__ - INFO -    - Arduino 2545 (Lamp 46528)",
+    "LOG: 17:39:31 | 2025-11-19 17:39:31,541 - __main__ - INFO -    - Arduino 4433 (Lamp 4422)"
+  ],
+  "service_status": {
+    "status": "healthy",
+    "details": {
+      "type": "web_service",
+      "url": "https://surf-lamp-viz.onrender.com",
+      "instances": "1",
+      "plan": "starter"
+    }
+  },
+  "recent_deployments": [
+    {
+      "entry": "[01] LIVE Deploy dep-d4f003m3jp1c738pe150",
+      "status": "live",
+      "created": "2025-11-19T17:36:18.801309Z"
+    },
+    {
+      "entry": "[02] CANCELED Deploy dep-d4f001l6ubrc739115j0",
+      "status": "canceled",
+      "created": "2025-11-19T17:36:08.33713Z"
+    },
+    {
+      "entry": "[03] UNKNOWN Deploy dep-d4evq6h5pdvs73bs7qg0",
+      "status": "deactivated",
+      "created": "2025-11-19T17:23:41.726634Z"
+    },
+    {
+      "entry": "[04] CANCELED Deploy dep-d4evq4qdbo4c73d3pa80",
+      "status": "canceled",
+      "created": "2025-11-19T17:23:33.111575Z"
+    },
+    {
+      "entry": "[05] UNKNOWN Deploy dep-d4evnlk9c44c73ckqs4g",
+      "status": "deactivated",
+      "created": "2025-11-19T17:18:20.274726Z"
+    }
+  ],
+  "service_events": [],
+  "error_summary": {
+    "web_errors": {
+      "count": 0,
+      "types": [],
+      "recent": []
+    },
+    "background_errors": {
+      "count": 0,
+      "types": [],
+      "recent": []
+    }
+  },
+  "api_activity": {
+    "arduino_requests": {
+      "total_requests": 2,
+      "unique_devices": [
+        "4433"
+      ],
+      "request_patterns": []
+    },
+    "error_patterns": {
+      "status_codes": {},
+      "error_types": []
+    }
+  },
+  "processing_performance": {
+    "cycle_times": [],
+    "success_rate": 1.0,
+    "avg_duration": 0
+  },
+  "alert_history": [],
+  "system_health_trends": {
+    "quiet_hours_active": 0,
+    "threshold_alerts": 0,
+    "locations": []
+  }
+}

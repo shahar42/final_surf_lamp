@@ -87,6 +87,11 @@ def manifest():
     from flask import send_from_directory
     return send_from_directory('static', 'manifest.json', mimetype='application/json')
 
+@app.route('/debug/template')
+def debug_template():
+    """Debug endpoint to check template rendering"""
+    return render_template('index.html')
+
 @app.route('/manpage/<module_id>')
 def manpage(module_id):
     """Serve manual page for a specific module"""

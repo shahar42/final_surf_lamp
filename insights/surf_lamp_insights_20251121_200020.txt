@@ -1,0 +1,224 @@
+SURF LAMP SYSTEM INSIGHTS REPORT
+Generated: 2025-11-21T20:00:16.611686
+Analysis Period: 24 hours
+
+Raw Data Summary:
+- Web Service Logs: 50 entries
+- Background Service Logs: 50 entries
+- Service Status: healthy
+- Recent Deployments: 5
+- API Requests: 33
+- Processing Avg Duration: 0.0s
+
+--------------------------------------------------------------------------------
+
+System Health Summary
+*   Overall status: Healthy; no errors in web or background services.
+*   Service runs on "starter" plan with single instance; check if plan is still adequate for current usage.
+
+Performance Analysis
+*   API Activity: 33 requests from a single device (Arduino 4433). Low device variety.
+*   Processing Performance: Success rate is 100%, average duration at 0; verify these metrics are correctly tracked.
+
+Notable Patterns
+*   Single Arduino (4433) is responsible for all API requests, indicates other arduinos are offline or inactive.
+*   Recent deployments: 5, high deployment volume indicates high development activity, which might introduce instability if not properly tested.
+
+Issues & Recommendations
+*   Critical issue: Over-reliance on a single Arduino device.
+*   Investigate the availability of other Arduino devices (root cause: hardware issues, connectivity, power).
+*   Consider implementing better monitoring and alerting for device availability.
+
+Optimization Opportunities
+*   Low device variety can be improved by onboarding more devices.
+*   Review the "starter" plan, consider upgrading it to a more robust plan that offers increased performance and capacity for future scaling.
+
+Trends & Predictions
+*   If single-device dependence persists, a failure of that device impacts the whole system.
+*   High deployment frequency may introduce new bugs in the future.
+
+
+--------------------------------------------------------------------------------
+
+Technical Data Details:
+{
+  "timestamp": "2025-11-21T20:00:16.611686",
+  "timeframe": "24 hours",
+  "web_service_logs": [
+    "LOG: 14:26:56 | 162.158.254.133 - - [21/Nov/2025:14:26:56 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 266 \"-\" \"ESP32HTTPClient\"",
+    "LOG: 14:26:56 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=23cm",
+    "LOG: 14:26:56 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 14:13:54 | 162.158.254.132 - - [21/Nov/2025:14:13:54 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 266 \"-\" \"ESP32HTTPClient\"",
+    "LOG: 14:13:54 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=23cm",
+    "LOG: 14:13:54 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 14:00:52 | 172.71.146.138 - - [21/Nov/2025:14:00:52 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 266 \"-\" \"ESP32HTTPClient\"",
+    "LOG: 14:00:52 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=23cm",
+    "LOG: 14:00:52 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 13:47:51 | 172.71.147.155 - - [21/Nov/2025:13:47:51 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 266 \"-\" \"ESP32HTTPClient\"",
+    "LOG: 13:47:51 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=27cm",
+    "LOG: 13:47:51 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 13:34:49 | 172.71.146.206 - - [21/Nov/2025:13:34:49 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 266 \"-\" \"ESP32HTTPClient\"",
+    "LOG: 13:34:49 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=27cm",
+    "LOG: 13:34:49 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 13:21:48 | 172.71.146.56 - - [21/Nov/2025:13:21:48 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 266 \"-\" \"ESP32HTTPClient\"",
+    "LOG: 13:21:48 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=27cm",
+    "LOG: 13:21:48 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 13:08:47 | 162.158.254.133 - - [21/Nov/2025:13:08:47 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 266 \"-\" \"ESP32HTTPClient\"",
+    "LOG: 13:08:46 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=27cm",
+    "LOG: 13:08:46 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 12:55:44 | 162.158.254.132 - - [21/Nov/2025:12:55:44 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 266 \"-\" \"ESP32HTTPClient\"",
+    "LOG: 12:55:44 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=27cm",
+    "LOG: 12:55:44 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 12:42:43 | 172.71.147.236 - - [21/Nov/2025:12:42:43 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 266 \"-\" \"ESP32HTTPClient\"",
+    "LOG: 12:42:43 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=25cm",
+    "LOG: 12:42:42 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 12:29:41 | 172.71.147.46 - - [21/Nov/2025:12:29:41 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 266 \"-\" \"ESP32HTTPClient\"",
+    "LOG: 12:29:41 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=25cm",
+    "LOG: 12:29:41 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 12:16:39 | 172.71.146.48 - - [21/Nov/2025:12:16:39 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 266 \"-\" \"ESP32HTTPClient\"",
+    "LOG: 12:16:39 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=25cm",
+    "LOG: 12:16:39 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 12:03:37 | 162.158.254.132 - - [21/Nov/2025:12:03:37 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 266 \"-\" \"ESP32HTTPClient\"",
+    "LOG: 12:03:37 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=25cm",
+    "LOG: 12:03:36 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 11:50:35 | 162.158.254.133 - - [21/Nov/2025:11:50:35 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 266 \"-\" \"ESP32HTTPClient\"",
+    "LOG: 11:50:35 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=25cm",
+    "LOG: 11:50:34 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 11:37:33 | 162.158.254.133 - - [21/Nov/2025:11:37:33 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 266 \"-\" \"ESP32HTTPClient\"",
+    "LOG: 11:37:32 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=25cm",
+    "LOG: 11:37:32 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 11:24:31 | 172.71.146.126 - - [21/Nov/2025:11:24:31 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 266 \"-\" \"ESP32HTTPClient\"",
+    "LOG: 11:24:31 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=25cm",
+    "LOG: 11:24:30 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 11:11:29 | 162.158.254.132 - - [21/Nov/2025:11:11:29 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 266 \"-\" \"ESP32HTTPClient\"",
+    "LOG: 11:11:29 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=25cm",
+    "LOG: 11:11:29 | INFO:app:\ud83d\udce5 Arduino 4433 requesting surf data (PULL mode)",
+    "LOG: 10:58:27 | 162.158.254.132 - - [21/Nov/2025:10:58:27 +0000] \"GET /api/arduino/4433/data HTTP/1.1\" 200 266 \"-\" \"ESP32HTTPClient\"",
+    "LOG: 10:58:27 | INFO:app:\u2705 Returning surf data for Arduino 4433: wave=22cm"
+  ],
+  "background_service_logs": [
+    "LOG: 17:58:46 | 2025-11-21 17:58:46,380 - __main__ - INFO -   Updating lamp 4321 (Arduino 4321)",
+    "LOG: 17:58:46 | 2025-11-21 17:58:46,380 - __main__ - INFO - \u2705 Lamp 420 (Arduino 420) updated successfully",
+    "LOG: 17:58:46 | 2025-11-21 17:58:46,379 - __main__ - INFO - \u2705 Current conditions updated for lamp 420",
+    "LOG: 17:58:46 | 2025-11-21 17:58:46,174 - __main__ - INFO -  Updating current conditions for lamp 420",
+    "LOG: 17:58:46 | 2025-11-21 17:58:46,173 - __main__ - INFO - \u2705 Timestamp updated for lamp 420",
+    "LOG: 17:58:45 | 2025-11-21 17:58:45,968 - __main__ - INFO - \u23f0 Updating timestamp for lamp 420",
+    "LOG: 17:58:45 | 2025-11-21 17:58:45,968 - __main__ - INFO -   Updating lamp 420 (Arduino 420)",
+    "LOG: 17:58:45 | 2025-11-21 17:58:45,968 - __main__ - INFO - \ud83d\udcca Combined data for Hadera, Israel: ['wave_height_m', 'wave_period_s', 'timestamp', 'source_endpoint', 'wind_speed_mps', 'wind_direction_deg', 'location', 'temperature_c', 'humidity_percent']",
+    "LOG: 17:58:45 | 2025-11-21 17:58:45,967 - __main__ - INFO - \u2705 Got data: ['wind_speed_mps', 'wind_direction_deg', 'location', 'temperature_c', 'humidity_percent', 'timestamp', 'source_endpoint']",
+    "LOG: 17:58:45 | 2025-11-21 17:58:45,967 - __main__ - INFO - \u2705 Surf data standardized successfully",
+    "LOG: 17:58:45 | }",
+    "LOG: 17:58:45 |   \"source_endpoint\": \"http://api.openweathermap.org/data/2.5/weather?q=Hadera&appid=d6ef64df6585b7e88e51c221bbd41c2b\"",
+    "LOG: 17:58:45 |   \"timestamp\": 1763747925,",
+    "LOG: 17:58:45 |   \"humidity_percent\": 34,",
+    "LOG: 17:58:45 |   \"temperature_c\": 24.24000000000001,",
+    "LOG: 17:58:45 |   \"location\": \"Hadera\",",
+    "LOG: 17:58:45 |   \"wind_direction_deg\": 76,",
+    "LOG: 17:58:45 |   \"wind_speed_mps\": 4.9,",
+    "LOG: 17:58:45 | 2025-11-21 17:58:45,967 - __main__ - INFO - \u2705 Standardized data: {",
+    "LOG: 17:58:45 | 2025-11-21 17:58:45,967 - __main__ - INFO - \u2705 Found config with 7 field mappings",
+    "LOG: 17:58:45 | 2025-11-21 17:58:45,967 - __main__ - INFO - \ud83d\udd27 Standardizing data from: http://api.openweathermap.org/data/2.5/weather?q=Hadera&appid=d6ef64df6585b7e88e51c221bbd41c2b",
+    "LOG: 17:58:45 | 2025-11-21 17:58:45,967 - __main__ - INFO - \u2705 API call successful: 200",
+    "LOG: 17:58:15 | 2025-11-21 17:58:15,934 - __main__ - INFO - \ud83d\udce4 Using 30s timeout for this API",
+    "LOG: 17:58:15 | 2025-11-21 17:58:15,934 - __main__ - INFO - \ud83d\udce4 Headers: {'User-Agent': 'SurfLamp-Agent/1.0'}",
+    "LOG: 17:58:15 | 2025-11-21 17:58:15,934 - __main__ - INFO - \ud83d\udce4 Making API request without authentication (public endpoint)",
+    "LOG: 17:58:15 | 2025-11-21 17:58:15,934 - __main__ - INFO - \ud83c\udf0a Fetching surf data from: http://api.openweathermap.org/data/2.5/weather?q=Hadera&appid=d6ef64df6585b7e88e51c221bbd41c2b",
+    "LOG: 17:58:15 | 2025-11-21 17:58:15,934 - __main__ - INFO -   Trying API: http://api.openweathermap.org/data/2.5/weather?q=Hadera&appid=d6ef64df6585b7e88e51c221bbd41c2b (Priority: 2)",
+    "LOG: 17:58:15 | 2025-11-21 17:58:15,933 - __main__ - INFO - \u2705 Got data: ['wave_height_m', 'wave_period_s', 'timestamp', 'source_endpoint']",
+    "LOG: 17:58:15 | 2025-11-21 17:58:15,932 - __main__ - INFO - \u2705 Surf data standardized successfully",
+    "LOG: 17:58:15 | }",
+    "LOG: 17:58:15 |   \"source_endpoint\": \"https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json\"",
+    "LOG: 17:58:15 |   \"timestamp\": 1763747895,",
+    "LOG: 17:58:15 |   \"wave_period_s\": 6.2,",
+    "LOG: 17:58:15 |   \"wave_height_m\": 0.27,",
+    "LOG: 17:58:15 | 2025-11-21 17:58:15,932 - __main__ - INFO - \u2705 Standardized data: {",
+    "LOG: 17:58:15 | 2025-11-21 17:58:15,932 - __main__ - INFO - \u2705 Found config with 2 field mappings",
+    "LOG: 17:58:15 | 2025-11-21 17:58:15,931 - __main__ - INFO - \ud83d\udd27 Standardizing data from: https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json",
+    "LOG: 17:58:15 | 2025-11-21 17:58:15,931 - __main__ - INFO - \u2705 API call successful: 200",
+    "LOG: 17:57:44 | 2025-11-21 17:57:44,997 - __main__ - INFO - \ud83d\udce4 Using 15s timeout for this API",
+    "LOG: 17:57:44 | 2025-11-21 17:57:44,997 - __main__ - INFO - \ud83d\udce4 Headers: {'User-Agent': 'SurfLamp-Agent/1.0'}",
+    "LOG: 17:57:44 | 2025-11-21 17:57:44,997 - __main__ - INFO - \ud83d\udce4 Making API request without authentication (public endpoint)",
+    "LOG: 17:57:44 | 2025-11-21 17:57:44,997 - __main__ - INFO - \ud83c\udf0a Fetching surf data from: https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json",
+    "LOG: 17:57:44 | 2025-11-21 17:57:44,996 - __main__ - INFO -   Trying API: https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json (Priority: 1)",
+    "LOG: 17:57:44 | 2025-11-21 17:57:44,996 - __main__ - INFO -    - Arduino 30 (Lamp 2)",
+    "LOG: 17:57:44 | 2025-11-21 17:57:44,996 - __main__ - INFO -    - Arduino 12325 (Lamp 65485)",
+    "LOG: 17:57:44 | 2025-11-21 17:57:44,996 - __main__ - INFO -    - Arduino 1 (Lamp 1)",
+    "LOG: 17:57:44 | 2025-11-21 17:57:44,996 - __main__ - INFO -    - Arduino 6122 (Lamp 4421)",
+    "LOG: 17:57:44 | 2025-11-21 17:57:44,996 - __main__ - INFO -    - Arduino 2545 (Lamp 46528)",
+    "LOG: 17:57:44 | 2025-11-21 17:57:44,996 - __main__ - INFO -    - Arduino 4433 (Lamp 4422)",
+    "LOG: 17:57:44 | 2025-11-21 17:57:44,996 - __main__ - INFO -    - Arduino 4321 (Lamp 4321)"
+  ],
+  "service_status": {
+    "status": "healthy",
+    "details": {
+      "type": "web_service",
+      "url": "https://surf-lamp-viz.onrender.com",
+      "instances": "1",
+      "plan": "starter"
+    }
+  },
+  "recent_deployments": [
+    {
+      "entry": "[01] LIVE Deploy dep-d4f4d7vfte5s739p1600",
+      "status": "live",
+      "created": "2025-11-19T22:37:21.531458Z"
+    },
+    {
+      "entry": "[02] UNKNOWN Deploy dep-d4f47jgdl3ps73cm6kq0",
+      "status": "deactivated",
+      "created": "2025-11-19T22:25:21.394884Z"
+    },
+    {
+      "entry": "[03] CANCELED Deploy dep-d4f479ruibrs73dt0si0",
+      "status": "canceled",
+      "created": "2025-11-19T22:24:40.33315Z"
+    },
+    {
+      "entry": "[04] CANCELED Deploy dep-d4f46m6mcj7s73bdpnq0",
+      "status": "canceled",
+      "created": "2025-11-19T22:23:21.935383Z"
+    },
+    {
+      "entry": "[05] UNKNOWN Deploy dep-d4f003m3jp1c738pe150",
+      "status": "deactivated",
+      "created": "2025-11-19T17:36:18.801309Z"
+    }
+  ],
+  "service_events": [],
+  "error_summary": {
+    "web_errors": {
+      "count": 0,
+      "types": [],
+      "recent": []
+    },
+    "background_errors": {
+      "count": 0,
+      "types": [],
+      "recent": []
+    }
+  },
+  "api_activity": {
+    "arduino_requests": {
+      "total_requests": 33,
+      "unique_devices": [
+        "4433"
+      ],
+      "request_patterns": []
+    },
+    "error_patterns": {
+      "status_codes": {},
+      "error_types": []
+    }
+  },
+  "processing_performance": {
+    "cycle_times": [],
+    "success_rate": 1.0,
+    "avg_duration": 0
+  },
+  "alert_history": [],
+  "system_health_trends": {
+    "quiet_hours_active": 0,
+    "threshold_alerts": 0,
+    "locations": []
+  }
+}
