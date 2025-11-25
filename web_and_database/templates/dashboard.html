@@ -337,6 +337,55 @@
         </div>
     </div>
 
+    <!-- Floating Chat Button -->
+    <button id="chatFloatingBtn" class="fixed bottom-6 right-6 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full p-4 shadow-2xl hover:shadow-blue-500/50 transition-all hover:scale-110 z-40 hidden">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+        </svg>
+    </button>
+
+    <!-- Chat Modal -->
+    <div id="chatModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 flex flex-col" style="height: 600px; max-height: 90vh;">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-t-2xl flex justify-between items-center">
+                <h2 class="text-xl font-bold">Surf Lamp Assistant</h2>
+                <button id="closeChatBtn" class="text-white hover:text-gray-200 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Chat Messages -->
+            <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-3">
+                <!-- Welcome message -->
+                <div class="flex items-start space-x-2">
+                    <div class="bg-blue-100 text-gray-800 rounded-2xl px-4 py-2 max-w-xs">
+                        <p class="text-sm">Hi! I'm your Surf Lamp assistant. Ask me anything about how your lamp works, what the LED colors mean, or your current surf conditions!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="border-t border-gray-200 p-4">
+                <div class="flex space-x-2">
+                    <input
+                        type="text"
+                        id="chatInput"
+                        placeholder="Ask a question..."
+                        class="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800"
+                        maxlength="500"
+                    >
+                    <button id="sendChatBtn" class="bg-blue-500 hover:bg-blue-600 text-white rounded-full px-6 py-2 font-semibold transition-colors">
+                        Send
+                    </button>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Powered by Gemini AI • Read-only assistant</p>
+            </div>
+        </div>
+    </div>
+
     <!-- Error Report Modal -->
     <div id="errorReportModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
         <div class="bg-white rounded-2xl p-8 max-w-lg w-full mx-4 shadow-2xl">
@@ -867,6 +916,138 @@
             submitBtn.textContent = 'Submit Report';
         });
     });
+
+    // --- Chat Assistant Functionality ---
+    (function() {
+        const chatFloatingBtn = document.getElementById('chatFloatingBtn');
+        const chatModal = document.getElementById('chatModal');
+        const closeChatBtn = document.getElementById('closeChatBtn');
+        const chatInput = document.getElementById('chatInput');
+        const sendChatBtn = document.getElementById('sendChatBtn');
+        const chatMessages = document.getElementById('chatMessages');
+
+        // Check if chat feature is enabled
+        fetch('/api/chat/status')
+            .then(r => r.json())
+            .then(data => {
+                if (data.enabled) {
+                    chatFloatingBtn.classList.remove('hidden');
+                }
+            })
+            .catch(err => console.log('Chat feature not available'));
+
+        // Open chat modal
+        chatFloatingBtn.addEventListener('click', () => {
+            chatModal.classList.remove('hidden');
+            chatModal.classList.add('flex');
+            chatInput.focus();
+        });
+
+        // Close chat modal
+        function closeChat() {
+            chatModal.classList.add('hidden');
+            chatModal.classList.remove('flex');
+        }
+
+        closeChatBtn.addEventListener('click', closeChat);
+
+        // Close on backdrop click
+        chatModal.addEventListener('click', (e) => {
+            if (e.target === chatModal) closeChat();
+        });
+
+        // Add message to chat
+        function addMessage(text, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex items-start space-x-2 ${isUser ? 'justify-end' : ''}`;
+
+            const bubble = document.createElement('div');
+            bubble.className = `rounded-2xl px-4 py-2 max-w-xs ${isUser ? 'bg-blue-500 text-white' : 'bg-blue-100 text-gray-800'}`;
+
+            const p = document.createElement('p');
+            p.className = 'text-sm whitespace-pre-wrap';
+            p.textContent = text;
+
+            bubble.appendChild(p);
+            messageDiv.appendChild(bubble);
+            chatMessages.appendChild(messageDiv);
+
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Add loading indicator
+        function addLoadingIndicator() {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'flex items-start space-x-2';
+            loadingDiv.id = 'loadingIndicator';
+
+            const bubble = document.createElement('div');
+            bubble.className = 'bg-blue-100 text-gray-800 rounded-2xl px-4 py-2';
+            bubble.innerHTML = '<div class="flex space-x-1"><div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div><div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div><div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div></div>';
+
+            loadingDiv.appendChild(bubble);
+            chatMessages.appendChild(loadingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function removeLoadingIndicator() {
+            const loading = document.getElementById('loadingIndicator');
+            if (loading) loading.remove();
+        }
+
+        // Send message
+        async function sendMessage() {
+            const message = chatInput.value.trim();
+            if (!message) return;
+
+            // Add user message
+            addMessage(message, true);
+            chatInput.value = '';
+
+            // Disable input while processing
+            chatInput.disabled = true;
+            sendChatBtn.disabled = true;
+            addLoadingIndicator();
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: message })
+                });
+
+                const data = await response.json();
+                removeLoadingIndicator();
+
+                if (response.ok && data.success) {
+                    addMessage(data.response, false);
+                } else {
+                    addMessage(data.error || 'Sorry, I encountered an error. Please try again.', false);
+                }
+            } catch (error) {
+                removeLoadingIndicator();
+                addMessage('Network error. Please check your connection and try again.', false);
+            } finally {
+                chatInput.disabled = false;
+                sendChatBtn.disabled = false;
+                chatInput.focus();
+            }
+        }
+
+        // Send on button click
+        sendChatBtn.addEventListener('click', sendMessage);
+
+        // Send on Enter key
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+    })();
 
     </script>
 </body>

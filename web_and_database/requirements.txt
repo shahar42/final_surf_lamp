@@ -12,3 +12,4 @@ redis==5.0.0
 gunicorn
 Flask-Mail==0.9.1
 pytz==2024.1
+google-generativeai

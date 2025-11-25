@@ -23,6 +23,7 @@ import redis
 import time
 from datetime import datetime, timezone
 import pytz
+import google.generativeai as genai
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -68,6 +69,17 @@ apply_security_headers(app)
 app.config.from_object(SecurityConfig)
 
 bcrypt = Bcrypt(app)
+
+# --- Gemini AI Configuration ---
+CHAT_BOT_ENABLED = os.environ.get('CHAT_BOT_ENABLED', 'false').lower() == 'true'
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash')
+
+if CHAT_BOT_ENABLED and GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+    logger.info(f"Gemini AI chatbot enabled with model: {GEMINI_MODEL}")
+elif CHAT_BOT_ENABLED:
+    logger.warning("CHAT_BOT_ENABLED is true but GEMINI_API_KEY is not set")
 
 # --- Redis and Rate Limiter Setup ---
 # Use the REDIS_URL from environment variables provided by Render.
@@ -833,6 +845,184 @@ def api_error_reports():
     except Exception as e:
         logger.error(f"Error in api_error_reports endpoint: {e}")
         return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
+
+def build_chat_context(user_data, conditions_data):
+    """Build context for Gemini chatbot based on user's specific data"""
+
+    # Format current conditions
+    if conditions_data:
+        wave_height = f"{conditions_data.wave_height_m:.1f}m" if conditions_data.wave_height_m else "N/A"
+        wave_period = f"{conditions_data.wave_period_s:.1f}s" if conditions_data.wave_period_s else "N/A"
+        wind_speed = f"{conditions_data.wind_speed_mps:.1f} m/s ({conditions_data.wind_speed_mps * 1.94384:.1f} knots)" if conditions_data.wind_speed_mps else "N/A"
+        wind_dir = convert_wind_direction(conditions_data.wind_direction_deg) if conditions_data.wind_direction_deg else "N/A"
+        status = "Online"
+    else:
+        wave_height = wave_period = wind_speed = wind_dir = "N/A"
+        status = "No data (offline or recently registered)"
+
+    # Check if in night mode
+    in_quiet_hours = is_quiet_hours(user_data.location)
+    night_mode_status = "Active (only top LED lit)" if in_quiet_hours else "Inactive"
+
+    system_prompt = f"""You are a helpful assistant for the Surf Lamp system. Your role is to help users understand their surf lamp and surf conditions.
+
+**USER'S SURF LAMP DATA:**
+- Location: {user_data.location}
+- Wave Alert Threshold: {user_data.wave_threshold_m}m
+- Wind Alert Threshold: {user_data.wind_threshold_knots} knots
+- Current Theme: {user_data.theme if user_data.theme else 'Ocean Breeze'}
+- Preferred Units: {user_data.preferred_output}
+- Lamp Status: {status}
+- Night Mode (10pm-6am): {night_mode_status}
+
+**CURRENT SURF CONDITIONS FOR {user_data.location}:**
+- Wave Height: {wave_height}
+- Wave Period: {wave_period}
+- Wind Speed: {wind_speed}
+- Wind Direction: {wind_dir}
+
+**HOW THE SURF LAMP WORKS:**
+
+The Surf Lamp is a smart LED display that shows real-time surf conditions using three LED strips:
+1. **Left Strip (Wave Period)**: Shows wave period in seconds. Higher brightness = longer period = better surfing conditions
+2. **Middle Strip (Wind Speed)**: Shows wind speed. Color indicates wind direction (Green=N, Yellow=E, Red=S, Blue=W, and variations in between)
+3. **Right Strip (Wave Height)**: Shows wave height in meters. Higher brightness = bigger waves
+
+**LED BRIGHTNESS LEVELS:**
+- Wave Height: Each LED represents ~0.33m. More LEDs lit = bigger waves
+- Wave Period: Each LED represents ~2 seconds. More LEDs lit = longer period
+- Wind Speed: Each LED represents ~2-3 knots. More LEDs lit = stronger wind
+
+**WIND DIRECTION COLORS:**
+- North (N): Green
+- Northeast (NE): Green-Yellow
+- East (E): Yellow
+- Southeast (SE): Yellow-Orange
+- South (S): Red
+- Southwest (SW): Purple
+- West (W): Blue
+- Northwest (NW): Cyan
+
+**ALERTS:**
+- When wave height exceeds the user's threshold ({user_data.wave_threshold_m}m), the wave strip blinks
+- When wind speed exceeds the user's threshold ({user_data.wind_threshold_knots} knots), the wind strip blinks
+
+**NIGHT MODE (10 PM - 6 AM):**
+During night hours in the user's local timezone, the lamp switches to night mode:
+- Only the TOP LED of each strip is illuminated (gentle ambient lighting)
+- Threshold-based blinking is disabled
+- Provides subtle lighting without disturbing sleep
+
+**COMMON QUESTIONS:**
+
+Q: Why is my lamp showing all LEDs lit?
+A: This means conditions are at maximum levels (very big waves, strong wind, or long period). Check the dashboard for exact values.
+
+Q: Why is one strip blinking?
+A: Blinking means a threshold has been exceeded - either wave height or wind speed is above your alert settings.
+
+Q: My lamp shows no data/is offline
+A: This can happen if the lamp was recently registered, there's a connection issue, or the system is updating. Data updates every 30 minutes.
+
+Q: What's the best surf condition?
+A: Generally, bigger wave height (>1m), longer period (>10s), and moderate wind (<15 knots) are good for surfing. But preferences vary!
+
+Q: Can I change my location?
+A: Yes, use the location dropdown on the dashboard. Note: You're limited to 5 location changes per day.
+
+Q: Why is only one LED lit at night?
+A: Night mode is active (10pm-6am in your timezone). This provides gentle ambient lighting without full condition display.
+
+**YOUR ROLE:**
+- Answer questions about how the lamp works
+- Explain what the LED colors and patterns mean
+- Help interpret current surf conditions
+- Explain thresholds and alerts
+- Provide general surf lamp troubleshooting (read-only - don't offer to change settings)
+- Be concise and friendly
+
+**IMPORTANT:**
+- You are read-only - you cannot change user settings
+- If the user wants to change something, tell them to use the dashboard controls
+- Base your answers on the user's specific data shown above
+- Keep responses concise (2-4 sentences unless more detail is needed)
+"""
+
+    return system_prompt
+
+@app.route("/api/chat", methods=['POST'])
+@login_required
+def chat():
+    """
+    Gemini-powered chatbot endpoint for helping users understand their surf lamp.
+    Requires authentication and provides context-aware responses.
+    """
+    if not CHAT_BOT_ENABLED:
+        return jsonify({"error": "Chat feature is currently disabled"}), 503
+
+    if not GEMINI_API_KEY:
+        return jsonify({"error": "Chat feature is not configured"}), 503
+
+    try:
+        data = request.get_json()
+        user_message = data.get('message', '').strip()
+
+        if not user_message:
+            return jsonify({"error": "Message is required"}), 400
+
+        # Get user data from session
+        user_email = session.get('user_email')
+        if not user_email:
+            return jsonify({"error": "Not authenticated"}), 401
+
+        # Fetch user and lamp data
+        db = SessionLocal()
+        try:
+            user_data = db.query(User).filter(User.email == user_email).first()
+            if not user_data:
+                return jsonify({"error": "User not found"}), 404
+
+            # Get lamp and conditions
+            lamp_data = db.query(Lamp).filter(Lamp.user_id == user_data.user_id).first()
+            conditions_data = None
+            if lamp_data:
+                conditions_data = db.query(CurrentConditions).filter(
+                    CurrentConditions.lamp_id == lamp_data.lamp_id
+                ).first()
+
+            # Build context-aware system prompt
+            system_prompt = build_chat_context(user_data, conditions_data)
+
+            # Call Gemini API
+            model = genai.GenerativeModel(GEMINI_MODEL)
+
+            # Create chat with system instruction
+            chat = model.start_chat(history=[])
+
+            # Send message with system context prepended
+            full_prompt = f"{system_prompt}\n\nUser question: {user_message}"
+            response = chat.send_message(full_prompt)
+
+            logger.info(f"Chat request from {user_email}: {user_message[:100]}")
+
+            return jsonify({
+                "response": response.text,
+                "success": True
+            }), 200
+
+        finally:
+            db.close()
+
+    except Exception as e:
+        logger.error(f"Error in chat endpoint: {e}")
+        return jsonify({"error": "Failed to process chat request", "details": str(e)}), 500
+
+@app.route("/api/chat/status", methods=['GET'])
+def chat_status():
+    """Check if chat feature is enabled"""
+    return jsonify({
+        "enabled": CHAT_BOT_ENABLED and GEMINI_API_KEY is not None
+    }), 200
 
 @app.route("/admin/trigger-processor")
 @login_required  # Only logged-in users can trigger
