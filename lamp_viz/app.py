@@ -52,6 +52,22 @@ if DATABASE_URL:
 def home():
     return send_file('index.html')
 
+@app.route('/manifest.json')
+def manifest():
+    return send_file('manifest.json')
+
+@app.route('/sw.js')
+def service_worker():
+    return send_file('sw.js', mimetype='application/javascript')
+
+@app.route('/icon-192.png')
+def icon192():
+    return send_file('icon-192.png')
+
+@app.route('/icon-512.png')
+def icon512():
+    return send_file('icon-512.png')
+
 @app.route('/api/locations')
 def get_locations():
     """Get all unique locations with active lamps that have current condition data"""

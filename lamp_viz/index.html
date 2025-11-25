@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ocean Pulse - Live Visualization</title>
+    <link rel="manifest" href="/manifest.json">
     <style>
         * {
             margin: 0;
@@ -456,6 +457,19 @@
     loadLocations(); // This will auto-fetch first location's data
     setInterval(fetchLampData, 780000); // 13 minutes
     setInterval(blinkLoop, 800); // Blink animation
+
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+                .then(registration => {
+                    console.log('Service Worker registered');
+                })
+                .catch(error => {
+                    console.log('Registration failed:', error);
+                });
+        });
+    }
     </script>
 </body>
 </html>
