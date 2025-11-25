@@ -14,7 +14,9 @@ class SecurityConfig:
     CSRF_ENABLED = True
     CSRF_SESSION_KEY = os.environ.get('CSRF_SESSION_KEY')
     if not CSRF_SESSION_KEY:
-        raise ValueError("CSRF_SESSION_KEY environment variable is required")
+        import secrets
+        CSRF_SESSION_KEY = secrets.token_hex(32)
+        print("WARNING: CSRF_SESSION_KEY not found. using generated key.")
     
     # Rate Limiting Settings
     RATELIMIT_STORAGE_URL = os.environ.get('REDIS_URL', 'memory://')
