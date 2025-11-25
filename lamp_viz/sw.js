@@ -1,10 +1,12 @@
-var CACHE_NAME = 'ocean-pulse-v2';
+var CACHE_NAME = 'ocean-pulse-v3';
 var urlsToCache = [
   '/',
   '/icon-192.png',
   '/icon-512.png',
+  '/icon-1024.png',
   '/icon-maskable-192.png',
   '/icon-maskable-512.png',
+  '/icon-maskable-1024.png',
   '/manifest.json'
 ];
 
