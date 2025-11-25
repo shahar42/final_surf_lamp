@@ -407,9 +407,11 @@
         document.getElementById('waveLabel').style.color = `rgb(${theme.wave[0]}, ${theme.wave[1]}, ${theme.wave[2]})`;
 
         // Calculate LED counts (Arduino formulas)
+        const MPS_TO_KNOTS = 1.94384; // Standard conversion factor
         const waveLEDCount = Math.max(0, Math.min(NUM_LEDS_RIGHT, Math.floor(data.wave_height_cm / 25) + 1));
         const periodLEDCount = Math.max(0, Math.min(NUM_LEDS_LEFT, Math.floor(data.wave_period_s)));
-        const windLEDCount = Math.max(1, Math.min(NUM_LEDS_CENTER - 2, Math.floor(data.wind_speed_mps * 18.0 / 13.0)));
+        const windSpeedKnotsForLED = data.wind_speed_mps * MPS_TO_KNOTS; // Convert mps to knots for LED calculation
+        const windLEDCount = Math.max(1, Math.min(NUM_LEDS_CENTER - 2, Math.floor(windSpeedKnotsForLED * 18.0 / 13.0)));
 
         const windDirColor = getWindDirectionColor(data.wind_direction_deg);
 
