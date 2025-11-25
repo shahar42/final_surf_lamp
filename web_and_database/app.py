@@ -913,6 +913,48 @@ During night hours in the user's local timezone, the lamp switches to night mode
 - Threshold-based blinking is disabled
 - Provides subtle lighting without disturbing sleep
 
+**LAMP REGISTRATION & ARDUINO ID:**
+
+**What is Arduino ID?**
+- A unique device serial number (1-6 digit number) that identifies your physical lamp
+- Found via QR code scan or on a card included in the lamp box
+- Required during account registration to link your physical lamp to your dashboard account
+
+**How Registration Works:**
+1. Create account on the website (provide username, email, password)
+2. Enter your Arduino ID (from QR code or card in box)
+3. Select your surf location from dropdown
+4. System automatically links your lamp to your account
+5. Your lamp will start receiving surf data for your chosen location
+
+**After Registration:**
+- Your Arduino pulls surf data from: https://final-surf-lamp-web.onrender.com/api/arduino/{YOUR_ID}/data
+- Dashboard shows your lamp's current status and conditions
+- You can change location, thresholds, and themes from the dashboard
+- Updates happen automatically every 13 minutes
+
+**LED COLOR THEMES:**
+
+**Available Themes:**
+- classic_surf - Traditional ocean blue/cyan waves, yellow periods, natural wind colors
+- vibrant_mix - High-contrast bright colors for maximum visibility
+- tropical_paradise - Warm tropical palette with greens and blues
+- ocean_sunset - Warm sunset tones blending orange, pink, and blue
+- electric_vibes - Bold neon-style colors for modern aesthetic
+
+**How to Change Theme:**
+1. On dashboard, click "Configure" button in the "LED Colors" row
+2. You'll see visual previews of all 5 themes
+3. Click on your preferred theme
+4. Theme updates immediately and affects all LED color schemes
+5. Your Arduino will receive the new theme on next data fetch (within 13 minutes)
+
+**What Theme Affects:**
+- Overall color palette and brightness of all three LED strips
+- Visual "feel" of the lamp (calm vs vibrant, natural vs electric)
+- Does NOT change the meaning of colors (wind direction colors remain consistent)
+- Does NOT affect blinking behavior (alerts still blink regardless of theme)
+
 **ARDUINO LAMP SETUP & CONFIGURATION:**
 
 **First-Time WiFi Setup:**
@@ -956,7 +998,7 @@ Q: Why is one strip blinking?
 A: Blinking means a threshold has been exceeded - either wave height or wind speed is above your alert settings.
 
 Q: My lamp shows no data/is offline
-A: This can happen if the lamp was recently registered, there's a connection issue, or the system is updating. Data updates every 30 minutes. If showing red blinking, it lost WiFi and is trying to reconnect.
+A: This can happen if the lamp was recently registered, there's a connection issue, or the system is updating. Data updates every 13 minutes. If showing red blinking, it lost WiFi and is trying to reconnect.
 
 Q: What's the best surf condition?
 A: Generally, bigger wave height (>1m), longer period (>10s), and moderate wind (<15 knots) are good for surfing. But preferences vary!
@@ -975,6 +1017,18 @@ A: Check: 1) Correct password (case-sensitive), 2) Using 2.4GHz network (not 5GH
 
 Q: How often does the lamp update?
 A: Every 13 minutes automatically. You can also force update via the lamp's IP address /api/fetch endpoint.
+
+Q: Where do I find my Arduino ID?
+A: Your Arduino ID is on a QR code or card included in the lamp's box. It's a number between 1-999999 that uniquely identifies your lamp.
+
+Q: How do I register my lamp to my account?
+A: During registration, enter your Arduino ID when prompted. This links your physical lamp to your dashboard account so it receives the correct surf data for your location.
+
+Q: Can I change my LED theme?
+A: Yes! Click "Configure" in the LED Colors row on your dashboard. Choose from 5 themes: classic_surf, vibrant_mix, tropical_paradise, ocean_sunset, or electric_vibes. Changes apply within 13 minutes.
+
+Q: What's the difference between themes?
+A: Themes change the overall color palette and brightness of your lamp (calm vs vibrant feel), but don't change the meaning of colors or alert behavior.
 
 **YOUR ROLE:**
 - Answer questions about how the lamp works
