@@ -928,7 +928,7 @@ During night hours in the user's local timezone, the lamp switches to night mode
 5. Your lamp will start receiving surf data for your chosen location
 
 **After Registration:**
-- Your Arduino pulls surf data from: https://final-surf-lamp-web.onrender.com/api/arduino/{YOUR_ID}/data
+- Your Arduino pulls surf data from: https://final-surf-lamp-web.onrender.com/api/arduino/{{YOUR_ID}}/data
 - Dashboard shows your lamp's current status and conditions
 - You can change location, thresholds, and themes from the dashboard
 - Updates happen automatically every 13 minutes
