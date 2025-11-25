@@ -913,6 +913,40 @@ During night hours in the user's local timezone, the lamp switches to night mode
 - Threshold-based blinking is disabled
 - Provides subtle lighting without disturbing sleep
 
+**ARDUINO LAMP SETUP & CONFIGURATION:**
+
+**First-Time WiFi Setup:**
+1. Power on the lamp - it will show BLUE LEDs (setup mode)
+2. Connect to WiFi network: "SurfLamp-Setup" (password: surf123456)
+3. Browser should open automatically to 192.168.4.1
+4. Enter your home WiFi name and password
+5. Lamp connects and shows green/blue blinking when successful
+6. Lamp fetches surf data every 13 minutes automatically
+
+**WiFi Requirements:**
+- MUST use 2.4GHz WiFi (does NOT work with 5GHz networks)
+- Lamp needs internet access to fetch surf data
+- Once configured, lamp only needs power (USB adapter)
+
+**How to Reset WiFi Settings:**
+- Press and hold BOOT button on ESP32 board for 1 second
+- Lamp restarts with blue LEDs (setup mode)
+- Follow first-time setup steps again
+- Alternative: Unplug completely, wait 10 seconds, plug back in
+
+**Troubleshooting Connection Issues:**
+- Blue LEDs = Setup mode / waiting for WiFi configuration
+- Blue blinking = Connected but waiting for data
+- Green blinking = Connected and receiving surf data
+- Red blinking = Lost WiFi connection (will auto-retry, then reset to setup mode after 5 attempts)
+- Can't see "SurfLamp-Setup" network = Move closer to lamp or lamp already connected to WiFi
+- Phone disconnects during setup = Use computer instead, or disable mobile data temporarily
+
+**Advanced Features:**
+- Check lamp status: http://[LAMP-IP]/api/status
+- Force data refresh: http://[LAMP-IP]/api/fetch
+- Test LEDs: http://[LAMP-IP]/api/led-test
+
 **COMMON QUESTIONS:**
 
 Q: Why is my lamp showing all LEDs lit?
@@ -922,7 +956,7 @@ Q: Why is one strip blinking?
 A: Blinking means a threshold has been exceeded - either wave height or wind speed is above your alert settings.
 
 Q: My lamp shows no data/is offline
-A: This can happen if the lamp was recently registered, there's a connection issue, or the system is updating. Data updates every 30 minutes.
+A: This can happen if the lamp was recently registered, there's a connection issue, or the system is updating. Data updates every 30 minutes. If showing red blinking, it lost WiFi and is trying to reconnect.
 
 Q: What's the best surf condition?
 A: Generally, bigger wave height (>1m), longer period (>10s), and moderate wind (<15 knots) are good for surfing. But preferences vary!
@@ -932,6 +966,15 @@ A: Yes, use the location dropdown on the dashboard. Note: You're limited to 5 lo
 
 Q: Why is only one LED lit at night?
 A: Night mode is active (10pm-6am in your timezone). This provides gentle ambient lighting without full condition display.
+
+Q: How do I set up my lamp for the first time?
+A: Power it on (blue LEDs), connect to "SurfLamp-Setup" WiFi network, configure your home WiFi at 192.168.4.1. See setup section above.
+
+Q: My lamp won't connect to WiFi
+A: Check: 1) Correct password (case-sensitive), 2) Using 2.4GHz network (not 5GHz), 3) Try computer instead of phone for setup.
+
+Q: How often does the lamp update?
+A: Every 13 minutes automatically. You can also force update via the lamp's IP address /api/fetch endpoint.
 
 **YOUR ROLE:**
 - Answer questions about how the lamp works
