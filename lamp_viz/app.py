@@ -68,6 +68,14 @@ def icon192():
 def icon512():
     return send_file('icon-512.png')
 
+@app.route('/icon-maskable-192.png')
+def icon_maskable_192():
+    return send_file('icon-maskable-192.png')
+
+@app.route('/icon-maskable-512.png')
+def icon_maskable_512():
+    return send_file('icon-maskable-512.png')
+
 @app.route('/favicon.ico')
 def favicon():
     return send_file('favicon.ico', mimetype='image/vnd.microsoft.icon')
