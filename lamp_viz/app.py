@@ -68,6 +68,10 @@ def icon192():
 def icon512():
     return send_file('icon-512.png')
 
+@app.route('/favicon.ico')
+def favicon():
+    return send_file('favicon.ico', mimetype='image/vnd.microsoft.icon')
+
 @app.route('/api/locations')
 def get_locations():
     """Get all unique locations with active lamps that have current condition data"""
