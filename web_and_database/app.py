@@ -846,9 +846,10 @@ def api_error_reports():
         logger.error(f"Error in api_error_reports endpoint: {e}")
         return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
 
-def build_chat_context(user_data, conditions_data):
-    """Build context for Gemini chatbot based on user's specific data"""
+# --- Context Module Functions ---
 
+def get_core_context(user_data, conditions_data):
+    """Core context - always included"""
     # Format current conditions
     if conditions_data:
         wave_height = f"{conditions_data.wave_height_m:.1f}m" if conditions_data.wave_height_m else "N/A"
@@ -860,20 +861,16 @@ def build_chat_context(user_data, conditions_data):
         wave_height = wave_period = wind_speed = wind_dir = "N/A"
         status = "No data (offline or recently registered)"
 
-    # Check if in night mode
     in_quiet_hours = is_quiet_hours(user_data.location)
-    night_mode_status = "Active (only top LED lit)" if in_quiet_hours else "Inactive"
+    night_mode_status = "Active" if in_quiet_hours else "Inactive"
 
-    system_prompt = f"""You are a helpful assistant for the Surf Lamp system. Your role is to help users understand their surf lamp and surf conditions.
-
-**USER'S SURF LAMP DATA:**
+    return f"""**USER'S SURF LAMP DATA:**
 - Location: {user_data.location}
 - Wave Alert Threshold: {user_data.wave_threshold_m}m
 - Wind Alert Threshold: {user_data.wind_threshold_knots} knots
-- Current Theme: {user_data.theme if user_data.theme else 'Ocean Breeze'}
-- Preferred Units: {user_data.preferred_output}
+- Current Theme: {user_data.theme if user_data.theme else 'classic_surf'}
 - Lamp Status: {status}
-- Night Mode (10pm-6am): {night_mode_status}
+- Night Mode: {night_mode_status}
 
 **CURRENT SURF CONDITIONS FOR {user_data.location}:**
 - Wave Height: {wave_height}
@@ -882,80 +879,124 @@ def build_chat_context(user_data, conditions_data):
 - Wind Direction: {wind_dir}
 
 **HOW THE SURF LAMP WORKS:**
-
-The Surf Lamp is a smart LED display that shows real-time surf conditions using three LED strips:
-1. **Left Strip (Wave Period)**: Shows wave period in seconds. Higher brightness = longer period = better surfing conditions
-2. **Middle Strip (Wind Speed)**: Shows wind speed. Color indicates wind direction (Green=N, Yellow=E, Red=S, Blue=W, and variations in between)
-3. **Right Strip (Wave Height)**: Shows wave height in meters. Higher brightness = bigger waves
-
-**LED BRIGHTNESS LEVELS:**
-- Wave Height: Each LED represents ~0.33m. More LEDs lit = bigger waves
-- Wave Period: Each LED represents ~2 seconds. More LEDs lit = longer period
-- Wind Speed: Each LED represents ~2-3 knots. More LEDs lit = stronger wind
+Three LED strips show real-time surf conditions:
+- Left Strip (Wave Period): Brightness = period length (each LED ~2s)
+- Middle Strip (Wind Speed): Color = wind direction, brightness = speed (each LED ~2-3 knots)
+- Right Strip (Wave Height): Brightness = wave height (each LED ~0.33m)
 
 **WIND DIRECTION COLORS:**
-- North (N): Green
-- Northeast (NE): Green-Yellow
-- East (E): Yellow
-- Southeast (SE): Yellow-Orange
-- South (S): Red
-- Southwest (SW): Purple
-- West (W): Blue
-- Northwest (NW): Cyan
+N=Green, NE=Green-Yellow, E=Yellow, SE=Yellow-Orange, S=Red, SW=Purple, W=Blue, NW=Cyan
 
-**ALERTS:**
-- When wave height exceeds the user's threshold ({user_data.wave_threshold_m}m), the wave strip blinks
-- When wind speed exceeds the user's threshold ({user_data.wind_threshold_knots} knots), the wind strip blinks
+**ALERTS:** Blinking = threshold exceeded (wave height > {user_data.wave_threshold_m}m OR wind > {user_data.wind_threshold_knots} knots)"""
 
+def get_wifi_module():
+    """WiFi setup and troubleshooting"""
+    return """
+**WIFI SETUP:**
+- Blue LEDs = setup mode
+- Connect to "SurfLamp-Setup" network (password: surf123456)
+- Configure at 192.168.4.1
+- Must use 2.4GHz WiFi (NOT 5GHz)
+- Red blinking = lost connection, auto-retry
+- Reset: Press BOOT button 1 second OR unplug 10 seconds"""
+
+def get_theme_module():
+    """LED theme information"""
+    return """
+**LED THEMES:**
+5 themes available: classic_surf, vibrant_mix, tropical_paradise, ocean_sunset, electric_vibes
+- Change: Dashboard → "Configure" button in LED Colors row
+- Updates within 13 minutes
+- Affects overall palette, not wind direction colors"""
+
+def get_night_mode_module():
+    """Night mode details"""
+    return """
 **NIGHT MODE (10 PM - 6 AM):**
-During night hours in the user's local timezone, the lamp switches to night mode:
-- Only the TOP LED of each strip is illuminated (gentle ambient lighting)
-- Threshold-based blinking is disabled
-- Provides subtle lighting without disturbing sleep
+- Only TOP LED of each strip lit (ambient lighting)
+- Threshold blinking disabled
+- Automatic based on location timezone"""
 
-**LAMP BASICS:**
+def get_registration_module():
+    """Arduino ID and registration"""
+    return """
+**ARDUINO ID & REGISTRATION:**
+- Arduino ID: Unique device number on QR code/card in box
+- Registration: Enter Arduino ID during account creation
+- Links physical lamp to your dashboard account
+- Updates every 13 minutes"""
 
-**Arduino ID:** Unique device number (on QR code/card in box) that links your physical lamp to your account during registration.
+def get_troubleshooting_module():
+    """Common issues"""
+    return """
+**TROUBLESHOOTING:**
+- No data: Recently registered, connection issue, or updating (13min cycle)
+- All LEDs lit: Maximum conditions (check dashboard for values)
+- One LED only: Night mode active
+- Red blinking: WiFi lost
+- Change settings: Use dashboard controls (location dropdown, threshold inputs)
+- Location changes: Limited to 5/day"""
 
-**LED Themes:** 5 available themes (classic_surf, vibrant_mix, tropical_paradise, ocean_sunset, electric_vibes). Change via "Configure" button on dashboard. Updates within 13 minutes.
+def detect_relevant_modules(user_message):
+    """Detect which context modules are needed based on user's question"""
+    message_lower = user_message.lower()
+    modules = []
 
-**WiFi Setup:** Blue LEDs = setup mode. Connect to "SurfLamp-Setup" network, configure at 192.168.4.1. Must use 2.4GHz WiFi. Red blinking = lost connection.
+    # WiFi/Setup keywords
+    if any(word in message_lower for word in ['wifi', 'setup', 'connect', 'network', '2.4', '5ghz', 'blue led', 'setup mode', 'reset', 'boot button']):
+        modules.append('wifi')
 
-**Reset Lamp:** Press BOOT button for 1 second OR unplug for 10 seconds.
+    # Theme keywords
+    if any(word in message_lower for word in ['theme', 'color', 'bright', 'dim', 'appearance', 'classic', 'vibrant', 'tropical', 'sunset', 'electric']):
+        modules.append('theme')
 
-**COMMON QUESTIONS:**
+    # Night mode keywords
+    if any(word in message_lower for word in ['night', 'sleep', 'one led', 'single led', '10pm', '6am', 'dark', 'ambient']):
+        modules.append('night_mode')
 
-Q: Why is my lamp blinking?
-A: Blinking means wave height or wind speed exceeds your threshold (alert mode).
+    # Registration keywords
+    if any(word in message_lower for word in ['arduino id', 'register', 'registration', 'qr code', 'device number', 'link lamp', 'sign up']):
+        modules.append('registration')
 
-Q: Why is only one LED lit?
-A: Night mode is active (10pm-6am). Only top LED shows for ambient lighting.
+    # Troubleshooting keywords
+    if any(word in message_lower for word in ['not working', 'problem', 'issue', 'broken', 'fix', 'error', 'offline', 'no data', 'help', "won't", "can't", "doesn't"]):
+        modules.append('troubleshooting')
 
-Q: Lamp shows no data?
-A: Recently registered, connection issue, or updating. Updates every 13 minutes. Red blinking = WiFi lost.
+    return modules
 
-Q: How to change location or thresholds?
-A: Use dashboard controls (location dropdown, threshold inputs with "Set" button). Limited to 5 location changes/day.
+def build_chat_context(user_data, conditions_data, user_message):
+    """Build modular context based on user's specific question"""
 
-Q: How to change theme?
-A: Dashboard → "Configure" button in LED Colors row → choose from 5 themes.
+    # Always include core context
+    context_parts = [
+        "You are a helpful assistant for the Surf Lamp system. Your role is to help users understand their surf lamp and surf conditions.",
+        "",
+        get_core_context(user_data, conditions_data)
+    ]
 
+    # Detect and add relevant modules
+    relevant_modules = detect_relevant_modules(user_message)
+
+    if 'wifi' in relevant_modules:
+        context_parts.append(get_wifi_module())
+    if 'theme' in relevant_modules:
+        context_parts.append(get_theme_module())
+    if 'night_mode' in relevant_modules:
+        context_parts.append(get_night_mode_module())
+    if 'registration' in relevant_modules:
+        context_parts.append(get_registration_module())
+    if 'troubleshooting' in relevant_modules:
+        context_parts.append(get_troubleshooting_module())
+
+    # Add role and guidelines
+    context_parts.append("""
 **YOUR ROLE:**
-- Answer questions about how the lamp works
-- Explain what the LED colors and patterns mean
-- Help interpret current surf conditions
-- Explain thresholds and alerts
-- Provide general surf lamp troubleshooting (read-only - don't offer to change settings)
-- Be concise and friendly
+- Answer questions concisely (2-4 sentences unless more detail needed)
+- Explain LED meanings and surf conditions
+- Read-only: Direct users to dashboard controls for changes
+- Base answers on user's specific data shown above""")
 
-**IMPORTANT:**
-- You are read-only - you cannot change user settings
-- If the user wants to change something, tell them to use the dashboard controls
-- Base your answers on the user's specific data shown above
-- Keep responses concise (2-4 sentences unless more detail is needed)
-"""
-
-    return system_prompt
+    return "\n".join(context_parts)
 
 @app.route("/api/chat", methods=['POST'])
 @login_required
@@ -982,43 +1023,62 @@ def chat():
         if not user_email:
             return jsonify({"error": "Not authenticated"}), 401
 
-        # Fetch user and lamp data
-        db = SessionLocal()
-        try:
-            user_data = db.query(User).filter(User.email == user_email).first()
-            if not user_data:
-                return jsonify({"error": "User not found"}), 404
+        # Check if user data is cached in session (valid for 5 minutes)
+        cache_key = f'chat_user_data_{user_email}'
+        cached_data = session.get(cache_key)
+        cache_time = session.get(f'{cache_key}_time', 0)
 
-            # Get lamp and conditions
-            lamp_data = db.query(Lamp).filter(Lamp.user_id == user_data.user_id).first()
-            conditions_data = None
-            if lamp_data:
-                conditions_data = db.query(CurrentConditions).filter(
-                    CurrentConditions.lamp_id == lamp_data.lamp_id
-                ).first()
+        # Use cache if fresh (< 5 minutes old)
+        if cached_data and (time.time() - cache_time) < 300:
+            user_data = cached_data['user']
+            conditions_data = cached_data['conditions']
+            logger.info(f"Using cached user data for {user_email}")
+        else:
+            # Fetch fresh user and lamp data
+            db = SessionLocal()
+            try:
+                user_data = db.query(User).filter(User.email == user_email).first()
+                if not user_data:
+                    return jsonify({"error": "User not found"}), 404
 
-            # Build context-aware system prompt
-            system_prompt = build_chat_context(user_data, conditions_data)
+                # Get lamp and conditions
+                lamp_data = db.query(Lamp).filter(Lamp.user_id == user_data.user_id).first()
+                conditions_data = None
+                if lamp_data:
+                    conditions_data = db.query(CurrentConditions).filter(
+                        CurrentConditions.lamp_id == lamp_data.lamp_id
+                    ).first()
 
-            # Call Gemini API
-            model = genai.GenerativeModel(GEMINI_MODEL)
+                # Cache for 5 minutes
+                session[cache_key] = {
+                    'user': user_data,
+                    'conditions': conditions_data
+                }
+                session[f'{cache_key}_time'] = time.time()
+                logger.info(f"Cached user data for {user_email}")
 
-            # Create chat with system instruction
-            chat = model.start_chat(history=[])
+            finally:
+                db.close()
 
-            # Send message with system context prepended
-            full_prompt = f"{system_prompt}\n\nUser question: {user_message}"
-            response = chat.send_message(full_prompt)
+        # Build modular context based on user's question
+        system_prompt = build_chat_context(user_data, conditions_data, user_message)
 
-            logger.info(f"Chat request from {user_email}: {user_message[:100]}")
+        # Call Gemini API
+        model = genai.GenerativeModel(GEMINI_MODEL)
 
-            return jsonify({
-                "response": response.text,
-                "success": True
-            }), 200
+        # Create chat with system instruction
+        chat = model.start_chat(history=[])
 
-        finally:
-            db.close()
+        # Send message with system context prepended
+        full_prompt = f"{system_prompt}\n\nUser question: {user_message}"
+        response = chat.send_message(full_prompt)
+
+        logger.info(f"Chat request from {user_email}: {user_message[:100]}")
+
+        return jsonify({
+            "response": response.text,
+            "success": True
+        }), 200
 
     except Exception as e:
         logger.error(f"Error in chat endpoint: {e}")
