@@ -1463,6 +1463,10 @@ def create_broadcast():
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.email == session['user_email']).first()
+
+        # Deactivate all previous broadcasts (new broadcast overrides all old ones)
+        db.query(Broadcast).filter(Broadcast.is_active == True).update({'is_active': False})
+
         broadcast = Broadcast(
             admin_user_id=user.user_id,
             message=message,
