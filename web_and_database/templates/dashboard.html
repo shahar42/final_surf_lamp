@@ -386,6 +386,9 @@
         </div>
     </div>
 
+    <!-- Broadcast Notifications (bottom-left to avoid chat button) -->
+    <div id="broadcastContainer" class="fixed bottom-6 left-6 z-40 space-y-3 max-w-sm"></div>
+
     <!-- Error Report Modal -->
     <div id="errorReportModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
         <div class="bg-white rounded-2xl p-8 max-w-lg w-full mx-4 shadow-2xl">
@@ -1049,6 +1052,54 @@
         });
     })();
 
+    // ==============================
+    // BROADCAST NOTIFICATIONS
+    // ==============================
+
+    // Fetch and display broadcasts
+    async function loadBroadcasts() {
+        try {
+            const response = await fetch('/api/broadcasts');
+            const data = await response.json();
+
+            const container = document.getElementById('broadcastContainer');
+            container.innerHTML = '';
+
+            data.broadcasts.forEach(broadcast => {
+                const bubble = document.createElement('div');
+                bubble.className = 'bg-gradient-to-r from-yellow-400 to-orange-500 text-gray-900 rounded-2xl p-4 shadow-2xl relative animate-slide-in';
+                bubble.innerHTML = `
+                    <button class="absolute top-2 right-2 text-gray-700 hover:text-gray-900" onclick="this.parentElement.remove()">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                    <div class="pr-6">
+                        <div class="font-bold text-sm mb-1">📢 Message from Surf Lamp</div>
+                        <div class="text-sm">${broadcast.message}</div>
+                    </div>
+                `;
+                container.appendChild(bubble);
+            });
+        } catch (error) {
+            console.error('Failed to load broadcasts:', error);
+        }
+    }
+
+    // Load on page load
+    loadBroadcasts();
+
+    // Refresh every 5 minutes
+    setInterval(loadBroadcasts, 300000);
+
     </script>
+
+    <style>
+    @keyframes slide-in {
+        from { transform: translateX(-100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    .animate-slide-in { animation: slide-in 0.3s ease-out; }
+    </style>
 </body>
 </html>

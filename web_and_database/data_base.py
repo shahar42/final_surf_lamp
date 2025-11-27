@@ -96,7 +96,8 @@ class User(Base):
     sport_type = Column(String(20), nullable=False, default='surfing')
     wave_threshold_m = Column(Float, nullable=True, default=1.0)
     wind_threshold_knots = Column(Float, nullable=True, default=22.0)
-    
+    is_admin = Column(Boolean, default=False, nullable=False)
+
     lamp = relationship("Lamp", back_populates="user", uselist=False, cascade="all, delete-orphan")
 
 class PasswordResetToken(Base):
@@ -135,6 +136,20 @@ class ErrorReport(Base):
     timestamp = Column(TIMESTAMP, server_default=func.now(), nullable=False)
 
     user = relationship("User", backref="error_reports")
+
+class Broadcast(Base):
+    """Stores admin broadcast messages for dashboard notifications"""
+    __tablename__ = 'broadcasts'
+
+    broadcast_id = Column(Integer, primary_key=True, autoincrement=True)
+    admin_user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
+    message = Column(Text, nullable=False)
+    target_location = Column(String(255), nullable=True)  # NULL = all users
+    created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+    expires_at = Column(TIMESTAMP, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+
+    admin = relationship("User", backref="broadcasts")
 
 class Lamp(Base):
     """

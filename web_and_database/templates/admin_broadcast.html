@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Broadcast Message</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #00c6ff, #0072ff); }
+        .text-white { color: #FFFCDE !important; }
+        .card { background-color: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
+    </style>
+</head>
+<body class="min-h-screen p-4">
+    <div class="max-w-2xl mx-auto">
+        <div class="card rounded-2xl p-8 shadow-2xl">
+            <h1 class="text-3xl font-bold text-white mb-6">Broadcast Message</h1>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-white mb-2 font-semibold">Target Audience</label>
+                    <select id="targetLocation" class="w-full bg-white/20 text-white rounded-lg px-4 py-2 border border-white/30">
+                        <option value="all">All Users</option>
+                        {% for location in locations %}
+                        <option value="{{ location }}">{{ location.replace(', Israel', '') }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-white mb-2 font-semibold">Message</label>
+                    <textarea
+                        id="broadcastMessage"
+                        maxlength="500"
+                        rows="4"
+                        placeholder="Wave is up, you're stuck at work go surf!"
+                        class="w-full bg-white/20 text-white rounded-lg px-4 py-2 border border-white/30 placeholder-white/50"
+                    ></textarea>
+                    <div class="text-white/70 text-sm mt-1 text-right">
+                        <span id="charCount">0</span>/500 characters
+                    </div>
+                </div>
+
+                <div class="bg-white/10 rounded-lg p-4 text-white/80 text-sm">
+                    <strong>Auto-expires:</strong> 2 hours after sending
+                </div>
+
+                <div id="status" class="text-sm hidden"></div>
+
+                <div class="flex gap-3">
+                    <button id="sendBtn" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-colors">
+                        Send Broadcast
+                    </button>
+                    <a href="{{ url_for('dashboard') }}" class="bg-white/20 hover:bg-white/30 text-white font-semibold py-3 px-6 rounded-lg transition-colors">
+                        Cancel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const textarea = document.getElementById('broadcastMessage');
+        const charCount = document.getElementById('charCount');
+        const sendBtn = document.getElementById('sendBtn');
+        const statusDiv = document.getElementById('status');
+
+        textarea.addEventListener('input', () => {
+            charCount.textContent = textarea.value.length;
+        });
+
+        sendBtn.addEventListener('click', async () => {
+            const message = textarea.value.trim();
+            const target = document.getElementById('targetLocation').value;
+
+            if (!message) {
+                statusDiv.textContent = 'Please enter a message';
+                statusDiv.className = 'text-sm text-red-300';
+                statusDiv.classList.remove('hidden');
+                return;
+            }
+
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Sending...';
+            statusDiv.textContent = 'Sending broadcast...';
+            statusDiv.className = 'text-sm text-blue-300';
+            statusDiv.classList.remove('hidden');
+
+            try {
+                const response = await fetch('/admin/broadcast/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message, target_location: target })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    statusDiv.textContent = data.message;
+                    statusDiv.className = 'text-sm text-green-300';
+                    textarea.value = '';
+                    charCount.textContent = '0';
+                    setTimeout(() => {
+                        window.location.href = '{{ url_for("dashboard") }}';
+                    }, 1500);
+                } else {
+                    statusDiv.textContent = 'Error: ' + data.message;
+                    statusDiv.className = 'text-sm text-red-300';
+                    sendBtn.disabled = false;
+                    sendBtn.textContent = 'Send Broadcast';
+                }
+            } catch (error) {
+                statusDiv.textContent = 'Network error. Please try again.';
+                statusDiv.className = 'text-sm text-red-300';
+                sendBtn.disabled = false;
+                sendBtn.textContent = 'Send Broadcast';
+            }
+        });
+    </script>
+</body>
+</html>

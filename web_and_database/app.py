@@ -42,7 +42,7 @@ import secrets
 import hashlib
 from datetime import datetime, timedelta
 from data_base import PasswordResetToken
-from data_base import add_user_and_lamp, get_user_lamp_data, SessionLocal, User, Lamp, update_user_location, CurrentConditions
+from data_base import add_user_and_lamp, get_user_lamp_data, SessionLocal, User, Lamp, update_user_location, CurrentConditions, Broadcast
 from forms import RegistrationForm, LoginForm
 from security_config import apply_security_headers, SecurityConfig
 
@@ -232,6 +232,31 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def admin_required(f):
+    """
+    Decorator to ensure a user is admin before accessing a route.
+
+    Checks both login status and is_admin flag. Non-admin users are
+    redirected to dashboard with error message.
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_email' not in session:
+            flash('Please log in to access this page.', 'error')
+            return redirect(url_for('login'))
+
+        db = SessionLocal()
+        try:
+            user = db.query(User).filter(User.email == session['user_email']).first()
+            if not user or not user.is_admin:
+                flash('Admin access required.', 'error')
+                return redirect(url_for('dashboard'))
+        finally:
+            db.close()
+
+        return f(*args, **kwargs)
+    return decorated_function
+
 def check_location_change_limit(user_id):
     """Check if user has exceeded 5 location changes per day"""
     now = datetime.now(timezone.utc)
@@ -305,6 +330,11 @@ def index():
         return render_template('dashboard.html', data=dashboard_data, locations=SURF_LOCATIONS)
     
     return redirect(url_for('register'))
+
+@app.route("/teaser")
+def teaser():
+    """Minimalist anticipation teaser page."""
+    return render_template('teaser.html')
 
 @app.route("/forgot-password", methods=['GET', 'POST'])
 @limiter.limit("5 per hour")
@@ -1395,6 +1425,90 @@ def update_led_theme():
     except Exception as e:
         logger.error(f"❌ Error updating LED theme: {e}")
         return {'success': False, 'message': f'Server error: {str(e)}'}, 500
+
+# ==============================
+# BROADCAST MESSAGING ROUTES
+# ==============================
+
+@app.route('/admin/broadcast', methods=['GET'])
+@admin_required
+def admin_broadcast():
+    """Admin page to create broadcast messages"""
+    return render_template('admin_broadcast.html', locations=SURF_LOCATIONS)
+
+@app.route('/admin/broadcast/create', methods=['POST'])
+@admin_required
+@limiter.limit("10 per hour")
+def create_broadcast():
+    """Create a new broadcast message (admin only)"""
+    from forms import sanitize_input
+
+    message = request.json.get('message', '').strip()
+    target_location = request.json.get('target_location')  # "all" or specific location
+
+    # Validation
+    if not message or len(message) > 500:
+        return jsonify({'success': False, 'message': 'Invalid message (max 500 characters)'}), 400
+
+    if target_location and target_location != 'all' and target_location not in SURF_LOCATIONS:
+        return jsonify({'success': False, 'message': 'Invalid location'}), 400
+
+    # Sanitize message
+    message = sanitize_input(message)
+
+    # Calculate expiry (2 hours from now)
+    expires_at = datetime.utcnow() + timedelta(hours=2)
+
+    # Create broadcast
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.email == session['user_email']).first()
+        broadcast = Broadcast(
+            admin_user_id=user.user_id,
+            message=message,
+            target_location=None if target_location == 'all' else target_location,
+            expires_at=expires_at
+        )
+        db.add(broadcast)
+        db.commit()
+
+        logger.info(f"📢 Admin {user.username} created broadcast: {message[:50]}... (location: {target_location})")
+        return jsonify({'success': True, 'message': 'Broadcast sent!'})
+    except Exception as e:
+        db.rollback()
+        logger.error(f"❌ Failed to create broadcast: {e}")
+        return jsonify({'success': False, 'message': 'Server error'}), 500
+    finally:
+        db.close()
+
+@app.route('/api/broadcasts', methods=['GET'])
+@login_required
+def get_active_broadcasts():
+    """Fetch active broadcasts for current user's location"""
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.email == session['user_email']).first()
+        if not user:
+            return jsonify({'broadcasts': []})
+
+        now = datetime.utcnow()
+
+        # Get broadcasts: (not expired) AND (all users OR user's location)
+        broadcasts = db.query(Broadcast).filter(
+            Broadcast.is_active == True,
+            Broadcast.expires_at > now,
+            (Broadcast.target_location == None) | (Broadcast.target_location == user.location)
+        ).order_by(Broadcast.created_at.desc()).all()
+
+        return jsonify({
+            'broadcasts': [{
+                'id': b.broadcast_id,
+                'message': b.message,
+                'created_at': b.created_at.isoformat()
+            } for b in broadcasts]
+        })
+    finally:
+        db.close()
 
 
 if __name__ == '__main__':
