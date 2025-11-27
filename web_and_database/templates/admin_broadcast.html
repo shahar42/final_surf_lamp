@@ -104,13 +104,12 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    statusDiv.textContent = data.message;
+                    statusDiv.textContent = data.message + ' You can send another or check your dashboard.';
                     statusDiv.className = 'text-sm text-green-300';
                     textarea.value = '';
                     charCount.textContent = '0';
-                    setTimeout(() => {
-                        window.location.href = '{{ url_for("dashboard") }}';
-                    }, 1500);
+                    sendBtn.disabled = false;
+                    sendBtn.textContent = 'Send Broadcast';
                 } else {
                     statusDiv.textContent = 'Error: ' + data.message;
                     statusDiv.className = 'text-sm text-red-300';
