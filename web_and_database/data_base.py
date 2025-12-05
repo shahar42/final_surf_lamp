@@ -96,6 +96,7 @@ class User(Base):
     sport_type = Column(String(20), nullable=False, default='surfing')
     wave_threshold_m = Column(Float, nullable=True, default=1.0)
     wind_threshold_knots = Column(Float, nullable=True, default=22.0)
+    night_brightness_percent = Column(Integer, nullable=True, default=30)
     is_admin = Column(Boolean, default=False, nullable=False)
 
     lamp = relationship("Lamp", back_populates="user", uselist=False, cascade="all, delete-orphan")
@@ -255,6 +256,77 @@ class UsageLamps(Base):
 
 
 
+# ============================================================================
+# STORMGLASS.IO CONFIGURATION - PREMIUM UNIFIED API
+# ============================================================================
+# Set to True when you activate the paid plan (€129/month for 25k requests/day)
+# Free tier has only 10 requests/day - insufficient for production use
+USE_STORMGLASS = False  # ⚠️ Set to True to activate stormglass as primary source
+STORMGLASS_API_KEY = "15d52392-d22c-11f0-a0d3-0242ac130003-15d52414-d22c-11f0-a0d3-0242ac130003"
+
+# Stormglass locations (single API call provides wave + wind data)
+STORMGLASS_LOCATIONS = {
+    "Tel Aviv, Israel": [
+        {
+            "url": f"https://api.stormglass.io/v2/weather/point?lat=32.0853&lng=34.7818&params=waveHeight,wavePeriod,waveDirection,windSpeed,windDirection&source=sg",
+            "priority": 1,
+            "type": "unified",
+            "api_key": STORMGLASS_API_KEY
+        }
+    ],
+    "Hadera, Israel": [
+        {
+            "url": f"https://api.stormglass.io/v2/weather/point?lat=32.4343&lng=34.9197&params=waveHeight,wavePeriod,waveDirection,windSpeed,windDirection&source=sg",
+            "priority": 1,
+            "type": "unified",
+            "api_key": STORMGLASS_API_KEY
+        }
+    ],
+    "Ashdod, Israel": [
+        {
+            "url": f"https://api.stormglass.io/v2/weather/point?lat=31.7939&lng=34.6328&params=waveHeight,wavePeriod,waveDirection,windSpeed,windDirection&source=sg",
+            "priority": 1,
+            "type": "unified",
+            "api_key": STORMGLASS_API_KEY
+        }
+    ],
+    "Haifa, Israel": [
+        {
+            "url": f"https://api.stormglass.io/v2/weather/point?lat=32.7940&lng=34.9896&params=waveHeight,wavePeriod,waveDirection,windSpeed,windDirection&source=sg",
+            "priority": 1,
+            "type": "unified",
+            "api_key": STORMGLASS_API_KEY
+        }
+    ],
+    "Netanya, Israel": [
+        {
+            "url": f"https://api.stormglass.io/v2/weather/point?lat=32.3215&lng=34.8532&params=waveHeight,wavePeriod,waveDirection,windSpeed,windDirection&source=sg",
+            "priority": 1,
+            "type": "unified",
+            "api_key": STORMGLASS_API_KEY
+        }
+    ],
+    "Nahariya, Israel": [
+        {
+            "url": f"https://api.stormglass.io/v2/weather/point?lat=33.006&lng=35.094&params=waveHeight,wavePeriod,waveDirection,windSpeed,windDirection&source=sg",
+            "priority": 1,
+            "type": "unified",
+            "api_key": STORMGLASS_API_KEY
+        }
+    ],
+    "Ashkelon, Israel": [
+        {
+            "url": f"https://api.stormglass.io/v2/weather/point?lat=31.6699&lng=34.5738&params=waveHeight,wavePeriod,waveDirection,windSpeed,windDirection&source=sg",
+            "priority": 1,
+            "type": "unified",
+            "api_key": STORMGLASS_API_KEY
+        }
+    ]
+}
+
+# ============================================================================
+# MULTI-SOURCE CONFIGURATION - FREE APIS (CURRENT PRODUCTION)
+# ============================================================================
 # Multi-source locations (require multiple API calls)
 # ⚠️  CRITICAL: ALL Open-Meteo wind URLs MUST include "&wind_speed_unit=ms" parameter!
 # Without this parameter, APIs return km/h instead of m/s and break wind calculations.
@@ -350,6 +422,20 @@ SINGLE_SOURCE_LOCATIONS = {
     # Future locations that provide wave + wind in one API
 }
 
+def get_active_location_config():
+    """
+    Returns the active location configuration based on USE_STORMGLASS flag.
+
+    Returns:
+        dict: STORMGLASS_LOCATIONS if USE_STORMGLASS=True, else MULTI_SOURCE_LOCATIONS
+    """
+    if USE_STORMGLASS:
+        logger.info("🌊 Using STORMGLASS.IO as primary source (paid plan active)")
+        return STORMGLASS_LOCATIONS
+    else:
+        logger.info("📡 Using MULTI_SOURCE free APIs (current production)")
+        return MULTI_SOURCE_LOCATIONS
+
 def add_user_and_lamp(name, email, password_hash, arduino_id, location, theme, units, sport_type='surfing'):
     """
     Creates a new user and registers their lamp with appropriate API sources.
@@ -362,9 +448,12 @@ def add_user_and_lamp(name, email, password_hash, arduino_id, location, theme, u
     logger.info("Database session created")
 
     try:
+        # Get active location configuration (stormglass or multi-source)
+        active_config = get_active_location_config()
+
         # Determine if location is single-source or multi-source
-        if location in MULTI_SOURCE_LOCATIONS:
-            api_sources = MULTI_SOURCE_LOCATIONS[location]
+        if location in active_config:
+            api_sources = active_config[location]
             logger.info(f"Location '{location}' uses {len(api_sources)} API sources")
         elif location in SINGLE_SOURCE_LOCATIONS:
             api_sources = SINGLE_SOURCE_LOCATIONS[location]
@@ -514,12 +603,15 @@ def get_user_lamp_data(email):
 def update_user_location(user_id, new_location):
     """Update user's location and reconfigure their lamp's API endpoints."""
     logger.info(f"Updating location for user_id: {user_id} to: {new_location}")
-    
+
     db = SessionLocal()
-    
+
+    # Get active location configuration (stormglass or multi-source)
+    active_config = get_active_location_config()
+
     # Determine API sources for new location
-    if new_location in MULTI_SOURCE_LOCATIONS:
-        api_sources = MULTI_SOURCE_LOCATIONS[new_location]
+    if new_location in active_config:
+        api_sources = active_config[new_location]
     elif new_location in SINGLE_SOURCE_LOCATIONS:
         api_sources = SINGLE_SOURCE_LOCATIONS[new_location]
     else:
