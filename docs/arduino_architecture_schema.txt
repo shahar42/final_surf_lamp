@@ -61,7 +61,7 @@
 │ 🌊 API SERVER       │◄────────────────────┤ 🏠 HOME WIFI        │
 │ ═══════════════════ │                     │ ═══════════════════ │
 │ Host: Discovered    │     Data Fetch      │ SSID: User's Network│
-│ Endpoint: /arduino/ │     Every 31 min    │ Security: WPA2/WPA3 │
+│ Endpoint: /arduino/ │     Every 13 min    │ Security: WPA2/WPA3 │
 │ Format: JSON        │                     │ DHCP: Auto IP       │
 │ Auth: Device ID     │                     │ Status: Connected   │
 └─────────────────────┘                     └─────────────────────┘

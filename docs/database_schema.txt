@@ -140,7 +140,7 @@ DATA PROCESSING FLOW:
 │
 ├── Arduino Integration
 │   ├── Server Discovery (GitHub config)
-│   ├── Periodic data fetch (31 minutes)
+│   ├── Periodic data fetch (13 minutes)
 │   ├── LED visualization updates
 │   └── Status reporting endpoints
 │

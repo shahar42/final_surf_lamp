@@ -11,7 +11,7 @@ Background service for Surf Lamp processing
 DO NOT CHANGE THE FOLLOWING CORE ARCHITECTURE:
 
 1. 🔄 PULL-BASED COMMUNICATION:
-   - Arduino devices MUST fetch data from the web server (every 31 minutes)
+   - Arduino devices MUST fetch data from the web server (every 13 minutes)
    - This service ONLY updates the database - it does NOT push data to Arduino
    - NEVER call send_to_arduino() in the processing loop
    - Arduino pull-based architecture eliminates network complexity and firewall issues
@@ -36,7 +36,7 @@ DO NOT CHANGE THE FOLLOWING CORE ARCHITECTURE:
 
 5. ⏱️  OPTIMIZED UPDATE FREQUENCY:
    - Processor runs every 15 minutes (96 cycles/day)
-   - Better alignment with Arduino 31-minute polling
+   - Better alignment with Arduino 13-minute polling
    - More predictable data freshness (avg 8 minutes old)
 
 These architectural decisions solve critical production issues:

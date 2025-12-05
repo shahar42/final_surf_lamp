@@ -142,7 +142,7 @@ The firmware is designed to be self-recovering from common error conditions.
 *   **Error: Failed to Fetch Surf Data**
     *   **Detection:** The HTTP request to the backend server returns an error code or times out.
     *   **Indication:** The serial monitor will print an error message (e.g., `❌ HTTP error fetching surf data`). The device will continue to display the last known data.
-    *   **Recovery:** The device will automatically retry fetching data at the next scheduled interval (every 31 minutes).
+    *   **Recovery:** The device will automatically retry fetching data at the next scheduled interval (every 13 minutes).
     *   **User Action:** The user can manually trigger a fetch via the `/api/fetch` endpoint to test the connection.
 
 *   **Error: Failed to Parse JSON Data**

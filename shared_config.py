@@ -32,7 +32,7 @@ LAMP_STALE_THRESHOLD_HOURS = LAMP_STALE_THRESHOLD_SECONDS / 3600  # 24 hours
 MONITOR_CHECK_INTERVAL_SECONDS = 3600  # 1 hour (matches LAMP_ONLINE_THRESHOLD)
 
 # How often the background processor fetches new weather data
-PROCESSOR_UPDATE_INTERVAL_SECONDS = 3600  # 1 hour
+PROCESSOR_UPDATE_INTERVAL_SECONDS = 900  # 15 minutes
 
 # ============================================================================
 # API RATE LIMITING (for location-based weather API calls)

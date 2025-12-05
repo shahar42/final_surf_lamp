@@ -112,7 +112,7 @@ At this scale, we'd likely cover all major surf spots globally (estimate: 100-15
 ### 2. Pull-Based Communication
 - No push notification infrastructure needed
 - No real-time websocket costs
-- Arduino polls every 31 minutes (simple HTTP GET)
+- Arduino polls every 13 minutes (simple HTTP GET)
 
 ### 3. Shared Infrastructure
 - Multiple users per location share API calls

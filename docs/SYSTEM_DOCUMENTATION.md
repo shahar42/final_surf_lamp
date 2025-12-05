@@ -63,7 +63,7 @@ The Surf Lamp system displays real-time surf conditions using LED visualizations
 ```
 External APIs → Background Processor → Database → Web API → Arduino → LED Display
      ↓                ↓                    ↓         ↓         ↓
-   20min           Every 20min         Real-time   31min   Immediate
+   20min           Every 20min         Real-time   13min   Immediate
 ```
 
 ### Wind Speed Unit Handling
@@ -96,7 +96,7 @@ int windSpeedLEDs = constrain(static_cast<int>(windSpeed * 10.0 / 22.0), 1, NUM_
    - Priority 2+: Wind data (Open-Meteo forecast, GFS backup)
 4. **Data merging**: Combines fields from all sources for complete surf conditions
 5. **Database updates**: Stores merged data in `current_conditions` table
-6. **Arduino** independently pulls data every 31 minutes (`FETCH_INTERVAL = 1860000ms`)
+6. **Arduino** independently pulls data every 13 minutes (`FETCH_INTERVAL = 780000ms`)
 7. **Arduino** updates LED display immediately upon receiving data
 
 ## Location System (Database-Driven)
@@ -224,7 +224,7 @@ Priority API Calls → Data Storage → Arduino Pull → LED Display
 **Timeline:**
 - Database update: Immediate
 - Background processor pickup: Up to 20 minutes
-- Arduino data refresh: Up to 31 minutes
+- Arduino data refresh: Up to 13 minutes
 
 **Important:** API URL changes in code require location change to update database endpoints
 
@@ -236,7 +236,7 @@ Priority API Calls → Data Storage → Arduino Pull → LED Display
 1. User selects "Light" or "Dark" theme in dashboard
 2. JavaScript sends POST to `/update-theme` endpoint
 3. Server updates `users.theme` field in database ("day" or "night")
-4. Arduino pulls theme via `/api/arduino/{id}/data` endpoint (every 31 minutes)
+4. Arduino pulls theme via `/api/arduino/{id}/data` endpoint (every 13 minutes)
 5. Arduino applies theme colors immediately upon receiving update
 
 **Theme Colors:**
@@ -503,17 +503,17 @@ password_reset_tokens (
 
 ### Update Intervals
 - **Background Processor:** Every 20 minutes (defined in `background_processor.py:810`)
-- **Arduino Fetch:** Every 31 minutes (`FETCH_INTERVAL = 1860000ms` in Arduino code)
+- **Arduino Fetch:** Every 13 minutes (`FETCH_INTERVAL = 780000ms` in Arduino code)
 - **Dashboard Updates:** Real-time (when user refreshes)
 
 ### Threshold Change Propagation
 1. User changes threshold in dashboard → Database update (immediate)
-2. Next Arduino fetch cycle → Sees new threshold (up to 31 minutes)
+2. Next Arduino fetch cycle → Sees new threshold (up to 13 minutes)
 3. Arduino applies new threshold logic → LED behavior changes
 
 ### Theme Change Propagation
 1. User changes LED theme in dashboard → Database update (immediate)
-2. Next Arduino fetch cycle → Sees new theme (up to 31 minutes)
+2. Next Arduino fetch cycle → Sees new theme (up to 13 minutes)
 3. Arduino updates LED colors → All surf data displays in new theme colors
 
 ### Quiet Hours (Sleep Protection)
