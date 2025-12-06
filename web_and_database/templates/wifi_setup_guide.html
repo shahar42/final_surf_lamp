@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WiFi Setup Guide - Surf Lamp</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}?v=2" sizes="32x32">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #00c6ff, #0072ff);
+        }
+        .text-white, .text-white\/80, .text-white\/60 {
+            color: #FFFCDE !important;
+        }
+        .card {
+            background-color: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .instructions-content {
+            color: #FFFCDE;
+            line-height: 1.8;
+        }
+        .instructions-content h1 {
+            font-size: 1.875rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: #FFFCDE;
+        }
+        .instructions-content h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            color: #FFFCDE;
+        }
+        .instructions-content h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            color: #FFFCDE;
+        }
+        .instructions-content p {
+            margin-bottom: 1rem;
+        }
+        .instructions-content ol {
+            list-style-type: decimal;
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .instructions-content ul {
+            list-style-type: disc;
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .instructions-content li {
+            margin-bottom: 0.75rem;
+        }
+        .instructions-content strong {
+            font-weight: 700;
+            color: #ffffff;
+        }
+        .instructions-content code {
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.25rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        .video-placeholder {
+            background-color: rgba(0, 0, 0, 0.3);
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 0.5rem;
+            padding: 3rem 1rem;
+            text-align: center;
+            color: rgba(255, 252, 222, 0.6);
+        }
+        .back-btn {
+            background-color: #0072ff;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        .back-btn:hover {
+            background-color: #0056cc;
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4">
+
+    <!-- Main Content Container -->
+    <div class="max-w-4xl mx-auto">
+
+        <!-- Header with Back Button -->
+        <div class="mb-6 flex justify-between items-center">
+            <h1 class="text-3xl font-bold text-white">WiFi Setup Guide</h1>
+            <a href="{{ url_for('dashboard') }}" class="back-btn text-white font-semibold py-2 px-6 rounded-lg shadow-lg">
+                ← Back to Dashboard
+            </a>
+        </div>
+
+        <!-- Instructions Card -->
+        <div class="card rounded-2xl p-8 shadow-2xl mb-8">
+            <div class="instructions-content">
+                {{ instructions_html | safe }}
+            </div>
+        </div>
+
+        <!-- Video Tutorials Section (Placeholder) -->
+        <div class="card rounded-2xl p-8 shadow-2xl">
+            <h2 class="text-2xl font-bold text-white mb-6">Video Tutorials (Coming Soon)</h2>
+            <p class="text-white/80 mb-6">Step-by-step video guides will be available here to help you set up your Surf Lamp WiFi connection.</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="video-placeholder">
+                    <div class="text-4xl mb-3">📱</div>
+                    <div class="font-semibold text-white/80">Phone Setup</div>
+                    <div class="text-sm mt-2">Auto-Redirect Method</div>
+                </div>
+
+                <div class="video-placeholder">
+                    <div class="text-4xl mb-3">🌐</div>
+                    <div class="font-semibold text-white/80">Manual Setup</div>
+                    <div class="text-sm mt-2">192.168.4.1 Method</div>
+                </div>
+
+                <div class="video-placeholder">
+                    <div class="text-4xl mb-3">💻</div>
+                    <div class="font-semibold text-white/80">Computer Setup</div>
+                    <div class="text-sm mt-2">Alternative Method</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-8 text-white/60 text-sm">
+            <p>Need more help? Use the "Report Error" button on your dashboard.</p>
+        </div>
+
+    </div>
+
+</body>
+</html>

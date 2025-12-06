@@ -24,6 +24,7 @@ import time
 from datetime import datetime, timezone
 import pytz
 import google.generativeai as genai
+import markdown
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -143,6 +144,40 @@ def is_quiet_hours(user_location, quiet_start_hour=22, quiet_end_hour=6):
     except Exception as e:
         logger.warning(f"Error checking quiet hours for {user_location}: {e}")
         return False  # Default to no quiet hours on error
+
+def is_off_hours(user_location, off_time_start, off_time_end, off_times_enabled):
+    """
+    Check if current time in user's location is within user-defined off hours.
+
+    Args:
+        user_location: User's location string (e.g., "Tel Aviv, Israel")
+        off_time_start: datetime.time object for off period start
+        off_time_end: datetime.time object for off period end
+        off_times_enabled: bool indicating if off-times feature is enabled
+
+    Returns:
+        bool: True if within off hours, False otherwise
+    """
+    if not off_times_enabled or not off_time_start or not off_time_end:
+        return False
+
+    if not user_location or user_location not in LOCATION_TIMEZONES:
+        return False
+
+    try:
+        timezone_str = LOCATION_TIMEZONES[user_location]
+        local_tz = pytz.timezone(timezone_str)
+        current_time = datetime.now(local_tz).time()
+
+        # Handle overnight off hours (e.g., 22:00 to 06:00)
+        if off_time_start > off_time_end:
+            return current_time >= off_time_start or current_time < off_time_end
+        else:
+            return off_time_start <= current_time < off_time_end
+
+    except Exception as e:
+        logger.warning(f"Error checking off hours for {user_location}: {e}")
+        return False
 
 
 # --- Static Data ---
@@ -753,6 +788,63 @@ def update_wind_threshold():
     except Exception as e:
         return {'success': False, 'message': f'Server error: {str(e)}'}, 500
 
+@app.route("/update-night-brightness", methods=['POST'])
+@login_required
+@limiter.limit("30/minute")
+def update_night_brightness():
+    try:
+        data = request.get_json()
+        brightness = int(data.get('brightness', 30))
+        user_id = session.get('user_id')
+
+        if brightness < 1 or brightness > 100:
+            return {'success': False, 'message': 'Night brightness must be between 1 and 100 percent'}, 400
+
+        db = SessionLocal()
+        try:
+            user = db.query(User).filter(User.user_id == user_id).first()
+            if user:
+                user.night_brightness_percent = brightness
+                db.commit()
+                return {'success': True, 'message': 'Night brightness updated successfully'}
+            else:
+                return {'success': False, 'message': 'User not found'}, 404
+        finally:
+            db.close()
+
+    except Exception as e:
+        return {'success': False, 'message': f'Server error: {str(e)}'}, 500
+
+@app.route("/update-off-times", methods=['POST'])
+@login_required
+@limiter.limit("30/minute")
+def update_off_times():
+    try:
+        data = request.get_json()
+        enabled = data.get('enabled', False)
+        start_time = data.get('start_time')
+        end_time = data.get('end_time')
+        user_id = session.get('user_id')
+
+        db = SessionLocal()
+        try:
+            user = db.query(User).filter(User.user_id == user_id).first()
+            if user:
+                user.off_times_enabled = enabled
+                if start_time:
+                    user.off_time_start = start_time
+                if end_time:
+                    user.off_time_end = end_time
+                db.commit()
+                return {'success': True, 'message': 'Off-times updated successfully'}
+            else:
+                return {'success': False, 'message': 'User not found'}, 404
+        finally:
+            db.close()
+
+    except Exception as e:
+        return {'success': False, 'message': f'Server error: {str(e)}'}, 500
+
 @app.route("/update-theme", methods=['POST'])
 @login_required
 @limiter.limit("20/minute")
@@ -1245,11 +1337,21 @@ def get_arduino_surf_data(arduino_id):
                 return {'error': 'Arduino not found'}, 404
             
             lamp, conditions, user = result
-            
+
             # Check if current time is within quiet hours for this user's location
             quiet_hours_active = is_quiet_hours(user.location)
 
-            if quiet_hours_active:
+            # Check if current time is within user-defined off hours
+            off_hours_active = is_off_hours(
+                user.location,
+                user.off_time_start,
+                user.off_time_end,
+                user.off_times_enabled
+            )
+
+            if off_hours_active:
+                logger.info(f"🔴 Off hours active for {user.location} - lamp turned off")
+            elif quiet_hours_active:
                 logger.info(f"🌙 Quiet hours active for {user.location} - threshold alerts disabled")
 
             # If no conditions yet, return zeros (safe defaults)
@@ -1264,6 +1366,8 @@ def get_arduino_surf_data(arduino_id):
                     'wind_speed_threshold_knots': int(round(user.wind_threshold_knots or 22.0)),
                     'led_theme': user.theme or 'day',
                     'quiet_hours_active': quiet_hours_active,
+                    'off_hours_active': off_hours_active,
+                    'night_brightness_percent': user.night_brightness_percent or 30,
                     'last_updated': '1970-01-01T00:00:00Z',
                     'data_available': False
                 }
@@ -1278,6 +1382,8 @@ def get_arduino_surf_data(arduino_id):
                     'wind_speed_threshold_knots': int(round(user.wind_threshold_knots or 22.0)),
                     'led_theme': user.theme or 'day',
                     'quiet_hours_active': quiet_hours_active,
+                    'off_hours_active': off_hours_active,
+                    'night_brightness_percent': user.night_brightness_percent or 30,
                     'last_updated': conditions.last_updated.isoformat() if conditions.last_updated else '1970-01-01T00:00:00Z',
                     'data_available': True
                 }
@@ -1391,6 +1497,31 @@ def themes_page():
     }
 
     return render_template('themes.html', data=user_data)
+
+@app.route("/wifi-setup-guide")
+@login_required
+def wifi_setup_guide():
+    """
+    Display WiFi setup instructions for configuring lamp WiFi connection.
+    Renders markdown instructions as formatted HTML.
+    """
+    try:
+        # Read markdown file
+        markdown_path = os.path.join(os.path.dirname(__file__), 'Wifi_Config_instructions.md')
+        with open(markdown_path, 'r', encoding='utf-8') as f:
+            markdown_content = f.read()
+
+        # Convert markdown to HTML with extra extensions for better formatting
+        html_content = markdown.markdown(markdown_content, extensions=['extra', 'nl2br'])
+
+        return render_template('wifi_setup_guide.html', instructions_html=html_content)
+    except FileNotFoundError:
+        flash('WiFi setup guide not found. Please contact support.', 'error')
+        return redirect(url_for('dashboard'))
+    except Exception as e:
+        logger.error(f"Error loading WiFi setup guide: {e}")
+        flash('Error loading WiFi setup guide.', 'error')
+        return redirect(url_for('dashboard'))
 
 @app.route("/update-led-theme", methods=['POST'])
 @login_required
