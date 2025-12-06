@@ -4,7 +4,7 @@
  * Hardware: Single continuous WS2812B LED strip wrapped to appear as 3 visual strips
  *
  * LED MAPPING (Wooden Lamp Configuration):
- * - Strip 1 (Wave Height - Right): LEDs 11-48 (38 total, bottom-up)
+ * - Strip 1 (Wave Height - Right): LEDs 11-49 (39 total, bottom-up)
  * - Strip 2 (Wave Period - Left):  LEDs 107-145 (39 total, bottom-up)
  * - Strip 3 (Wind Speed - Center): LEDs 101-59 (43 total, REVERSE - bottom 101 to top 59)
  *
@@ -22,7 +22,7 @@
 
 #include <WiFi.h>
 #include <WebServer.h>
-#include <Preferences.h>
+#include <WiFiManager.h>  // WiFiManager library for robust WiFi configuration
 #include <ArduinoJson.h>
 #include <FastLED.h>
 #include <HTTPClient.h>
@@ -30,8 +30,9 @@
 
 #include "ServerDiscovery.h"
 
-// Global discovery instance
+// Global instances
 ServerDiscovery serverDiscovery;
+WiFiManager wifiManager;
 
 // ---------------------------- Configuration ----------------------------
 #define BUTTON_PIN 0  // ESP32 boot button
@@ -44,10 +45,10 @@ ServerDiscovery serverDiscovery;
 #define COLOR_ORDER GRB
 
 // LED STRIP SECTION MAPPING
-// Wave Height (Right Side) - Forward direction (11→48)
+// Wave Height (Right Side) - Forward direction (11→49)
 #define WAVE_HEIGHT_START 11
-#define WAVE_HEIGHT_END 48
-#define WAVE_HEIGHT_LENGTH 38
+#define WAVE_HEIGHT_END 49
+#define WAVE_HEIGHT_LENGTH 39
 
 // Wave Period (Left Side) - Forward direction (107→145)
 #define WAVE_PERIOD_START 107
@@ -76,36 +77,39 @@ ServerDiscovery serverDiscovery;
 #define JSON_CAPACITY 1024           // JSON document capacity for Arduino data
 
 // Device Configuration
-const int ARDUINO_ID = 1;  // ✨ Wooden surf lamp
+const int ARDUINO_ID = 2;  // ✨ Wooden surf lamp
 
 // Global Variables
-Preferences preferences;
 WebServer server(80);
-bool configure_wifi = false;
-unsigned long apStartTime = 0;
-const unsigned long AP_TIMEOUT = 300000;  // 5 minutes timeout (enough time to configure)
 unsigned long lastDataFetch = 0;
 const unsigned long FETCH_INTERVAL = 780000; // 13 minutes
+
+// WiFi reconnection tracking
+const int MAX_WIFI_RETRIES = 5;
+int reconnectAttempts = 0;
+unsigned long lastReconnectAttempt = 0;
+
+// WiFi diagnostics - stores last connection failure reason
+String lastWiFiError = "";
+uint8_t lastDisconnectReason = 0;
 
 // Blinking state variables
 unsigned long lastBlinkUpdate = 0;
 const unsigned long BLINK_INTERVAL = 1500; // 1.5 seconds for slow smooth blink
 float blinkPhase = 0.0; // Phase for smooth sine wave blinking
 
-// Wi-Fi credentials (defaults)
-char ssid[32] = "";
-char password[64] = "";
-
 // *** SINGLE LED ARRAY ***
 CRGB leds[TOTAL_LEDS];
 
 // Last received surf data (for status reporting)
+// CRITICAL: waveHeight and waveThreshold MUST both be float and both in METERS
+// to ensure proper threshold comparison in updateBlinkingAnimation()
 struct SurfData {
-    float waveHeight = 0.0;
+    float waveHeight = 0.0;        // Stored in METERS (converted from cm via /100.0)
     float wavePeriod = 0.0;
     float windSpeed = 0.0;
     int windDirection = 0;
-    int waveThreshold = 100;
+    float waveThreshold = 1.0;     // Stored in METERS (converted from cm via /100.0) - MUST be float!
     int windSpeedThreshold = 15;
     bool quietHoursActive = false;
     unsigned long lastUpdate = 0;
@@ -143,7 +147,7 @@ struct LEDMappingConfig {
     float wind_scale_numerator = 40.0;      // Wind speed scaling: maps 0-13 m/s to 0-40 LEDs (41 usable LEDs in wooden lamp)
     float wind_scale_denominator = 13.0;
     float mps_to_knots_factor = 1.94384;    // Conversion constant: m/s to knots
-    uint8_t wave_height_divisor = 10;       // Wave height scaling: 10cm per LED (allows up to 3.8m on 38 LEDs)
+    uint8_t wave_height_divisor = 10;       // Wave height scaling: 10cm per LED (allows up to 3.9m on 39 LEDs)
     float threshold_brightness_multiplier = 1.4;  // Brightness boost when threshold exceeded (60% brighter)
 
     // Helper: Calculate wind speed LEDs from m/s (used by all wind speed calculations)
@@ -282,74 +286,164 @@ CHSV getWavePeriodColor(String theme) {
 }
 
 
-// ---------------------------- WiFi Credential Functions ----------------------------
+// ---------------------------- WiFi Diagnostic Functions ----------------------------
 
-void saveCredentials(const char* newSSID, const char* newPassword) {
-    preferences.begin("wifi-creds", false);
-    preferences.putString("ssid", newSSID);
-    preferences.putString("password", newPassword);
-    preferences.end();
-    Serial.println("✅ WiFi credentials saved to NVRAM");
-}
-
-void loadCredentials() {
-    preferences.begin("wifi-creds", false);
-    String storedSSID = preferences.getString("ssid", ssid);
-    String storedPassword = preferences.getString("password", password);
-    preferences.end();
-
-    storedSSID.toCharArray(ssid, sizeof(ssid));
-    storedPassword.toCharArray(password, sizeof(password));
-
-    Serial.printf("📝 Loaded credentials - SSID: %s\n", ssid);
-}
-
-// ---------------------------- Button Press Functions ----------------------------
-
-void set_config_mode_and_restart() {
-    if (digitalRead(BUTTON_PIN) == LOW) {
-        Serial.println("🔘 Button pressed - setting config mode flag");
-
-        // Visual feedback: Turn all LEDs blue
-        fill_solid(leds, TOTAL_LEDS, CRGB::Blue);
-        FastLED.show();
-
-        // Set flag in NVRAM to enter AP mode on next boot
-        preferences.begin("wifi-creds", false);
-        preferences.putInt("button_pressed", 1);
-        preferences.end();
-
-        delay(500);
-        Serial.println("🔄 Restarting to enter configuration mode...");
-        ESP.restart();
+/**
+ * Convert WiFi disconnect reason code to human-readable message
+ * Based on ESP-IDF wifi_err_reason_t enum
+ */
+String getDisconnectReasonText(uint8_t reason) {
+    switch(reason) {
+        case 1:  return "Unspecified error";
+        case 2:  return "Authentication expired - wrong password or security mode";
+        case 3:  return "Deauthenticated (AP kicked device)";
+        case 4:  return "Disassociated (inactive)";
+        case 5:  return "Too many devices connected to AP";
+        case 6:  return "Wrong password or WPA/WPA2 mismatch";
+        case 7:  return "Wrong password";
+        case 8:  return "Association expired (timeout)";
+        case 15: return "4-way handshake timeout - likely wrong password";
+        case 23: return "Too many authentication failures";
+        case 201: return "Beacon timeout - AP disappeared or weak signal";
+        case 202: return "No AP found with this SSID";
+        case 203: return "Authentication failed - check password and security mode";
+        case 204: return "Association failed - AP rejected connection";
+        case 205: return "Handshake timeout - wrong password or security mismatch";
+        default: return "Unknown error (code: " + String(reason) + ")";
     }
 }
 
-void checkButtonAndEnterAP() {
-    preferences.begin("wifi-creds", false);
-    int bootFlag = preferences.getInt("button_pressed", 0);
+/**
+ * WiFi event handler - captures connection and disconnection events with reason codes
+ */
+void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
+    switch(event) {
+        case ARDUINO_EVENT_WIFI_STA_CONNECTED:
+            Serial.println("✅ WiFi connected to AP");
+            lastWiFiError = "";  // Clear error on success
+            break;
 
-    if (bootFlag == 1) {
-        Serial.println("🔘 Boot flag detected - entering AP mode");
+        case ARDUINO_EVENT_WIFI_STA_GOT_IP:
+            Serial.printf("✅ Got IP: %s\n", WiFi.localIP().toString().c_str());
+            break;
 
-        // Clear the flag immediately
-        preferences.putInt("button_pressed", 0);
-        preferences.end();
+        case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
+            lastDisconnectReason = info.wifi_sta_disconnected.reason;
+            lastWiFiError = getDisconnectReasonText(lastDisconnectReason);
+            Serial.printf("❌ WiFi disconnected - Reason: %s\n", lastWiFiError.c_str());
+            break;
 
-        // Visual feedback: Blue LEDs
-        fill_solid(leds, TOTAL_LEDS, CRGB::Blue);
-        FastLED.show();
+        default:
+            break;
+    }
+}
 
-        // Enter configuration mode
-        startConfigMode();
+/**
+ * Pre-scan WiFi diagnostics - checks if SSID exists, signal strength, and security mode
+ * Returns detailed error message if issues detected, empty string if OK
+ */
+String diagnoseSSID(const char* targetSSID) {
+    Serial.printf("🔍 Scanning for SSID: %s\n", targetSSID);
 
-        // Stay in AP mode indefinitely until configured
-        while (true) {
-            server.handleClient();
-            delay(10);
+    int numNetworks = WiFi.scanNetworks();
+
+    if (numNetworks == 0) {
+        return "No WiFi networks found. Check if router is powered on and in range.";
+    }
+
+    Serial.printf("📡 Found %d networks\n", numNetworks);
+
+    // Look for target SSID
+    int bestSignalIndex = -1;
+    int bestRSSI = -127;
+
+    for (int i = 0; i < numNetworks; i++) {
+        String ssid = WiFi.SSID(i);
+        int rssi = WiFi.RSSI(i);
+        wifi_auth_mode_t authMode = (wifi_auth_mode_t)WiFi.encryptionType(i);
+        int channel = WiFi.channel(i);
+
+        Serial.printf("   %d: %s (Ch %d, %d dBm, Auth %d)\n", i, ssid.c_str(), channel, rssi, authMode);
+
+        if (ssid == targetSSID) {
+            if (rssi > bestRSSI) {
+                bestRSSI = rssi;
+                bestSignalIndex = i;
+            }
         }
     }
-    preferences.end();
+
+    if (bestSignalIndex == -1) {
+        // SSID not found - most common user error
+        return String("Network '") + targetSSID + "' not found. Check:\n" +
+               "• Is SSID typed correctly (case-sensitive)?\n" +
+               "• Is router's 2.4GHz band enabled? (ESP32 doesn't support 5GHz)\n" +
+               "• Is router in range?";
+    }
+
+    // Found the network - check signal strength
+    wifi_auth_mode_t authMode = (wifi_auth_mode_t)WiFi.encryptionType(bestSignalIndex);
+    int channel = WiFi.channel(bestSignalIndex);
+
+    Serial.printf("✅ Found target network:\n");
+    Serial.printf("   Signal: %d dBm\n", bestRSSI);
+    Serial.printf("   Channel: %d\n", channel);
+    Serial.printf("   Security: %d\n", authMode);
+
+    // Check signal strength
+    if (bestRSSI < -85) {
+        return String("Weak signal (") + bestRSSI + " dBm). Move lamp closer to router or use WiFi extender.";
+    }
+
+    // Check channel (ESP32 supports 1-13, some routers use 12-14 which may not work everywhere)
+    if (channel > 11) {
+        Serial.printf("⚠️ Warning: Channel %d may not be supported in all regions\n", channel);
+    }
+
+    // Check security mode
+    if (authMode == WIFI_AUTH_WPA3_PSK) {
+        return "Router uses WPA3 security. ESP32 requires WPA2. Change router to WPA2/WPA3 mixed mode.";
+    }
+
+    // All checks passed
+    return "";
+}
+
+// ---------------------------- WiFiManager Callback Functions ----------------------------
+
+void configModeCallback(WiFiManager *myWiFiManager) {
+    Serial.println("🔧 Config mode started");
+    Serial.println("📱 AP: SurfLamp-Setup");
+
+    // Blue LEDs for configuration mode
+    fill_solid(leds, TOTAL_LEDS, CRGB::Blue);
+    FastLED.show();
+}
+
+void saveConfigCallback() {
+    Serial.println("✅ Config saved!");
+}
+
+/**
+ * Custom save parameters callback - runs BEFORE WiFiManager tries to connect
+ * Performs pre-scan diagnostics and provides immediate feedback
+ */
+void saveParamsCallback() {
+    Serial.println("💾 Credentials saved, performing diagnostics...");
+
+    // Get the SSID that was just saved (WiFiManager stores it)
+    String ssid = WiFi.SSID();
+    if (ssid.length() == 0) {
+        // WiFiManager hasn't connected yet, can't get SSID from WiFi object
+        Serial.println("⏳ Will diagnose after connection attempt");
+        return;
+    }
+
+    String diagnostic = diagnoseSSID(ssid.c_str());
+    if (diagnostic.length() > 0) {
+        lastWiFiError = diagnostic;
+        Serial.printf("⚠️ Diagnostic warning: %s\n", diagnostic.c_str());
+    }
 }
 
 // ---------------------------- LED Status Functions ----------------------------
@@ -395,7 +489,7 @@ void setStatusLED(CRGB color) {
 
 // ---------------------------- LED Control Functions (WOODEN LAMP MAPPING) ----------------------------
 
-// *** Wave Height Strip (LEDs 11-48, forward) ***
+// *** Wave Height Strip (LEDs 11-49, forward) ***
 void updateWaveHeightLEDs(int numActiveLeds, CHSV color) {
     for (int i = 0; i < WAVE_HEIGHT_LENGTH; i++) {
         int index = WAVE_HEIGHT_START + i;
@@ -572,7 +666,7 @@ void performLEDTest() {
     Serial.println("🧪 Running LED test sequence...");
 
     // Test each visual strip section with different colors
-    Serial.println("   Testing Wave Height strip (LEDs 11-48)...");
+    Serial.println("   Testing Wave Height strip (LEDs 11-49)...");
     updateWaveHeightLEDs(WAVE_HEIGHT_LENGTH, CHSV(160, 255, 255));  // Blue
     FastLED.show();
     delay(1000);
@@ -609,142 +703,38 @@ void performLEDTest() {
     Serial.println("✅ LED test completed");
 }
 
-// ---------------------------- WiFi Functions (UNCHANGED) ----------------------------
+// ---------------------------- HTTP Server Endpoints ----------------------------
 
-bool connectToWiFi() {
-    Serial.println("🔄 Attempting WiFi connection...");
-    WiFi.mode(WIFI_STA);
-    loadCredentials();
-    WiFi.begin(ssid, password);
+void handleWiFiDiagnostics() {
+    DynamicJsonDocument doc(1024);
 
-    int attempts = 0;
-    while (WiFi.status() != WL_CONNECTED && attempts < WIFI_TIMEOUT) {
-        Serial.print(".");
-        blinkBlueLED();
-        delay(500);
-        attempts++;
-    }
+    doc["current_ssid"] = WiFi.SSID();
+    doc["connected"] = WiFi.status() == WL_CONNECTED;
+    doc["ip_address"] = WiFi.localIP().toString();
+    doc["signal_strength_dbm"] = WiFi.RSSI();
+    doc["last_error"] = lastWiFiError;
+    doc["last_disconnect_reason_code"] = lastDisconnectReason;
 
+    // If connected, scan and show network details
     if (WiFi.status() == WL_CONNECTED) {
-        Serial.println("\n✅ WiFi Connected!");
-        Serial.printf("📍 IP Address: %s\n", WiFi.localIP().toString().c_str());
-        Serial.printf("📶 SSID: %s\n", WiFi.SSID().c_str());
-        Serial.printf("💪 Signal Strength: %d dBm\n", WiFi.RSSI());
+        String ssid = WiFi.SSID();
+        int numNetworks = WiFi.scanNetworks();
 
-        setupHTTPEndpoints();
-        return true;
-    } else {
-        Serial.println("\n❌ WiFi connection failed");
-        return false;
-    }
-}
-
-void startConfigMode() {
-    configure_wifi = true;
-    WiFi.disconnect(true);
-    WiFi.mode(WIFI_AP);
-    WiFi.softAP("SurfLamp-Setup", "surf123456");
-
-    Serial.println("🔧 Configuration mode started");
-    Serial.printf("📍 AP IP: %s\n", WiFi.softAPIP().toString().c_str());
-    Serial.println("📱 Connect to 'SurfLamp-Setup' network");
-    Serial.println("🌐 Password: surf123456");
-
-    apStartTime = millis();
-
-    // Configuration web interface
-    server.on("/", HTTP_GET, []() {
-        String html = "<!DOCTYPE html><html><head><meta charset='UTF-8'>";
-        html += "<meta name='viewport' content='width=device-width,initial-scale=1'>";
-        html += "<title>Surf Lamp Setup</title>";
-        html += "<style>body{font-family:Arial;margin:40px;background:#f0f8ff;}";
-        html += ".container{max-width:400px;margin:0 auto;background:white;padding:30px;border-radius:10px;box-shadow:0 4px 6px rgba(0,0,0,0.1);}";
-        html += "h1{color:#0066cc;text-align:center;}input{width:100%;padding:10px;margin:10px 0;border:1px solid #ddd;border-radius:5px;}";
-        html += "button{width:100%;padding:12px;background:#0066cc;color:white;border:none;border-radius:5px;font-size:16px;cursor:pointer;}";
-        html += "button:hover{background:#0052a3;}</style></head><body>";
-        html += "<div class='container'><h1>🌊 Surf Lamp Setup</h1>";
-        html += "<form action='/save' method='POST'>";
-        html += "<label>WiFi Network:</label><input type='text' name='ssid' placeholder='Enter WiFi SSID' required>";
-        html += "<label>Password:</label><input type='password' name='password' placeholder='Enter WiFi Password' required>";
-        html += "<button type='submit'>🚀 Connect to WiFi</button>";
-        html += "</form></div></body></html>";
-
-        server.send(200, "text/html", html);
-    });
-
-    server.on("/save", HTTP_POST, []() {
-        if (server.hasArg("ssid") && server.hasArg("password")) {
-            String newSSID = server.arg("ssid");
-            String newPassword = server.arg("password");
-
-            saveCredentials(newSSID.c_str(), newPassword.c_str());
-
-            String html = "<!DOCTYPE html><html><head><meta charset='UTF-8'>";
-            html += "<meta name='viewport' content='width=device-width,initial-scale=1'>";
-            html += "<title>Connecting...</title>";
-            html += "<style>body{font-family:Arial;text-align:center;margin:40px;background:#f0f8ff;}</style>";
-            html += "</head><body><h1>🔄 Connecting to WiFi...</h1>";
-            html += "<p>Surf Lamp is connecting to your network.</p>";
-            html += "<p>This page will close automatically.</p></body></html>";
-
-            server.send(200, "text/html", html);
-
-            delay(2000);
-
-            // Attempt connection with new credentials
-            WiFi.softAPdisconnect(true);
-            WiFi.mode(WIFI_STA);
-            WiFi.begin(newSSID.c_str(), newPassword.c_str());
-
-            Serial.printf("🔄 Connecting to: %s\n", newSSID.c_str());
-
-            int attempts = 0;
-            while (WiFi.status() != WL_CONNECTED && attempts < 20) {
-                delay(1000);
-                Serial.print(".");
-                attempts++;
+        for (int i = 0; i < numNetworks; i++) {
+            if (WiFi.SSID(i) == ssid) {
+                doc["channel"] = WiFi.channel(i);
+                doc["security_type"] = WiFi.encryptionType(i);
+                break;
             }
-
-            if (WiFi.status() == WL_CONNECTED) {
-                Serial.println("\n✅ Connected to new WiFi!");
-                Serial.printf("📍 IP Address: %s\n", WiFi.localIP().toString().c_str());
-                configure_wifi = false;
-                setupHTTPEndpoints();
-
-                // Try to fetch surf data immediately after first connection
-                Serial.println("🔄 Attempting initial surf data fetch...");
-                if (fetchSurfDataFromServer()) {
-                    Serial.println("✅ Initial surf data fetch successful");
-                    lastDataFetch = millis();
-                } else {
-                    Serial.println("⚠️ Initial surf data fetch failed, will retry later");
-                }
-            } else {
-                Serial.println("\n❌ Failed to connect to new WiFi");
-                startConfigMode(); // Restart config mode
-            }
-        } else {
-            server.send(400, "text/html", "<h1>❌ Error: Missing WiFi credentials</h1>");
-        }
-    });
-
-    server.begin();
-    Serial.println("🌐 Configuration server started");
-}
-
-void handleAPTimeout() {
-    if (configure_wifi && (millis() - apStartTime > AP_TIMEOUT)) {
-        Serial.println("⏰ AP mode timeout - retrying WiFi connection");
-        configure_wifi = false;
-
-        while (!connectToWiFi()) {
-            Serial.println("🔄 Retrying WiFi connection in 5 seconds...");
-            delay(5000);
         }
     }
-}
 
-// ---------------------------- HTTP Server Endpoints (UNCHANGED) ----------------------------
+    String response;
+    serializeJson(doc, response);
+
+    server.send(200, "application/json", response);
+    Serial.println("🔍 WiFi diagnostics request served");
+}
 
 void setupHTTPEndpoints() {
     // Main endpoint for receiving surf data from background processor
@@ -765,18 +755,22 @@ void setupHTTPEndpoints() {
     // Manual surf data fetch endpoint
     server.on("/api/fetch", HTTP_GET, handleManualFetchRequest);
 
+    // WiFi diagnostics endpoint
+    server.on("/api/wifi-diagnostics", HTTP_GET, handleWiFiDiagnostics);
+
     server.on("/api/discovery-test", HTTP_GET, handleDiscoveryTest);
 
 
     server.begin();
     Serial.println("🌐 HTTP server started with endpoints:");
-    Serial.println("   POST /api/update    - Receive surf data");
-    Serial.println("   GET  /api/discovery-test - Test server discovery");
-    Serial.println("   GET  /api/status    - Device status");
-    Serial.println("   GET  /api/test      - Connection test");
-    Serial.println("   GET  /api/led-test  - LED test");
-    Serial.println("   GET  /api/info      - Device information");
-    Serial.println("   GET  /api/fetch     - Manual surf data fetch");
+    Serial.println("   POST /api/update          - Receive surf data");
+    Serial.println("   GET  /api/discovery-test  - Test server discovery");
+    Serial.println("   GET  /api/status          - Device status");
+    Serial.println("   GET  /api/test            - Connection test");
+    Serial.println("   GET  /api/led-test        - LED test");
+    Serial.println("   GET  /api/info            - Device information");
+    Serial.println("   GET  /api/fetch           - Manual surf data fetch");
+    Serial.println("   GET  /api/wifi-diagnostics - WiFi connection diagnostics");
 }
 
 void handleSurfDataUpdate() {
@@ -1068,6 +1062,9 @@ void updateSurfDisplay() {
         return;
     }
 
+    // NORMAL MODE: Clear all LEDs first (including hidden LEDs between strips)
+    FastLED.clear();
+
     // Calculate LED counts based on surf data using centralized mapping configuration
     int windSpeedLEDs = ledMapping.calculateWindLEDs(windSpeed);
     int waveHeightLEDs = ledMapping.calculateWaveLEDsFromCm(waveHeight_cm);
@@ -1123,83 +1120,155 @@ void setup() {
     // LED startup test
     performLEDTest();
 
-    // Initialize preferences
-    preferences.begin("wifi-creds", false);
+    // Register WiFi event handlers BEFORE WiFiManager starts
+    WiFi.onEvent(WiFiEvent);
+    Serial.println("📡 WiFi event handlers registered");
 
-    // Visual feedback: Green LED for 10 seconds - user can press button during this time
-    Serial.println("🟢 Green LED active - press BOOT button within 10 seconds to enter config mode");
-    fill_solid(leds, TOTAL_LEDS, CRGB::Green);
+    // WiFiManager setup with enhanced diagnostics
+    wifiManager.setAPCallback(configModeCallback);
+    wifiManager.setSaveConfigCallback(saveConfigCallback);
+    wifiManager.setSaveParamsCallback(saveParamsCallback);  // NEW: Diagnostics callback
+    wifiManager.setConfigPortalTimeout(0); // No timeout - wait indefinitely
+
+    // Visual feedback: Blue LEDs during any config
+    fill_solid(leds, TOTAL_LEDS, CRGB::Blue);
     FastLED.show();
 
-    unsigned long greenStart = millis();
+    // Auto-connect with retry logic and enhanced diagnostics
+    bool connected = false;
+    for (int attempt = 1; attempt <= MAX_WIFI_RETRIES && !connected; attempt++) {
+        Serial.printf("🔄 WiFi connection attempt %d of %d\n", attempt, MAX_WIFI_RETRIES);
 
-    // Check if button was pressed in previous boot
-    checkButtonAndEnterAP();
-
-    // Wait 10 seconds for button press
-    while (millis() - greenStart < 10000) {
-        if (digitalRead(BUTTON_PIN) == LOW) {
-            set_config_mode_and_restart();
-            break;
-        }
-        delay(10);
-    }
-
-    // Turn off green LEDs
-    fill_solid(leds, TOTAL_LEDS, CRGB::Black);
-    FastLED.show();
-    Serial.println("⏱️ Button press window closed");
-
-    // Check if WiFi credentials exist in NVRAM
-    String storedSSID = preferences.getString("ssid", "");
-    String storedPassword = preferences.getString("password", "");
-
-    if (storedSSID.length() == 0 || storedPassword.length() == 0) {
-        Serial.println("❌ No saved WiFi credentials found in NVRAM");
-        Serial.println("🔧 Starting configuration mode...");
-        startConfigMode();
-    } else {
-        Serial.printf("📝 Found saved credentials - SSID: %s\n", storedSSID.c_str());
-        // Load credentials and attempt connection
-        storedSSID.toCharArray(ssid, sizeof(ssid));
-        storedPassword.toCharArray(password, sizeof(password));
-
-        if (!connectToWiFi()) {
-            Serial.println("❌ Connection failed with saved credentials");
-            Serial.println("🔧 Starting configuration mode...");
-            startConfigMode();
+        // Set timeout: 30 seconds for retry attempts, indefinite for last attempt
+        if (attempt < MAX_WIFI_RETRIES) {
+            wifiManager.setConfigPortalTimeout(30); // 30 second timeout per attempt
         } else {
-        Serial.println("🚀 Surf Lamp ready for operation!");
-        Serial.printf("📍 Device accessible at: http://%s\n", WiFi.localIP().toString().c_str());
+            wifiManager.setConfigPortalTimeout(0); // Last attempt: wait indefinitely in config portal
+        }
 
-            // Try to fetch surf data immediately on startup
-            Serial.println("🔄 Attempting initial surf data fetch...");
-            if (fetchSurfDataFromServer()) {
-                Serial.println("✅ Initial surf data fetch successful");
-                lastDataFetch = millis();
+        connected = wifiManager.autoConnect("SurfLamp-Setup", "surf123456");
+
+        // If connection failed, run diagnostics to determine WHY
+        if (!connected) {
+            Serial.println("❌ Connection failed - running diagnostics...");
+
+            // Get SSID from WiFiManager (it stores the last attempted SSID)
+            String attemptedSSID = WiFi.SSID();
+            if (attemptedSSID.length() == 0) {
+                Serial.println("⚠️ No SSID stored - user may not have entered credentials");
             } else {
-                Serial.println("⚠️ Initial surf data fetch failed, will retry later");
+                Serial.printf("🔍 Diagnosing connection to: %s\n", attemptedSSID.c_str());
+
+                // Run pre-scan diagnostics
+                String diagnostic = diagnoseSSID(attemptedSSID.c_str());
+
+                if (diagnostic.length() > 0) {
+                    // Specific problem detected
+                    Serial.println("🔴 DIAGNOSTIC RESULT:");
+                    Serial.println(diagnostic);
+                    Serial.println("🔴 ==========================================");
+
+                    // Flash red LEDs in specific patterns based on error type
+                    if (diagnostic.indexOf("not found") >= 0) {
+                        // SSID not found - fast red blink
+                        for (int i = 0; i < 10; i++) {
+                            fill_solid(leds, TOTAL_LEDS, CRGB::Red);
+                            FastLED.show();
+                            delay(100);
+                            FastLED.clear();
+                            FastLED.show();
+                            delay(100);
+                        }
+                    } else if (diagnostic.indexOf("WPA3") >= 0) {
+                        // Security mode incompatible - purple blink
+                        for (int i = 0; i < 10; i++) {
+                            fill_solid(leds, TOTAL_LEDS, CRGB::Purple);
+                            FastLED.show();
+                            delay(200);
+                            FastLED.clear();
+                            FastLED.show();
+                            delay(200);
+                        }
+                    } else if (diagnostic.indexOf("Weak signal") >= 0) {
+                        // Weak signal - orange blink
+                        for (int i = 0; i < 10; i++) {
+                            fill_solid(leds, TOTAL_LEDS, CRGB::Orange);
+                            FastLED.show();
+                            delay(300);
+                            FastLED.clear();
+                            FastLED.show();
+                            delay(300);
+                        }
+                    }
+                } else {
+                    // No obvious pre-scan issue, check disconnect reason
+                    if (lastDisconnectReason != 0) {
+                        Serial.println("🔴 DISCONNECT REASON:");
+                        Serial.println(lastWiFiError);
+                        Serial.println("🔴 ==========================================");
+
+                        // Generic error - slow red blink
+                        for (int i = 0; i < 6; i++) {
+                            fill_solid(leds, TOTAL_LEDS, CRGB::Red);
+                            FastLED.show();
+                            delay(500);
+                            FastLED.clear();
+                            FastLED.show();
+                            delay(500);
+                        }
+                    }
+                }
+            }
+
+            if (attempt < MAX_WIFI_RETRIES) {
+                Serial.println("⏳ Waiting 5 seconds before retry...");
+                delay(5000);
             }
         }
+    }
+
+    if (!connected) {
+        Serial.println("❌ Failed to connect after 5 attempts");
+        Serial.println("📋 Final diagnostic summary:");
+        Serial.printf("   Last SSID attempted: %s\n", WiFi.SSID().c_str());
+        Serial.printf("   Last error: %s\n", lastWiFiError.c_str());
+        Serial.printf("   Disconnect reason code: %d\n", lastDisconnectReason);
+        Serial.println("🔄 Restarting to config portal...");
+        delay(3000);
+        ESP.restart();
+    }
+
+    Serial.println("✅ WiFi Connected!");
+    Serial.printf("📍 IP Address: %s\n", WiFi.localIP().toString().c_str());
+
+    setupHTTPEndpoints();
+
+    Serial.println("🚀 Surf Lamp ready for operation!");
+    Serial.printf("📍 Device accessible at: http://%s\n", WiFi.localIP().toString().c_str());
+
+    // Try to fetch surf data immediately on startup
+    Serial.println("🔄 Attempting initial surf data fetch...");
+    if (fetchSurfDataFromServer()) {
+        Serial.println("✅ Initial surf data fetch successful");
+        lastDataFetch = millis();
+    } else {
+        Serial.println("⚠️ Initial surf data fetch failed, will retry later");
     }
 }
 
 // ---------------------------- Main Loop (UNCHANGED) ----------------------------
 
 void loop() {
-    // Check for button press to enter config mode (check every 1 second)
+    // Check for button press to reset WiFi (check every 1 second)
     static unsigned long lastButtonCheck = 0;
     unsigned long now = millis();
 
     if (now - lastButtonCheck >= 1000) {
         lastButtonCheck = now;
         if (digitalRead(BUTTON_PIN) == LOW) {
-            Serial.println("🔘 Button pressed during runtime - setting config mode flag");
-            preferences.begin("wifi-creds", false);
-            preferences.putInt("button_pressed", 1);
-            preferences.end();
+            Serial.println("🔘 Button pressed - resetting WiFi");
+            wifiManager.resetSettings(); // Wipe credentials
             delay(500);
-            Serial.println("🔄 Restarting to enter configuration mode...");
             ESP.restart();
         }
     }
@@ -1207,41 +1276,32 @@ void loop() {
     // Handle HTTP requests
     server.handleClient();
 
-    // Handle configuration mode timeout
-    handleAPTimeout();
-
     // WiFi status management
     if (WiFi.status() != WL_CONNECTED) {
-        if (!configure_wifi) {
-            blinkRedLED();
-            static unsigned long lastReconnectAttempt = 0;
-            static int failedAttempts = 0;
+        blinkRedLED();
 
-            if (millis() - lastReconnectAttempt > 30000) { // Try every 30 seconds
-                Serial.println("🔄 Attempting WiFi reconnection...");
-                if (!connectToWiFi()) {
-                    failedAttempts++;
-                    Serial.printf("⚠️ Reconnection failed (attempt %d)\n", failedAttempts);
+        // Try to reconnect every 10 seconds
+        if (now - lastReconnectAttempt > 10000) {
+            lastReconnectAttempt = now;
+            reconnectAttempts++;
 
-                    // After 3 failed attempts, enter AP mode for reconfiguration
-                    if (failedAttempts >= 3) {
-                        Serial.println("❌ Multiple reconnection failures. Starting AP mode...");
-                        failedAttempts = 0;
-                        startConfigMode();
-                    }
-                } else {
-                    failedAttempts = 0; // Reset counter on successful connection
-                }
-                lastReconnectAttempt = millis();
+            Serial.printf("🔄 WiFi disconnected - reconnection attempt %d of %d\n",
+                          reconnectAttempts, MAX_WIFI_RETRIES);
+            WiFi.reconnect();
+
+            if (reconnectAttempts >= MAX_WIFI_RETRIES) {
+                Serial.println("❌ Failed to reconnect after 5 attempts - restarting for config portal");
+                delay(1000);
+                ESP.restart(); // Will trigger config portal in setup
             }
-        } else {
-            blinkYellowLED(); // Configuration mode
         }
     } else {
         // Connected and operational
-        if (configure_wifi) {
-            configure_wifi = false;
-            Serial.println("✅ Exited configuration mode");
+
+        // Reset reconnect counter when connected
+        if (reconnectAttempts > 0) {
+            Serial.println("✅ WiFi reconnected successfully");
+            reconnectAttempts = 0;
         }
 
         // Periodically fetch surf data from discovered server
