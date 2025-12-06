@@ -625,7 +625,10 @@ def dashboard():
             'theme': user.theme,
             'preferred_output': user.preferred_output,
             'wave_threshold_m': user.wave_threshold_m or 1.0,
-            'wind_threshold_knots': user.wind_threshold_knots or 22.0
+            'wind_threshold_knots': user.wind_threshold_knots or 22.0,
+            'off_times_enabled': user.off_times_enabled,
+            'off_time_start': user.off_time_start,
+            'off_time_end': user.off_time_end
         },
         'lamp': {
             'lamp_id': lamp.lamp_id,
@@ -634,7 +637,7 @@ def dashboard():
         },
         'conditions': None
     }
-    
+
     # Add surf conditions if available
     if conditions:
         dashboard_data['conditions'] = {
@@ -644,8 +647,11 @@ def dashboard():
             'wind_direction_deg': conditions.wind_direction_deg,
             'last_updated': conditions.last_updated
         }
-    
-    return render_template('dashboard.html', data=dashboard_data, locations=SURF_LOCATIONS)
+
+    # Check if off hours feature is enabled via env var
+    off_hours_feature_enabled = os.getenv('OFF_HOURS_FEATURE_ENABLED', 'false').lower() == 'true'
+
+    return render_template('dashboard.html', data=dashboard_data, locations=SURF_LOCATIONS, off_hours_feature_enabled=off_hours_feature_enabled)
 
 @app.route("/dashboard/<view_type>")
 @login_required
