@@ -1146,6 +1146,15 @@ void setup() {
             wifiManager.setConfigPortalTimeout(0); // Last attempt: wait indefinitely in config portal
         }
 
+        // Inject error message into portal if we have one
+        if (lastWiFiError.length() > 0) {
+            String customHTML = "<div style='background:#ff4444;color:white;padding:10px;margin:10px 0;border-radius:5px;'>";
+            customHTML += "<strong>❌ Connection Failed</strong><br>";
+            customHTML += lastWiFiError;
+            customHTML += "</div>";
+            wifiManager.setCustomHeadElement(customHTML.c_str());
+        }
+
         connected = wifiManager.autoConnect("SurfLamp-Setup", "surf123456");
 
         // If connection failed, run diagnostics to determine WHY
@@ -1163,60 +1172,16 @@ void setup() {
                 String diagnostic = diagnoseSSID(attemptedSSID.c_str());
 
                 if (diagnostic.length() > 0) {
-                    // Specific problem detected
+                    // Store for display in portal
+                    lastWiFiError = diagnostic;
                     Serial.println("🔴 DIAGNOSTIC RESULT:");
                     Serial.println(diagnostic);
                     Serial.println("🔴 ==========================================");
-
-                    // Flash red LEDs in specific patterns based on error type
-                    if (diagnostic.indexOf("not found") >= 0) {
-                        // SSID not found - fast red blink
-                        for (int i = 0; i < 10; i++) {
-                            fill_solid(leds, TOTAL_LEDS, CRGB::Red);
-                            FastLED.show();
-                            delay(100);
-                            FastLED.clear();
-                            FastLED.show();
-                            delay(100);
-                        }
-                    } else if (diagnostic.indexOf("WPA3") >= 0) {
-                        // Security mode incompatible - purple blink
-                        for (int i = 0; i < 10; i++) {
-                            fill_solid(leds, TOTAL_LEDS, CRGB::Purple);
-                            FastLED.show();
-                            delay(200);
-                            FastLED.clear();
-                            FastLED.show();
-                            delay(200);
-                        }
-                    } else if (diagnostic.indexOf("Weak signal") >= 0) {
-                        // Weak signal - orange blink
-                        for (int i = 0; i < 10; i++) {
-                            fill_solid(leds, TOTAL_LEDS, CRGB::Orange);
-                            FastLED.show();
-                            delay(300);
-                            FastLED.clear();
-                            FastLED.show();
-                            delay(300);
-                        }
-                    }
-                } else {
-                    // No obvious pre-scan issue, check disconnect reason
-                    if (lastDisconnectReason != 0) {
-                        Serial.println("🔴 DISCONNECT REASON:");
-                        Serial.println(lastWiFiError);
-                        Serial.println("🔴 ==========================================");
-
-                        // Generic error - slow red blink
-                        for (int i = 0; i < 6; i++) {
-                            fill_solid(leds, TOTAL_LEDS, CRGB::Red);
-                            FastLED.show();
-                            delay(500);
-                            FastLED.clear();
-                            FastLED.show();
-                            delay(500);
-                        }
-                    }
+                } else if (lastDisconnectReason != 0) {
+                    // Store disconnect reason
+                    Serial.println("🔴 DISCONNECT REASON:");
+                    Serial.println(lastWiFiError);
+                    Serial.println("🔴 ==========================================");
                 }
             }
 
