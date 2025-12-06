@@ -626,9 +626,9 @@ def dashboard():
             'preferred_output': user.preferred_output,
             'wave_threshold_m': user.wave_threshold_m or 1.0,
             'wind_threshold_knots': user.wind_threshold_knots or 22.0,
-            'off_times_enabled': user.off_times_enabled,
-            'off_time_start': user.off_time_start,
-            'off_time_end': user.off_time_end
+            'off_times_enabled': getattr(user, 'off_times_enabled', False),
+            'off_time_start': getattr(user, 'off_time_start', None),
+            'off_time_end': getattr(user, 'off_time_end', None)
         },
         'lamp': {
             'lamp_id': lamp.lamp_id,
@@ -1323,9 +1323,9 @@ def get_arduino_surf_data(arduino_id):
             # Check if current time is within user-defined off hours
             off_hours_active = is_off_hours(
                 user.location,
-                user.off_time_start,
-                user.off_time_end,
-                user.off_times_enabled
+                getattr(user, 'off_time_start', None),
+                getattr(user, 'off_time_end', None),
+                getattr(user, 'off_times_enabled', False)
             )
 
             if off_hours_active:
@@ -1346,7 +1346,6 @@ def get_arduino_surf_data(arduino_id):
                     'led_theme': user.theme or 'day',
                     'quiet_hours_active': quiet_hours_active,
                     'off_hours_active': off_hours_active,
-                    'night_brightness_percent': user.night_brightness_percent or 30,
                     'last_updated': '1970-01-01T00:00:00Z',
                     'data_available': False
                 }
@@ -1362,7 +1361,6 @@ def get_arduino_surf_data(arduino_id):
                     'led_theme': user.theme or 'day',
                     'quiet_hours_active': quiet_hours_active,
                     'off_hours_active': off_hours_active,
-                    'night_brightness_percent': user.night_brightness_percent or 30,
                     'last_updated': conditions.last_updated.isoformat() if conditions.last_updated else '1970-01-01T00:00:00Z',
                     'data_available': True
                 }
