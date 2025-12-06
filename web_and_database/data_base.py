@@ -19,7 +19,7 @@ Key Components:
 import os
 import logging
 import uuid
-from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, TIMESTAMP, MetaData, Float, Boolean
+from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, TIMESTAMP, MetaData, Float, Boolean, Time
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import func
@@ -98,6 +98,9 @@ class User(Base):
     wind_threshold_knots = Column(Float, nullable=True, default=22.0)
     night_brightness_percent = Column(Integer, nullable=True, default=30)
     is_admin = Column(Boolean, default=False, nullable=False)
+    off_time_start = Column(Time, nullable=True)
+    off_time_end = Column(Time, nullable=True)
+    off_times_enabled = Column(Boolean, default=False, nullable=False)
 
     lamp = relationship("Lamp", back_populates="user", uselist=False, cascade="all, delete-orphan")
 
