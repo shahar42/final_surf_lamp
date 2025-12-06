@@ -788,33 +788,6 @@ def update_wind_threshold():
     except Exception as e:
         return {'success': False, 'message': f'Server error: {str(e)}'}, 500
 
-@app.route("/update-night-brightness", methods=['POST'])
-@login_required
-@limiter.limit("30/minute")
-def update_night_brightness():
-    try:
-        data = request.get_json()
-        brightness = int(data.get('brightness', 30))
-        user_id = session.get('user_id')
-
-        if brightness < 1 or brightness > 100:
-            return {'success': False, 'message': 'Night brightness must be between 1 and 100 percent'}, 400
-
-        db = SessionLocal()
-        try:
-            user = db.query(User).filter(User.user_id == user_id).first()
-            if user:
-                user.night_brightness_percent = brightness
-                db.commit()
-                return {'success': True, 'message': 'Night brightness updated successfully'}
-            else:
-                return {'success': False, 'message': 'User not found'}, 404
-        finally:
-            db.close()
-
-    except Exception as e:
-        return {'success': False, 'message': f'Server error: {str(e)}'}, 500
-
 @app.route("/update-off-times", methods=['POST'])
 @login_required
 @limiter.limit("30/minute")
