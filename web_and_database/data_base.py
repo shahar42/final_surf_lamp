@@ -96,7 +96,6 @@ class User(Base):
     sport_type = Column(String(20), nullable=False, default='surfing')
     wave_threshold_m = Column(Float, nullable=True, default=1.0)
     wind_threshold_knots = Column(Float, nullable=True, default=22.0)
-    night_brightness_percent = Column(Integer, nullable=True, default=30)
     is_admin = Column(Boolean, default=False, nullable=False)
     off_time_start = Column(Time, nullable=True)
     off_time_end = Column(Time, nullable=True)
