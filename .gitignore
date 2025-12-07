@@ -70,3 +70,11 @@ backups/
 # Project-specific
 .mcp.json
 CLAUDE.md
+
+web_and_database/forgot_password_doc.md
+
+# Testing directories
+broadcast-agent-test/
+
+# Arduino
+*.ino
