@@ -572,17 +572,27 @@ def login():
         email = form.email.data
         password = form.password.data
 
+        logger.info(f"🔐 Login attempt for email: {email}")
+
         db = SessionLocal()
         try:
             # Case-insensitive email lookup using func.lower()
             user = db.query(User).filter(func.lower(User.email) == email.lower()).first()
-            if user and bcrypt.check_password_hash(user.password_hash, password):
+
+            if not user:
+                logger.warning(f"❌ Login failed - email not found: {email}")
+                flash('Invalid email or password. Please try again.', 'error')
+                return redirect(url_for('login'))
+
+            if bcrypt.check_password_hash(user.password_hash, password):
+                logger.info(f"✅ Login successful for user: {user.username} ({user.email})")
                 # Set session data
                 session['user_email'] = user.email
                 session['user_id'] = user.user_id
                 session['username'] = user.username
                 return redirect(url_for('dashboard'))
             else:
+                logger.warning(f"❌ Login failed - invalid password for email: {email} (user exists as: {user.email})")
                 flash('Invalid email or password. Please try again.', 'error')
                 return redirect(url_for('login'))
         finally:
