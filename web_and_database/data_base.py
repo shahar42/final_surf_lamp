@@ -87,7 +87,7 @@ class User(Base):
     """
     __tablename__ = 'users'
     user_id = Column(Integer, primary_key=True, autoincrement=True)
-    username = Column(String(255), unique=True, nullable=False)
+    username = Column(String(255), nullable=False)
     password_hash = Column(Text, nullable=False)
     email = Column(String(255), unique=True, nullable=False)
     location = Column(String(255), nullable=False)
@@ -543,9 +543,7 @@ def add_user_and_lamp(name, email, password_hash, arduino_id, location, theme, u
         error_msg = str(e.orig)
 
         if 'users_email_key' in error_msg:
-            return False, "This email address is already registered. Please use a different email or login."
-        elif 'users_username_key' in error_msg:
-            return False, "This username is already taken. Please choose a different username."
+            return False, "You already have an account! Forgot your password? Click 'Forgot Password' on the login page."
         elif 'lamps_arduino_id_key' in error_msg:
             return False, "This Device ID is already registered to another user. Please check your Device ID."
         else:

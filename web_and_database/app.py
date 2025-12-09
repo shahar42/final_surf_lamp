@@ -224,9 +224,13 @@ def send_reset_email(user_email, username, token):
     reset_link = url_for('reset_password_form', token=token, _external=True)
     subject = "Password Reset Request"
 
-    logger.info(f"Attempting to send password reset email to {user_email}")
+    # Extract email domain for debugging
+    email_domain = user_email.split('@')[1] if '@' in user_email else 'unknown'
+
+    logger.info(f"📧 Attempting to send password reset email to {user_email} (domain: {email_domain})")
     logger.info(f"MAIL_SERVER: {app.config.get('MAIL_SERVER')}")
     logger.info(f"MAIL_PORT: {app.config.get('MAIL_PORT')}")
+    logger.info(f"MAIL_USE_TLS: {app.config.get('MAIL_USE_TLS')}")
     logger.info(f"MAIL_USERNAME: {app.config.get('MAIL_USERNAME')}")
     logger.info(f"MAIL_DEFAULT_SENDER: {app.config.get('MAIL_DEFAULT_SENDER')}")
 
@@ -245,10 +249,12 @@ Surf Lamp Team
 
     try:
         mail.send(msg)
-        logger.info(f"✓ Email sent successfully to {user_email}")
+        logger.info(f"✅ SUCCESS: Password reset email sent to {user_email} (domain: {email_domain})")
         return True
     except Exception as e:
-        logger.error(f"✗ Email send failed to {user_email}: {e}")
+        logger.error(f"❌ FAILED: Could not send password reset email to {user_email} (domain: {email_domain})")
+        logger.error(f"Error type: {type(e).__name__}")
+        logger.error(f"Error message: {str(e)}")
         logger.exception("Full traceback:")
         return False
 
@@ -390,13 +396,13 @@ def forgot_password():
                 token = secrets.token_urlsafe(48)
                 token_hash = hashlib.sha256(token.encode()).hexdigest()
                 expiration = datetime.now(timezone.utc) + timedelta(minutes=20)
-                
+
                 # Invalidate old tokens
                 db.query(PasswordResetToken).filter(
                     PasswordResetToken.user_id == user.user_id,
                     PasswordResetToken.used_at.is_(None)
                 ).update({"is_invalidated": True})
-                
+
                 # Create new token
                 reset_token = PasswordResetToken(
                     user_id=user.user_id,
@@ -405,9 +411,15 @@ def forgot_password():
                 )
                 db.add(reset_token)
                 db.commit()
-                
-                # Send email
-                send_reset_email(user.email, user.username, token)
+
+                # Send email and log result
+                email_sent = send_reset_email(user.email, user.username, token)
+                if email_sent:
+                    logger.info(f"Password reset process completed successfully for {email}")
+                else:
+                    logger.warning(f"Password reset token created but email delivery failed for {email}")
+            else:
+                logger.info(f"Password reset requested for non-existent email: {email}")
         finally:
             db.close()
             
@@ -516,7 +528,7 @@ def register():
     if form.validate_on_submit():
         # Get Form Data
         name = form.name.data
-        email = form.email.data
+        email = form.email.data.lower()
         password = form.password.data
         arduino_id = form.arduino_id.data
         location = form.location.data
@@ -569,7 +581,7 @@ def login():
         
     form = LoginForm()
     if form.validate_on_submit():
-        email = form.email.data
+        email = form.email.data.lower()
         password = form.password.data
 
         db = SessionLocal()
@@ -1553,6 +1565,7 @@ def create_broadcast():
 
     message = request.json.get('message', '').strip()
     target_location = request.json.get('target_location')  # "all" or specific location
+    duration_hours = request.json.get('duration_hours', 2)  # Default 2 hours
 
     # Validation
     if not message or len(message) > 500:
@@ -1561,11 +1574,18 @@ def create_broadcast():
     if target_location and target_location != 'all' and target_location not in SURF_LOCATIONS:
         return jsonify({'success': False, 'message': 'Invalid location'}), 400
 
+    try:
+        duration_hours = float(duration_hours)
+        if duration_hours < 0.5 or duration_hours > 168:
+            return jsonify({'success': False, 'message': 'Duration must be between 0.5 and 168 hours'}), 400
+    except (ValueError, TypeError):
+        return jsonify({'success': False, 'message': 'Invalid duration format'}), 400
+
     # Sanitize message
     message = sanitize_input(message)
 
-    # Calculate expiry (2 hours from now)
-    expires_at = datetime.utcnow() + timedelta(hours=2)
+    # Calculate expiry based on admin input
+    expires_at = datetime.utcnow() + timedelta(hours=duration_hours)
 
     # Create broadcast
     db = SessionLocal()
