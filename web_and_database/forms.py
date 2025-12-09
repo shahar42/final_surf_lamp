@@ -33,11 +33,11 @@ class ResetPasswordForm(FlaskForm):
     submit = SubmitField('Reset Password')
 
 class RegistrationForm(FlaskForm):
-    # Name validation - only letters, spaces, hyphens, apostrophes
+    # Name validation - letters, numbers, spaces, hyphens, apostrophes
     name = SanitizedStringField('Name', validators=[
         DataRequired(message="Name is required"),
         Length(min=2, max=50, message="Name must be between 2 and 50 characters"),
-        Regexp(r"^[a-zA-Z\s\-']+$", message="Name can only contain letters, spaces, hyphens, and apostrophes")
+        Regexp(r"^[a-zA-Z0-9\s\-']+$", message="Name can contain letters, numbers, spaces, hyphens, and apostrophes")
     ])
     
     # Email with comprehensive validation
