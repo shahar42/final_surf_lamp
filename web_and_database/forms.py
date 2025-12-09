@@ -79,19 +79,21 @@ class RegistrationForm(FlaskForm):
     
     def validate_email(self, field):
         """Custom email validation with additional security checks"""
-        email = field.data.lower()
-        
+        # Normalize email to lowercase and strip whitespace (fixes case-sensitivity bug)
+        field.data = field.data.lower().strip()
+        email = field.data
+
         # Check for suspicious patterns
         suspicious_patterns = [
             r'\.{2,}',  # Multiple dots
             r'^\.|\.$',  # Starts or ends with dot
             r'@.*@',  # Multiple @ symbols
         ]
-        
+
         for pattern in suspicious_patterns:
             if re.search(pattern, email):
                 raise ValidationError("Invalid email format")
-        
+
         # Check domain length
         if '@' in email:
             domain = email.split('@')[1]
