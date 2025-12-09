@@ -79,9 +79,9 @@ class RegistrationForm(FlaskForm):
     
     def validate_email(self, field):
         """Custom email validation with additional security checks"""
-        # Normalize email to lowercase and strip whitespace (fixes case-sensitivity bug)
-        field.data = field.data.lower().strip()
-        email = field.data
+        # Strip whitespace but preserve case (case-insensitive comparison happens at login)
+        field.data = field.data.strip()
+        email = field.data.lower()  # Use lowercase only for validation checks
 
         # Check for suspicious patterns
         suspicious_patterns = [
@@ -117,7 +117,7 @@ class LoginForm(FlaskForm):
     def validate_email(self, field):
         """Sanitize email for login"""
         if field.data:
-            field.data = field.data.lower().strip()
+            field.data = field.data.strip()  # Only strip whitespace, preserve case
 
 def validate_location_choice(location, valid_locations):
     """Validate that location is in the allowed list"""

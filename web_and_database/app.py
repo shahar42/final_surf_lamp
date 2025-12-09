@@ -574,7 +574,8 @@ def login():
 
         db = SessionLocal()
         try:
-            user = db.query(User).filter(User.email == email).first()
+            # Case-insensitive email lookup using func.lower()
+            user = db.query(User).filter(func.lower(User.email) == email.lower()).first()
             if user and bcrypt.check_password_hash(user.password_hash, password):
                 # Set session data
                 session['user_email'] = user.email
