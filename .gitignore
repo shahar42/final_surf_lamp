@@ -30,6 +30,7 @@ env/
 ENV/
 env.bak/
 venv.bak/
+esurf/
 
 # Environment variables
 .env
@@ -70,6 +71,13 @@ backups/
 # Project-specific
 .mcp.json
 CLAUDE.md
+.claude.json
+.claude/skills/
+.python-version
+health_check_results.json
+run_alert_check.py
+run_insights.py
+run_daily_insights.py
 
 web_and_database/forgot_password_doc.md
 
@@ -150,20 +158,8 @@ interactive_file_selector.py
 # Exercise files
 excercise/
 
-# Documentation coordination
-docs/CLAUDE_DOCUMENTATION_TASKS.md
-docs/GEMINI_DOCUMENTATION_TASKS.md
-docs/DOCUMENTATION_COORDINATION_CHECKLIST.md
-docs/SHIPPING_PREPARATION.md
-docs/README.md
-docs/arduino-README.md
-docs/discovery-config-README.md
-docs/surf-lamp-processor-README.md
-docs/web-and-database-README.md
-docs/arduino_architecture_schema.txt
-docs/arduino_payload_documentation.md
-docs/database_schema.txt
-docs/database_schema_v2.txt
+# Documentation (ignore entire directory)
+docs/
 
 # Customer support notes
 constumer_support/
