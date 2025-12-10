@@ -98,10 +98,10 @@ h2 {
 /* Visuals */
 .lamp-feature {
     width: 100%;
-    max-width: 400px;
-    margin: 0 auto 3rem auto;
+    max-width: 250px;
+    margin: 0 0 3rem 0;
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
 }
 
 .feature-image {
