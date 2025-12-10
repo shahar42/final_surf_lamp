@@ -60,25 +60,6 @@ h2 {
     max-width: 600px;
 }
 
-/* Hero Image */
-.hero-image-container {
-    margin-top: 3rem;
-    width: 100%;
-    max-width: 800px; /* Constrain width */
-    display: flex;
-    justify-content: flex-start; /* Align with text */
-}
-
-.hero-image {
-    width: 100%;
-    height: auto;
-    max-height: 500px; /* Prevent it from taking over too much vertical space */
-    object-fit: contain;
-    filter: drop-shadow(0 20px 40px rgba(0,0,0,0.5)); /* Deep shadow for depth */
-    mask-image: linear-gradient(to bottom, black 80%, transparent 100%); /* Subtle fade at bottom if needed, or remove */
-    -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
-}
-
 .text {
     font-size: 1.25rem;
     font-weight: 300;
@@ -115,53 +96,27 @@ h2 {
 }
 
 /* Visuals */
-.lamp-gallery {
+.lamp-feature {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto 3rem auto;
     display: flex;
     justify-content: center;
-    align-items: flex-end; /* Align items to the bottom */
-    gap: 2rem;
-    margin: 0 auto 4rem auto;
+}
+
+.feature-image {
     width: 100%;
-    max-width: 900px;
-    flex-wrap: wrap; /* Wrap on small screens */
-}
-
-.lamp-item {
-    flex: 1;
-    min-width: 200px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    transition: transform 0.3s ease;
-}
-
-.lamp-item:hover {
-    transform: translateY(-10px);
-}
-
-.lamp-item img {
-    width: 100%;
-    max-width: 250px; /* Limit size */
     height: auto;
-    display: block;
-    margin-bottom: 1rem;
-    filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3));
-    transition: filter 0.3s ease;
+    filter: drop-shadow(0 20px 50px rgba(0,0,0,0.5));
+    transition: transform 0.5s ease;
 }
 
-.lamp-item:hover img {
-    filter: drop-shadow(0 15px 30px rgba(74, 144, 226, 0.2)); /* Blue glow on hover */
+.feature-image:hover {
+    transform: scale(1.02);
+    filter: drop-shadow(0 30px 60px rgba(74, 144, 226, 0.15));
 }
 
-.lamp-name {
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    opacity: 0.5;
-    font-weight: 300;
-}
-
-/* Removed carousel styles (.lamp-showcase, .lamp-image etc) */
+/* Removed old gallery/hero styles to keep it clean */
 
 .fade-in {
     opacity: 0;
