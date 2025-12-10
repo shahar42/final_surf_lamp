@@ -43,7 +43,7 @@ import secrets
 import hashlib
 from datetime import datetime, timedelta
 from data_base import PasswordResetToken
-from data_base import add_user_and_lamp, get_user_lamp_data, SessionLocal, User, Lamp, update_user_location, CurrentConditions, Broadcast
+from data_base import add_user_and_lamp, get_user_lamp_data, SessionLocal, User, Lamp, update_user_location, CurrentConditions, Broadcast, LOCATION_TIMEZONES
 from forms import RegistrationForm, LoginForm
 from security_config import apply_security_headers, SecurityConfig
 
@@ -100,19 +100,7 @@ limiter.init_app(app)
 # Location change rate limiting storage
 location_changes = {}  # {user_id: [timestamp1, timestamp2, ...]}
 
-# Location to timezone mapping (for quiet hours)
-LOCATION_TIMEZONES = {
-    "Hadera, Israel": "Asia/Jerusalem",
-    "Tel Aviv, Israel": "Asia/Jerusalem",
-    "Ashdod, Israel": "Asia/Jerusalem",
-    "Haifa, Israel": "Asia/Jerusalem",
-    "Netanya, Israel": "Asia/Jerusalem",
-    "Nahariya, Israel": "Asia/Jerusalem",
-    "Ashkelon, Israel": "Asia/Jerusalem",
-    "San Diego, USA": "America/Los_Angeles",
-    "Barcelona, Spain": "Europe/Madrid",
-    # Add more locations as needed
-}
+# Note: LOCATION_TIMEZONES imported from data_base.py (single source of truth)
 
 def is_quiet_hours(user_location, quiet_start_hour=22, quiet_end_hour=6):
     """

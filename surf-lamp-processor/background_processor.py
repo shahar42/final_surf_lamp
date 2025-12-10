@@ -73,21 +73,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Arduino failure tracking removed - not needed for pull-based architecture
 
-# Location to timezone mapping
-LOCATION_TIMEZONES = {
-    "Hadera, Israel": "Asia/Jerusalem",
-    "Tel Aviv, Israel": "Asia/Jerusalem", 
-    "Ashdod, Israel": "Asia/Jerusalem",
-    "Haifa, Israel": "Asia/Jerusalem",
-    "Netanya, Israel": "Asia/Jerusalem",
-    "San Diego, USA": "America/Los_Angeles",
-    "Barcelona, Spain": "Europe/Madrid",
-    # open for future updates
-}
+# Note: LOCATION_TIMEZONES imported from web_and_database/data_base.py within functions
+# (see format_for_arduino function for dynamic import pattern)
 
-# Database connection (same as your Flask app)
+# Database connection 
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if not DATABASE_URL:
     logger.error("DATABASE_URL environment variable not set!")
@@ -369,21 +359,32 @@ def get_lamps_for_location(location):
 def format_for_arduino(surf_data, format_type="meters", location=None):
     """Format surf data for Arduino consumption with location-aware time"""
     logger.info(f"🔧 Formatting data for Arduino (format: {format_type}, location: {location})")
-    
+
     formatted = surf_data.copy()
 
-    # Add location-aware current time
-    if location and location in LOCATION_TIMEZONES:
+    # Add location-aware current time (import shared timezone mapping from data_base)
+    if location:
+        import sys
         import pytz
         from datetime import datetime
-        
-        timezone_str = LOCATION_TIMEZONES[location]
-        local_tz = pytz.timezone(timezone_str)
-        current_time = datetime.now(local_tz)
-        
-        formatted['local_time'] = current_time.strftime('%Y-%m-%d %H:%M:%S %Z')
-        formatted['timezone'] = timezone_str
-        logger.info(f"🕐 Added local time: {formatted['local_time']}")
+
+        # Import LOCATION_TIMEZONES from shared config (single source of truth)
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        parent_dir = os.path.dirname(current_dir)
+        web_db_path = os.path.join(parent_dir, 'web_and_database')
+        if web_db_path not in sys.path:
+            sys.path.append(web_db_path)
+
+        from data_base import LOCATION_TIMEZONES
+
+        if location in LOCATION_TIMEZONES:
+            timezone_str = LOCATION_TIMEZONES[location]
+            local_tz = pytz.timezone(timezone_str)
+            current_time = datetime.now(local_tz)
+
+            formatted['local_time'] = current_time.strftime('%Y-%m-%d %H:%M:%S %Z')
+            formatted['timezone'] = timezone_str
+            logger.info(f"🕐 Added local time: {formatted['local_time']}")
 
     # Convert wave height to cm and wind speed to integer
     if 'wave_height_m' in formatted:
@@ -478,7 +479,6 @@ def fetch_surf_data(api_key, endpoint):
                     raise e  # Other HTTP errors, don't retry
 
         # Add 30 second delay between all API calls to avoid rate limiting
-        # Increased from 10s due to Open-Meteo rate limiting issues
         time.sleep(30)
 
         logger.info(f"✅ API call successful: {response.status_code}")

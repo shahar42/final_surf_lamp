@@ -327,6 +327,28 @@ STORMGLASS_LOCATIONS = {
 }
 
 # ============================================================================
+# LOCATION TO TIMEZONE MAPPING (SHARED CONFIG)
+# ============================================================================
+# Single source of truth for location-based timezone mapping.
+# Used by both web app (quiet hours/off hours) and background processor (timestamps).
+#
+# Usage:
+#   - Web app (app.py): is_quiet_hours(), is_off_hours() for time-based features
+#   - Processor (background_processor.py): format_for_arduino() for local timestamps
+#
+LOCATION_TIMEZONES = {
+    "Hadera, Israel": "Asia/Jerusalem",
+    "Tel Aviv, Israel": "Asia/Jerusalem",
+    "Ashdod, Israel": "Asia/Jerusalem",
+    "Haifa, Israel": "Asia/Jerusalem",
+    "Netanya, Israel": "Asia/Jerusalem",
+    "Nahariya, Israel": "Asia/Jerusalem",
+    "Ashkelon, Israel": "Asia/Jerusalem",
+    "San Diego, USA": "America/Los_Angeles",
+    "Barcelona, Spain": "Europe/Madrid",
+    # Add more locations as needed
+}
+
 # MULTI-SOURCE CONFIGURATION - FREE APIS (CURRENT PRODUCTION)
 # ============================================================================
 # Multi-source locations (require multiple API calls)
