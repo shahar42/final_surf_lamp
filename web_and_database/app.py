@@ -35,7 +35,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from functools import wraps
 from datetime import datetime, timedelta
-from sqlalchemy import text
+from sqlalchemy import text, func
 from forms import RegistrationForm, LoginForm, ForgotPasswordForm, ResetPasswordForm
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_mail import Mail, Message
