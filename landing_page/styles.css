@@ -60,6 +60,25 @@ h2 {
     max-width: 600px;
 }
 
+/* Hero Image */
+.hero-image-container {
+    margin-top: 3rem;
+    width: 100%;
+    max-width: 800px; /* Constrain width */
+    display: flex;
+    justify-content: flex-start; /* Align with text */
+}
+
+.hero-image {
+    width: 100%;
+    height: auto;
+    max-height: 500px; /* Prevent it from taking over too much vertical space */
+    object-fit: contain;
+    filter: drop-shadow(0 20px 40px rgba(0,0,0,0.5)); /* Deep shadow for depth */
+    mask-image: linear-gradient(to bottom, black 80%, transparent 100%); /* Subtle fade at bottom if needed, or remove */
+    -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
+}
+
 .text {
     font-size: 1.25rem;
     font-weight: 300;
@@ -96,30 +115,53 @@ h2 {
 }
 
 /* Visuals */
-.lamp-showcase {
-    width: 300px; /* Adjust based on your image aspect ratio */
-    height: 500px;
-    margin: 0 auto 3rem auto;
-    position: relative;
+.lamp-gallery {
     display: flex;
     justify-content: center;
+    align-items: flex-end; /* Align items to the bottom */
+    gap: 2rem;
+    margin: 0 auto 4rem auto;
+    width: 100%;
+    max-width: 900px;
+    flex-wrap: wrap; /* Wrap on small screens */
+}
+
+.lamp-item {
+    flex: 1;
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
     align-items: center;
+    transition: transform 0.3s ease;
 }
 
-.lamp-image {
-    position: absolute;
-    max-width: 100%;
-    max-height: 100%;
-    opacity: 0;
-    transition: opacity 1s ease-in-out;
-    filter: drop-shadow(0 0 20px rgba(74, 144, 226, 0.2)); /* Subtle glow */
+.lamp-item:hover {
+    transform: translateY(-10px);
 }
 
-.lamp-image.active {
-    opacity: 1;
+.lamp-item img {
+    width: 100%;
+    max-width: 250px; /* Limit size */
+    height: auto;
+    display: block;
+    margin-bottom: 1rem;
+    filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3));
+    transition: filter 0.3s ease;
 }
 
-/* Removed old .glow-ring animation as we have real images now */
+.lamp-item:hover img {
+    filter: drop-shadow(0 15px 30px rgba(74, 144, 226, 0.2)); /* Blue glow on hover */
+}
+
+.lamp-name {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    opacity: 0.5;
+    font-weight: 300;
+}
+
+/* Removed carousel styles (.lamp-showcase, .lamp-image etc) */
 
 .fade-in {
     opacity: 0;
