@@ -116,6 +116,12 @@
                 {% endif %}
             </div>
 
+            <!-- Remember Me Checkbox -->
+            <div class="flex items-center">
+                {{ form.remember_me(class="h-4 w-4 text-pink-500 focus:ring-pink-500 border-gray-300 rounded cursor-pointer") }}
+                <label for="remember_me" class="ml-2 text-white/80 text-sm cursor-pointer">Remember me for 30 days</label>
+            </div>
+
             <!-- Submit Button -->
             <button type="submit" class="submit-btn w-full text-white font-bold py-3 px-4 rounded-lg shadow-lg">Sign In</button>
         </form>

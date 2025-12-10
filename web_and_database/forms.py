@@ -107,13 +107,15 @@ class LoginForm(FlaskForm):
         Email(message="Please enter a valid email address"),
         Length(max=255, message="Email must be less than 255 characters")
     ])
-    
+
     # Password field for login (less strict validation than registration)
     password = PasswordField('Password', validators=[
         DataRequired(message="Password is required"),
         Length(max=128, message="Password is too long")
     ])
-    
+
+    remember_me = BooleanField('Remember Me')
+
     def validate_email(self, field):
         """Sanitize email for login"""
         if field.data:

@@ -590,6 +590,12 @@ def login():
                 session['user_email'] = user.email
                 session['user_id'] = user.user_id
                 session['username'] = user.username
+
+                # Remember me functionality
+                if form.remember_me.data:
+                    session.permanent = True
+                    logger.info(f"🔒 Remember me enabled for user: {user.username}")
+
                 return redirect(url_for('dashboard'))
             else:
                 logger.warning(f"❌ Login failed - invalid password for email: {email} (user exists as: {user.email})")
