@@ -131,6 +131,8 @@ arduino_code/scalable_arduino/
 surf-lamp-processor/*_backup.py
 surf-lamp-processor/*_old.py
 surf-lamp-processor/*.md
+surf-lamp-processor/supbase+render
+surf-lamp-processor/thread_safe_background_processor.py
 
 # Setup scripts
 *.sh
