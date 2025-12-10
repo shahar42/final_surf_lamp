@@ -1,10 +1,8 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SelectField, RadioField, IntegerField
-from wtforms.validators import DataRequired, Email, Length, NumberRange, Regexp, ValidationError
+from wtforms import StringField, PasswordField, SelectField, RadioField, IntegerField, BooleanField, SubmitField
+from wtforms.validators import DataRequired, Email, Length, NumberRange, Regexp, ValidationError, EqualTo
 import re
 import bleach
-from wtforms import SubmitField
-from wtforms.validators import EqualTo
 
 class SanitizedStringField(StringField):
     """Custom field that sanitizes HTML content"""
