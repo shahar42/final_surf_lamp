@@ -482,7 +482,12 @@ def test_reset_db():
         return f"✅ Database test passed! Token created for user {username}"
         
     except Exception as e:
-        return f"❌ Database test failed: {e}" 
+        return f"❌ Database test failed: {e}"
+
+@app.route("/privacy")
+def privacy():
+    """Display privacy policy page"""
+    return render_template('privacy.html')
 
 @app.route("/register", methods=['GET', 'POST'])
 @limiter.limit("10/minute") # Add rate limiting to registration
