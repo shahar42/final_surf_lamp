@@ -78,3 +78,92 @@ broadcast-agent-test/
 
 # Arduino
 *.ino
+
+# Analysis & insights
+insights/
+surf_lamp_insights.py
+surf_lamp_monitor.py
+
+# Video tutorials
+video_instructions/
+
+# Testing & API development
+api_TESTING/
+test_system/
+*_test.py
+test_*.py
+
+# Documentation (generated/temporary)
+*_IMPLEMENTATION.md
+*_RESULTS.md
+*_REPORT.md
+*_AUDIT*.md
+*_OPPORTUNITIES.md
+*_ECONOMICS.md
+*_DEPLOYMENT.md
+*_CONSTRAINTS.md
+CLAUDE_LESSONS_*.md
+HARELS_PROBLEM.md
+CREATING_SKILLS.md
+broken-tools.md
+cpp_surf_exercises.md
+system_design.md
+api_calls_analysis.md
+
+# Arduino documentation (archived)
+arduino_code/IMPORTANT.txt
+arduino_code/LAMP_SETUP_GUIDE.md
+arduino_code/MAPPING_NOTES.md
+arduino_code/WIFI_DIAGNOSTICS_GUIDE.md
+arduino_code/color_mapping.md
+arduino_code/shahar_rules.md
+arduino_code/led_mapper_tool/
+arduino_code/scalable_arduino/
+
+# Processor backups & temp files
+surf-lamp-processor/*_backup.py
+surf-lamp-processor/*_old.py
+surf-lamp-processor/*.md
+
+# Setup scripts
+*.sh
+runtime.txt
+
+# Settings & config
+settings.json
+settings.local.json
+*.ini
+
+# MCP server docs
+mcp-supabase-server/CLAUDE_SESSION_PROMPT.md
+mcp-supabase-server/MIGRATION_TODO.md
+render-mcp-server/MAINTENANCE.md
+
+# Stormglass integration (archived)
+stormglass_test/
+
+# Misc utilities
+add_sport_type_column.py
+cleanup_tokens.py
+interactive_file_selector.py
+
+# Exercise files
+excercise/
+
+# Documentation coordination
+docs/CLAUDE_DOCUMENTATION_TASKS.md
+docs/GEMINI_DOCUMENTATION_TASKS.md
+docs/DOCUMENTATION_COORDINATION_CHECKLIST.md
+docs/SHIPPING_PREPARATION.md
+docs/README.md
+docs/arduino-README.md
+docs/discovery-config-README.md
+docs/surf-lamp-processor-README.md
+docs/web-and-database-README.md
+docs/arduino_architecture_schema.txt
+docs/arduino_payload_documentation.md
+docs/database_schema.txt
+docs/database_schema_v2.txt
+
+# Customer support notes
+constumer_support/
