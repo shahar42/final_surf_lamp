@@ -361,12 +361,11 @@
 
             </div>
 
-            <!-- Action Buttons -->
-            <div class="mt-6 flex flex-wrap gap-3 justify-center md:justify-start">
-                <a href="{{ url_for('wifi_setup_guide') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors">
+            <div class="text-center">
+                <a href="{{ url_for('wifi_setup_guide') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg mr-2 transition-colors">
                     WiFi Setup
                 </a>
-                <button id="reportErrorBtn" class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors">
+                <button id="reportErrorBtn" class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg mr-2 transition-colors">
                     Report Error
                 </button>
                 <a href="{{ url_for('logout') }}" class="logout-btn text-white font-semibold py-2 px-4 rounded-lg shadow-lg">
