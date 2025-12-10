@@ -33,13 +33,16 @@
 
         <!-- The What -->
         <section class="product section">
-            <div class="lamp-visual">
-                <div class="glow-ring"></div>
+            <div class="lamp-showcase fade-in on-scroll">
+                <img src="images/black_lamp.png" alt="Black Surf Lamp" class="lamp-image active">
+                <img src="images/blue_lamp.png" alt="Blue Surf Lamp" class="lamp-image">
+                <img src="images/wooden_lamp.png" alt="Wooden Surf Lamp" class="lamp-image">
             </div>
             <div class="content">
                 <h2 class="fade-in on-scroll">The Surf Lamp.</h2>
                 <p class="text fade-in on-scroll">
                     An intelligent, connected object that brings the heartbeat of your home break into your living room.
+                    Available in Minimal Black, Ocean Blue, and Natural Wood.
                 </p>
                 <div class="specs fade-in on-scroll">
                     <span>Real-time Swell</span> • 
@@ -49,6 +52,18 @@
                 <a href="#" class="cta-button fade-in on-scroll">Start Building</a>
             </div>
         </section>
+
+        <script>
+            // Simple Image Rotator
+            let currentImage = 0;
+            const images = document.querySelectorAll('.lamp-image');
+            
+            setInterval(() => {
+                images[currentImage].classList.remove('active');
+                currentImage = (currentImage + 1) % images.length;
+                images[currentImage].classList.add('active');
+            }, 3000); // Rotate every 3 seconds
+        </script>
 
         <footer class="fade-in on-scroll">
             <p>&copy; 2025 Surf Lamp Project. <a href="https://surflampz.com">surflampz.com</a></p>
