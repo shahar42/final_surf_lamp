@@ -3,6 +3,11 @@ services:
     name: surf-lamp-monitoring
     env: python
     plan: starter
+    paths:
+      - render_monitoring_service.py
+      - requirements.txt
+      - render.yaml
+      - insights/**
     buildCommand: "pip install -r requirements.txt"
     startCommand: "python render_monitoring_service.py"
     envVars:
