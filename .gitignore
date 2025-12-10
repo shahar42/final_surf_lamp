@@ -73,7 +73,6 @@ backups/
 CLAUDE.md
 .claude.json
 .claude/skills/
-.python-version
 health_check_results.json
 run_alert_check.py
 run_insights.py
