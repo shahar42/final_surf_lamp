@@ -14,7 +14,7 @@
     --fs-400: 1.125rem;
     --fs-500: 1.5rem;
     --fs-600: 2rem;
-    --fs-900: clamp(3rem, 9vw + 0.5rem, 6rem); /* Balanced for 2-line layout */
+    --fs-900: clamp(2.5rem, 9vw + 0.5rem, 6rem); /* Smaller base for mobile readability */
 
     --fw-light: 300;
     --fw-regular: 400;
@@ -152,6 +152,7 @@ main {
     grid-template-columns: 1fr;
     gap: 2rem;
     align-content: center;
+    text-align: center;
 }
 
 @media (min-width: 50em) {
@@ -177,6 +178,19 @@ main {
     vertical-align: -0.1em; /* Adjust downward alignment */
     margin: 0 -0.05em; /* Slight negative margin for tighter fit */
     filter: brightness(0) invert(1); /* Make it white to match text */
+}
+
+/* Mobile adjustments */
+@media (max-width: 50em) {
+    .hero h1 {
+        font-size: clamp(2rem, 8vw, 3rem); /* Even smaller on very small screens */
+        word-spacing: 0.1em; /* Prevent awkward word breaks */
+    }
+
+    .lamp-feature {
+        max-width: 80%; /* Smaller lamp on mobile */
+        margin: 0 auto;
+    }
 }
 
 .hero .subtitle {
