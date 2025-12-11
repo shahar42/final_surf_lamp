@@ -3,8 +3,8 @@
     --clr-bg: #050505;
     --clr-text-main: #f0f0f0;
     --clr-text-muted: #a0a0a0;
-    --clr-accent: #4a90e2;
-    --clr-accent-glow: rgba(74, 144, 226, 0.15);
+    --clr-accent: #38b6ff;
+    --clr-accent-glow: rgba(56, 182, 255, 0.15);
     
     /* Typography */
     --ff-primary: 'Inter', sans-serif;
