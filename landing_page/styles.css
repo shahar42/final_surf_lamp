@@ -248,17 +248,49 @@ footer a {
 /*  Animations         */
 /* ------------------- */
 
-.fade-in {
+/* Base keyframes for entering elements */
+@keyframes fade-in-up {
+    from {
+        opacity: 0;
+        transform: translateY(50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 
+   Modern Scroll-Driven Animation 
+   Trigger: When element enters the viewport
+   Range: Starts when top of element enters 10% of viewport, ends when it's 40% in.
+*/
+@supports (animation-timeline: view()) {
+    .scroll-reveal {
+        animation: fade-in-up linear both;
+        animation-timeline: view();
+        animation-range: entry 10% cover 30%;
+    }
+}
+
+/* Fallback / Hero (Standard Time-based) */
+.hero-reveal {
     opacity: 0;
-    transform: translateY(30px);
-    transition: opacity 1000ms ease, transform 1000ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    animation: fade-in-up 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
-.fade-in.visible,
-.hero .fade-in {
-    opacity: 1;
-    transform: translateY(0);
-}
+.delay-1 { animation-delay: 200ms; }
+.delay-2 { animation-delay: 400ms; }
 
-.delay-1 { transition-delay: 200ms; }
-.delay-2 { transition-delay: 400ms; }
+/* 
+   Legacy/Fallback for browsers without View Timeline support 
+   (If we cared deeply about legacy, we'd keep the JS. 
+   Here we just let them be visible by default if @supports fails, 
+   or accept no animation on older browsers) 
+*/
+@supports not (animation-timeline: view()) {
+    .scroll-reveal {
+        opacity: 1; 
+        transform: none;
+    }
+}

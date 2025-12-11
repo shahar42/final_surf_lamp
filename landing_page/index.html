@@ -14,19 +14,21 @@
         <!-- The Why (Hero) -->
         <section class="hero section">
             <div class="content flow" style="--flow-space: 1.5rem;">
-                <h1 class="fade-in">We bring the ocean to you</h1>
-                <p class="subtitle fade-in delay-1">Anywhere you are, always take the ocean with you.</p>
+                <!-- Time-based animations for immediate impact -->
+                <h1 class="hero-reveal">We bring the ocean to you</h1>
+                <p class="subtitle hero-reveal delay-1">Anywhere you are, always take the ocean with you.</p>
             </div>
-            <div class="lamp-feature fade-in delay-2">
+            <div class="lamp-feature hero-reveal delay-2">
                 <img src="images/wooden_lamp.png" alt="Wooden Surf Lamp" class="feature-image">
             </div>
         </section>
 
         <!-- The How (Philosophy) -->
         <section class="philosophy section">
-            <div class="content flow">
-                <h2 class="uppercase fade-in on-scroll">Simple. Ambient. Intuitive.</h2>
-                <p class="text fade-in on-scroll">
+            <!-- Scroll-driven animation -->
+            <div class="content flow scroll-reveal">
+                <h2 class="uppercase">Simple. Ambient. Intuitive.</h2>
+                <p class="text">
                     We distill the chaos of meteorological data—wave height, period, wind direction—into something elegant. 
                     No apps to refresh. No charts to decipher. Just a gentle glow that tells you exactly what you need to know, 
                     before you even leave your bed.
@@ -36,35 +38,25 @@
 
         <!-- The What (Product) -->
         <section class="product section">
-            <div class="content flow">
-                <h2 class="fade-in on-scroll">The Surf Lamp.</h2>
-                <p class="text text-muted fade-in on-scroll">
+            <div class="content flow scroll-reveal">
+                <h2>The Surf Lamp.</h2>
+                <p class="text text-muted">
                     An intelligent, connected object that brings the heartbeat of your home break into your living room.
                 </p>
-                <div class="specs uppercase fade-in on-scroll">
+                <div class="specs uppercase">
                     <span>Real-time Swell</span>
                     <span>Wind Direction</span>
                     <span>Silent Alarms</span>
                 </div>
-                <a href="#" class="btn fade-in on-scroll">Start Building</a>
+                <a href="#" class="btn">Start Building</a>
             </div>
         </section>
 
-        <footer class="fade-in on-scroll">
+        <footer class="scroll-reveal">
             <p>&copy; 2025 Surf Lamp Project. <a href="https://surflampz.com">surflampz.com</a></p>
         </footer>
     </main>
 
-    <script>
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('visible');
-                }
-            });
-        }, { threshold: 0.15 });
-
-        document.querySelectorAll('.on-scroll').forEach((el) => observer.observe(el));
-    </script>
+    <!-- No JavaScript required for animations! -->
 </body>
 </html>
