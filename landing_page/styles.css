@@ -1,13 +1,13 @@
 :root {
     /* Colors */
     --clr-bg: #050505;
-    --clr-text-main: #f0f0f0;
+    --clr-text-main: #e6e6e6; /* Softened from #f0f0f0 for premium feel */
     --clr-text-muted: #a0a0a0;
     --clr-accent: #38b6ff;
     --clr-accent-glow: rgba(56, 182, 255, 0.15);
     
     /* Typography */
-    --ff-primary: 'Inter', sans-serif;
+    --ff-primary: 'Outfit', sans-serif; /* Changed from Inter */
     
     --fs-300: 0.9375rem;
     --fs-400: 1.125rem;
@@ -158,7 +158,8 @@ main {
 .hero h1 {
     font-size: var(--fs-900);
     line-height: 1.1;
-    font-weight: var(--fw-light);
+    font-weight: var(--fw-bold); /* Increased weight */
+    letter-spacing: -0.02em; /* Tighter tracking for headlines */
     margin-bottom: 0.5em;
 }
 
@@ -167,6 +168,8 @@ main {
     font-weight: var(--fw-light);
     color: var(--clr-text-muted);
     max-width: 35ch;
+    line-height: 1.5; /* Cushioned line height */
+    letter-spacing: 0.02em; /* Subtle tracking */
 }
 
 .lamp-feature {
@@ -194,6 +197,8 @@ main {
     font-size: var(--fs-600);
     color: var(--clr-accent);
     margin-bottom: 1em;
+    font-weight: var(--fw-bold);
+    letter-spacing: 0.05em; /* Tracking */
 }
 
 .philosophy .text {
@@ -211,6 +216,8 @@ main {
 .product h2 {
     font-size: var(--fs-900);
     margin-bottom: 0.5em;
+    font-weight: var(--fw-bold);
+    letter-spacing: -0.02em;
 }
 
 .specs {
