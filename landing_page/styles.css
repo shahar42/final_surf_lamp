@@ -1,21 +1,21 @@
 :root {
     /* Colors */
     --clr-bg: #050505;
-    --clr-text-main: #edece8; /* Warmer "Bone" white for premium authentic feel */
+    --clr-text-main: #F2F2F2; /* Softened white for premium feel */
     --clr-text-muted: #a0a0a0;
     --clr-accent: #38b6ff;
     --clr-accent-glow: rgba(56, 182, 255, 0.15);
     
     /* Typography */
-    --ff-heading: 'Syne', sans-serif;
+    --ff-heading: 'Inter', sans-serif;
     --ff-body: 'Manrope', sans-serif;
     
     --fs-300: 0.9375rem;
     --fs-400: 1.125rem;
     --fs-500: 1.5rem;
     --fs-600: 2rem;
-    --fs-900: clamp(3rem, 10vw + 1rem, 6rem); /* Increased size for Syne impact */
-    
+    --fs-900: clamp(3rem, 9vw + 0.5rem, 6rem); /* Balanced for 2-line layout */
+
     --fw-light: 300;
     --fw-regular: 400;
     --fw-bold: 700;
@@ -164,10 +164,19 @@ main {
 
 .hero h1 {
     font-size: var(--fs-900);
-    line-height: 1; /* Tighter line height for Syne */
-    font-weight: var(--fw-black); /* Extra Bold for impact */
-    letter-spacing: -0.03em; /* Tight tracking for "design" feel */
+    line-height: 1.2;
+    font-weight: 500; /* Inter Medium */
+    letter-spacing: 0.5px; /* Breathing room for large text */
     margin-bottom: 0.5em;
+}
+
+.wave-c {
+    display: inline-block;
+    height: 1em; /* Match font size */
+    width: auto;
+    vertical-align: -0.1em; /* Adjust downward alignment */
+    margin: 0 -0.05em; /* Slight negative margin for tighter fit */
+    filter: brightness(0) invert(1); /* Make it white to match text */
 }
 
 .hero .subtitle {
@@ -205,8 +214,8 @@ main {
     font-size: var(--fs-600);
     color: var(--clr-accent);
     margin-bottom: 1em;
-    font-weight: var(--fw-bold);
-    letter-spacing: 0.02em; 
+    font-weight: 600;
+    letter-spacing: 0.03em;
 }
 
 .philosophy .text {
@@ -224,8 +233,8 @@ main {
 .product h2 {
     font-size: var(--fs-900);
     margin-bottom: 0.5em;
-    font-weight: var(--fw-black);
-    letter-spacing: -0.03em;
+    font-weight: 500;
+    letter-spacing: 0.5px;
 }
 
 .specs {
