@@ -351,14 +351,14 @@
 
             </div>
 
-            <div class="text-center">
-                <a href="{{ url_for('wifi_setup_guide') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg mr-2 transition-colors">
+            <div class="flex flex-col sm:flex-row gap-3 sm:gap-2 justify-center">
+                <a href="{{ url_for('wifi_setup_guide') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors text-center">
                     WiFi Setup
                 </a>
-                <button id="reportErrorBtn" class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg mr-2 transition-colors">
+                <button id="reportErrorBtn" class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors">
                     Report Error
                 </button>
-                <a href="{{ url_for('logout') }}" class="logout-btn text-white font-semibold py-2 px-4 rounded-lg shadow-lg">
+                <a href="{{ url_for('logout') }}" class="logout-btn text-white font-semibold py-2 px-4 rounded-lg shadow-lg text-center">
                     Logout
                 </a>
             </div>
