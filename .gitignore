@@ -83,8 +83,9 @@ web_and_database/forgot_password_doc.md
 # Testing directories
 broadcast-agent-test/
 
-# Arduino
+# Arduino (ignore all .ino files except wooden lamp reference)
 *.ino
+!/arduino_code/single_led_lamp/surf_lamp_wooden.ino  # Reference wooden lamp - track this
 
 # Analysis & insights
 insights/
