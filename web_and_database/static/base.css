@@ -31,13 +31,13 @@
     --wave-icon: #05bcc7;       /* Bright turquoise (wave movement) */
     --wind-icon: #37b7c3;       /* Cyan (wind on water) */
 
-    /* Button colors - Ocean Accents */
-    --btn-blue: #088395;        /* Primary ocean blue */
-    --btn-blue-hover: #05647a;  /* Darker ocean */
-    --btn-yellow: #f4a261;      /* Sunset orange (alerts) */
-    --btn-yellow-hover: #e76f51; /* Deeper sunset */
-    --btn-red: #e63946;         /* Coral red (danger) */
-    --btn-red-hover: #c92a2a;   /* Deep coral */
+    /* Button colors - Ocean Accents (muted to blend with background) */
+    --btn-blue: #05647a;        /* Deep ocean blue (darker) */
+    --btn-blue-hover: #044558;  /* Even darker */
+    --btn-yellow: #d4863d;      /* Muted sunset orange */
+    --btn-yellow-hover: #b5692a; /* Deeper muted sunset */
+    --btn-red: #b8303a;         /* Muted coral red */
+    --btn-red-hover: #8f2429;   /* Deep muted coral */
 
     /* Card styling - Glass Water Effect */
     --card-bg: rgba(255, 255, 255, 0.12);
@@ -64,4 +64,25 @@ body {
     background-color: var(--card-bg);
     backdrop-filter: blur(10px);
     border: 1px solid var(--card-border);
+}
+
+/* Button color overrides - use our muted ocean colors */
+.bg-blue-500,
+.bg-blue-600 {
+    background-color: var(--btn-blue) !important;
+}
+
+.bg-blue-500:hover,
+.bg-blue-600:hover,
+.bg-blue-700:hover {
+    background-color: var(--btn-blue-hover) !important;
+}
+
+.bg-yellow-600 {
+    background-color: var(--btn-yellow) !important;
+}
+
+.bg-yellow-600:hover,
+.bg-yellow-700:hover {
+    background-color: var(--btn-yellow-hover) !important;
 }
