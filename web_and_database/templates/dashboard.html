@@ -67,10 +67,23 @@
             animation: softPulse 4s ease-in-out infinite; /* Assuming softPulse is defined or will be */
             vertical-align: middle; /* Align with text */
         }
+        #locationSelect {
+            background-color: rgba(10, 77, 104, 0.3);  /* Deep ocean blue with transparency */
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
         #locationSelect option {
             background-color: #0a4d68;  /* Deep ocean blue to match gradient */
             color: #FFFCDE;
             padding: 4px 8px;
+        }
+        /* Force option styling on all browsers including mobile */
+        @supports (-webkit-appearance: none) {
+            #locationSelect option {
+                background: #0a4d68;
+                color: #FFFCDE;
+            }
         }
         /* LED Strip Styles */
         .led-strip-canvas {
