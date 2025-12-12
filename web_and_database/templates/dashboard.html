@@ -20,19 +20,9 @@
     <meta name="theme-color" content="#00c6ff">
     <meta name="msapplication-TileColor" content="#00c6ff">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Global ocean color system -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
     <style>
-        body {
-            font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #00c6ff, #0072ff);
-        }
-        .text-white, .text-white\/80, .text-white\/60 {
-            color: #FFFCDE !important;
-        }
-        .card {
-            background-color: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
         .flash-message {
             position: fixed;
             top: 1.5rem;
@@ -41,11 +31,11 @@
             z-index: 50;
         }
         .logout-btn {
-            background-color: #c4005e;
+            background-color: var(--btn-red);
             transition: background-color 0.3s ease, transform 0.2s ease;
         }
         .logout-btn:hover {
-            background-color: #a30052;
+            background-color: var(--btn-red-hover);
             transform: translateY(-1px);
         }
         @keyframes softPulse {
@@ -53,16 +43,16 @@
             50% { opacity: 1; }
         }
         .status-online {
-            color: #22c55e;
+            color: var(--status-online);
         }
         .status-offline {
-            color: #ef4444;
+            color: var(--status-offline);
         }
         .wave-icon {
-            color: #00c6ff;
+            color: var(--wave-icon);
         }
         .wind-icon {
-            color: #0072ff;
+            color: var(--wind-icon);
         }
         .png-icon {
             mix-blend-mode: screen;

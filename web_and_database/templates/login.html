@@ -20,16 +20,13 @@
     <meta name="theme-color" content="#00c6ff">
     <meta name="msapplication-TileColor" content="#00c6ff">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Global ocean color system -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
     <style>
-        /* Using the same styles as the registration page for consistency */
-        body {
-            font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #00c6ff, #0072ff); /* Blue gradient */
-        }
         .form-container {
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: var(--card-bg);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid var(--card-border);
         }
         .form-input {
             background-color: rgba(255, 255, 255, 0.2);

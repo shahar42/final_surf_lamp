@@ -9,10 +9,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}?v=1" sizes="32x32">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Global ocean color system -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
     <style>
         body {
             font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #00c6ff, #0072ff);
+            /* Using global base.css for ocean gradient */
         }
         .text-white, .text-white\/80, .text-white\/60 {
             color: #FFFCDE !important;

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surf Lamp Color Preview</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="static/base.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .flash-message {
+            position: fixed;
+            top: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 50;
+        }
+        .logout-btn {
+            background-color: var(--btn-red);
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        .logout-btn:hover {
+            background-color: var(--btn-red-hover);
+            transform: translateY(-1px);
+        }
+        .status-online {
+            color: var(--status-online);
+        }
+        .status-offline {
+            color: var(--status-offline);
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4">
+
+    <!-- Flash Message Example -->
+    <div class="flash-message px-6 py-3 rounded-lg text-white font-semibold bg-green-500 shadow-lg">
+        Welcome to your Ocean-Inspired Dashboard!
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-6xl mx-auto mt-20 grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+        <!-- Lamp Information Card -->
+        <div class="card rounded-2xl p-6 shadow-2xl">
+            <h2 class="text-2xl font-bold text-white mb-4">Your Surf Lamp</h2>
+
+            <div class="space-y-3 text-white">
+
+                <div class="flex justify-between items-center">
+                    <span class="text-white/80">Location:</span>
+                    <select class="bg-white/20 text-white rounded px-2 py-1 border border-white/30 text-sm font-semibold">
+                        <option>Tel Aviv</option>
+                        <option>Haifa</option>
+                        <option>Ashdod</option>
+                    </select>
+                </div>
+
+                <div class="flex justify-between items-center">
+                    <span class="text-white/80">Wave Alert:</span>
+                    <div class="flex items-center space-x-2 w-32 justify-end">
+                        <input type="number" value="1.5" class="bg-white/20 text-white rounded px-2 py-1 w-16 text-sm border border-white/30">
+                        <span class="text-white/80 text-sm">meters</span>
+                        <button class="bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded text-xs text-white">Set</button>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center">
+                    <span class="text-white/80">Wind Alert:</span>
+                    <div class="flex items-center space-x-2 w-32 justify-end">
+                        <input type="number" value="22" class="bg-white/20 text-white rounded px-2 py-1 w-16 text-sm border border-white/30">
+                        <span class="text-white/80 text-sm">knots</span>
+                        <button class="bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded text-xs text-white">Set</button>
+                    </div>
+                </div>
+
+                <div class="flex justify-between pt-2 border-t border-white/20">
+                    <span class="text-white/80">Units:</span>
+                    <span class="font-semibold capitalize">Metric</span>
+                </div>
+
+                <div class="flex justify-between items-center pt-2 border-t border-white/20">
+                    <span class="text-white/80">Status:</span>
+                    <span class="status-online font-semibold">● Online</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Current Surf Conditions Card -->
+        <div class="card rounded-2xl p-6 shadow-2xl">
+            <h2 class="text-2xl font-bold text-white mb-4">Current Surf Conditions</h2>
+
+            <div class="space-y-4">
+                <!-- Wave Data -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="text-center">
+                        <div class="text-white/80 text-sm mb-2">Wave Height</div>
+                        <div class="text-white font-bold text-3xl">1.8m</div>
+                    </div>
+
+                    <div class="text-center">
+                        <div class="text-white/80 text-sm mb-2">Wave Period</div>
+                        <div class="text-white font-bold text-3xl">8.5s</div>
+                    </div>
+                </div>
+
+                <!-- Wind Data -->
+                <div class="grid grid-cols-2 gap-4 pt-4 border-t border-white/20">
+                    <div class="text-center">
+                        <div class="text-white/80 text-sm mb-2">Wind Speed</div>
+                        <div class="text-white font-bold text-3xl">12 m/s</div>
+                    </div>
+
+                    <div class="text-center">
+                        <div class="text-white/80 text-sm mb-2">Wind Direction</div>
+                        <div class="text-white font-bold text-3xl">NW</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- System Information -->
+    <div class="max-w-6xl mx-auto mt-8">
+        <div class="card rounded-2xl p-6 shadow-2xl">
+            <h2 class="text-xl font-bold text-white mb-4">System Information</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-white/80 text-sm mb-6">
+                <div>
+                    <span class="text-white/60">Lamp Last Updated:</span><br>
+                    <span class="text-white">2025-12-12 UTC</span>
+                </div>
+
+                <div>
+                    <span class="text-white/60">Update Frequency:</span><br>
+                    <span class="text-white">Every 13 minutes</span>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3 sm:gap-2 justify-center">
+                <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors text-center">
+                    WiFi Setup
+                </button>
+                <button class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors">
+                    Report Error
+                </button>
+                <button class="logout-btn text-white font-semibold py-2 px-4 rounded-lg shadow-lg text-center">
+                    Logout
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Color Palette Reference -->
+    <div class="max-w-6xl mx-auto mt-8">
+        <div class="card rounded-2xl p-6 shadow-2xl">
+            <h2 class="text-xl font-bold text-white mb-4">Ocean Color Palette</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-white text-sm">
+                <div class="text-center">
+                    <div class="w-full h-20 rounded-lg mb-2" style="background: #0a4d68;"></div>
+                    <div>Deep Ocean</div>
+                    <div class="text-white/60">#0a4d68</div>
+                </div>
+                <div class="text-center">
+                    <div class="w-full h-20 rounded-lg mb-2" style="background: #088395;"></div>
+                    <div>Tropical Waters</div>
+                    <div class="text-white/60">#088395</div>
+                </div>
+                <div class="text-center">
+                    <div class="w-full h-20 rounded-lg mb-2" style="background: #00d9a3;"></div>
+                    <div>Seafoam</div>
+                    <div class="text-white/60">#00d9a3</div>
+                </div>
+                <div class="text-center">
+                    <div class="w-full h-20 rounded-lg mb-2" style="background: #e63946;"></div>
+                    <div>Coral Red</div>
+                    <div class="text-white/60">#e63946</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,67 @@
+/**
+ * Surf Lamp Global Color System
+ *
+ * Design Philosophy: Ocean-inspired palette with modern utility-first approach
+ * Inspired by: Adam Wathan (Tailwind CSS) - clean, purposeful, functional design
+ *
+ * Ocean Theme:
+ * - Deep ocean blues → Shallow turquoise
+ * - Sandy beige text (like foam on sand)
+ * - Seafoam accents
+ * - Coral highlights for alerts
+ *
+ * Change these CSS variables to update colors across all pages instantly.
+ */
+
+:root {
+    /* Main background gradient - Deep Ocean to Tropical Shallows */
+    --gradient-start: #0a4d68;  /* Deep ocean blue */
+    --gradient-end: #088395;    /* Tropical turquoise */
+    --gradient-angle: 135deg;
+
+    /* Text colors - Beach Sand & Seafoam */
+    --text-cream: #f5f5dc;      /* Warm beige (beach sand) */
+    --text-white: #ffffff;
+
+    /* Status colors - Marine Life */
+    --status-online: #00d9a3;   /* Seafoam green (alive, active) */
+    --status-offline: #ff6b6b;  /* Coral red (inactive) */
+
+    /* Feature colors - Water Elements */
+    --wave-icon: #05bcc7;       /* Bright turquoise (wave movement) */
+    --wind-icon: #37b7c3;       /* Cyan (wind on water) */
+
+    /* Button colors - Ocean Accents */
+    --btn-blue: #088395;        /* Primary ocean blue */
+    --btn-blue-hover: #05647a;  /* Darker ocean */
+    --btn-yellow: #f4a261;      /* Sunset orange (alerts) */
+    --btn-yellow-hover: #e76f51; /* Deeper sunset */
+    --btn-red: #e63946;         /* Coral red (danger) */
+    --btn-red-hover: #c92a2a;   /* Deep coral */
+
+    /* Card styling - Glass Water Effect */
+    --card-bg: rgba(255, 255, 255, 0.12);
+    --card-border: rgba(255, 255, 255, 0.25);
+}
+
+/* Apply gradient to body */
+body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(var(--gradient-angle), var(--gradient-start), var(--gradient-end));
+    background-attachment: fixed;
+    min-height: 100vh;
+}
+
+/* Global text color override */
+.text-white,
+.text-white\/80,
+.text-white\/60 {
+    color: var(--text-cream) !important;
+}
+
+/* Card styling */
+.card {
+    background-color: var(--card-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--card-border);
+}
