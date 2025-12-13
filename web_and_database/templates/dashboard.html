@@ -322,7 +322,7 @@
                         </div>
 
                         <div class="text-center">
-                            <div class="wind-icon mb-2 h-24 flex items-center justify-center"><img src="{{ url_for('static', filename='icons/wind_direction_new.png') }}" alt="Wind Direction" class="w-20 h-20 mx-auto png-icon"></div>
+                            <div class="wind-icon mb-2 h-24 flex items-center justify-center"><img src="{{ url_for('static', filename='icons/wind_direction_new.png') }}" alt="Wind Direction" class="mx-auto png-icon" style="width: 101px; height: 101px;"></div>
                             <div class="text-white/80 text-sm">Wind Direction</div>
                             <div class="text-white font-bold text-xl">
                                 {{ data.conditions.wind_direction_deg | wind_direction }}
