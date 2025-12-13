@@ -287,7 +287,7 @@
             if (nameField) {
                 nameField.addEventListener('input', function() {
                     const name = this.value;
-                    const nameRegex = /^[a-zA-Z\s\-']{2,50}$/;
+                    const nameRegex = /^[a-zA-Z0-9\s\-']{2,50}$/;
                     const isValid = nameRegex.test(name);
 
                     if (isValid) {
