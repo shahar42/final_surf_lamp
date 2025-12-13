@@ -51,7 +51,8 @@ import os
 import time
 import requests
 import logging
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, text, Integer
+from sqlalchemy.dialects.postgresql import array
 from datetime import datetime
 
 
@@ -663,7 +664,7 @@ def batch_update_current_conditions(lamp_ids, surf_data):
             wind_speed_mps, wind_direction_deg, last_updated
         )
         SELECT
-            unnest(:lamp_ids::int[]),
+            unnest(:lamp_ids),
             :wave_height,
             :wave_period,
             :wind_speed,
@@ -681,7 +682,7 @@ def batch_update_current_conditions(lamp_ids, surf_data):
     try:
         with engine.connect() as conn:
             conn.execute(query, {
-                "lamp_ids": lamp_ids,
+                "lamp_ids": array(lamp_ids, type_=Integer),
                 "wave_height": surf_data.get('wave_height_m', 0.0),
                 "wave_period": surf_data.get('wave_period_s', 0.0),
                 "wind_speed": surf_data.get('wind_speed_mps', 0.0),
