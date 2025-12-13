@@ -264,7 +264,8 @@ class UsageLamps(Base):
 # Set to True when you activate the paid plan (€129/month for 25k requests/day)
 # Free tier has only 10 requests/day - insufficient for production use
 USE_STORMGLASS = False  # ⚠️ Set to True to activate stormglass as primary source
-STORMGLASS_API_KEY = "15d52392-d22c-11f0-a0d3-0242ac130003-15d52414-d22c-11f0-a0d3-0242ac130003"
+STORMGLASS_API_KEY = os.environ.get('STORMGLASS_API_KEY', '')
+OPENWEATHERMAP_API_KEY = os.environ.get('OPENWEATHERMAP_API_KEY', '')
 
 # Stormglass locations (single API call provides wave + wind data)
 STORMGLASS_LOCATIONS = {
@@ -362,7 +363,7 @@ MULTI_SOURCE_LOCATIONS = {
             "type": "wave"
         },
         {
-            "url": "http://api.openweathermap.org/data/2.5/weather?q=Tel Aviv&appid=d6ef64df6585b7e88e51c221bbd41c2b",
+            "url": f"http://api.openweathermap.org/data/2.5/weather?q=Tel Aviv&appid={OPENWEATHERMAP_API_KEY}",
             "priority": 2,
             "type": "wind"
         }
@@ -374,7 +375,7 @@ MULTI_SOURCE_LOCATIONS = {
             "type": "wave"
         },
         {
-            "url": "http://api.openweathermap.org/data/2.5/weather?q=Hadera&appid=d6ef64df6585b7e88e51c221bbd41c2b",
+            "url": f"http://api.openweathermap.org/data/2.5/weather?q=Hadera&appid={OPENWEATHERMAP_API_KEY}",
             "priority": 2,
             "type": "wind"
         }
@@ -386,7 +387,7 @@ MULTI_SOURCE_LOCATIONS = {
             "type": "wave"
         },
         {
-            "url": "http://api.openweathermap.org/data/2.5/weather?q=Ashdod&appid=d6ef64df6585b7e88e51c221bbd41c2b",
+            "url": f"http://api.openweathermap.org/data/2.5/weather?q=Ashdod&appid={OPENWEATHERMAP_API_KEY}",
             "priority": 2,
             "type": "wind"
         }
@@ -398,7 +399,7 @@ MULTI_SOURCE_LOCATIONS = {
             "type": "wave"
         },
         {
-            "url": "http://api.openweathermap.org/data/2.5/weather?q=Haifa&appid=d6ef64df6585b7e88e51c221bbd41c2b",
+            "url": f"http://api.openweathermap.org/data/2.5/weather?q=Haifa&appid={OPENWEATHERMAP_API_KEY}",
             "priority": 2,
             "type": "wind"
         }
@@ -410,7 +411,7 @@ MULTI_SOURCE_LOCATIONS = {
             "type": "wave"
         },
         {
-            "url": "http://api.openweathermap.org/data/2.5/weather?q=Netanya&appid=d6ef64df6585b7e88e51c221bbd41c2b",
+            "url": f"http://api.openweathermap.org/data/2.5/weather?q=Netanya&appid={OPENWEATHERMAP_API_KEY}",
             "priority": 2,
             "type": "wind"
         }
@@ -422,7 +423,7 @@ MULTI_SOURCE_LOCATIONS = {
         "type": "wave"
     },
     {
-        "url": "http://api.openweathermap.org/data/2.5/weather?q=Nahariya&appid=d6ef64df6585b7e88e51c221bbd41c2b",
+        "url": f"http://api.openweathermap.org/data/2.5/weather?q=Nahariya&appid={OPENWEATHERMAP_API_KEY}",
         "priority": 2,
         "type": "wind"
     }
@@ -434,7 +435,7 @@ MULTI_SOURCE_LOCATIONS = {
             "type": "wave"
         },
         {
-            "url": "http://api.openweathermap.org/data/2.5/weather?q=Ashkelon&appid=d6ef64df6585b7e88e51c221bbd41c2b",
+            "url": "http://api.openweathermap.org/data/2.5/weather?q=Ashkelon&appid={OPENWEATHERMAP_API_KEY}",
             "priority": 2,
             "type": "wind"
         }
