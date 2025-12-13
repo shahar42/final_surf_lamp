@@ -275,7 +275,7 @@
                     <!-- Wave Data -->
                     <div class="grid grid-cols-2 gap-4">
                         <div class="text-center">
-                            <div class="wave-icon mb-2 h-24 flex items-center justify-center"><img src="{{ url_for('static', filename='icons/wave_height_new.png') }}" alt="Wave Height" class="w-24 h-24 mx-auto png-icon"></div>
+                            <div class="wave-icon mb-2 h-32 flex items-center justify-center"><img src="{{ url_for('static', filename='icons/wave_height_new.png') }}" alt="Wave Height" class="w-32 h-32 mx-auto png-icon"></div>
                             <div class="text-white/80 text-sm">Wave Height</div>
                             <div class="text-white font-bold text-xl">
                                 {% if data.conditions.wave_height_m %}
@@ -322,7 +322,7 @@
                         </div>
 
                         <div class="text-center">
-                            <div class="wind-icon mb-2 h-24 flex items-center justify-center"><img src="{{ url_for('static', filename='icons/wind_direction_new.png') }}" alt="Wind Direction" class="mx-auto png-icon" style="width: 101px; height: 101px;"></div>
+                            <div class="wind-icon mb-2 h-28 flex items-center justify-center"><img src="{{ url_for('static', filename='icons/wind_direction_new.png') }}" alt="Wind Direction" class="mx-auto png-icon" style="width: 111px; height: 111px;"></div>
                             <div class="text-white/80 text-sm">Wind Direction</div>
                             <div class="text-white font-bold text-xl">
                                 {{ data.conditions.wind_direction_deg | wind_direction }}
