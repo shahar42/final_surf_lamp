@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  test-postgres:
+    image: postgres:15
+    container_name: surf_lamp_load_test_db
+    environment:
+      POSTGRES_DB: surf_lamp_test
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password_12345
+    ports:
+      - "5433:5432"  # Avoid conflict with prod on 5432
+    volumes:
+      - ./test_db_data:/var/lib/postgresql/data
+    shm_size: 256mb
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=200"  # Higher for load test
+      - "-c"
+      - "shared_buffers=256MB"

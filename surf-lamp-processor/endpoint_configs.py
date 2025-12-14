@@ -139,6 +139,6 @@ if __name__ == "__main__":
     }
     
     result = extract_isramar_data(test_data)
-    print(f"\n✅ Isramar extraction test:")
+    print("\n✅ Isramar extraction test:")
     print(f"   Wave height: {result['wave_height_m']}m")
     print(f"   Wave period: {result['wave_period_s']}s")

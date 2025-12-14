@@ -17,32 +17,35 @@ Key Features:
   seamless deployment.
 """
 
-import os
+import hashlib
 import logging
+import os
+import secrets
 import time
-from datetime import datetime, timezone
-import pytz
+from datetime import datetime, timedelta, timezone
+from functools import wraps
+
 import google.generativeai as genai
 import markdown
+import pytz
+from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
+from flask_bcrypt import Bcrypt
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_mail import Mail, Message
+from sqlalchemy import func
+from werkzeug.middleware.proxy_fix import ProxyFix
+
+from data_base import (LOCATION_TIMEZONES, Broadcast, CurrentConditions, Lamp,
+                       PasswordResetToken, SessionLocal, User,
+                       add_user_and_lamp, get_user_lamp_data)
+from forms import (ForgotPasswordForm, LoginForm, RegistrationForm,
+                   ResetPasswordForm)
+from security_config import SecurityConfig, apply_security_headers
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
-from flask_bcrypt import Bcrypt
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
-from functools import wraps
-from datetime import timedelta
-from sqlalchemy import func
-from forms import RegistrationForm, LoginForm, ForgotPasswordForm, ResetPasswordForm
-from werkzeug.middleware.proxy_fix import ProxyFix
-from flask_mail import Mail, Message
-import secrets
-import hashlib
-from data_base import PasswordResetToken
-from data_base import add_user_and_lamp, get_user_lamp_data, SessionLocal, User, Lamp, CurrentConditions, Broadcast, LOCATION_TIMEZONES
-from security_config import apply_security_headers, SecurityConfig
 
 
 
@@ -877,7 +880,6 @@ def report_error():
         if len(error_description) > 1000:
             return {'success': False, 'message': 'Error description too long (max 1000 characters)'}, 400
 
-        user_id = session.get('user_id')
         user_email = session.get('user_email')
 
         # Get additional context
@@ -1580,7 +1582,7 @@ def create_broadcast():
         user = db.query(User).filter(User.email == session['user_email']).first()
 
         # Deactivate all previous broadcasts (new broadcast overrides all old ones)
-        db.query(Broadcast).filter(Broadcast.is_active == True).update({'is_active': False})
+        db.query(Broadcast).filter(Broadcast.is_active).update({'is_active': False})
 
         broadcast = Broadcast(
             admin_user_id=user.user_id,
@@ -1614,9 +1616,9 @@ def get_active_broadcasts():
 
         # Get broadcasts: (not expired) AND (all users OR user's location)
         broadcasts = db.query(Broadcast).filter(
-            Broadcast.is_active == True,
+            Broadcast.is_active,
             Broadcast.expires_at > now,
-            (Broadcast.target_location == None) | (Broadcast.target_location == user.location)
+            (Broadcast.target_location.is_(None)) | (Broadcast.target_location == user.location)
         ).order_by(Broadcast.created_at.desc()).all()
 
         return jsonify({

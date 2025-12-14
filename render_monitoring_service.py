@@ -9,8 +9,6 @@ import os
 import sys
 import logging
 import schedule
-import time
-from datetime import datetime
 from surf_lamp_insights import SurfLampInsights
 
 # Configure logging for Render
@@ -71,7 +69,7 @@ class RenderMonitoringService:
 
             if result.get('insights_generated'):
                 logger.info("✅ Daily insights generated and emailed")
-                logger.info(f"📊 Summary:")
+                logger.info("📊 Summary:")
                 logger.info(f"   - Logs analyzed: {result.get('summary', {}).get('total_logs', 0)}")
                 logger.info(f"   - Service status: {result.get('summary', {}).get('service_status', 'unknown')}")
                 logger.info(f"   - Error count: {result.get('summary', {}).get('error_count', 0)}")

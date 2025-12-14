@@ -19,11 +19,10 @@ Key Components:
 import os
 import logging
 import uuid
-from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, TIMESTAMP, MetaData, Float, Boolean, Time
+from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, TIMESTAMP, Float, Boolean, Time
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import func
-import datetime
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -271,7 +270,7 @@ OPENWEATHERMAP_API_KEY = os.environ.get('OPENWEATHERMAP_API_KEY', '')
 STORMGLASS_LOCATIONS = {
     "Tel Aviv, Israel": [
         {
-            "url": f"https://api.stormglass.io/v2/weather/point?lat=32.0853&lng=34.7818&params=waveHeight,wavePeriod,waveDirection,windSpeed,windDirection&source=sg",
+            "url": "https://api.stormglass.io/v2/weather/point?lat=32.0853&lng=34.7818&params=waveHeight,wavePeriod,waveDirection,windSpeed,windDirection&source=sg",
             "priority": 1,
             "type": "unified",
             "api_key": STORMGLASS_API_KEY
@@ -279,7 +278,7 @@ STORMGLASS_LOCATIONS = {
     ],
     "Hadera, Israel": [
         {
-            "url": f"https://api.stormglass.io/v2/weather/point?lat=32.4343&lng=34.9197&params=waveHeight,wavePeriod,waveDirection,windSpeed,windDirection&source=sg",
+            "url": "https://api.stormglass.io/v2/weather/point?lat=32.4343&lng=34.9197&params=waveHeight,wavePeriod,waveDirection,windSpeed,windDirection&source=sg",
             "priority": 1,
             "type": "unified",
             "api_key": STORMGLASS_API_KEY
@@ -287,7 +286,7 @@ STORMGLASS_LOCATIONS = {
     ],
     "Ashdod, Israel": [
         {
-            "url": f"https://api.stormglass.io/v2/weather/point?lat=31.7939&lng=34.6328&params=waveHeight,wavePeriod,waveDirection,windSpeed,windDirection&source=sg",
+            "url": "https://api.stormglass.io/v2/weather/point?lat=31.7939&lng=34.6328&params=waveHeight,wavePeriod,waveDirection,windSpeed,windDirection&source=sg",
             "priority": 1,
             "type": "unified",
             "api_key": STORMGLASS_API_KEY
@@ -295,7 +294,7 @@ STORMGLASS_LOCATIONS = {
     ],
     "Haifa, Israel": [
         {
-            "url": f"https://api.stormglass.io/v2/weather/point?lat=32.7940&lng=34.9896&params=waveHeight,wavePeriod,waveDirection,windSpeed,windDirection&source=sg",
+            "url": "https://api.stormglass.io/v2/weather/point?lat=32.7940&lng=34.9896&params=waveHeight,wavePeriod,waveDirection,windSpeed,windDirection&source=sg",
             "priority": 1,
             "type": "unified",
             "api_key": STORMGLASS_API_KEY
@@ -303,7 +302,7 @@ STORMGLASS_LOCATIONS = {
     ],
     "Netanya, Israel": [
         {
-            "url": f"https://api.stormglass.io/v2/weather/point?lat=32.3215&lng=34.8532&params=waveHeight,wavePeriod,waveDirection,windSpeed,windDirection&source=sg",
+            "url": "https://api.stormglass.io/v2/weather/point?lat=32.3215&lng=34.8532&params=waveHeight,wavePeriod,waveDirection,windSpeed,windDirection&source=sg",
             "priority": 1,
             "type": "unified",
             "api_key": STORMGLASS_API_KEY
@@ -311,7 +310,7 @@ STORMGLASS_LOCATIONS = {
     ],
     "Nahariya, Israel": [
         {
-            "url": f"https://api.stormglass.io/v2/weather/point?lat=33.006&lng=35.094&params=waveHeight,wavePeriod,waveDirection,windSpeed,windDirection&source=sg",
+            "url": "https://api.stormglass.io/v2/weather/point?lat=33.006&lng=35.094&params=waveHeight,wavePeriod,waveDirection,windSpeed,windDirection&source=sg",
             "priority": 1,
             "type": "unified",
             "api_key": STORMGLASS_API_KEY
@@ -319,7 +318,7 @@ STORMGLASS_LOCATIONS = {
     ],
     "Ashkelon, Israel": [
         {
-            "url": f"https://api.stormglass.io/v2/weather/point?lat=31.6699&lng=34.5738&params=waveHeight,wavePeriod,waveDirection,windSpeed,windDirection&source=sg",
+            "url": "https://api.stormglass.io/v2/weather/point?lat=31.6699&lng=34.5738&params=waveHeight,wavePeriod,waveDirection,windSpeed,windDirection&source=sg",
             "priority": 1,
             "type": "unified",
             "api_key": STORMGLASS_API_KEY
@@ -732,7 +731,7 @@ def cleanup_expired_password_reset_tokens():
         deleted_count = db.query(PasswordResetToken).filter(
             (PasswordResetToken.created_at < cutoff_time) |
             (PasswordResetToken.used_at.isnot(None)) |
-            (PasswordResetToken.is_invalidated == True)
+            PasswordResetToken.is_invalidated
         ).delete(synchronize_session=False)
 
         db.commit()

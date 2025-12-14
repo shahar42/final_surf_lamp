@@ -564,7 +564,7 @@ def update_lamp_timestamp(lamp_id):
     
     try:
         with engine.connect() as conn:
-            result = conn.execute(query, {"lamp_id": lamp_id})
+            conn.execute(query, {"lamp_id": lamp_id})
             conn.commit()
             
         logger.info(f"✅ Timestamp updated for lamp {lamp_id}")
@@ -636,7 +636,7 @@ def batch_update_lamp_timestamps(lamp_ids):
 
     try:
         with engine.connect() as conn:
-            result = conn.execute(query, {"lamp_ids": lamp_ids})
+            conn.execute(query, {"lamp_ids": lamp_ids})
             conn.commit()
 
         logger.info(f"✅ Timestamps batch updated for {len(lamp_ids)} lamps")

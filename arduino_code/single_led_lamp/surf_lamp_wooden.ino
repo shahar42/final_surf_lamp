@@ -83,6 +83,7 @@ const int ARDUINO_ID = 2;  // ✨ Wooden surf lamp
 WebServer server(80);
 unsigned long lastDataFetch = 0;
 const unsigned long FETCH_INTERVAL = 780000; // 13 minutes
+const unsigned long DATA_STALENESS_THRESHOLD = 1800000; // 30 minutes (2 missed fetches + grace period)
 
 // WiFi reconnection tracking
 const int MAX_WIFI_RETRIES = 5;
@@ -477,6 +478,7 @@ void blinkBlueLED()  { blinkStatusLED(CRGB::Blue);  }   // Connecting to WiFi
 void blinkGreenLED() { blinkStatusLED(CRGB::Green); }   // Connected and operational
 void blinkRedLED()   { blinkStatusLED(CRGB::Red);   }   // Error state
 void blinkYellowLED(){ blinkStatusLED(CRGB::Yellow);}   // Configuration mode
+void blinkOrangeLED(){ blinkStatusLED(CRGB::Orange);}   // Server issues / stale data
 
 void clearLEDs() {
     FastLED.clear();
@@ -1051,6 +1053,9 @@ void updateSurfDisplay() {
         // Turn off all LEDs first
         FastLED.clear();
 
+        // Set wind direction LED (LED 59) - always on during quiet hours
+        setWindDirection(windDirection);
+
         // Light only the top LED using correct indices
         // Wind: top = lowest index in reverse strip
         if (windSpeedLEDs > 0) {
@@ -1069,7 +1074,7 @@ void updateSurfDisplay() {
         }
 
         FastLED.show();
-        Serial.println("🌙 Quiet hours: Only top LEDs active");
+        Serial.println("🌙 Quiet hours: Only top LEDs active + wind direction");
         return;
     }
 
@@ -1303,10 +1308,23 @@ void loop() {
         updateBlinkingAnimation();
 
         // Status indication based on data freshness
-        if (lastSurfData.dataReceived && (millis() - lastSurfData.lastUpdate < 1800000)) { // 30 minutes
-            blinkGreenLED(); // Fresh data
+        unsigned long dataAge = millis() - lastSurfData.lastUpdate;
+        if (lastSurfData.dataReceived && dataAge < DATA_STALENESS_THRESHOLD) {
+            blinkGreenLED();   // ✅ Fresh data (< 30 min old)
         } else {
-            blinkStatusLED(CRGB::Blue); // No recent data
+            blinkOrangeLED();  // ⚠️ Stale data or server unreachable
+
+            // Log staleness periodically (every 60 seconds)
+            static unsigned long lastStaleLog = 0;
+            if (millis() - lastStaleLog > 60000) {
+                if (!lastSurfData.dataReceived) {
+                    Serial.println("⚠️ Status: ORANGE - No data received yet");
+                } else {
+                    Serial.printf("⚠️ Status: ORANGE - Data is %lu min old (threshold: %lu min)\n",
+                                  dataAge / 60000, DATA_STALENESS_THRESHOLD / 60000);
+                }
+                lastStaleLog = millis();
+            }
         }
     }
 
