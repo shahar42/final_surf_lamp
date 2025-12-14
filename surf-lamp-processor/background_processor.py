@@ -52,13 +52,11 @@ import time
 import requests
 import logging
 from sqlalchemy import create_engine, text
-from datetime import datetime
 
 
-from collections import defaultdict
 import json
 from dotenv import load_dotenv
-from endpoint_configs import FIELD_MAPPINGS, get_endpoint_config
+from endpoint_configs import get_endpoint_config
 
 
 load_dotenv()
@@ -90,7 +88,7 @@ try:
         connect_args["sslmode"] = "require"
         
     engine = create_engine(DATABASE_URL, connect_args=connect_args)
-    logger.info(f"Database engine created successfully")
+    logger.info("Database engine created successfully")
 except Exception as e:
     logger.error(f"Failed to create database engine: {e}")
     exit(1)
@@ -144,7 +142,7 @@ def get_current_hour_index(time_array):
                 logger.info(f"✅ Found current hour at index {i}: {time_str}")
                 return i
 
-        logger.warning(f"⚠️  Current hour not found in time array, using index 0")
+        logger.warning("⚠️  Current hour not found in time array, using index 0")
         return 0
 
     except Exception as e:
@@ -250,8 +248,16 @@ def test_database_connection():
             logger.info("✅ Database connection successful")
             
             # Check tables exist
+            # SECURITY: Whitelist of allowed table names to prevent SQL injection
+            ALLOWED_TABLES = {'users', 'lamps', 'daily_usage', 'usage_lamps', 'current_conditions', 'location_websites', 'password_reset_tokens'}
             tables_to_check = ['users', 'lamps', 'daily_usage', 'usage_lamps']
+
             for table in tables_to_check:
+                # Validate table name against whitelist
+                if table not in ALLOWED_TABLES:
+                    logger.error(f"❌ Security: Invalid table name '{table}' - not in whitelist")
+                    continue
+
                 try:
                     result = conn.execute(text(f"SELECT COUNT(*) FROM {table}"))
                     count = result.fetchone()[0]
@@ -425,9 +431,9 @@ def fetch_surf_data(api_key, endpoint):
     # CRITICAL VALIDATION: Check wind speed unit parameter
     if "wind_speed_10m" in endpoint and "open-meteo.com" in endpoint:
         if "&wind_speed_unit=ms" not in endpoint:
-            logger.error(f"❌ CRITICAL ERROR: Open-Meteo wind endpoint missing '&wind_speed_unit=ms' parameter!")
+            logger.error("❌ CRITICAL ERROR: Open-Meteo wind endpoint missing '&wind_speed_unit=ms' parameter!")
             logger.error(f"❌ Endpoint: {endpoint}")
-            logger.error(f"❌ This will return km/h instead of m/s and break wind calculations!")
+            logger.error("❌ This will return km/h instead of m/s and break wind calculations!")
             return None
 
     try:
@@ -436,9 +442,9 @@ def fetch_surf_data(api_key, endpoint):
 
         if api_key and api_key.strip():
             headers['Authorization'] = f'Bearer {api_key}'
-            logger.info(f"📤 Making API request with authentication")
+            logger.info("📤 Making API request with authentication")
         else:
-            logger.info(f"📤 Making API request without authentication (public endpoint)")
+            logger.info("📤 Making API request without authentication (public endpoint)")
 
         logger.info(f"📤 Headers: {headers}")
 
@@ -455,7 +461,7 @@ def fetch_surf_data(api_key, endpoint):
                 response = requests.get(endpoint, headers=headers, timeout=timeout_seconds)
                 response.raise_for_status()
                 break  # Success, exit retry loop
-            except requests.exceptions.Timeout as e:
+            except requests.exceptions.Timeout:
                 logger.warning(f"⚠️ Request timeout ({timeout_seconds}s) for {endpoint}")
                 if attempt < max_retries - 1:  # Not the last attempt
                     delay = 30  # Shorter delay for timeout retries
@@ -491,10 +497,10 @@ def fetch_surf_data(api_key, endpoint):
         surf_data = standardize_surf_data(raw_data, endpoint)
 
         if surf_data:
-            logger.info(f"✅ Surf data standardized successfully")
+            logger.info("✅ Surf data standardized successfully")
             return surf_data
         else:
-            logger.error(f"❌ Failed to standardize surf data")
+            logger.error("❌ Failed to standardize surf data")
             return None
 
     except requests.exceptions.RequestException as e:
@@ -779,7 +785,7 @@ def process_all_lamps():
             else:
                 # Fallback to individual updates if batch fails
                 logger.error(f"❌ Batch update failed for {location}")
-                logger.warning(f"⚠️  Attempting individual fallback updates...")
+                logger.warning("⚠️  Attempting individual fallback updates...")
                 lamps_updated_for_location = 0
                 for lamp in lamps:
                     logger.info(f"  Fallback: Updating lamp {lamp['lamp_id']} (Arduino {lamp['arduino_id']})")
@@ -797,13 +803,13 @@ def process_all_lamps():
         end_time = time.time()
         duration = round(end_time - start_time, 2)
 
-        logger.info(f"\n🎉 ======= LOCATION-BASED PROCESSING CYCLE COMPLETED =======")
-        logger.info(f"📊 Summary:")
+        logger.info("\n🎉 ======= LOCATION-BASED PROCESSING CYCLE COMPLETED =======")
+        logger.info("📊 Summary:")
         logger.info(f"   - Locations processed: {len(location_configs)}")
         logger.info(f"   - Total API calls made: {total_api_calls}")
         logger.info(f"   - Lamps updated: {total_lamps_updated}")
         logger.info(f"   - Duration: {duration} seconds")
-        logger.info(f"   - Status: SUCCESS")
+        logger.info("   - Status: SUCCESS")
 
         return True
 
@@ -811,11 +817,11 @@ def process_all_lamps():
         end_time = time.time()
         duration = round(end_time - start_time, 2)
 
-        logger.info(f"\n🚫 ======= LOCATION-BASED PROCESSING CYCLE FAILED =======")
-        logger.info(f"📊 Summary:")
+        logger.info("\n🚫 ======= LOCATION-BASED PROCESSING CYCLE FAILED =======")
+        logger.info("📊 Summary:")
         logger.info(f"   - Error: {str(e)}")
         logger.info(f"   - Duration: {duration} seconds")
-        logger.info(f"   - Status: FAILED")
+        logger.info("   - Status: FAILED")
 
         logger.error(f"💥 CRITICAL ERROR in processing cycle: {e}")
         return False

@@ -19,7 +19,6 @@ Key Features:
 
 import os
 import logging
-import redis
 import time
 from datetime import datetime, timezone
 import pytz
@@ -34,17 +33,15 @@ from flask_bcrypt import Bcrypt
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from functools import wraps
-from datetime import datetime, timedelta
-from sqlalchemy import text, func
+from datetime import timedelta
+from sqlalchemy import func
 from forms import RegistrationForm, LoginForm, ForgotPasswordForm, ResetPasswordForm
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_mail import Mail, Message
 import secrets
 import hashlib
-from datetime import datetime, timedelta
 from data_base import PasswordResetToken
-from data_base import add_user_and_lamp, get_user_lamp_data, SessionLocal, User, Lamp, update_user_location, CurrentConditions, Broadcast, LOCATION_TIMEZONES
-from forms import RegistrationForm, LoginForm
+from data_base import add_user_and_lamp, get_user_lamp_data, SessionLocal, User, Lamp, CurrentConditions, Broadcast, LOCATION_TIMEZONES
 from security_config import apply_security_headers, SecurityConfig
 
 
@@ -431,7 +428,7 @@ def reset_password_form(token):
             flash('Password reset successfully! Please log in.', 'success')
             return redirect(url_for('login'))
             
-        except Exception as e:
+        except Exception:
             db.rollback()
             flash('An error occurred. Please try again.', 'error')
         finally:
@@ -1636,4 +1633,6 @@ def get_active_broadcasts():
 if __name__ == '__main__':
     # For production on Render, use a WSGI server like Gunicorn.
     # The start command should be: gunicorn app:app
-    app.run(host='0.0.0.0', port=5001, debug=True)
+    # SECURITY: Never enable debug mode in production (allows arbitrary code execution)
+    debug_mode = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
+    app.run(host='0.0.0.0', port=5001, debug=debug_mode)
