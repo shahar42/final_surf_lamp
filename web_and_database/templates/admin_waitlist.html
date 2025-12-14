@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waitlist Admin | Surf Lamp</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Manrope:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --clr-bg: #050505;
+            --clr-text-main: #F2F2F2;
+            --clr-text-muted: #a0a0a0;
+            --clr-accent: #38b6ff;
+            --clr-success: #4CAF50;
+
+            --ff-heading: 'Inter', sans-serif;
+            --ff-body: 'Manrope', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--ff-body);
+            background-color: var(--clr-bg);
+            color: var(--clr-text-main);
+            margin: 0;
+            padding: 2rem 1rem;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        h1 {
+            font-family: var(--ff-heading);
+            font-size: clamp(1.75rem, 4vw, 2.5rem);
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            margin: 0;
+        }
+
+        .back-link {
+            padding: 0.75rem 1.5rem;
+            font-size: 0.9rem;
+            text-decoration: none;
+            color: var(--clr-text-main);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .back-link:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--clr-text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-family: var(--ff-heading);
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: var(--clr-accent);
+        }
+
+        .section-title {
+            font-family: var(--ff-heading);
+            font-size: 1.5rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            color: var(--clr-text-main);
+        }
+
+        .table-container {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            overflow-x: auto;
+            margin-bottom: 2rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: rgba(56, 182, 255, 0.08);
+        }
+
+        th {
+            font-family: var(--ff-heading);
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            text-align: left;
+            padding: 1rem;
+            color: var(--clr-accent);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.95rem;
+        }
+
+        tbody tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .email-cell {
+            color: var(--clr-accent);
+        }
+
+        .phone-cell {
+            color: var(--clr-text-muted);
+            font-size: 0.9rem;
+        }
+
+        .date-cell {
+            color: var(--clr-text-muted);
+            font-size: 0.9rem;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-radius: 4px;
+        }
+
+        .status-notified {
+            background: rgba(76, 175, 80, 0.2);
+            color: var(--clr-success);
+        }
+
+        .status-pending {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+        }
+
+        .export-btn {
+            padding: 0.75rem 1.5rem;
+            font-family: var(--ff-heading);
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--clr-bg);
+            background: linear-gradient(135deg, var(--clr-accent), #2a9fd6);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .export-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(56, 182, 255, 0.4);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--clr-text-muted);
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 768px) {
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: 0.75rem 0.5rem;
+            }
+
+            .stat-value {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Waitlist Admin</h1>
+            <a href="{{ url_for('dashboard') }}" class="back-link">← Back to Dashboard</a>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Signups</div>
+                <div class="stat-value">{{ total_count }}</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Last 24 Hours</div>
+                <div class="stat-value">{{ recent_24h|length }}</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Notified</div>
+                <div class="stat-value">{{ entries|selectattr('notified', 'equalto', 1)|list|length }}</div>
+            </div>
+        </div>
+
+        {% if recent_24h %}
+        <h2 class="section-title">Recent Signups (24h)</h2>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Signup Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in recent_24h %}
+                    <tr>
+                        <td>{{ entry.first_name }} {{ entry.last_name }}</td>
+                        <td class="email-cell">{{ entry.email }}</td>
+                        <td class="date-cell">{{ entry.signup_date }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <div class="header" style="margin-top: 2rem;">
+            <h2 class="section-title" style="margin: 0;">All Waitlist Entries</h2>
+            <button class="export-btn" onclick="exportToCSV()">Export CSV</button>
+        </div>
+
+        {% if entries %}
+        <div class="table-container">
+            <table id="waitlist-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Signup Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in entries %}
+                    <tr>
+                        <td>{{ loop.revindex }}</td>
+                        <td>{{ entry.first_name }} {{ entry.last_name }}</td>
+                        <td class="email-cell">{{ entry.email }}</td>
+                        <td class="phone-cell">{{ entry.phone or '-' }}</td>
+                        <td class="date-cell">{{ entry.signup_date }}</td>
+                        <td>
+                            {% if entry.notified %}
+                                <span class="status-badge status-notified">Notified</span>
+                            {% else %}
+                                <span class="status-badge status-pending">Pending</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">📭</div>
+            <p>No waitlist entries yet. Share the waitlist link to start collecting signups!</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        function exportToCSV() {
+            const table = document.getElementById('waitlist-table');
+            if (!table) return;
+
+            const rows = Array.from(table.querySelectorAll('tr'));
+            const csv = rows.map(row => {
+                const cells = Array.from(row.querySelectorAll('th, td'));
+                return cells.map(cell => {
+                    let text = cell.textContent.trim();
+                    // Escape quotes and wrap in quotes if contains comma
+                    if (text.includes(',') || text.includes('"')) {
+                        text = '"' + text.replace(/"/g, '""') + '"';
+                    }
+                    return text;
+                }).join(',');
+            }).join('\n');
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `surf-lamp-waitlist-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>

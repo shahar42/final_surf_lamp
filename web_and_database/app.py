@@ -28,7 +28,7 @@ from functools import wraps
 import google.generativeai as genai
 import markdown
 import pytz
-from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
+from flask import Flask, flash, jsonify, redirect, render_template, request, send_from_directory, session, url_for
 from flask_bcrypt import Bcrypt
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -42,6 +42,9 @@ from data_base import (LOCATION_TIMEZONES, Broadcast, CurrentConditions, Lamp,
 from forms import (ForgotPasswordForm, LoginForm, RegistrationForm,
                    ResetPasswordForm)
 from security_config import SecurityConfig, apply_security_headers
+from chat_logic import build_chat_context
+from waitlist_db import (add_to_waitlist, get_all_waitlist_entries,
+                         get_waitlist_count, get_recent_signups)
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -307,57 +310,95 @@ def check_location_change_limit(user_id):
 @app.route("/")
 def index():
     """
-    Serves the main page.
+    Serves the landing page for new visitors.
 
-    If the user is logged in, it displays their personalized dashboard.
-    Otherwise, it redirects to the registration page.
+    If the user is logged in, redirects to dashboard.
     """
     if 'user_email' in session:
-        # Get user's surf data (same logic as dashboard)
-        user_email = session.get('user_email')
-        user, lamp, conditions = get_user_lamp_data(user_email)
-        
-        if not user or not lamp:
-            flash('Error loading your lamp data. Please contact support.', 'error')
-            return redirect(url_for('login'))
-        
-        # Prepare surf data for display
-        dashboard_data = {
-            'user': {
-                'username': user.username,
-                'email': user.email,
-                'location': user.location,
-                'theme': user.theme,
-                'preferred_output': user.preferred_output,
-                'wave_threshold_m': user.wave_threshold_m or 1.0,
-                'wind_threshold_knots': user.wind_threshold_knots or 22.0
-            },
-            'lamp': {
-                'lamp_id': lamp.lamp_id,
-                'arduino_id': lamp.arduino_id,
-                'last_updated': lamp.last_updated
-            },
-            'conditions': None
-        }
-        
-        # Add surf conditions if available
-        if conditions:
-            dashboard_data['conditions'] = {
-                'wave_height_m': conditions.wave_height_m,
-                'wave_period_s': conditions.wave_period_s,
-                'wind_speed_mps': conditions.wind_speed_mps,
-                'wind_direction_deg': conditions.wind_direction_deg,
-                'last_updated': conditions.last_updated
-            }
-        
-        return render_template('dashboard.html', data=dashboard_data, locations=SURF_LOCATIONS)
-    
-    return redirect(url_for('register'))
+        return redirect(url_for('dashboard'))
+
+    # Serve the static landing page HTML
+    landing_page_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'landing_page')
+    return send_from_directory(landing_page_dir, 'index.html')
+
+@app.route("/styles.css")
+def landing_styles():
+    """Serve landing page CSS."""
+    landing_page_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'landing_page')
+    return send_from_directory(landing_page_dir, 'styles.css')
+
+@app.route("/images/<path:filename>")
+def landing_images(filename):
+    """Serve landing page images."""
+    landing_page_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'landing_page')
+    images_dir = os.path.join(landing_page_dir, 'images')
+    return send_from_directory(images_dir, filename)
 
 @app.route("/teaser")
 def teaser():
     """Minimalist anticipation teaser page."""
     return render_template('teaser.html')
+
+@app.route("/waitlist", methods=['GET'])
+def waitlist_form():
+    """Display the waitlist signup form."""
+    total_signups = get_waitlist_count()
+    return render_template('waitlist.html', total_signups=total_signups)
+
+@app.route("/waitlist/submit", methods=['POST'])
+@limiter.limit("3 per hour")
+def waitlist_submit():
+    """Handle waitlist form submission."""
+    first_name = request.form.get('first_name', '').strip()
+    last_name = request.form.get('last_name', '').strip()
+    email = request.form.get('email', '').strip()
+    phone = request.form.get('phone', '').strip() or None
+
+    # Basic validation
+    if not all([first_name, last_name, email]):
+        flash('Please fill in all required fields.', 'error')
+        return redirect(url_for('waitlist_form'))
+
+    # Email format validation (basic)
+    if '@' not in email or '.' not in email:
+        flash('Please enter a valid email address.', 'error')
+        return redirect(url_for('waitlist_form'))
+
+    # Get request metadata for tracking
+    ip_address = get_remote_address()
+    user_agent = request.headers.get('User-Agent', '')
+
+    # Add to database
+    success, message, position = add_to_waitlist(
+        first_name, last_name, email, phone, ip_address, user_agent
+    )
+
+    if success:
+        logger.info(f"New waitlist signup: {email} (position {position})")
+        return render_template('waitlist_confirmation.html',
+                              first_name=first_name,
+                              position=position)
+    else:
+        flash(message, 'error')
+        return redirect(url_for('waitlist_form'))
+
+@app.route("/admin/waitlist")
+@login_required
+def admin_waitlist():
+    """Admin dashboard to view all waitlist entries. Requires login."""
+    # Check if user is admin (user_id = 1 is typical admin pattern)
+    if session.get('user_id') != 1:
+        flash('Unauthorized access.', 'error')
+        return redirect(url_for('dashboard'))
+
+    entries = get_all_waitlist_entries()
+    recent_24h = get_recent_signups(hours=24)
+    total_count = get_waitlist_count()
+
+    return render_template('admin_waitlist.html',
+                          entries=entries,
+                          recent_24h=recent_24h,
+                          total_count=total_count)
 
 @app.route("/forgot-password", methods=['GET', 'POST'])
 @limiter.limit("5 per hour")
@@ -955,158 +996,6 @@ def api_error_reports():
     except Exception as e:
         logger.error(f"Error in api_error_reports endpoint: {e}")
         return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
-
-# --- Context Module Functions ---
-
-def get_core_context(user_data, conditions_data):
-    """Core context - always included"""
-    # Format current conditions
-    if conditions_data:
-        wave_height = f"{conditions_data.wave_height_m:.1f}m" if conditions_data.wave_height_m else "N/A"
-        wave_period = f"{conditions_data.wave_period_s:.1f}s" if conditions_data.wave_period_s else "N/A"
-        wind_speed = f"{conditions_data.wind_speed_mps:.1f} m/s ({conditions_data.wind_speed_mps * 1.94384:.1f} knots)" if conditions_data.wind_speed_mps else "N/A"
-        wind_dir = convert_wind_direction(conditions_data.wind_direction_deg) if conditions_data.wind_direction_deg else "N/A"
-        status = "Online"
-    else:
-        wave_height = wave_period = wind_speed = wind_dir = "N/A"
-        status = "No data (offline or recently registered)"
-
-    in_quiet_hours = is_quiet_hours(user_data.location)
-    night_mode_status = "Active" if in_quiet_hours else "Inactive"
-
-    return f"""**USER'S SURF LAMP DATA:**
-- Location: {user_data.location}
-- Wave Alert Threshold: {user_data.wave_threshold_m}m
-- Wind Alert Threshold: {user_data.wind_threshold_knots} knots
-- Current Theme: {user_data.theme if user_data.theme else 'classic_surf'}
-- Lamp Status: {status}
-- Night Mode: {night_mode_status}
-
-**CURRENT SURF CONDITIONS FOR {user_data.location}:**
-- Wave Height: {wave_height}
-- Wave Period: {wave_period}
-- Wind Speed: {wind_speed}
-- Wind Direction: {wind_dir}
-
-**HOW THE SURF LAMP WORKS:**
-Three LED strips show real-time surf conditions:
-- Left Strip (Wave Period): Brightness = period length (each LED ~2s)
-- Middle Strip (Wind Speed): Color = wind direction, brightness = speed (each LED ~2-3 knots)
-- Right Strip (Wave Height): Brightness = wave height (each LED ~0.33m)
-
-**WIND DIRECTION COLORS:**
-N=Green, NE=Green-Yellow, E=Yellow, SE=Yellow-Orange, S=Red, SW=Purple, W=Blue, NW=Cyan
-
-**ALERTS:** Blinking = threshold exceeded (wave height > {user_data.wave_threshold_m}m OR wind > {user_data.wind_threshold_knots} knots)"""
-
-def get_wifi_module():
-    """WiFi setup and troubleshooting"""
-    return """
-**WIFI SETUP:**
-- Blue LEDs = setup mode
-- Connect to "SurfLamp-Setup" network (password: surf123456)
-- Configure at 192.168.4.1
-- Must use 2.4GHz WiFi (NOT 5GHz)
-- Red blinking = lost connection, auto-retry
-- Reset: Press BOOT button 1 second OR unplug 10 seconds"""
-
-def get_theme_module():
-    """LED theme information"""
-    return """
-**LED THEMES:**
-5 themes available: classic_surf, vibrant_mix, tropical_paradise, ocean_sunset, electric_vibes
-- Change: Dashboard → "Configure" button in LED Colors row
-- Updates within 13 minutes
-- Affects overall palette, not wind direction colors"""
-
-def get_night_mode_module():
-    """Night mode details"""
-    return """
-**NIGHT MODE (10 PM - 6 AM):**
-- Only TOP LED of each strip lit (ambient lighting)
-- Threshold blinking disabled
-- Automatic based on location timezone"""
-
-def get_registration_module():
-    """Arduino ID and registration"""
-    return """
-**ARDUINO ID & REGISTRATION:**
-- Arduino ID: Unique device number on QR code/card in box
-- Registration: Enter Arduino ID during account creation
-- Links physical lamp to your dashboard account
-- Updates every 13 minutes"""
-
-def get_troubleshooting_module():
-    """Common issues"""
-    return """
-**TROUBLESHOOTING:**
-- No data: Recently registered, connection issue, or updating (13min cycle)
-- All LEDs lit: Maximum conditions (check dashboard for values)
-- One LED only: Night mode active
-- Red blinking: WiFi lost
-- Change settings: Use dashboard controls (location dropdown, threshold inputs)
-- Location changes: Limited to 5/day"""
-
-def detect_relevant_modules(user_message):
-    """Detect which context modules are needed based on user's question"""
-    message_lower = user_message.lower()
-    modules = []
-
-    # WiFi/Setup keywords
-    if any(word in message_lower for word in ['wifi', 'setup', 'connect', 'network', '2.4', '5ghz', 'blue led', 'setup mode', 'reset', 'boot button']):
-        modules.append('wifi')
-
-    # Theme keywords
-    if any(word in message_lower for word in ['theme', 'color', 'bright', 'dim', 'appearance', 'classic', 'vibrant', 'tropical', 'sunset', 'electric']):
-        modules.append('theme')
-
-    # Night mode keywords
-    if any(word in message_lower for word in ['night', 'sleep', 'one led', 'single led', '10pm', '6am', 'dark', 'ambient']):
-        modules.append('night_mode')
-
-    # Registration keywords
-    if any(word in message_lower for word in ['arduino id', 'register', 'registration', 'qr code', 'device number', 'link lamp', 'sign up']):
-        modules.append('registration')
-
-    # Troubleshooting keywords
-    if any(word in message_lower for word in ['not working', 'problem', 'issue', 'broken', 'fix', 'error', 'offline', 'no data', 'help', "won't", "can't", "doesn't"]):
-        modules.append('troubleshooting')
-
-    return modules
-
-def build_chat_context(user_data, conditions_data, user_message):
-    """Build modular context based on user's specific question"""
-
-    # Always include core context
-    context_parts = [
-        "You are a helpful assistant for the Surf Lamp system. Your role is to help users understand their surf lamp and surf conditions.",
-        "",
-        get_core_context(user_data, conditions_data)
-    ]
-
-    # Detect and add relevant modules
-    relevant_modules = detect_relevant_modules(user_message)
-
-    if 'wifi' in relevant_modules:
-        context_parts.append(get_wifi_module())
-    if 'theme' in relevant_modules:
-        context_parts.append(get_theme_module())
-    if 'night_mode' in relevant_modules:
-        context_parts.append(get_night_mode_module())
-    if 'registration' in relevant_modules:
-        context_parts.append(get_registration_module())
-    if 'troubleshooting' in relevant_modules:
-        context_parts.append(get_troubleshooting_module())
-
-    # Add role and guidelines
-    context_parts.append("""
-**YOUR ROLE:**
-- Answer questions concisely (2-4 sentences unless more detail needed)
-- Explain LED meanings and surf conditions
-- Read-only: Direct users to dashboard controls for changes
-- Base answers on user's specific data shown above""")
-
-    return "\n".join(context_parts)
 
 @app.route("/api/chat", methods=['POST'])
 @login_required

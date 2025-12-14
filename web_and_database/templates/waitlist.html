@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join the Waitlist | Surf Lamp</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Manrope:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --clr-bg: #050505;
+            --clr-text-main: #F2F2F2;
+            --clr-text-muted: #a0a0a0;
+            --clr-accent: #38b6ff;
+            --clr-accent-glow: rgba(56, 182, 255, 0.15);
+            --clr-success: #4CAF50;
+            --clr-error: #f44336;
+
+            --ff-heading: 'Inter', sans-serif;
+            --ff-body: 'Manrope', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--ff-body);
+            background-color: var(--clr-bg);
+            color: var(--clr-text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 1rem;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .header h1 {
+            font-family: var(--ff-heading);
+            font-size: clamp(1.75rem, 4vw, 2.5rem);
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.3px;
+        }
+
+        .header .subtitle {
+            color: var(--clr-text-muted);
+            font-size: 1.125rem;
+            font-weight: 300;
+            max-width: 35ch;
+            margin: 0 auto;
+        }
+
+        .social-proof {
+            background: rgba(56, 182, 255, 0.08);
+            border: 1px solid rgba(56, 182, 255, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .social-proof .count {
+            font-family: var(--ff-heading);
+            font-size: 2rem;
+            color: var(--clr-accent);
+            font-weight: 600;
+        }
+
+        .social-proof .label {
+            font-size: 0.9rem;
+            color: var(--clr-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .form-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            font-size: 0.95rem;
+            color: var(--clr-text-main);
+        }
+
+        label .required {
+            color: var(--clr-accent);
+        }
+
+        label .optional {
+            color: var(--clr-text-muted);
+            font-weight: 300;
+            font-size: 0.85rem;
+        }
+
+        input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            font-family: var(--ff-body);
+            font-size: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 6px;
+            color: var(--clr-text-main);
+            transition: all 0.2s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--clr-accent);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 0 3px rgba(56, 182, 255, 0.1);
+        }
+
+        input::placeholder {
+            color: var(--clr-text-muted);
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 1rem 2rem;
+            font-family: var(--ff-heading);
+            font-size: 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--clr-bg);
+            background: linear-gradient(135deg, var(--clr-accent), #2a9fd6);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin-top: 1rem;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(56, 182, 255, 0.4);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .trust-signals {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .trust-item {
+            display: flex;
+            align-items: start;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            color: var(--clr-text-muted);
+        }
+
+        .trust-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .trust-icon {
+            flex-shrink: 0;
+            font-size: 1.25rem;
+        }
+
+        .flash-message {
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+        }
+
+        .flash-message.error {
+            background: rgba(244, 67, 54, 0.1);
+            border: 1px solid rgba(244, 67, 54, 0.3);
+            color: #ff6b6b;
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        .back-link a {
+            color: var(--clr-accent);
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: opacity 0.2s ease;
+        }
+
+        .back-link a:hover {
+            opacity: 0.8;
+        }
+
+        @media (max-width: 600px) {
+            .form-card {
+                padding: 1.5rem;
+            }
+
+            .header h1 {
+                font-size: 1.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Join the Waitlist</h1>
+            <p class="subtitle">Be the first to know when Surf Lamp is available</p>
+        </div>
+
+        {% if total_signups > 0 %}
+        <div class="social-proof">
+            <div class="count">{{ total_signups }}</div>
+            <div class="label">{{ 'person has' if total_signups == 1 else 'people have' }} already joined</div>
+        </div>
+        {% endif %}
+
+        <div class="form-card">
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="flash-message error">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <form method="POST" action="{{ url_for('waitlist_submit') }}">
+                <div class="form-group">
+                    <label for="first_name">
+                        First Name <span class="required">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        id="first_name"
+                        name="first_name"
+                        required
+                        maxlength="50"
+                        placeholder="John"
+                        autocomplete="given-name"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="last_name">
+                        Last Name <span class="required">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        id="last_name"
+                        name="last_name"
+                        required
+                        maxlength="50"
+                        placeholder="Smith"
+                        autocomplete="family-name"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="email">
+                        Email <span class="required">*</span>
+                    </label>
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        required
+                        maxlength="100"
+                        placeholder="john@example.com"
+                        autocomplete="email"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">
+                        Phone Number <span class="optional">(optional)</span>
+                    </label>
+                    <input
+                        type="tel"
+                        id="phone"
+                        name="phone"
+                        maxlength="20"
+                        placeholder="+1 (555) 123-4567"
+                        autocomplete="tel"
+                    >
+                </div>
+
+                <button type="submit" class="submit-btn">Join Waitlist</button>
+            </form>
+
+            <div class="trust-signals">
+                <div class="trust-item">
+                    <span class="trust-icon">🔒</span>
+                    <span>Your information is secure and will never be shared with third parties.</span>
+                </div>
+                <div class="trust-item">
+                    <span class="trust-icon">📧</span>
+                    <span>We'll only contact you about Surf Lamp availability. No spam, ever.</span>
+                </div>
+                <div class="trust-item">
+                    <span class="trust-icon">⏱️</span>
+                    <span>Expected launch: Q2 2025. We'll keep you updated on our progress.</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="back-link">
+            <a href="/">← Back to Home</a>
+        </div>
+    </div>
+</body>
+</html>
