@@ -157,15 +157,31 @@
             cursor: pointer;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
             margin-top: 1rem;
+            box-shadow: 0 4px 15px rgba(56, 182, 255, 0.25);
         }
 
         .submit-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(56, 182, 255, 0.4);
+            box-shadow: 0 12px 35px rgba(56, 182, 255, 0.6), 0 0 25px rgba(56, 182, 255, 0.4);
+        }
+
+        .count-highlight {
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin: 0 0.25rem;
+            display: inline-block;
         }
 
         .submit-btn:active {
             transform: translateY(0);
+        }
+
+        .btn-subtext {
+            text-align: center;
+            margin-top: 0.75rem;
+            font-size: 0.9rem;
+            color: var(--clr-text-muted);
+            font-weight: 300;
         }
 
         .trust-signals {
@@ -315,7 +331,8 @@
                     >
                 </div>
 
-                <button type="submit" class="submit-btn">Join Waitlist</button>
+                <button type="submit" class="submit-btn">Join <span class="count-highlight">{{ total_signups }}+</span> Surfers</button>
+                <p class="btn-subtext">Be first to get yours</p>
             </form>
 
             <div class="trust-signals">
@@ -329,7 +346,7 @@
                 </div>
                 <div class="trust-item">
                     <span class="trust-icon">⏱️</span>
-                    <span>Expected launch: Q2 2025. We'll keep you updated on our progress.</span>
+                    <span>Expected launch: January 5, 2026. We'll keep you updated on our progress.</span>
                 </div>
             </div>
         </div>
