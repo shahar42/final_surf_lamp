@@ -115,7 +115,7 @@
             <p class="text-white/80 mt-2">thanks for using SurfLamp, waves are on their way...</p>
         </div>
 
-        <form action="{{ url_for('register') }}" method="POST" class="space-y-6">
+        <form action="{{ url_for('auth.register') }}" method="POST" class="space-y-6">
             {{ form.hidden_tag() }}
             
             <!-- Name Field -->
@@ -144,7 +144,7 @@
                     <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                     </svg>
-                    <span>Your data is secure. Read our <a href="{{ url_for('privacy') }}" class="underline hover:text-white" target="_blank">Privacy Policy</a></span>
+                    <span>Your data is secure. Read our <a href="{{ url_for('landing.privacy') }}" class="underline hover:text-white" target="_blank">Privacy Policy</a></span>
                 </div>
             </div>
             
@@ -229,7 +229,7 @@
         </form>
 
         <p class="text-center text-white/70 mt-6">
-            Already have an account? <a href="{{ url_for('login') }}" class="font-semibold text-white hover:text-pink-300">Sign In</a>
+            Already have an account? <a href="{{ url_for('auth.login') }}" class="font-semibold text-white hover:text-pink-300">Sign In</a>
         </p>
     </div>
 

@@ -86,7 +86,7 @@
             <p class="text-white/80 mt-2">Sign in to your Surf Lamp account.</p>
         </div>
 
-        <form action="{{ url_for('login') }}" method="POST" class="space-y-6">
+        <form action="{{ url_for('auth.login') }}" method="POST" class="space-y-6">
             {{ form.hidden_tag() }}
             
             <!-- Email Field -->
@@ -124,11 +124,11 @@
         </form>
 
         <p class="text-center text-white/70 mt-4">
-            <a href="{{ url_for('forgot_password') }}" class="font-semibold text-white hover:text-pink-300">Forgot Password?</a>
+            <a href="{{ url_for('auth.forgot_password') }}" class="font-semibold text-white hover:text-pink-300">Forgot Password?</a>
         </p>
 
         <p class="text-center text-white/70 mt-6">
-            Don't have an account? <a href="{{ url_for('register') }}" class="font-semibold text-white hover:text-pink-300">Register Now</a>
+            Don't have an account? <a href="{{ url_for('auth.register') }}" class="font-semibold text-white hover:text-pink-300">Register Now</a>
         </p>
     </div>
 

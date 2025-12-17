@@ -241,7 +241,7 @@
                 <div class="flex justify-between items-center pt-2 border-t border-white/20">
                     <span class="text-white/80">LED Colors:</span>
                     <div class="flex items-center space-x-2 w-32 justify-end">
-                        <a href="{{ url_for('themes_page') }}" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm text-white font-semibold transition-colors">
+                        <a href="{{ url_for('dashboard.themes_page') }}" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm text-white font-semibold transition-colors">
                             Configure
                         </a>
                     </div>
@@ -375,13 +375,13 @@
     <div class="max-w-6xl mx-auto mt-6">
         <div class="card rounded-2xl p-6 shadow-2xl">
             <div class="flex flex-col sm:flex-row gap-3 sm:gap-2 justify-center">
-                <a href="{{ url_for('wifi_setup_guide') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors text-center">
+                <a href="{{ url_for('dashboard.wifi_setup_guide') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors text-center">
                     WiFi Setup
                 </a>
                 <button id="reportErrorBtn" class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors">
                     Report Error
                 </button>
-                <a href="{{ url_for('logout') }}" class="logout-btn text-white font-semibold py-2 px-4 rounded-lg shadow-lg text-center">
+                <a href="{{ url_for('auth.logout') }}" class="logout-btn text-white font-semibold py-2 px-4 rounded-lg shadow-lg text-center">
                     Logout
                 </a>
             </div>
