@@ -30,17 +30,6 @@ ServerDiscovery serverDiscovery;
 WiFiManager wifiManager;
 WiFiFingerprinting fingerprinting;
 
-// ============================================================================================
-// ██████╗ ██████╗ ███╗   ██╗███████╗██╗ ██████╗     ███████╗███████╗ ██████╗████████╗██╗ ██████╗ ███╗   ██╗
-// ██╔════╝██╔═══██╗████╗  ██║██╔════╝██║██╔════╝     ██╔════╝██╔════╝██╔════╝╚══██╔══╝██║██╔═══██╗████╗  ██║
-// ██║     ██║   ██║██╔██╗ ██║█████╗  ██║██║   ██╗    ███████╗█████╗  ██║        ██║   ██║██║   ██║██╔██╗ ██║
-// ██║     ██║   ██║██║╚██╗██║██╔══╝  ██║██║   ██║    ╚════██║██╔══╝  ██║        ██║   ██║██║   ██║██║╚██╗██║
-// ╚██████╗╚██████╔╝██║ ╚████║██║     ██║╚██████╔╝    ███████║███████╗╚██████╗   ██║   ██║╚██████╔╝██║ ╚████║
-//  ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝     ╚══════╝╚══════╝ ╚═════╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
-// ============================================================================================
-// ADMIN: Only modify values in this section. Everything else is auto-calculated.
-// ============================================================================================
-
 // ---------------- DEVICE IDENTITY ----------------
 const int ARDUINO_ID = 6;  // Maayan's Lamp ID
 
@@ -294,7 +283,7 @@ CHSV colorMapWind[] = {
 
 String currentTheme = "classic_surf";  // Default theme
 
-themeColors {
+struct ThemeColors {
     CHSV wave_color;
     CHSV wind_color;
     CHSV period_color;
@@ -303,21 +292,21 @@ themeColors {
 ThemeColors getThemeColors(String theme) {
     // 5 LED themes with completely distinct colors (minimal red)
     if (theme == "classic_surf") {
-        return {{160, 255, 200}, {0, 50, 255}, {60, 255, 200}}; // Blue waves, white wind, yellow period
+        return {CHSV(160, 255, 200), CHSV(0, 50, 255), CHSV(60, 255, 200)}; // Blue waves, white wind, yellow period
     } else if (theme == "vibrant_mix") {
-        return {{240, 255, 200}, {85, 255, 200}, {160, 255, 200}}; // Purple waves, green wind, blue period
+        return {CHSV(240, 255, 200), CHSV(85, 255, 200), CHSV(160, 255, 200)}; // Purple waves, green wind, blue period
     } else if (theme == "tropical_paradise") {
-        return {{85, 255, 200}, {140, 255, 200}, {200, 255, 200}}; // Green waves, cyan wind, magenta period
+        return {CHSV(85, 255, 200), CHSV(140, 255, 200), CHSV(200, 255, 200)}; // Green waves, cyan wind, magenta period
     } else if (theme == "ocean_sunset") {
-        return {{160, 255, 220}, {20, 255, 220}, {212, 255, 220}}; // Blue waves, orange wind, pink period
+        return {CHSV(160, 255, 220), CHSV(20, 255, 220), CHSV(212, 255, 220)}; // Blue waves, orange wind, pink period
     } else if (theme == "electric_vibes") {
-        return {{140, 255, 240}, {60, 255, 240}, {240, 255, 240}}; // Cyan waves, yellow wind, purple period
+        return {CHSV(140, 255, 240), CHSV(60, 255, 240), CHSV(240, 255, 240)}; // Cyan waves, yellow wind, purple period
     } else if (theme == "dark") {
         // Legacy dark theme
-        return {{135, 255, 255}, {24, 250, 240}, {85, 155, 205}};
+        return {CHSV(135, 255, 255), CHSV(24, 250, 240), CHSV(85, 155, 205)};
     } else {
         // Legacy day theme / fallback - now defaults to classic_surf
-        return {{160, 255, 200}, {0, 50, 255}, {60, 255, 200}};
+        return {CHSV(160, 255, 200), CHSV(0, 50, 255), CHSV(60, 255, 200)};
     }
 }
 
@@ -572,6 +561,9 @@ void showCheckingLocation() {
 }
 
 void showAPMode() {
+    // Clear ALL LEDs first - only defined strips should be visible
+    FastLED.clear();
+
     // Wave Height (Right): Red
     for (int i = 0; i < WAVE_HEIGHT_LENGTH; i++) {
         leds[WAVE_HEIGHT_START + i] = CRGB::Red;
@@ -795,16 +787,16 @@ void performLEDTest() {
     FastLED.show();
     delay(1000);
 
-    // Rainbow test on entire strip
+    // Rainbow test on entire strip (low brightness for startup ambiance)
     Serial.println("   Running rainbow test on all LEDs...");
     for (int hue = 0; hue < 256; hue += 5) {
-        fill_solid(leds, TOTAL_LEDS, CHSV(hue, 255, 255));
+        fill_solid(leds, TOTAL_LEDS, CHSV(hue, 255, 80));  // Low brightness (80/255)
         FastLED.show();
         delay(20);
     }
 
-    clearLEDs();
-    Serial.println("✅ LED test completed");
+    // Leave rainbow on - WiFi visuals will replace it naturally
+    Serial.println("✅ LED test completed - rainbow left on until WiFi connects");
 }
 
 void testAllStatusLEDStates() {
@@ -1350,20 +1342,52 @@ void setup() {
     // Load WiFi fingerprint from NVS
     fingerprinting.load();
 
-    // Auto-connect with retry logic and enhanced diagnostics
+    // Auto-connect with scenario-based timeout strategy (IoT industry best practices)
     bool connected = false;
-    for (int attempt = 1; attempt <= MAX_WIFI_RETRIES && !connected; attempt++) {
-        Serial.printf("🔄 WiFi connection attempt %d of %d\n", attempt, MAX_WIFI_RETRIES);
+
+    // CRITICAL: Detect credentials state BEFORE entering retry loop
+    String savedSSID = WiFi.SSID();
+    bool hasCredentials = (savedSSID.length() > 0);
+
+    // Scenario detection for optimal timeout strategy
+    enum SetupScenario { FIRST_SETUP, ROUTER_REBOOT, NEW_LOCATION, HAS_CREDENTIALS };
+    SetupScenario scenario = HAS_CREDENTIALS;
+
+    if (!hasCredentials) {
+        Serial.println("📋 No WiFi credentials saved - opening configuration portal");
+
+        // CRITICAL FIX: Do NOT scan for fingerprinting before AP mode
+        // WiFi scanning while AP is active causes watchdog crashes
+        // Default to generous timeout for all first-time setup scenarios
+        scenario = FIRST_SETUP;
+        Serial.println("🆕 FIRST SETUP MODE");
+        Serial.println("   Opening configuration portal for 10 minutes");
+        wifiManager.setConfigPortalTimeout(600); // 10 minutes - safe for all scenarios
+    }
+
+    // Retry loop with scenario-based timeout strategy
+    int maxAttempts = (scenario == ROUTER_REBOOT) ? MAX_WIFI_RETRIES : 1;
+    for (int attempt = 1; attempt <= maxAttempts && !connected; attempt++) {
+        Serial.printf("🔄 WiFi connection attempt %d of %d\n", attempt, maxAttempts);
 
         // Visual feedback: Trying to connect (all LEDs slow blinking green)
         showTryingToConnect();
 
-        // Set timeout: 30 seconds for retry attempts, indefinite for last attempt
-        if (attempt < MAX_WIFI_RETRIES) {
-            wifiManager.setConfigPortalTimeout(30); // 30 second timeout per attempt
-        } else {
-            wifiManager.setConfigPortalTimeout(0); // Last attempt: wait indefinitely in config portal
+        // Set timeout based on scenario
+        if (scenario == ROUTER_REBOOT) {
+            // ROUTER REBOOT: Exponential backoff - 30s, 60s, 120s, 240s → capped at 300s (5 min)
+            int timeout = min(30 * (int)pow(2, attempt - 1), 300);
+            wifiManager.setConfigPortalTimeout(timeout);
+            Serial.printf("   Portal timeout: %d seconds (exponential backoff for router reboot)\n", timeout);
+        } else if (scenario == HAS_CREDENTIALS) {
+            // HAS CREDENTIALS but connection failing - standard retry strategy
+            if (attempt < MAX_WIFI_RETRIES) {
+                wifiManager.setConfigPortalTimeout(30); // Quick retries
+            } else {
+                wifiManager.setConfigPortalTimeout(0); // Final attempt: indefinite
+            }
         }
+        // else: FIRST_SETUP and NEW_LOCATION timeouts already set above
 
         // Inject error message into portal if we have one
         if (lastWiFiError.length() > 0) {
@@ -1383,7 +1407,14 @@ void setup() {
             // Get SSID from WiFiManager (it stores the last attempted SSID)
             String attemptedSSID = WiFi.SSID();
             if (attemptedSSID.length() == 0) {
-                Serial.println("⚠️ No SSID stored - user may not have entered credentials");
+                Serial.println("⚠️ No SSID stored - user did not enter credentials during portal session");
+
+                // For FIRST_SETUP and NEW_LOCATION, restart to reopen portal
+                if (scenario == FIRST_SETUP || scenario == NEW_LOCATION) {
+                    Serial.println("🔄 Restarting to reopen configuration portal...");
+                    delay(3000);
+                    ESP.restart();
+                }
             } else {
                 Serial.printf("🔍 Diagnosing connection to: %s\n", attemptedSSID.c_str());
 
@@ -1415,9 +1446,11 @@ void setup() {
                 }
             }
 
-            if (attempt < MAX_WIFI_RETRIES) {
-                Serial.println("⏳ Same location - Waiting 5 seconds before retry...");
-                delay(5000);
+            // Retry delay for ROUTER_REBOOT and HAS_CREDENTIALS scenarios
+            if ((scenario == ROUTER_REBOOT || scenario == HAS_CREDENTIALS) && attempt < maxAttempts) {
+                int delaySeconds = (scenario == ROUTER_REBOOT) ? 10 : 5;
+                Serial.printf("⏳ Waiting %d seconds before retry...\n", delaySeconds);
+                delay(delaySeconds * 1000);
             }
         }
     }

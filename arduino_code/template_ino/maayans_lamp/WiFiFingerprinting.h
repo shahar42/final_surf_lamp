@@ -80,6 +80,11 @@ public:
         Serial.printf("✅ Fingerprint updated: %d neighbors stored\n", fingerprint.count);
     }
 
+    // Check if fingerprint data exists (first setup detection)
+    bool hasData() {
+        return fingerprint.count > 0;
+    }
+
     // Check if current environment matches stored fingerprint
     // Returns true if ANY neighbor SSID matches (same location)
     // Returns false if 0% match (moved to new house)

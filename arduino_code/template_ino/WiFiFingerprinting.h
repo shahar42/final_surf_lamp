@@ -7,12 +7,12 @@
 class WiFiFingerprinting {
 private:
     static const uint8_t MAX_NEIGHBORS = 4;
-    static const uint8_t MAX_SSID_LEN = 32;
+    static const uint8_t FINGERPRINT_MAX_SSID_LEN = 32;
 
     Preferences prefs;
 
     struct Fingerprint {
-        char neighbors[MAX_NEIGHBORS][MAX_SSID_LEN + 1];
+        char neighbors[MAX_NEIGHBORS][FINGERPRINT_MAX_SSID_LEN + 1];
         uint8_t count;
     } fingerprint;
 
@@ -29,8 +29,8 @@ public:
         for (uint8_t i = 0; i < fingerprint.count; i++) {
             String key = "n" + String(i);
             String ssid = prefs.getString(key.c_str(), "");
-            strncpy(fingerprint.neighbors[i], ssid.c_str(), MAX_SSID_LEN);
-            fingerprint.neighbors[i][MAX_SSID_LEN] = '\0';
+            strncpy(fingerprint.neighbors[i], ssid.c_str(), FINGERPRINT_MAX_SSID_LEN);
+            fingerprint.neighbors[i][FINGERPRINT_MAX_SSID_LEN] = '\0';
         }
         prefs.end();
 
@@ -60,8 +60,8 @@ public:
             // Skip empty SSIDs and our target network
             if (ssid.length() == 0 || ssid == targetSSID) continue;
 
-            strncpy(fingerprint.neighbors[fingerprint.count], ssid.c_str(), MAX_SSID_LEN);
-            fingerprint.neighbors[fingerprint.count][MAX_SSID_LEN] = '\0';
+            strncpy(fingerprint.neighbors[fingerprint.count], ssid.c_str(), FINGERPRINT_MAX_SSID_LEN);
+            fingerprint.neighbors[fingerprint.count][FINGERPRINT_MAX_SSID_LEN] = '\0';
             fingerprint.count++;
 
             Serial.printf("   + %s (%d dBm)\n", ssid.c_str(), WiFi.RSSI(i));
@@ -78,6 +78,11 @@ public:
         prefs.end();
 
         Serial.printf("✅ Fingerprint updated: %d neighbors stored\n", fingerprint.count);
+    }
+
+    // Check if fingerprint data exists (first setup detection)
+    bool hasData() {
+        return fingerprint.count > 0;
     }
 
     // Check if current environment matches stored fingerprint
