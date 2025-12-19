@@ -86,8 +86,8 @@ public:
     }
 
     // Check if current environment matches stored fingerprint
-    // Returns true if 75% of neighbors match (same location)
-    // Returns false if <75% match (moved to new house)
+    // Returns true if ANY neighbor SSID matches (same location)
+    // Returns false if 0% match (moved to new house)
     bool isSameLocation() {
         // No fingerprint stored = first boot or fresh install
         if (fingerprint.count == 0) {
@@ -103,38 +103,20 @@ public:
             return true;  // Conservative: don't force AP mode on scan failure
         }
 
-        // Count how many stored neighbors are visible
-        uint8_t matchCount = 0;
+        // Check for ANY match with stored neighbors
         for (int i = 0; i < numNetworks; i++) {
             String currentSSID = WiFi.SSID(i);
 
             for (uint8_t j = 0; j < fingerprint.count; j++) {
                 if (currentSSID == fingerprint.neighbors[j]) {
-                    Serial.printf("✅ Match found: '%s'\n", currentSSID.c_str());
-                    matchCount++;
-                    break;  // Found match, move to next network
+                    Serial.printf("✅ Match found: '%s' - SAME LOCATION\n", currentSSID.c_str());
+                    return true;
                 }
             }
         }
 
-        // Require 75% match to confirm same location
-        // 4 neighbors → need 3 matches
-        // 3 neighbors → need 2 matches
-        // 2 neighbors → need 1 match
-        // 1 neighbor  → need 1 match
-        uint8_t requiredMatches = (fingerprint.count == 1) ? 1 : ((fingerprint.count * 3) / 4);
-        if (requiredMatches == 0) requiredMatches = 1;  // Minimum 1 match required
-
-        bool isSame = matchCount >= requiredMatches;
-
-        Serial.printf("%s %d/%d matches (need %d) - %s\n",
-                      isSame ? "✅" : "❌",
-                      matchCount,
-                      fingerprint.count,
-                      requiredMatches,
-                      isSame ? "SAME LOCATION" : "NEW LOCATION (moved)");
-
-        return isSame;
+        Serial.println("❌ 0% match - NEW LOCATION (moved to new house)");
+        return false;
     }
 
     // Clear stored fingerprint (for factory reset)

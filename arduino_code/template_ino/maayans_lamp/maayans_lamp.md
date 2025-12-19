@@ -6,9 +6,9 @@
 - Wave period: 1 LED = 1 second
 
 ## LED Strip Mapping
-- Right strip (wave height): bottom LED 5 → top LED 27 (23 LEDs, FORWARD)
-- Middle strip (wind speed): bottom LED 58 → top LED 34 (25 LEDs, REVERSE)
-- Left strip (wave period): bottom LED 65 → top LED 86 (22 LEDs, FORWARD)
+- Right strip (wave height): bottom LED 3 → top LED 16 (14 LEDs, FORWARD)
+- Middle strip (wind speed): bottom LED 38 → top LED 21 (18 LEDs, REVERSE)
+- Left strip (wave period): bottom LED 41 → top LED 55 (15 LEDs, FORWARD)
 
 ## WiFi Configuration
 - **Retry attempts:** 10 (covers router boot time ~2-4 minutes)
