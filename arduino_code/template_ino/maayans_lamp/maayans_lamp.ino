@@ -151,6 +151,7 @@ struct SurfData {
     bool offHoursActive = false;
     bool sunsetTrigger = false;    // Backend signals sunset window (±15 min from sunset)
     int dayOfYear = 0;             // Day of year (1-365) for tracking animation state
+    float brightnessMultiplier = 0.6;  // User-configurable brightness (0.3=Low, 0.6=Mid, 1.0=High)
     unsigned long lastUpdate = 0;
     bool dataReceived = false;
     bool needsDisplayUpdate = false;  // Flag to trigger display refresh
@@ -1148,6 +1149,7 @@ bool processSurfData(const String &jsonData) {
     bool off_hours_active = doc["off_hours_active"] | false;
     bool sunset_animation = doc["sunset_animation"] | false;
     int day_of_year = doc["day_of_year"] | 0;
+    float brightness_multiplier = doc["brightness_multiplier"] | 0.6;
     String led_theme = doc["led_theme"] | "day";
 
     // Update theme if changed
@@ -1164,6 +1166,8 @@ bool processSurfData(const String &jsonData) {
     Serial.printf("   Wave Threshold: %d cm\n", wave_threshold_cm);
     Serial.printf("   Wind Speed Threshold: %d knots\n", wind_speed_threshold_knots);
     Serial.printf("   Quiet Hours Active: %s\n", quiet_hours_active ? "true" : "false");
+    Serial.printf("   Off Hours Active: %s\n", off_hours_active ? "true" : "false");
+    Serial.printf("   Brightness Multiplier: %.1f\n", brightness_multiplier);
     Serial.printf("   LED Theme: %s\n", currentTheme.c_str());
 
     // Calculate LED counts for logging
@@ -1187,6 +1191,7 @@ bool processSurfData(const String &jsonData) {
     lastSurfData.offHoursActive = off_hours_active;
     lastSurfData.sunsetTrigger = sunset_animation;
     lastSurfData.dayOfYear = day_of_year;
+    lastSurfData.brightnessMultiplier = brightness_multiplier;
     lastSurfData.lastUpdate = millis();
     lastSurfData.dataReceived = true;
     lastSurfData.needsDisplayUpdate = true;  // Signal to loop() that display needs refresh
@@ -1220,7 +1225,7 @@ void updateSurfDisplay() {
 
     // QUIET HOURS: Only top LED of each strip (secondary priority)
     if (lastSurfData.quietHoursActive) {
-        FastLED.setBrightness(BRIGHTNESS * 0.3); // Dim to 30% during quiet hours
+        FastLED.setBrightness(BRIGHTNESS * lastSurfData.brightnessMultiplier * 0.3); // User brightness + 30% dim for quiet hours
 
         // Calculate how many LEDs would be on during daytime
         int windSpeedLEDs = ledMapping.calculateWindLEDs(windSpeed);
@@ -1257,6 +1262,9 @@ void updateSurfDisplay() {
 
     // NORMAL MODE: Clear all LEDs first (including hidden LEDs between strips)
     FastLED.clear();
+
+    // Apply user brightness setting
+    FastLED.setBrightness(BRIGHTNESS * lastSurfData.brightnessMultiplier);
 
     // Calculate LED counts based on surf data using centralized mapping configuration
     int windSpeedLEDs = ledMapping.calculateWindLEDs(windSpeed);
@@ -1332,7 +1340,7 @@ void setup() {
 
     // Initialize single LED strip
     FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, TOTAL_LEDS);
-    FastLED.setBrightness(BRIGHTNESS);
+    FastLED.setBrightness(BRIGHTNESS * lastSurfData.brightnessMultiplier); // Default: 0.6 (Mid)
     FastLED.clear();
     FastLED.show();
 
