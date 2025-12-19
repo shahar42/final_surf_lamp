@@ -190,3 +190,35 @@ def update_led_theme():
     except Exception as e:
         logger.error(f"❌ Error updating LED theme: {e}")
         return {'success': False, 'message': f'Server error: {str(e)}'}, 500
+
+@bp.route("/update-brightness", methods=['POST'])
+@login_required
+@limiter.limit("30/minute")
+def update_brightness():
+    """Update user's global brightness multiplier"""
+    try:
+        data = request.get_json()
+        brightness = float(data.get('brightness'))
+        user_id = session.get('user_id')
+
+        # Validate brightness level (Low=0.3, Mid=0.6, High=1.0)
+        valid_levels = [0.3, 0.6, 1.0]
+        if brightness not in valid_levels:
+            return {'success': False, 'message': 'Invalid brightness level. Must be 0.3, 0.6, or 1.0'}, 400
+
+        db = SessionLocal()
+        try:
+            user = db.query(User).filter(User.user_id == user_id).first()
+            if user:
+                user.brightness_level = brightness
+                db.commit()
+                logger.info(f"✅ User {user.username} updated brightness to: {brightness}")
+                return {'success': True, 'message': f'Brightness updated successfully'}
+            else:
+                return {'success': False, 'message': 'User not found'}, 404
+        finally:
+            db.close()
+
+    except Exception as e:
+        logger.error(f"❌ Error updating brightness: {e}")
+        return {'success': False, 'message': f'Server error: {str(e)}'}, 500

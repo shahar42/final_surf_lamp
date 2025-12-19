@@ -69,6 +69,14 @@
             animation: softPulse 4s ease-in-out infinite; /* Assuming softPulse is defined or will be */
             vertical-align: middle; /* Align with text */
         }
+        .brightness-btn {
+            transition: all 0.3s ease;
+        }
+        .brightness-active {
+            background-color: rgba(59, 130, 246, 0.4) !important;
+            border-color: rgba(59, 130, 246, 0.6) !important;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+        }
         #locationSelect {
             background-color: rgba(10, 77, 104, 0.3);  /* Deep ocean blue with transparency */
             -webkit-appearance: none;
@@ -204,40 +212,6 @@
                 </div>
                 <div id="wind-threshold-status" class="text-sm text-white/80 mt-2"></div>
 
-                {% if off_hours_feature_enabled %}
-                <!-- Off Hours Configuration -->
-                <div class="pt-2 border-t border-white/20 space-y-3">
-                    <div class="flex justify-between items-center">
-                        <span class="text-white/80">Off Hours:</span>
-                        <div class="flex items-center space-x-2">
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" id="offHoursEnabled" class="sr-only peer"
-                                       {% if data.user.off_times_enabled %}checked{% endif %}>
-                                <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
-                            </label>
-                        </div>
-                    </div>
-                    <div class="space-y-3">
-                        <div>
-                            <label class="text-white/80 text-sm block mb-1">Start time:</label>
-                            <input type="time" id="offTimeStart"
-                                   value="{{ data.user.off_time_start if data.user.off_time_start else '22:00' }}"
-                                   class="bg-white/20 text-white rounded px-2 py-1 text-sm border border-white/30 w-full">
-                        </div>
-                        <div>
-                            <label class="text-white/80 text-sm block mb-1">End time:</label>
-                            <input type="time" id="offTimeEnd"
-                                   value="{{ data.user.off_time_end if data.user.off_time_end else '06:00' }}"
-                                   class="bg-white/20 text-white rounded px-2 py-1 text-sm border border-white/30 w-full">
-                        </div>
-                        <div class="text-right">
-                            <button id="updateOffTimes" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm text-white">Update</button>
-                        </div>
-                    </div>
-                    <div id="off-times-status" class="text-sm text-white/80 mt-2"></div>
-                </div>
-                {% endif %}
-
                 <div class="flex justify-between items-center pt-2 border-t border-white/20">
                     <span class="text-white/80">LED Colors:</span>
                     <div class="flex items-center space-x-2 w-32 justify-end">
@@ -352,21 +326,62 @@
         </div>
     </div>
 
-    <!-- System Information -->
+    <!-- Light Configuration -->
     <div class="max-w-6xl mx-auto mt-8">
         <div class="card rounded-2xl p-6 shadow-2xl">
-            <h2 class="text-xl font-bold text-white mb-4">System Information</h2>
+            <h2 class="text-xl font-bold text-white mb-4">Light Configuration</h2>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-white/80 text-sm">
-                <div>
-                    <span class="text-white/60">Lamp Last Updated:</span><br>
-                    <span class="text-white">{{ data.lamp.last_updated.strftime('%Y-%m-%d') }} UTC</span>
+            <div class="space-y-6">
+                <!-- Brightness Control -->
+                <div class="space-y-2">
+                    <span class="text-white/80 block mb-2">Brightness:</span>
+                    <div class="flex gap-3">
+                        <button data-brightness="0.3" class="brightness-btn flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-4 rounded-lg transition-all border border-white/20">
+                            Low
+                        </button>
+                        <button data-brightness="0.6" class="brightness-btn flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-4 rounded-lg transition-all border border-white/20 brightness-active">
+                            Mid
+                        </button>
+                        <button data-brightness="1.0" class="brightness-btn flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-4 rounded-lg transition-all border border-white/20">
+                            High
+                        </button>
+                    </div>
+                    <div id="brightness-status" class="text-sm text-white/80 mt-2"></div>
                 </div>
 
-                <div class="flex flex-col md:flex-row md:justify-between md:items-center">
-                    <span class="text-white/60">Update Frequency:</span>
-                    <span class="text-white">Every 30 minutes</span>
+                {% if off_hours_feature_enabled %}
+                <!-- Off Hours Configuration -->
+                <div class="pt-4 border-t border-white/20 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-white/80">Off Hours:</span>
+                        <div class="flex items-center space-x-2">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="offHoursEnabled" class="sr-only peer"
+                                       {% if data.user.off_times_enabled %}checked{% endif %}>
+                                <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-white/80 text-sm block mb-1">Start time:</label>
+                            <input type="time" id="offTimeStart"
+                                   value="{{ data.user.off_time_start if data.user.off_time_start else '22:00' }}"
+                                   class="bg-white/20 text-white rounded px-2 py-1 text-sm border border-white/30 w-full">
+                        </div>
+                        <div>
+                            <label class="text-white/80 text-sm block mb-1">End time:</label>
+                            <input type="time" id="offTimeEnd"
+                                   value="{{ data.user.off_time_end if data.user.off_time_end else '06:00' }}"
+                                   class="bg-white/20 text-white rounded px-2 py-1 text-sm border border-white/30 w-full">
+                        </div>
+                        <div class="text-right">
+                            <button id="updateOffTimes" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm text-white">Update</button>
+                        </div>
+                    </div>
+                    <div id="off-times-status" class="text-sm text-white/80 mt-2"></div>
                 </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -590,6 +605,52 @@
         .catch(error => {
             statusDiv.textContent = 'Network error. Please try again.';
             statusDiv.style.color = '#ef4444';
+        });
+    });
+
+    // Brightness Control
+    const currentBrightness = {{ data.user.brightness_level or 0.6 }};
+    document.querySelectorAll('.brightness-btn').forEach(btn => {
+        const brightness = parseFloat(btn.getAttribute('data-brightness'));
+
+        // Set initial active state
+        if (Math.abs(brightness - currentBrightness) < 0.01) {
+            btn.classList.add('brightness-active');
+        }
+
+        // Add click handler
+        btn.addEventListener('click', function() {
+            const selectedBrightness = parseFloat(this.getAttribute('data-brightness'));
+            const statusDiv = document.getElementById('brightness-status');
+
+            statusDiv.textContent = 'Updating...';
+            statusDiv.style.color = '#ffffff';
+
+            fetch('/update-brightness', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ brightness: selectedBrightness })
+            })
+            .then(response => response.json().then(data => ({ok: response.ok, body: data})))
+            .then(({ok, body}) => {
+                if (ok) {
+                    // Update active state
+                    document.querySelectorAll('.brightness-btn').forEach(b => b.classList.remove('brightness-active'));
+                    this.classList.add('brightness-active');
+
+                    statusDiv.textContent = body.message;
+                    statusDiv.style.color = '#10b981';
+                } else {
+                    statusDiv.textContent = 'Error: ' + body.message;
+                    statusDiv.style.color = '#ef4444';
+                }
+            })
+            .catch(error => {
+                statusDiv.textContent = 'Network error. Please try again.';
+                statusDiv.style.color = '#ef4444';
+            });
         });
     });
 

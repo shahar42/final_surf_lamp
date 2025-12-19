@@ -35,6 +35,7 @@ def dashboard():
             'preferred_output': user.preferred_output,
             'wave_threshold_m': user.wave_threshold_m or 1.0,
             'wind_threshold_knots': user.wind_threshold_knots or 22.0,
+            'brightness_level': getattr(user, 'brightness_level', 0.6),
             'off_times_enabled': getattr(user, 'off_times_enabled', False),
             'off_time_start': getattr(user, 'off_time_start', None),
             'off_time_end': getattr(user, 'off_time_end', None)
