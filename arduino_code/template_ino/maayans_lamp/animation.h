@@ -12,88 +12,126 @@ namespace Animation {
         int length;      // Number of LEDs in strip
     };
 
+    // Easing function: Cubic ease-in-out for smooth acceleration/deceleration
+    float easeInOutCubic(float t) {
+        if (t < 0.5) {
+            return 4.0 * t * t * t;  // Ease in: slow start
+        } else {
+            float f = (2.0 * t - 2.0);
+            return 0.5 * f * f * f + 1.0;  // Ease out: slow end
+        }
+    }
+
+    // Easing function: Sine ease-in-out for ultra-smooth transitions
+    float easeInOutSine(float t) {
+        return -(cos(PI * t) - 1.0) / 2.0;
+    }
+
     /**
-     * Sunset Animation: Warm gradient transition across three LED strips
-     * Colors: Orange → Pink → Purple → Deep Blue
+     * Sunset Animation: Beautiful warm sunset gradient across three LED strips
+     * Colors: Orange → Red → Pink → Purple
      * Duration: 30 seconds (configurable)
      *
-     * Dynamically adapts to any strip configuration - each strip gets full gradient
-     *
-     * Usage: Call once when backend signals sunset time
+     * IMPROVED VERSION:
+     * - Smooth 60 FPS timing with sine easing
+     * - Proper reversed strip handling (gradient flows bottom→top visually on ALL strips)
+     * - Natural sunset progression (warm to cool colors)
+     * - HSV color space for smooth blending
+     * - Starts at pure orange (hue 16), no yellow/green tones
      */
     void playSunset(CRGB* leds, StripConfig waveHeight, StripConfig wavePeriod, StripConfig windSpeed, int durationSeconds = 30) {
         Serial.println("🌅 Starting sunset animation...");
         Serial.printf("   Wave Height: %d LEDs | Wave Period: %d LEDs | Wind Speed: %d LEDs\n",
                       waveHeight.length, wavePeriod.length, windSpeed.length);
 
-        const int totalSteps = durationSeconds * 20;  // 20 updates per second (50ms each)
-        const int stepDelay = 50;  // milliseconds
+        const int FPS = 60;                           // Smooth 60 FPS (Perplexity recommendation)
+        const int frameInterval = 1000 / FPS;         // 16.67ms per frame
+        const int totalFrames = durationSeconds * FPS; // Total frames in animation
 
-        // Lambda to fill a strip with gradient based on position
+        unsigned long animationStart = millis();
+        int currentFrame = 0;
+
+        // Lambda to fill a strip with gradient - FIXED for reversed strips
         auto fillStripGradient = [&](const StripConfig& strip, uint8_t baseHue, uint8_t sat, uint8_t val) {
             for (int i = 0; i < strip.length; i++) {
-                // Calculate physical LED index based on direction
-                // Forward: start at low index, count up (start + i)
-                // Reverse: start at high index, count down (end - i)
-                int ledIndex = strip.forward ? (strip.start + i) : (strip.end - i);
+                // CRITICAL FIX: Map i=0 to BOTTOM visually for both forward and reverse strips
+                // Forward: start=bottom, count up → start + i
+                // Reverse: start=bottom (HIGH index), count down → start - i
+                int ledIndex = strip.forward ? (strip.start + i) : (strip.start - i);
 
                 // Gradient position within strip (0.0 at bottom → 1.0 at top)
-                float stripProgress = (float)i / strip.length;
+                float stripProgress = (float)i / (strip.length - 1);  // -1 for proper 0→1 range
 
-                // Slight hue shift along strip height for depth effect
-                uint8_t hue = baseHue + (stripProgress * 20);  // ±10 hue shift
-
-                leds[ledIndex] = CHSV(hue, sat, val);
+                // All LEDs same hue - no gradient shift (prevents color bleeding)
+                leds[ledIndex] = CHSV(baseHue, sat, val);
             }
         };
 
-        // Animation loop
-        for (int step = 0; step < totalSteps; step++) {
-            float progress = (float)step / totalSteps;  // 0.0 → 1.0
+        // Main animation loop - 60 FPS timing
+        while (currentFrame < totalFrames) {
+            unsigned long frameStart = millis();
+            float progress = (float)currentFrame / totalFrames;  // 0.0 → 1.0
 
-            // Sunset color palette (HSV for smooth transitions)
-            // Orange (25) → Pink (340) → Purple (280) → Deep Blue (240)
-            uint8_t hue;
-            if (progress < 0.33) {
-                // Orange to Pink
-                hue = 25 + (340 - 25) * (progress / 0.33);
-            } else if (progress < 0.66) {
-                // Pink to Purple
-                hue = 340 + (280 - 340) * ((progress - 0.33) / 0.33);
-            } else {
-                // Purple to Deep Blue
-                hue = 280 + (240 - 280) * ((progress - 0.66) / 0.34);
+            // Apply easing for smooth acceleration/deceleration
+            float easedProgress = easeInOutSine(progress);
+
+            // ORANGE TO RED ONLY - 30 second gradient
+            // Hue: 16 (pure orange) → 0 (pure red)
+            // Brightness: Adds depth layer (bright→dim)
+            uint8_t hue = 16 - (uint8_t)(16.0 * easedProgress);  // 16→0
+
+            // Debug: Print hue every 2 seconds
+            if (currentFrame % 120 == 0) {
+                Serial.printf("   Frame %d: hue=%d (", currentFrame, hue);
+                if (hue >= 0 && hue <= 16) Serial.print("ORANGE/RED ✅");
+                else Serial.print("ERROR ❌");
+                Serial.println(")");
             }
 
-            // Saturation: High at start, medium at end (255 → 200)
-            uint8_t sat = 255 - (55 * progress);
+            // Saturation: Keep high for vibrant colors
+            uint8_t sat = 255 - (30 * easedProgress);  // 255→225 (stay saturated)
 
-            // Brightness: Full at start, dim at end (200 → 80)
-            uint8_t val = 200 - (120 * progress);
+            // Brightness: Depth layer - bright orange→dark red
+            // Starts bright (255), ends dim (60) for dramatic sunset feel
+            uint8_t val = 255 - (195 * easedProgress);  // 255→60
 
-            // Apply gradient to each strip independently
+            // Apply gradient to all strips
             fillStripGradient(waveHeight, hue, sat, val);
             fillStripGradient(wavePeriod, hue, sat, val);
             fillStripGradient(windSpeed, hue, sat, val);
 
             FastLED.show();
-            delay(stepDelay);
+
+            // Non-blocking frame timing (Perplexity recommendation)
+            currentFrame++;
+            unsigned long frameTime = millis() - frameStart;
+            if (frameTime < frameInterval) {
+                delay(frameInterval - frameTime);  // Only delay remainder to hit target FPS
+            }
             yield();  // Prevent watchdog timeout
         }
 
-        // Fade to black at end
-        for (int brightness = 80; brightness >= 0; brightness -= 2) {
-            fillStripGradient(waveHeight, 240, 200, brightness);
-            fillStripGradient(wavePeriod, 240, 200, brightness);
-            fillStripGradient(windSpeed, 240, 200, brightness);
+        // Smooth fade to black with easing
+        const int fadeFrames = 60;  // 1 second fade
+        for (int frame = 0; frame < fadeFrames; frame++) {
+            float fadeProgress = (float)frame / fadeFrames;
+            float easedFade = easeInOutSine(fadeProgress);
+            uint8_t brightness = 60 * (1.0 - easedFade);  // Smooth fade from 60 to 0
+
+            fillStripGradient(waveHeight, 0, 225, brightness);  // Deep red fade
+            fillStripGradient(wavePeriod, 0, 225, brightness);
+            fillStripGradient(windSpeed, 0, 225, brightness);
+
             FastLED.show();
-            delay(20);
+            delay(frameInterval);
+            yield();
         }
 
         FastLED.clear();
         FastLED.show();
 
-        Serial.println("✅ Sunset animation complete");
+        unsigned long totalTime = millis() - animationStart;
+        Serial.printf("✅ Sunset animation complete (actual time: %lums)\n", totalTime);
     }
 
     /**

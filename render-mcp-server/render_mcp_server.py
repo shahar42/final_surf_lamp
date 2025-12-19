@@ -10,8 +10,9 @@ import asyncio
 import subprocess
 import json
 import logging
+import re
 from typing import Any, Dict, List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 # MCP imports
 from mcp.server.fastmcp import FastMCP
@@ -165,7 +166,7 @@ async def render_deployments(service_id: Optional[str] = None, limit: int = 10) 
     Get recent deployment history for a Render service.
 
     Args:
-        service_id: Service name or ID (e.g., 'final-surf-lamp-web' or 'srv-xxx'). Defaults to first web service.
+        service_id: Service name or ID - use render_list_all_services() first if unknown. Defaults to first web service.
         limit: Number of recent deployments to show (max 50)
 
     Returns:
@@ -250,7 +251,7 @@ async def render_service_status(service_id: Optional[str] = None) -> str:
     Get current service status and health information.
 
     Args:
-        service_id: Render service ID (defaults to configured SERVICE_ID)
+        service_id: Service name or ID - use render_list_all_services() first if unknown
 
     Returns:
         Current service status and details (timestamps in UTC - add 3 hours for Israel time)
@@ -822,6 +823,67 @@ async def render_get_service_instances(service_id: Optional[str] = None) -> str:
 # (Most tools removed to reduce token usage - kept only essential ones)
 
 @mcp.tool()
+async def render_get_env_vars(service_id: Optional[str] = None, show_values: bool = False) -> str:
+    """
+    Get environment variables for a Render service.
+
+    Args:
+        service_id: Service name or ID (e.g., 'final-surf-lamp-web' or 'srv-xxx'). Defaults to first web service.
+        show_values: If False (default), masks sensitive values. Set True to show actual values.
+
+    Returns:
+        List of environment variables with their keys and optionally values
+    """
+    try:
+        target_service_id = await get_service_id(service_id)
+        if not target_service_id:
+            return "❌ No service found. Please specify a service name or ID."
+
+        url = f"{RENDER_BASE_URL}/v1/services/{target_service_id}/env-vars"
+        response = await run_curl(url)
+
+        env_vars = response if isinstance(response, list) else []
+
+        if not env_vars:
+            return f"ENV VARS: No environment variables found for service {target_service_id}"
+
+        formatted = []
+        formatted.append(f"ENV VARS: Environment Variables for {target_service_id}")
+        formatted.append("═" * 70)
+        formatted.append("")
+
+        # Sensitive keywords to mask
+        sensitive_keywords = ['KEY', 'SECRET', 'PASSWORD', 'PASS', 'TOKEN', 'CREDENTIAL']
+
+        for env_var_obj in env_vars:
+            env_var = env_var_obj.get('envVar', {})
+            key = env_var.get('key', 'Unknown')
+            value = env_var.get('value', '')
+
+            # Determine if this is sensitive
+            is_sensitive = any(keyword in key.upper() for keyword in sensitive_keywords)
+
+            if show_values or not is_sensitive:
+                # Show full value (or first 50 chars if too long)
+                display_value = value[:50] + ('...' if len(value) > 50 else '')
+            else:
+                # Mask sensitive values
+                display_value = '***'
+
+            formatted.append(f"{key}: {display_value}")
+
+        formatted.append("")
+        formatted.append(f"Total: {len(env_vars)} environment variables")
+
+        if not show_values:
+            formatted.append("(Sensitive values masked. Use show_values=True to see actual values)")
+
+        return "\n".join(formatted)
+
+    except Exception as e:
+        return f"ERROR: Error fetching environment variables: {str(e)}"
+
+@mcp.tool()
 async def render_delete_service(service_id: str) -> str:
     """
     DELETE: Delete a Render service permanently.
@@ -865,7 +927,7 @@ async def render_logs(
     Get recent service runtime logs.
 
     Args:
-        service_id: Service name or ID (e.g., 'final-surf-lamp-web' or 'srv-xxx')
+        service_id: Service name or ID - use render_list_all_services() first if unknown
         limit: Number of recent log entries to show (max 100)
         service_type: Either 'web' or 'background' to choose default service type if no ID specified
 
@@ -1038,11 +1100,109 @@ async def render_recent_errors(
         return "\n".join(formatted)
 
     except Exception as e:
-        return f"ERROR: Error fetching error logs: {str(e)}"
-
+        return f"ERROR: Error fetching recent errors: {str(e)}"
 
 @mcp.tool()
-async def render_latest_deployment_logs(service_id: Optional[str] = None, lines: int = 30) -> str:
+async def check_active_arduinos(minutes: int = 20) -> str:
+    """
+    MONITORING: Check for actively polling Arduinos in the last N minutes by analyzing Render logs.
+    
+    Args:
+        minutes: Time window in minutes (default 20)
+        
+    Returns:
+        List of active Arduino IDs found in the logs.
+    """
+    try:
+        # 1. Get Web Service ID
+        services = await fetch_all_services()
+        
+        # Target the specific main web service
+        target_service = next(
+            (s for s in services.values() if s.get('name') == 'final-surf-lamp-web'),
+            None
+        )
+        
+        # Fallback to any web service if specific one not found
+        if not target_service:
+            web_services = [s for s in services.values() if s.get('type') == 'web_service']
+            if not web_services:
+                return "❌ No web service found."
+            target_service = web_services[0]
+            
+        target_service_id = target_service['id']
+        
+        # 2. Fetch logs (limit 200)
+        limit = 200
+        url = f"{RENDER_BASE_URL}/v1/logs?ownerId={OWNER_ID}&resource={target_service_id}&limit={limit}"
+        response = await run_curl(url)
+        
+        logs = response.get('logs', [])
+        if not logs:
+            return "No logs found."
+            
+        # 3. Parse logs
+        active_devices = {}
+        cutoff_time = datetime.now(timezone.utc) - timedelta(minutes=minutes)
+        
+        # Regex for "GET /api/arduino/<ID>/data"
+        pattern = re.compile(r"GET /api/arduino/(\d+)/data")
+        
+        for log in logs:
+            timestamp_str = log.get('timestamp')
+            message = log.get('message', '')
+            
+            # Parse timestamp
+            try:
+                # 2025-12-15T00:10:28Z -> datetime
+                dt = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+            except:
+                continue
+                
+            if dt < cutoff_time:
+                continue # Log is too old
+                
+            match = pattern.search(message)
+            if match:
+                arduino_id = match.group(1)
+                # Store latest timestamp for this ID
+                if arduino_id not in active_devices:
+                    active_devices[arduino_id] = dt
+                elif dt > active_devices[arduino_id]:
+                    active_devices[arduino_id] = dt
+                    
+        # 4. Format output
+        current_time = datetime.now(timezone.utc)
+        if not active_devices:
+            return f"No active Arduinos found in logs from the last {minutes} minutes (checked at {current_time.strftime('%H:%M:%S')} UTC)."
+            
+        result = [f"Found {len(active_devices)} active Arduinos (checked at {current_time.strftime('%H:%M:%S')} UTC):"]
+        result.append(f"| {'ID':<5} | {'Last Seen (UTC)':<15} | {'Ago':<10} |")
+        result.append(f"|{'-'*7}|{'-'*17}|{'-'*12}|")
+        
+        for aid, last_seen in sorted(active_devices.items(), key=lambda x: int(x[0])):
+            diff = current_time - last_seen
+            total_seconds = int(diff.total_seconds())
+            
+            if total_seconds < 0:
+                ago = f"in {-total_seconds}s" # Future timestamp handling
+            elif total_seconds < 60:
+                ago = f"{total_seconds}s"
+            else:
+                ago = f"{total_seconds // 60}m {total_seconds % 60}s"
+                
+            result.append(f"| {aid:<5} | {last_seen.strftime('%H:%M:%S'):<15} | {ago:<10} |")
+            
+        return "\n".join(result)
+
+    except Exception as e:
+        return f"ERROR: {str(e)}"
+
+@mcp.tool()
+async def render_latest_deployment_logs(
+    service_id: Optional[str] = None,
+    lines: int = 50
+) -> str:
     """
     Get logs from the most recent deployment for debugging deployment issues.
 
