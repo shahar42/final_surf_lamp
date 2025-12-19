@@ -1,9 +1,18 @@
 import logging
 import time
+import sys
+import os
 from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify
 from data_base import SessionLocal, Lamp, CurrentConditions, User, ErrorReport
 from utils.helpers import is_quiet_hours, is_off_hours
+
+# Add processor path to import sunset calculator
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+processor_path = os.path.join(os.path.dirname(parent_dir), 'surf-lamp-processor')
+sys.path.insert(0, processor_path)
+from sunset_calculator import get_sunset_info
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +126,10 @@ def get_arduino_surf_data(arduino_id):
             elif quiet_hours_active:
                 logger.info(f"🌙 Quiet hours active for {user.location} - threshold alerts disabled")
 
+            # Calculate sunset info for user's location
+            sunset_info = get_sunset_info(user.location, trigger_window_minutes=15)
+            logger.info(f"🌅 Sunset info: trigger={sunset_info['sunset_trigger']}, day={sunset_info['day_of_year']}")
+
             # If no conditions yet, return zeros (safe defaults)
             if not conditions:
                 logger.info(f"ℹ️ No surf conditions yet for Arduino {arduino_id}, returning defaults")
@@ -130,6 +143,8 @@ def get_arduino_surf_data(arduino_id):
                     'led_theme': user.theme or 'day',
                     'quiet_hours_active': quiet_hours_active,
                     'off_hours_active': off_hours_active,
+                    'sunset_animation': sunset_info['sunset_trigger'],
+                    'day_of_year': sunset_info['day_of_year'],
                     'last_updated': '1970-01-01T00:00:00Z',
                     'data_available': False
                 }
@@ -145,6 +160,8 @@ def get_arduino_surf_data(arduino_id):
                     'led_theme': user.theme or 'day',
                     'quiet_hours_active': quiet_hours_active,
                     'off_hours_active': off_hours_active,
+                    'sunset_animation': sunset_info['sunset_trigger'],
+                    'day_of_year': sunset_info['day_of_year'],
                     'last_updated': conditions.last_updated.isoformat() if conditions.last_updated else '1970-01-01T00:00:00Z',
                     'data_available': True
                 }

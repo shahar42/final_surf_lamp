@@ -2,16 +2,16 @@
  * SURF LAMP - MAAYAN'S LAMP (ID 6)
  *
  * CONFIGURATION:
- * - Total LEDs: 87 (indices 0-86)
- * - Wave Height (right): LEDs 5→27 (23 LEDs, FORWARD)
- * - Wind Speed (middle): LEDs 58→34 (25 LEDs, REVERSE)
- * - Wave Period (left): LEDs 65→86 (22 LEDs, FORWARD)
+ * - Total LEDs: 56 (indices 0-55)
+ * - Wave Height (right): LEDs 3→16 (14 LEDs, FORWARD)
+ * - Wind Speed (middle): LEDs 38→21 (18 LEDs, REVERSE)
+ * - Wave Period (left): LEDs 41→55 (15 LEDs, FORWARD)
  * - Max Wave Height: 3.0 meters
  * - Max Wind Speed: 35 knots (18.0 m/s)
  * - Wave Period: 1 LED = 1 second
  *
  * Based on configuration-driven template v2.0.0
- * Created: 2025-12-17
+ * Created: 2025-12-17 by shahar
  */
 
 #include <WiFi.h>
@@ -24,40 +24,42 @@
 
 #include "ServerDiscovery.h"
 #include "WiFiFingerprinting.h"
+#include "animation.h"
 
 // Global instances
 ServerDiscovery serverDiscovery;
 WiFiManager wifiManager;
 WiFiFingerprinting fingerprinting;
+Animation::SunsetTracker sunsetTracker;
 
 // ---------------- DEVICE IDENTITY ----------------
 const int ARDUINO_ID = 6;  // Maayan's Lamp ID
 
 // ---------------- HARDWARE SETUP ----------------
 #define LED_PIN 2              // GPIO pin connected to LED strip data line
-#define TOTAL_LEDS 87          // Total number of LEDs in the physical strip
+#define TOTAL_LEDS 56          // Total number of LEDs in the physical strip
 #define LED_TYPE WS2812B       // LED chipset type
 #define COLOR_ORDER GRB        // Color order for your LED strip
-#define BRIGHTNESS 90          // Global brightness (0-255)
+#define BRIGHTNESS 75           // Global brightness (0-255)
 
 // ---------------- LED STRIP MAPPING ----------------
 // Define the physical LED indices for each strip (bottom = where strip starts, top = where it ends)
 // Direction is auto-detected: if bottom < top = FORWARD, if bottom > top = REVERSE
 
 // Wave Height Strip (Right Side)
-#define WAVE_HEIGHT_BOTTOM 5
-#define WAVE_HEIGHT_TOP 27
+#define WAVE_HEIGHT_BOTTOM 3
+#define WAVE_HEIGHT_TOP 16
 
 // Wave Period Strip (Left Side)
-#define WAVE_PERIOD_BOTTOM 65
-#define WAVE_PERIOD_TOP 86
+#define WAVE_PERIOD_BOTTOM 42
+#define WAVE_PERIOD_TOP 55
 
 // Wind Speed Strip (Center)
-#define WIND_SPEED_BOTTOM 58   // Bottom LED = Status indicator
-#define WIND_SPEED_TOP 34      // Top LED = Wind direction indicator
+#define WIND_SPEED_BOTTOM 38   // Bottom LED = Status indicator
+#define WIND_SPEED_TOP 21      // Top LED = Wind direction indicator
 
 // ---------------- SURF DATA SCALING ----------------
-// These values determine how surf conditions map to LED counts
+
 
 #define MAX_WAVE_HEIGHT_METERS 3.0   // Maximum wave height to display (meters)
 #define MAX_WIND_SPEED_MPS 18.0      // Maximum wind speed to display (m/s) - 35 knots
@@ -66,10 +68,9 @@ const int ARDUINO_ID = 6;  // Maayan's Lamp ID
 // ---------------- WAVE ANIMATION ----------------
 // Controls the blinking/wave effect when thresholds are exceeded
 
-#define WAVE_BRIGHTNESS_MIN_PERCENT 50   // Minimum brightness during wave animation (0-100%)
-#define WAVE_BRIGHTNESS_MAX_PERCENT 110  // Maximum brightness during wave animation (0-100%)
-#define WAVE_LENGTH_SIDE 10.0            // Wave length for side strips (LEDs per cycle)
-#define WAVE_LENGTH_CENTER 12.0          // Wave length for center strip (LEDs per cycle)
+#define WAVE_BRIGHTNESS_MIN_PERCENT 45   // Minimum brightness during wave animation (0-100%)
+#define WAVE_BRIGHTNESS_MAX_PERCENT 100  // Maximum brightness during wave animation (0-100%)
+#define WAVE_LENGTH_MULTIPLIER 0.7       // Wave length as % of strip length (0.7 = 70% of strip)
 #define WAVE_SPEED_MULTIPLIER 1.2        // Animation speed multiplier (higher = faster)
 
 // ============================================================================================
@@ -148,6 +149,8 @@ struct SurfData {
     int windSpeedThreshold = 15;
     bool quietHoursActive = false;
     bool offHoursActive = false;
+    bool sunsetTrigger = false;    // Backend signals sunset window (±15 min from sunset)
+    int dayOfYear = 0;             // Day of year (1-365) for tracking animation state
     unsigned long lastUpdate = 0;
     bool dataReceived = false;
     bool needsDisplayUpdate = false;  // Flag to trigger display refresh
@@ -160,9 +163,12 @@ struct WaveConfig {
     // Parameters loaded from admin configuration
     uint8_t brightness_min_percent = WAVE_BRIGHTNESS_MIN_PERCENT;
     uint8_t brightness_max_percent = WAVE_BRIGHTNESS_MAX_PERCENT;
-    float wave_length_side = WAVE_LENGTH_SIDE;
-    float wave_length_center = WAVE_LENGTH_CENTER;
     float wave_speed = WAVE_SPEED_MULTIPLIER;
+
+    // Wave lengths calculated dynamically based on strip length
+    // Scales animation to match lamp size: longer strips = longer waves
+    float wave_length_side = (WAVE_HEIGHT_LENGTH + WAVE_PERIOD_LENGTH) / 2.0 * WAVE_LENGTH_MULTIPLIER;
+    float wave_length_center = WIND_SPEED_LENGTH * WAVE_LENGTH_MULTIPLIER;
 
     // Calculated properties
     float getBaseIntensity() const {
@@ -197,8 +203,9 @@ struct LEDMappingConfig {
 
     // Helper: Calculate wave height LEDs from centimeters (used by updateSurfDisplay)
     int calculateWaveLEDsFromCm(int waveHeight_cm) const {
+        // Round to nearest LED: add half divisor before dividing
         return constrain(
-            static_cast<int>(waveHeight_cm / wave_height_divisor) + 1,  // +1 ensures at least 1 LED
+            static_cast<int>((waveHeight_cm + wave_height_divisor / 2) / wave_height_divisor),
             0,
             WAVE_HEIGHT_LENGTH
         );
@@ -570,9 +577,10 @@ void showAPMode() {
     }
 
     // Wind Speed (Center): White
-    for (int i = 0; i < WIND_SPEED_LENGTH; i++) {
-        int index = WIND_SPEED_FORWARD ? (WIND_SPEED_START + i) : (WIND_SPEED_START - i);
-        leds[index] = CRGB::White;
+    int wind_min = min(WIND_SPEED_BOTTOM, WIND_SPEED_TOP);
+    int wind_max = max(WIND_SPEED_BOTTOM, WIND_SPEED_TOP);
+    for (int i = wind_min; i <= wind_max; i++) {
+        leds[i] = CRGB::White;
     }
 
     // Wave Period (Left): Green
@@ -630,13 +638,13 @@ void updateWavePeriodLEDs(int numActiveLeds, CHSV color) {
     }
 }
 
-// *** Wind Speed Strip (LEDs 101-59, REVERSE) ***
+// *** Wind Speed Strip (ALWAYS REVERSE - hardware constraint) ***
 void updateWindSpeedLEDs(int numActiveLeds, CHSV color) {
-    // Wind strip runs BACKWARDS: 101 (bottom) -> 59 (top)
-    // Skip LED 101 (status) and LED 59 (wind direction)
+    // Wind strip is ALWAYS REVERSE due to physical LED routing in lamp
+    // Skip LED at WIND_SPEED_BOTTOM (status) and LED at WIND_SPEED_TOP (wind direction)
 
     for (int i = 1; i < WIND_SPEED_LENGTH - 1; i++) {
-        int index = WIND_SPEED_START - i;  // Count backwards from 101
+        int index = WIND_SPEED_BOTTOM - i;  // Always count down (hardware constraint)
         int ledPosition = i - 1;  // Logical position (0-based)
 
         if (ledPosition < numActiveLeds) {
@@ -647,16 +655,16 @@ void updateWindSpeedLEDs(int numActiveLeds, CHSV color) {
     }
 }
 
-// *** Wind Speed Strip with Blinking (threshold exceeded) ***
+// *** Wind Speed Strip with Blinking (threshold exceeded, ALWAYS REVERSE) ***
 void updateBlinkingWindSpeedLEDs(int numActiveLeds, CHSV baseColor) {
     const float minBrightness = waveConfig.brightness_min_percent / 100.0;
     const float maxBrightness = waveConfig.brightness_max_percent / 100.0;
 
-    // Wind strip runs BACKWARDS: 101 -> 59
-    // Skip LED 101 (status) and LED 59 (wind direction)
+    // Wind strip is ALWAYS REVERSE due to physical LED routing in lamp
+    // Skip LED at WIND_SPEED_BOTTOM (status) and LED at WIND_SPEED_TOP (wind direction)
 
     for (int i = 1; i < WIND_SPEED_LENGTH - 1; i++) {
-        int index = WIND_SPEED_START - i;  // Count backwards
+        int index = WIND_SPEED_BOTTOM - i;  // Always count down (hardware constraint)
         int ledPosition = i - 1;  // Logical position
 
         if (ledPosition < numActiveLeds) {
@@ -1138,6 +1146,8 @@ bool processSurfData(const String &jsonData) {
     int wind_speed_threshold_knots = doc["wind_speed_threshold_knots"] | 15;
     bool quiet_hours_active = doc["quiet_hours_active"] | false;
     bool off_hours_active = doc["off_hours_active"] | false;
+    bool sunset_animation = doc["sunset_animation"] | false;
+    int day_of_year = doc["day_of_year"] | 0;
     String led_theme = doc["led_theme"] | "day";
 
     // Update theme if changed
@@ -1175,6 +1185,8 @@ bool processSurfData(const String &jsonData) {
     lastSurfData.windSpeedThreshold = wind_speed_threshold_knots;
     lastSurfData.quietHoursActive = quiet_hours_active;
     lastSurfData.offHoursActive = off_hours_active;
+    lastSurfData.sunsetTrigger = sunset_animation;
+    lastSurfData.dayOfYear = day_of_year;
     lastSurfData.lastUpdate = millis();
     lastSurfData.dataReceived = true;
     lastSurfData.needsDisplayUpdate = true;  // Signal to loop() that display needs refresh
@@ -1224,7 +1236,7 @@ void updateSurfDisplay() {
         // Light only the top LED using correct indices
         // Wind: top = lowest index in reverse strip
         if (windSpeedLEDs > 0) {
-            int topWindIndex = WIND_SPEED_START - windSpeedLEDs;
+            int topWindIndex = WIND_SPEED_BOTTOM - windSpeedLEDs;
             leds[topWindIndex] = getWindSpeedColor(currentTheme);
         }
         // Wave height: top = highest index
@@ -1552,6 +1564,37 @@ void loop() {
             Serial.println("🔄 Detected state change, updating display...");
             updateSurfDisplay();
             lastSurfData.needsDisplayUpdate = false;  // Clear the flag
+        }
+
+        // *** SUNSET ANIMATION: Check if sunset trigger is active ***
+        if (sunsetTracker.shouldPlay(lastSurfData.sunsetTrigger, lastSurfData.dayOfYear)) {
+            Serial.println("🌅 Sunset detected - playing animation");
+
+            // Create strip configurations from constants
+            Animation::StripConfig waveHeight = {
+                WAVE_HEIGHT_START,
+                WAVE_HEIGHT_END,
+                WAVE_HEIGHT_FORWARD,
+                WAVE_HEIGHT_LENGTH
+            };
+            Animation::StripConfig wavePeriod = {
+                WAVE_PERIOD_START,
+                WAVE_PERIOD_END,
+                WAVE_PERIOD_FORWARD,
+                WAVE_PERIOD_LENGTH
+            };
+            Animation::StripConfig windSpeed = {
+                WIND_SPEED_START,
+                WIND_SPEED_END,
+                WIND_SPEED_FORWARD,
+                WIND_SPEED_LENGTH
+            };
+
+            // Play 30-second sunset animation
+            Animation::playSunset(leds, waveHeight, wavePeriod, windSpeed, 30);
+
+            // Refresh surf display after animation completes
+            lastSurfData.needsDisplayUpdate = true;
         }
 
         // Update blinking LEDs if any thresholds are exceeded
