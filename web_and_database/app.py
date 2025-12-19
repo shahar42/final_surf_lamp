@@ -2,8 +2,9 @@ from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
 from config import configure_app
 from utils.helpers import convert_wind_direction
+from flask import redirect, url_for
 from blueprints import (
-    landing, auth, dashboard, api_user,
+    auth, dashboard, api_user,
     api_arduino, api_chat, reports, admin
 )
 
@@ -20,7 +21,6 @@ def create_app():
     app.jinja_env.filters['wind_direction'] = convert_wind_direction
 
     # Register blueprints
-    app.register_blueprint(landing.bp)
     app.register_blueprint(auth.bp)
     app.register_blueprint(dashboard.bp)
     app.register_blueprint(api_user.bp)
@@ -28,6 +28,11 @@ def create_app():
     app.register_blueprint(api_chat.bp)
     app.register_blueprint(reports.bp)
     app.register_blueprint(admin.bp)
+
+    # Root route redirects to dashboard (which auto-redirects to login if not logged in)
+    @app.route('/')
+    def index():
+        return redirect(url_for('dashboard.dashboard'))
 
     return app
 
