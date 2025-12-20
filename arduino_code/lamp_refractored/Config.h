@@ -35,7 +35,7 @@ const int ARDUINO_ID = 6;  // Unique lamp ID from database (must match backend)
 #define WAVE_HEIGHT_TOP 16     // Last LED index of wave height strip
 
 // Wave Period Strip (Left Side in typical lamp orientation)
-#define WAVE_PERIOD_BOTTOM 42  // First LED index of wave period strip
+#define WAVE_PERIOD_BOTTOM 41  // First LED index of wave period strip
 #define WAVE_PERIOD_TOP 55     // Last LED index of wave period strip
 
 // Wind Speed Strip (Center)
