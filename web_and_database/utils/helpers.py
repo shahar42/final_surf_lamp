@@ -5,6 +5,32 @@ from data_base import LOCATION_TIMEZONES
 
 logger = logging.getLogger(__name__)
 
+def get_current_tz_offset(user_location):
+    """
+    Get current UTC offset in hours for user's location.
+    Automatically handles DST transitions.
+
+    Args:
+        user_location: User's location string (e.g., "Tel Aviv, Israel")
+
+    Returns:
+        int: UTC offset in hours (e.g., 2 for IST winter, 3 for IDT summer)
+    """
+    if not user_location or user_location not in LOCATION_TIMEZONES:
+        logger.warning(f"Location '{user_location}' not in LOCATION_TIMEZONES, defaulting to UTC+2")
+        return 2
+
+    try:
+        timezone_str = LOCATION_TIMEZONES[user_location]
+        local_tz = pytz.timezone(timezone_str)
+        now = datetime.now(local_tz)
+        offset_seconds = now.utcoffset().total_seconds()
+        offset_hours = int(offset_seconds / 3600)
+        return offset_hours
+    except Exception as e:
+        logger.warning(f"Error calculating tz_offset for {user_location}: {e}")
+        return 2
+
 def is_quiet_hours(user_location, quiet_start_hour=22, quiet_end_hour=6):
     """
     Check if current time in user's location is within quiet hours (sleep time).
