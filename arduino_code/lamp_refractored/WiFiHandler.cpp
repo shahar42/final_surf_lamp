@@ -190,8 +190,8 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
         // Default to generous timeout for all first-time setup scenarios
         scenario = FIRST_SETUP;
         Serial.println("🆕 FIRST SETUP MODE");
-        Serial.println("   Opening configuration portal for 10 minutes");
-        wifiManager.setConfigPortalTimeout(600); // 10 minutes - safe for all scenarios
+        Serial.println("   Opening configuration portal for 17 minutes");
+        wifiManager.setConfigPortalTimeout(1020); // 17 minutes - safe for all scenarios
     }
 
     // Retry loop with scenario-based timeout strategy
@@ -204,14 +204,14 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
 
         // Set timeout based on scenario
         if (scenario == ROUTER_REBOOT) {
-            // ROUTER REBOOT: Exponential backoff - 30s, 60s, 120s, 240s → capped at 300s (5 min)
-            int timeout = min(30 * (int)pow(2, attempt - 1), 300);
+            // ROUTER REBOOT: Exponential backoff - capped at 17 minutes
+            int timeout = min(30 * (int)pow(2, attempt - 1), 1020);
             wifiManager.setConfigPortalTimeout(timeout);
             Serial.printf("   Portal timeout: %d seconds (exponential backoff for router reboot)\n", timeout);
         } else if (scenario == HAS_CREDENTIALS) {
             // HAS CREDENTIALS but connection failing - standard retry strategy
             if (attempt < MAX_WIFI_RETRIES) {
-                wifiManager.setConfigPortalTimeout(30); // Quick retries
+                wifiManager.setConfigPortalTimeout(1020); // 17 minutes
             } else {
                 wifiManager.setConfigPortalTimeout(0); // Final attempt: indefinite
             }
