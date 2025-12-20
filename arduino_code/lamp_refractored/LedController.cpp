@@ -169,6 +169,17 @@ void blinkRedLED()    { blinkStatusLED(CRGB::Red);    }
 void blinkYellowLED() { blinkStatusLED(CRGB::Yellow); }
 void blinkOrangeLED() { blinkStatusLED(CRGB::Orange); }
 
+void showNoDataConnected() {
+    static unsigned long lastUpdate = 0;
+    
+    // Limit refresh rate to 10Hz to avoid excessive CPU/LED updates
+    if (millis() - lastUpdate >= 100) {
+        fill_solid(leds, TOTAL_LEDS, CRGB::Green);
+        FastLED.show();
+        lastUpdate = millis();
+    }
+}
+
 void showTryingToConnect() {
     static unsigned long lastUpdate = 0;
     static float phase = 0.0;

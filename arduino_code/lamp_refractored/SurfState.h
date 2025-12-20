@@ -45,8 +45,9 @@ struct SurfData {
     // Operating modes (mutually exclusive priority: off_hours > quiet_hours > normal)
     bool quietHoursActive = false;    // Sleep mode: only top LED of each strip on
     bool offHoursActive = false;      // Off mode: lamp completely dark (highest priority)
-    bool sunsetTrigger = false;       // Backend signals sunset window (±15 min from sunset)
-    int dayOfYear = 0;                // Day of year (1-365) for tracking animation state
+    // Legacy fields (removed in V2 - sunset calculated autonomously by SunsetCalculator)
+    // bool sunsetTrigger = false;
+    // int dayOfYear = 0;
 
     // State tracking
     unsigned long lastUpdate = 0;     // Timestamp of last data update (millis)

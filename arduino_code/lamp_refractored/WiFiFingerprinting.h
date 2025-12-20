@@ -90,9 +90,10 @@ public:
     // Returns false if <75% match (moved to new house)
     bool isSameLocation() {
         // No fingerprint stored = first boot or fresh install
+        // OR isolated location (no neighbors ever found)
         if (fingerprint.count == 0) {
-            Serial.println("⚠️ No fingerprint stored (first boot)");
-            return false;
+            Serial.println("⚠️ No fingerprint stored - assuming same location");
+            return true;
         }
 
         Serial.println("🔍 Checking if same location...");
@@ -117,13 +118,9 @@ public:
             }
         }
 
-        // Require 75% match to confirm same location
-        // 4 neighbors → need 3 matches
-        // 3 neighbors → need 2 matches
-        // 2 neighbors → need 1 match
-        // 1 neighbor  → need 1 match
-        uint8_t requiredMatches = (fingerprint.count == 1) ? 1 : ((fingerprint.count * 3) / 4);
-        if (requiredMatches == 0) requiredMatches = 1;  // Minimum 1 match required
+        // Require 20% match to confirm same location (as requested)
+        uint8_t requiredMatches = (fingerprint.count * 20) / 100;
+        if (requiredMatches < 1) requiredMatches = 1;  // Minimum 1 match required
 
         bool isSame = matchCount >= requiredMatches;
 

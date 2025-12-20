@@ -7,6 +7,7 @@
 #include "WebServerHandler.h"
 #include "LedController.h"
 #include "ServerDiscovery.h"
+#include "SunsetCalculator.h"
 
 // Global timing variables (defined here, declared extern in header)
 unsigned long lastDataFetch = 0;
@@ -18,6 +19,9 @@ static WebServer* webServer = nullptr;
 
 // File-static server discovery reference (set in main .ino, accessed via extern)
 extern ServerDiscovery serverDiscovery;
+
+// Sunset calculator (defined in main .ino)
+extern SunsetCalculator sunsetCalc;
 
 // WiFi diagnostic state (accessed via extern from WiFiHandler)
 extern String lastWiFiError;
@@ -271,10 +275,18 @@ bool processSurfData(const String& jsonData) {
     int wind_speed_threshold_knots = doc["wind_speed_threshold_knots"] | 15;
     bool quiet_hours_active = doc["quiet_hours_active"] | false;
     bool off_hours_active = doc["off_hours_active"] | false;
-    bool sunset_animation = doc["sunset_animation"] | false;
-    int day_of_year = doc["day_of_year"] | 0;
     float brightness_multiplier = doc["brightness_multiplier"] | 0.6;
     String led_theme = doc["led_theme"] | "classic_surf";
+
+    // V2 API: Extract location coordinates for autonomous sunset calculation
+    float latitude = doc["latitude"] | 0.0;
+    float longitude = doc["longitude"] | 0.0;
+    int8_t tz_offset = doc["tz_offset"] | 0;
+
+    // Update coordinates in sunset calculator (writes to flash only if changed)
+    if (latitude != 0.0 && longitude != 0.0) {
+        sunsetCalc.updateCoordinates(latitude, longitude, tz_offset);
+    }
 
     Serial.println("🌊 Surf Data Received:");
     Serial.printf("   Wave Height: %d cm\n", wave_height_cm);
@@ -306,8 +318,6 @@ bool processSurfData(const String& jsonData) {
     lastSurfData.windSpeedThreshold = wind_speed_threshold_knots;
     lastSurfData.quietHoursActive = quiet_hours_active;
     lastSurfData.offHoursActive = off_hours_active;
-    lastSurfData.sunsetTrigger = sunset_animation;
-    lastSurfData.dayOfYear = day_of_year;
     lastSurfData.brightnessMultiplier = brightness_multiplier;
     lastSurfData.theme = led_theme;
     lastSurfData.lastUpdate = millis();
@@ -327,7 +337,7 @@ bool fetchSurfDataFromServer() {
     HTTPClient http;
     WiFiClientSecure client;
 
-    String url = "https://" + apiServer + "/api/arduino/" + String(ARDUINO_ID) + "/data";
+    String url = "https://" + apiServer + "/api/arduino/v2/" + String(ARDUINO_ID) + "/data";
     Serial.println("🌐 Fetching surf data from: " + url);
 
     client.setInsecure();
@@ -339,7 +349,16 @@ bool fetchSurfDataFromServer() {
 
     if (httpCode == HTTP_CODE_OK) {
         String payload = http.getString();
+
+        // Extract Date header for time synchronization
+        String dateHeader = http.header("Date");
         http.end();
+
+        if (dateHeader.length() > 0) {
+            Serial.println("📅 HTTP Date: " + dateHeader);
+            sunsetCalc.parseAndUpdateTime(dateHeader);
+            sunsetCalc.calculateSunset();
+        }
 
         Serial.println("📥 Received surf data from server");
         return processSurfData(payload);

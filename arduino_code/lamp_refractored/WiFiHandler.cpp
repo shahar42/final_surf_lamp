@@ -290,7 +290,23 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
         Serial.printf("   Last SSID attempted: %s\n", WiFi.SSID().c_str());
         Serial.printf("   Last error: %s\n", lastWiFiError.c_str());
         Serial.printf("   Disconnect reason code: %d\n", lastDisconnectReason);
-        return false;
+        
+        // CRITICAL FIX: Do not return false to restart. 
+        // Instead, open the portal indefinitely so the user can fix the bad credentials.
+        Serial.println("🔓 Starting Configuration Portal (Indefinite Wait)...");
+        wifiManager.setConfigPortalTimeout(0); // Indefinite timeout
+        
+        // Visual feedback: AP Mode
+        showAPMode();
+        
+        if (!wifiManager.startConfigPortal("SurfLamp-Setup", "surf123456")) {
+             Serial.println("❌ Failed to connect in forced AP mode");
+             // Only return false if even manual configuration failed/timed out (shouldn't happen with timeout 0)
+             return false;
+        }
+        
+        Serial.println("✅ Connected via forced AP mode!");
+        connected = true;
     }
 
     Serial.println("✅ WiFi Connected!");

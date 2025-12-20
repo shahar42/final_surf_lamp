@@ -45,6 +45,7 @@
 
 #include "ServerDiscovery.h"     // API server discovery
 #include "WiFiFingerprinting.h"  // WiFi location detection
+#include "SunsetCalculator.h"    // Autonomous sunset calculation
 #include "animation.h"           // Sunset animation
 
 // ==================== GLOBAL INSTANCES ====================
@@ -53,7 +54,7 @@ WebServer server(80);
 ServerDiscovery serverDiscovery;
 WiFiManager wifiManager;
 WiFiFingerprinting fingerprinting;
-Animation::SunsetTracker sunsetTracker;
+SunsetCalculator sunsetCalc;     // Autonomous sunset calculator (V2)
 
 // ==================== GLOBAL STATE ====================
 // These are defined here and declared extern in module headers
@@ -133,9 +134,9 @@ void loop() {
         lastSurfData.needsDisplayUpdate = false;
     }
 
-    // Sunset animation (if triggered by backend)
-    if (sunsetTracker.shouldPlay(lastSurfData.sunsetTrigger, lastSurfData.dayOfYear)) {
-        Serial.println("🌅 Sunset detected - playing animation");
+    // Autonomous sunset animation (V2 - calculated locally)
+    if (sunsetCalc.isSunsetTime()) {
+        Serial.println("🌅 Sunset detected - playing animation (autonomous mode)");
 
         // Create strip configurations from constants
         Animation::StripConfig waveHeight = {
@@ -160,6 +161,9 @@ void loop() {
         // Play 30-second sunset animation
         Animation::playSunset(leds, waveHeight, wavePeriod, windSpeed, 30);
 
+        // Mark sunset as played (prevents repeat during 30-min window)
+        sunsetCalc.markSunsetPlayed();
+
         // Refresh surf display after animation completes
         lastSurfData.needsDisplayUpdate = true;
     }
@@ -172,15 +176,15 @@ void loop() {
     if (lastSurfData.dataReceived && dataAge < DATA_STALENESS_THRESHOLD) {
         blinkGreenLED();   // ✅ Fresh data (< 30 min old)
     } else {
-        blinkOrangeLED();  // ⚠️ Stale data or server unreachable
+        showNoDataConnected();  // 🟢 All Green - Connected but no data/stale
 
         // Log staleness periodically (every 60 seconds)
         static unsigned long lastStaleLog = 0;
         if (millis() - lastStaleLog > 60000) {
             if (!lastSurfData.dataReceived) {
-                Serial.println("⚠️ Status: ORANGE - No data received yet");
+                Serial.println("⚠️ Status: GREEN (was ORANGE) - No data received yet");
             } else {
-                Serial.printf("⚠️ Status: ORANGE - Data is %lu min old (threshold: %lu min)\n",
+                Serial.printf("⚠️ Status: GREEN (was ORANGE) - Data is %lu min old (threshold: %lu min)\n",
                               dataAge / 60000, DATA_STALENESS_THRESHOLD / 60000);
             }
             lastStaleLog = millis();

@@ -69,29 +69,14 @@ void setStatusLED(CRGB color);
  */
 void blinkStatusLED(CRGB color);
 
-// Status LED convenience wrappers (semantic naming for different states)
-void blinkBlueLED();    // WiFi connecting
-void blinkGreenLED();   // Connected and operational (fresh data)
-void blinkRedLED();     // WiFi disconnected / error
-void blinkYellowLED();  // Configuration portal active
+// Status Patterns
+void blinkBlueLED();    // Connecting to WiFi
+void blinkGreenLED();   // Data is fresh
+void blinkRedLED();     // WiFi disconnected
+void blinkYellowLED();  // Config mode active
 void blinkOrangeLED();  // Stale data / server issues
-
-/**
- * Show AP Mode pattern
- * Right strip = Red, Center strip = White, Left strip = Green
- */
-void showAPMode();
-
-/**
- * Show "Trying to Connect" pattern
- * All LEDs slow blinking green
- */
+void showNoDataConnected(); // Connected but no data (All Green)
 void showTryingToConnect();
-
-/**
- * Show "Checking Location" pattern
- * All LEDs slow blinking purple
- */
 void showCheckingLocation();
 
 // ---------------- DATA DISPLAY FUNCTIONS ----------------
