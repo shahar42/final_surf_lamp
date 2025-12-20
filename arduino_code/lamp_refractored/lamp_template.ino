@@ -46,6 +46,7 @@
 #include "ServerDiscovery.h"     // API server discovery
 #include "WiFiFingerprinting.h"  // WiFi location detection
 #include "SunsetCalculator.h"    // Autonomous sunset calculation
+#include "DualCoreManager.h"     // Dual-core task management
 #include "animation.h"           // Sunset animation
 
 // ==================== GLOBAL INSTANCES ====================
@@ -93,7 +94,7 @@ void setup() {
     Serial.println("🚀 Surf Lamp ready for operation!");
     Serial.printf("📍 Device accessible at: http://%s\n", WiFi.localIP().toString().c_str());
 
-    // Try to fetch surf data immediately on startup
+    // Try to fetch surf data immediately on startup (before Core 0 task starts)
     Serial.println("🔄 Attempting initial surf data fetch...");
     if (fetchSurfDataFromServer()) {
         Serial.println("✅ Initial surf data fetch successful");
@@ -101,6 +102,9 @@ void setup() {
     } else {
         Serial.println("⚠️ Initial surf data fetch failed, will retry later");
     }
+
+    // Start dual-core architecture (Core 0 = Network, Core 1 = LEDs)
+    DualCore::startDualCoreTasks();
 }
 
 // ==================== MAIN LOOP ====================
@@ -115,28 +119,19 @@ void loop() {
     // Monitor WiFi health and reconnect if needed
     handleWiFiHealth();
 
-    // Periodic surf data fetch (every 13 minutes)
-    if (millis() - lastDataFetch > FETCH_INTERVAL) {
-        Serial.println("🔄 Time to fetch new surf data...");
-        if (fetchSurfDataFromServer()) {
-            Serial.println("✅ Surf data fetch successful");
-            lastDataFetch = millis();
-        } else {
-            Serial.println("❌ Surf data fetch failed, will retry later");
-            lastDataFetch = millis(); // Still update to avoid rapid retries
-        }
-    }
+    // NOTE: Network fetching now happens on Core 0 (Network Secretary)
+    // No need to call fetchSurfDataFromServer() here - Core 0 handles it
 
     // Update display if state changed (decoupled architecture)
     if (lastSurfData.needsDisplayUpdate) {
-        Serial.println("🔄 Detected state change, updating display...");
+        Serial.println("🔄 [Core 1] Detected state change, updating display...");
         updateSurfDisplay();
         lastSurfData.needsDisplayUpdate = false;
     }
 
-    // Autonomous sunset animation (V2 - calculated locally)
-    if (sunsetCalc.isSunsetTime()) {
-        Serial.println("🌅 Sunset detected - playing animation (autonomous mode)");
+    // Autonomous sunset animation (V2 - calculated locally, checked on Core 1)
+    if (DualCore::isSunsetTimeNow()) {
+        Serial.println("🌅 [Core 1] Sunset detected - playing animation (autonomous mode)");
 
         // Create strip configurations from constants
         Animation::StripConfig waveHeight = {
@@ -158,11 +153,11 @@ void loop() {
             WIND_SPEED_LENGTH
         };
 
-        // Play 30-second sunset animation
+        // Play 30-second sunset animation (Core 1 - never blocks)
         Animation::playSunset(leds, waveHeight, wavePeriod, windSpeed, 30);
 
-        // Mark sunset as played (prevents repeat during 30-min window)
-        sunsetCalc.markSunsetPlayed();
+        // Mark sunset as played (thread-safe atomic update)
+        DualCore::markSunsetPlayed();
 
         // Refresh surf display after animation completes
         lastSurfData.needsDisplayUpdate = true;

@@ -49,6 +49,8 @@ public:
 
     // Utility
     int getDayOfYear(int year, int month, int day);
+    int getSunsetMinutesSinceMidnight() const { return sunsetMinutesSinceMidnight; }
+    bool wasSunsetPlayedToday() const { return sunsetPlayedToday; }
 
     // Debug
     void printStatus();
