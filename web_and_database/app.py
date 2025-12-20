@@ -5,7 +5,7 @@ from utils.helpers import convert_wind_direction
 from flask import redirect, url_for
 from blueprints import (
     auth, dashboard, api_user,
-    api_arduino, api_chat, reports, admin
+    api_arduino, api_chat, reports, admin, landing
 )
 
 def create_app():
@@ -21,6 +21,7 @@ def create_app():
     app.jinja_env.filters['wind_direction'] = convert_wind_direction
 
     # Register blueprints
+    app.register_blueprint(landing.bp)
     app.register_blueprint(auth.bp)
     app.register_blueprint(dashboard.bp)
     app.register_blueprint(api_user.bp)
