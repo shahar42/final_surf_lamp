@@ -53,8 +53,7 @@ void playStartupAnimation() {
     };
 
     // Execute the animation using the shared Animation module
-    // This allows the animation logic to be reused or updated in one place
-    Animation::playStartupTide(leds, waveHeight, wavePeriod, windSpeed);
+    Animation::playStartupTide(leds, waveHeight, wavePeriod, windSpeed, SUNRISE_OVERLAP_SECONDS);
 }
 
 void testAllStatusLEDStates() {
