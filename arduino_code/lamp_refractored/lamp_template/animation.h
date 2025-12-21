@@ -135,83 +135,74 @@ namespace Animation {
     }
 
     /**
-     * Startup Animation: "The Rising Tide"
-     * A professional fluid simulation where deep ocean water fills the lamp.
+     * Startup Animation: "The Living Tide"
+     * An advanced fluid simulation with realistic physics and texture.
      * Features:
-     * - Cubic Easing: Slow start, energetic surge, slow cresting.
-     * - Water Texture: Perlin noise (inoise8) for organic shimmering.
-     * - Deep Ocean Gradient: Indigo (bottom) to Aqua (surface).
-     * - Foam Crest: Bright white/cyan edge at the rising waterline.
+     * - Compound Easing: Cubic rise combined with a gentle sine wave for oscillation.
+     * - Dynamic Texture: Perlin noise turbulence changes from calm to active.
+     * - Realistic Ocean Gradient: Deep Indigo (140) to Tropical Teal (96).
+     * - Flickering Crest: Random brightness pulses on the foam.
      */
     inline void playStartupTide(CRGB* leds, StripConfig waveHeight, StripConfig wavePeriod, StripConfig windSpeed) {
-        Serial.println("🌊 Starting 'The Rising Tide' animation...");
+        Serial.println("🌊 Starting 'The Living Tide' animation...");
         FastLED.clear();
 
         const int FPS = 60;
-        const int durationSeconds = 3; 
+        const int durationSeconds = 20; 
         const int totalFrames = durationSeconds * FPS;
         const int frameInterval = 1000 / FPS;
 
-        // Animation Loop
         for (int frame = 0; frame < totalFrames; frame++) {
             unsigned long frameStart = millis();
             float t = (float)frame / totalFrames; // 0.0 to 1.0
+            uint32_t ms = millis();
 
-            // 1. Fluid Physics: Cubic In-Out Easing
-            // Simulates viscous fluid: heavy start, surge, then slowing surface tension
-            float ease = (t < 0.5) ? 4.0 * t * t * t : 1.0 - pow(-2.0 * t + 2.0, 3.0) / 2.0;
-            
-            // 2. Water Texture Parameters
-            // Slow rolling noise to make water feel "liquid"
-            uint16_t noiseScale = 20;
-            uint32_t noiseTime = millis() / 3;
+            // 1. ADVANCED PHYSICS: Compound Easing (Cubic + Sine Oscillation)
+            float riseLevel = easeInOutCubic(t);
+            float breath = sinf(t * PI * 4.0) * 0.03 * (1.0 - t); // Gentle oscillation that dampens at the end
+            float finalLevel = constrain(riseLevel + breath, 0.0, 1.0);
+
+            // 2. DYNAMIC TEXTURE: Noise parameters change over time
+            float turbulence = easeInOutCubic(t < 0.5 ? 2*t : 1); // Becomes turbulent faster
+            uint16_t noiseScale = lerp16by16(30, 80, turbulence * 65535);
+            uint32_t noiseTime = ms / lerp8by8(10, 2, turbulence * 255);
+
+            uint8_t masterBrightnessScale = 204; // 80% of 255
 
             auto drawTideOnStrip = [&](const StripConfig& strip) {
-                // Current water level for this strip (0.0 to length)
-                float waterLevel = ease * strip.length;
+                float waterLevel = finalLevel * strip.length;
                 int crestIndex = (int)waterLevel;
 
                 for (int i = 0; i < strip.length; i++) {
-                    // Physical LED index logic
-                    // Forward: Start=0, End=15 -> i=0 is Bottom (Start+0)
-                    // Reverse: Start=21, End=38 -> i=0 is Bottom (End-0)
                     int ledIndex = strip.forward ? (strip.start + i) : (strip.end - i);
 
                     if (i <= crestIndex) {
-                        // A. Deep Ocean Gradient
-                        // Map position 0->1 to Hue 160 (Deep Blue) -> 130 (Aqua)
-                        // 'i' is the vertical height from bottom
-                        uint8_t hue = map(i, 0, strip.length, 160, 130);
+                        // A. OCEAN GRADIENT: Deep Indigo (140) -> Tropical Teal (96)
+                        uint8_t hue = map(i, 0, strip.length, 140, 96);
                         
-                        // B. Water Texture (Perlin Noise)
-                        // Adds 10-20% brightness variance for "shimmer"
+                        // B. DYNAMIC TEXTURE: Shimmering water
                         uint8_t noise = inoise8(i * noiseScale, noiseTime);
-                        uint8_t brightness = scale8(255, 200 + (noise / 5)); // 200-255 range
+                        uint8_t baseBrightness = scale8(255, 180 + (noise / 3));
 
-                        // C. Foam Crest
-                        // The top 2-3 LEDs get whiter and brighter
-                        if (i >= crestIndex - 2) {
-                            // Foam is white/cyan
-                            leds[ledIndex] = CHSV(120, 100 - (i - (crestIndex - 2)) * 40, 255);
+                        // C. FLICKERING CREST
+                        if (i >= crestIndex - 2 && crestIndex > 0) {
+                            uint8_t flicker = random8(200, 255);
+                            leds[ledIndex] = CHSV(110, 80, scale8(flicker, masterBrightnessScale));
                         } else {
-                            // Deep water body
-                            leds[ledIndex] = CHSV(hue, 255, brightness);
+                            leds[ledIndex] = CHSV(hue, 255, scale8(baseBrightness, masterBrightnessScale));
                         }
                     } else {
-                        // Above water
                         leds[ledIndex] = CRGB::Black;
                     }
                 }
             };
 
-            // Render all 3 strips
             drawTideOnStrip(waveHeight);
             drawTideOnStrip(wavePeriod);
             drawTideOnStrip(windSpeed);
 
             FastLED.show();
 
-            // Frame timing
             unsigned long frameTime = millis() - frameStart;
             if (frameTime < frameInterval) delay(frameInterval - frameTime);
         }
