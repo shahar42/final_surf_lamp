@@ -193,25 +193,17 @@ namespace Animation {
             unsigned long frameStart = millis();
             float t = (float)frame / totalFrames;
 
-            // Introduce a time offset for a wave-like effect
-            const float offset = 0.03; // ~600ms difference
-            float centerTime = t;
-            float rightTime = constrain(t - offset, 0.0, 1.0);
-            float leftTime = constrain(t + offset, 0.0, 1.0);
-
-            // Calculate distinct water levels for each strip
-            float centerLevel = calculateLevelForTime(centerTime);
-            float rightLevel = calculateLevelForTime(rightTime);
-            float leftLevel = calculateLevelForTime(leftTime);
+            // Calculate a single, unified water level for all strips
+            float finalLevel = calculateLevelForTime(t);
             
             // Define brightness differential
             const uint8_t centerBrightness = 230; // ~90%
             const uint8_t sideBrightness = 178;   // ~70%
 
-            // Render each strip with its own water level and brightness
-            drawTideOnStrip(windSpeed, centerLevel, centerBrightness);
-            drawTideOnStrip(waveHeight, rightLevel, sideBrightness);
-            drawTideOnStrip(wavePeriod, leftLevel, sideBrightness);
+            // Render each strip with the same water level but different brightness
+            drawTideOnStrip(windSpeed, finalLevel, centerBrightness);
+            drawTideOnStrip(waveHeight, finalLevel, sideBrightness);
+            drawTideOnStrip(wavePeriod, finalLevel, sideBrightness);
 
             FastLED.show();
 
