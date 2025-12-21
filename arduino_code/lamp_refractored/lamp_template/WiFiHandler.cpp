@@ -389,17 +389,28 @@ void handleWiFiHealth() {
 }
 
 void handleWiFiResetButton(WiFiManager& wifiManager) {
-    // Check for button press to reset WiFi (check every 1 second)
-    static unsigned long lastButtonCheck = 0;
-    unsigned long now = millis();
+    static unsigned long buttonPressTime = 0;
+    bool isPressed = (digitalRead(BUTTON_PIN) == LOW);
 
-    if (now - lastButtonCheck >= 1000) {
-        lastButtonCheck = now;
-        if (digitalRead(BUTTON_PIN) == LOW) {
-            Serial.println("🔘 Button pressed - resetting WiFi");
+    if (isPressed) {
+        // Button is currently being held down
+        if (buttonPressTime == 0) {
+            // This is the moment the button was first pressed
+            buttonPressTime = millis();
+            Serial.println("🔘 Button press detected. Hold for 2 seconds to reset WiFi...");
+        } else if (millis() - buttonPressTime >= 2000) {
+            // Button has been held for 2 seconds
+            Serial.println("🔘 Button held for 2 seconds. Resetting WiFi now!");
             wifiManager.resetSettings(); // Wipe credentials
-            delay(500);
+            delay(500); // Allow serial message to send
             ESP.restart();
         }
+    } else {
+        // Button is not pressed, so reset the timer
+        if (buttonPressTime > 0) {
+            // This indicates the button was released before the 2s mark
+            Serial.println("🔘 Button released before reset triggered.");
+        }
+        buttonPressTime = 0;
     }
 }
