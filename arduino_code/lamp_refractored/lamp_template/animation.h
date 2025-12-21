@@ -143,16 +143,21 @@ namespace Animation {
      * - Realistic Ocean Gradient: Deep Indigo (140) to Tropical Teal (96).
      * - Flickering Crest: Random brightness pulses on the foam.
      */
+    // Easing function: Cubic ease-in for 'slow start, fast end'
+    inline float easeInCubic(float t) {
+        return t * t * t;
+    }
+
+    /**
+     * Startup Animation: "The Living Tide" - Final Version
+     * A 23s, 2-phase sequence: a 20s tide rise followed by a 3s sunrise crest.
+     */
     inline void playStartupTide(CRGB* leds, StripConfig waveHeight, StripConfig wavePeriod, StripConfig windSpeed) {
-        Serial.println("🌊 Starting 'The Living Tide' animation...");
+        Serial.println("🌊 Starting 'The Living Tide' v3 (23s) animation...");
         FastLED.clear();
 
         const int FPS = 60;
         const int frameInterval = 1000 / FPS;
-
-        // --- Part 1: Tide Rise (20 seconds) ---
-        const int tideDuration = 20; 
-        const int tideFrames = tideDuration * FPS;
 
         auto calculateLevelForTime = [](float t) {
             float riseLevel = easeInOutCubic(t);
@@ -171,12 +176,10 @@ namespace Animation {
 
             for (int i = 0; i < tideLength; i++) {
                 int ledIndex = strip.forward ? (strip.start + i) : (strip.end - i);
-
                 if (i <= crestIndex) {
                     uint8_t hue = map(i, 0, tideLength, 140, 96);
                     int tempBrightness = 180 + (inoise8(i * noiseScale, noiseTime) / 3);
                     uint8_t baseBrightness = min(tempBrightness, 255);
-
                     if (i >= crestIndex - 2 && crestIndex > 0) {
                         uint8_t flicker = random8(200, 255);
                         leds[ledIndex] = CHSV(110, 80, scale8(flicker, brightnessScale));
@@ -189,11 +192,14 @@ namespace Animation {
             }
         };
 
+        // --- Part 1: Tide Rise (20 seconds) ---
+        const int tideDuration = 20; 
+        const int tideFrames = tideDuration * FPS;
         for (int frame = 0; frame < tideFrames; frame++) {
             unsigned long frameStart = millis();
             float t = (float)frame / tideFrames;
 
-            // Explicitly keep top LEDs off during tide rise
+            // Keep top LEDs off
             leds[waveHeight.forward ? waveHeight.end : waveHeight.start] = CRGB::Black;
             leds[wavePeriod.forward ? wavePeriod.end : wavePeriod.start] = CRGB::Black;
             leds[windSpeed.forward ? windSpeed.end : windSpeed.start] = CRGB::Black;
@@ -207,23 +213,22 @@ namespace Animation {
             drawTideOnStrip(wavePeriod, finalLevel, sideBrightness);
 
             FastLED.show();
-
             unsigned long frameTime = millis() - frameStart;
             if (frameTime < frameInterval) delay(frameInterval - frameTime);
         }
         
         Serial.println("🌊 Tide rise complete. Starting sunrise on crest...");
 
-        // --- Part 2: Sunrise on Crest (5 seconds) ---
-        const int sunriseDuration = 5;
+        // --- Part 2: Sunrise on Crest (3 seconds) ---
+        const int sunriseDuration = 3;
         const int sunriseFrames = sunriseDuration * FPS;
-
         for (int frame = 0; frame < sunriseFrames; frame++) {
             unsigned long frameStart = millis();
             float t = (float)frame / sunriseFrames;
+            float eased_t = easeInCubic(t); // Apply Ease-In curve
 
-            uint8_t sunHue = lerp8by8(0, 60, t * 255); // Red -> Yellow
-            uint8_t sunBrightness = lerp8by8(80, 255, easeInOutCubic(t) * 255); // Dim -> Bright, with easing
+            uint8_t sunHue = lerp8by8(0, 60, eased_t * 255); // Red -> Yellow
+            uint8_t sunBrightness = lerp8by8(80, 255, eased_t * 255); // Dim -> Bright
             CHSV sunColor = CHSV(sunHue, 255, sunBrightness);
 
             int whTopIndex = waveHeight.forward ? waveHeight.end : waveHeight.start;
@@ -235,7 +240,6 @@ namespace Animation {
             leds[wsTopIndex] = sunColor;
 
             FastLED.show();
-
             unsigned long frameTime = millis() - frameStart;
             if (frameTime < frameInterval) delay(frameInterval - frameTime);
         }
