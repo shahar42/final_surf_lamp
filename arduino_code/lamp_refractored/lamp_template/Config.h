@@ -31,7 +31,7 @@ const int ARDUINO_ID = 6;  // Unique lamp ID from database (must match backend)
 // Direction is auto-detected: if bottom < top = FORWARD, if bottom > top = REVERSE
 
 // Wave Height Strip (Right Side in typical lamp orientation)
-#define WAVE_HEIGHT_BOTTOM 3   // First LED index of wave height strip
+#define WAVE_HEIGHT_BOTTOM 2   // First LED index of wave height strip
 #define WAVE_HEIGHT_TOP 16     // Last LED index of wave height strip
 
 // Wave Period Strip (Left Side in typical lamp orientation)
