@@ -165,10 +165,10 @@ void handleTestRequest() {
 }
 
 void handleLEDTestRequest() {
-    Serial.println("🧪 LED test requested via HTTP");
-    performLEDTest();
+    Serial.println("🧪 Startup animation test requested via HTTP");
+    playStartupAnimation();
 
-    webServer->send(200, "application/json", "{\"status\":\"ok\",\"message\":\"LED test completed\"}");
+    webServer->send(200, "application/json", "{\"status\":\"ok\",\"message\":\"Startup animation played\"}");
 }
 
 void handleStatusLEDTestRequest() {
