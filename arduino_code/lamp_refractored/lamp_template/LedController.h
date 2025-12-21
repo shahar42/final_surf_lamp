@@ -37,10 +37,10 @@ extern CRGB leds[TOTAL_LEDS];
 void initializeLEDs();
 
 /**
- * Perform LED test sequence on startup
- * Tests each strip with different colors, then rainbow animation
+ * Play startup animation ("The Rising Tide")
+ * A professional fluid simulation where deep ocean water fills the lamp.
  */
-void performLEDTest();
+void playStartupAnimation();
 
 /**
  * Test all status LED error states
@@ -78,6 +78,7 @@ void blinkOrangeLED();  // Stale data / server issues
 void showNoDataConnected(); // Connected but no data (All Green)
 void showTryingToConnect();
 void showCheckingLocation();
+void showAPMode();          // WiFi configuration portal active
 
 // ---------------- DATA DISPLAY FUNCTIONS ----------------
 

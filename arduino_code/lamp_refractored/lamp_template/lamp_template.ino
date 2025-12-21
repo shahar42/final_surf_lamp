@@ -11,15 +11,7 @@
  * 4. Compile and upload
  *
  * ALL business logic is in the modules - this file just orchestrates them.
- *
- * Design principles:
- * - Pure orchestration (no business logic)
- * - Clear control flow (setup → loop)
- * - All complexity delegated to modules
- * - < 200 lines total
- *
- * Based on Scott Meyers' effective C++ principles and
- * configuration-driven template architecture.
+
  */
 
 #include <WiFi.h>
@@ -76,7 +68,7 @@ void setup() {
     // Initialize hardware
     pinMode(BUTTON_PIN, INPUT_PULLUP);
     initializeLEDs();
-    performLEDTest();
+    playStartupAnimation();
 
     // Setup WiFi with event handlers
     WiFi.onEvent(WiFiEvent);
@@ -171,7 +163,7 @@ void loop() {
     if (lastSurfData.dataReceived && dataAge < DATA_STALENESS_THRESHOLD) {
         blinkGreenLED();   // ✅ Fresh data (< 30 min old)
     } else {
-        showNoDataConnected();  // 🟢 All Green - Connected but no data/stale
+        showNoDataConnected();  
 
         // Log staleness periodically (every 60 seconds)
         static unsigned long lastStaleLog = 0;

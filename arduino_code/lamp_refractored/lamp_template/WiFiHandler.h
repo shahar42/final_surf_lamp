@@ -105,6 +105,7 @@ extern String lastWiFiError;
 extern uint8_t lastDisconnectReason;
 extern int reconnectAttempts;
 extern unsigned long lastReconnectAttempt;
+extern WiFiManager* globalWiFiManager; // For error injection from event handler
 
 // Constants
 extern const int MAX_WIFI_RETRIES;

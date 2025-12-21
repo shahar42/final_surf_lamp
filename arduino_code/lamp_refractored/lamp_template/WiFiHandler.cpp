@@ -12,6 +12,9 @@ String lastWiFiError = "";
 uint8_t lastDisconnectReason = 0;
 int reconnectAttempts = 0;
 unsigned long lastReconnectAttempt = 0;
+WiFiManager* globalWiFiManager = nullptr; // For error injection from event handler
+static String persistentErrorHTML = ""; // Persistent storage for error message HTML
+static bool allowErrorInjection = false; // Only inject after first connection attempt
 
 const int MAX_WIFI_RETRIES = 10;  // 10 attempts × 30s = ~5 min (covers router boot times)
 
@@ -20,21 +23,21 @@ const int MAX_WIFI_RETRIES = 10;  // 10 attempts × 30s = ~5 min (covers router 
 String getDisconnectReasonText(uint8_t reason) {
     switch(reason) {
         case 1:  return "Unspecified error";
-        case 2:  return "Authentication expired - wrong password or security mode";
-        case 3:  return "Deauthenticated (AP kicked device)";
+        case 2:  return "Wrong password or WiFi name";
+        case 3:  return "Wrong password or WiFi name";
         case 4:  return "Disassociated (inactive)";
         case 5:  return "Too many devices connected to AP";
-        case 6:  return "Wrong password or WPA/WPA2 mismatch";
+        case 6:  return "Wrong password or WiFi name";
         case 7:  return "Wrong password";
-        case 8:  return "Association expired (timeout)";
-        case 15: return "4-way handshake timeout - likely wrong password";
-        case 23: return "Too many authentication failures";
-        case 201: return "Beacon timeout - AP disappeared or weak signal";
-        case 202: return "No AP found with this SSID";
-        case 203: return "Authentication failed - check password and security mode";
-        case 204: return "Association failed - AP rejected connection";
-        case 205: return "Handshake timeout - wrong password or security mismatch";
-        default: return "Unknown error (code: " + String(reason) + ")";
+        case 8:  return "Connection timeout - check WiFi name and password";
+        case 15: return "Wrong password";
+        case 23: return "Wrong password (too many failed attempts)";
+        case 201: return "WiFi signal lost - router may be off or out of range";
+        case 202: return "WiFi network not found - check WiFi name";
+        case 203: return "Wrong password";
+        case 204: return "Router rejected connection - check password";
+        case 205: return "Wrong password";
+        default: return "Connection failed (code: " + String(reason) + ")";
     }
 }
 
@@ -108,21 +111,46 @@ String diagnoseSSID(const char* targetSSID) {
 // ---------------- EVENT HANDLERS ----------------
 
 void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
+    static uint8_t lastPrintedReason = 0;
+    static unsigned long lastErrorPrint = 0;
+
     switch(event) {
         case ARDUINO_EVENT_WIFI_STA_CONNECTED:
             Serial.println("✅ WiFi connected to AP");
             lastWiFiError = "";  // Clear error on success
+            persistentErrorHTML = "";  // Clear error HTML
+            lastPrintedReason = 0;  // Reset error tracking
             break;
 
         case ARDUINO_EVENT_WIFI_STA_GOT_IP:
             Serial.printf("✅ Got IP: %s\n", WiFi.localIP().toString().c_str());
             break;
 
-        case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
+        case ARDUINO_EVENT_WIFI_STA_DISCONNECTED: {
             lastDisconnectReason = info.wifi_sta_disconnected.reason;
             lastWiFiError = getDisconnectReasonText(lastDisconnectReason);
-            Serial.printf("❌ WiFi disconnected - Reason: %s\n", lastWiFiError.c_str());
+
+            // Only print if reason changed OR 10 seconds passed since last print
+            unsigned long now = millis();
+            if (lastDisconnectReason != lastPrintedReason || (now - lastErrorPrint > 10000)) {
+                Serial.printf("❌ WiFi disconnected - Reason: %s\n", lastWiFiError.c_str());
+                lastPrintedReason = lastDisconnectReason;
+                lastErrorPrint = now;
+            }
+
+            // Inject error message IMMEDIATELY for portal display (only after first connect attempt)
+            if (allowErrorInjection && globalWiFiManager != nullptr && lastWiFiError.length() > 0) {
+                persistentErrorHTML = "<div style='background:#ff4444;color:white;padding:15px;margin:10px 0;border-radius:5px;'>";
+                persistentErrorHTML += "<strong>❌ What Happened:</strong><br>";
+                persistentErrorHTML += lastWiFiError;
+                persistentErrorHTML += "<br/><br/><strong>✅ What To Do:</strong><br>";
+                persistentErrorHTML += "Click your WiFi network below and enter the correct password.";
+                persistentErrorHTML += "</div>";
+                globalWiFiManager->setCustomHeadElement(persistentErrorHTML.c_str());
+                Serial.println("📋 Error message injected into portal from WiFiEvent");
+            }
             break;
+        }
 
         default:
             break;
@@ -144,6 +172,9 @@ void saveConfigCallback() {
 void saveParamsCallback() {
     Serial.println("💾 Credentials saved, performing diagnostics...");
 
+    // Enable error injection now that user has submitted credentials
+    allowErrorInjection = true;
+
     // Get the SSID that was just saved (WiFiManager stores it)
     String ssid = WiFi.SSID();
     if (ssid.length() == 0) {
@@ -162,10 +193,20 @@ void saveParamsCallback() {
 // ---------------- WIFI CONNECTION ----------------
 
 bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
+    // Store WiFiManager reference for error injection from WiFiEvent handler
+    globalWiFiManager = &wifiManager;
+
+    // Clear any previous error messages from past sessions
+    lastWiFiError = "";
+    persistentErrorHTML = "";
+    allowErrorInjection = false; // Don't inject errors from boot-time disconnect events
+    wifiManager.setCustomHeadElement("");
+
     // WiFiManager setup with enhanced diagnostics
     wifiManager.setAPCallback(configModeCallback);
     wifiManager.setSaveConfigCallback(saveConfigCallback);
     wifiManager.setSaveParamsCallback(saveParamsCallback);
+    wifiManager.setConnectTimeout(10); // Fast fail: 10 seconds to attempt connection
     wifiManager.setConfigPortalTimeout(0); // No timeout - wait indefinitely
 
     // Load WiFi fingerprint from NVS
@@ -218,13 +259,10 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
         }
         // else: FIRST_SETUP and NEW_LOCATION timeouts already set above
 
-        // Inject error message into portal if we have one
-        if (lastWiFiError.length() > 0) {
-            String customHTML = "<div style='background:#ff4444;color:white;padding:10px;margin:10px 0;border-radius:5px;'>";
-            customHTML += "<strong>❌ Connection Failed</strong><br>";
-            customHTML += lastWiFiError;
-            customHTML += "</div>";
-            wifiManager.setCustomHeadElement(customHTML.c_str());
+        // Enable error injection now that we're about to attempt connection
+        // But NOT for FIRST_SETUP (old credentials from NVS shouldn't show errors)
+        if (scenario != FIRST_SETUP) {
+            allowErrorInjection = true;
         }
 
         connected = wifiManager.autoConnect("SurfLamp-Setup", "surf123456");
@@ -291,14 +329,14 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
         Serial.printf("   Last error: %s\n", lastWiFiError.c_str());
         Serial.printf("   Disconnect reason code: %d\n", lastDisconnectReason);
         
-        // CRITICAL FIX: Do not return false to restart. 
+        // CRITICAL FIX: Do not return false to restart.
         // Instead, open the portal indefinitely so the user can fix the bad credentials.
         Serial.println("🔓 Starting Configuration Portal (Indefinite Wait)...");
         wifiManager.setConfigPortalTimeout(0); // Indefinite timeout
-        
+
         // Visual feedback: AP Mode
         showAPMode();
-        
+
         if (!wifiManager.startConfigPortal("SurfLamp-Setup", "surf123456")) {
              Serial.println("❌ Failed to connect in forced AP mode");
              // Only return false if even manual configuration failed/timed out (shouldn't happen with timeout 0)

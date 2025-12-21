@@ -2,6 +2,10 @@
 #include "WebServerHandler.h"
 #include "SunsetCalculator.h"
 
+// External references (global scope)
+extern SunsetCalculator sunsetCalc;
+extern unsigned long lastDataFetch;
+
 namespace DualCore {
 
 // ==================== ATOMIC VARIABLES ====================
@@ -22,10 +26,6 @@ std::atomic<bool> networkTaskRunning(false);
 std::atomic<unsigned long> lastSuccessfulFetch(0);
 
 TaskHandle_t networkTaskHandle = nullptr;
-
-// External references
-extern SunsetCalculator sunsetCalc;
-extern unsigned long lastDataFetch;
 
 // ==================== CORE 0: NETWORK SECRETARY ====================
 

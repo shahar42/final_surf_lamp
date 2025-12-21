@@ -135,6 +135,91 @@ namespace Animation {
     }
 
     /**
+     * Startup Animation: "The Rising Tide"
+     * A professional fluid simulation where deep ocean water fills the lamp.
+     * Features:
+     * - Cubic Easing: Slow start, energetic surge, slow cresting.
+     * - Water Texture: Perlin noise (inoise8) for organic shimmering.
+     * - Deep Ocean Gradient: Indigo (bottom) to Aqua (surface).
+     * - Foam Crest: Bright white/cyan edge at the rising waterline.
+     */
+    void playStartupTide(CRGB* leds, StripConfig waveHeight, StripConfig wavePeriod, StripConfig windSpeed) {
+        Serial.println("🌊 Starting 'The Rising Tide' animation...");
+        FastLED.clear();
+
+        const int FPS = 60;
+        const int durationSeconds = 3; 
+        const int totalFrames = durationSeconds * FPS;
+        const int frameInterval = 1000 / FPS;
+
+        // Animation Loop
+        for (int frame = 0; frame < totalFrames; frame++) {
+            unsigned long frameStart = millis();
+            float t = (float)frame / totalFrames; // 0.0 to 1.0
+
+            // 1. Fluid Physics: Cubic In-Out Easing
+            // Simulates viscous fluid: heavy start, surge, then slowing surface tension
+            float ease = (t < 0.5) ? 4.0 * t * t * t : 1.0 - pow(-2.0 * t + 2.0, 3.0) / 2.0;
+            
+            // 2. Water Texture Parameters
+            // Slow rolling noise to make water feel "liquid"
+            uint16_t noiseScale = 20;
+            uint32_t noiseTime = millis() / 3;
+
+            auto drawTideOnStrip = [&](const StripConfig& strip) {
+                // Current water level for this strip (0.0 to length)
+                float waterLevel = ease * strip.length;
+                int crestIndex = (int)waterLevel;
+
+                for (int i = 0; i < strip.length; i++) {
+                    // Physical LED index logic
+                    // Forward: Start=0, End=15 -> i=0 is Bottom (Start+0)
+                    // Reverse: Start=21, End=38 -> i=0 is Bottom (End-0)
+                    int ledIndex = strip.forward ? (strip.start + i) : (strip.end - i);
+
+                    if (i <= crestIndex) {
+                        // A. Deep Ocean Gradient
+                        // Map position 0->1 to Hue 160 (Deep Blue) -> 130 (Aqua)
+                        // 'i' is the vertical height from bottom
+                        uint8_t hue = map(i, 0, strip.length, 160, 130);
+                        
+                        // B. Water Texture (Perlin Noise)
+                        // Adds 10-20% brightness variance for "shimmer"
+                        uint8_t noise = inoise8(i * noiseScale, noiseTime);
+                        uint8_t brightness = scale8(255, 200 + (noise / 5)); // 200-255 range
+
+                        // C. Foam Crest
+                        // The top 2-3 LEDs get whiter and brighter
+                        if (i >= crestIndex - 2) {
+                            // Foam is white/cyan
+                            leds[ledIndex] = CHSV(120, 100 - (i - (crestIndex - 2)) * 40, 255);
+                        } else {
+                            // Deep water body
+                            leds[ledIndex] = CHSV(hue, 255, brightness);
+                        }
+                    } else {
+                        // Above water
+                        leds[ledIndex] = CRGB::Black;
+                    }
+                }
+            };
+
+            // Render all 3 strips
+            drawTideOnStrip(waveHeight);
+            drawTideOnStrip(wavePeriod);
+            drawTideOnStrip(windSpeed);
+
+            FastLED.show();
+
+            // Frame timing
+            unsigned long frameTime = millis() - frameStart;
+            if (frameTime < frameInterval) delay(frameInterval - frameTime);
+        }
+        
+        Serial.println("✅ Tide animation complete");
+    }
+
+    /**
      * Check if sunset animation should trigger
      * Prevents replaying animation multiple times in same sunset window
      */

@@ -25,45 +25,36 @@ void initializeLEDs() {
     Serial.println("💡 LEDs initialized");
 }
 
-void performLEDTest() {
-    Serial.println("🧪 Running LED test sequence...");
+#include "animation.h"
 
-    // Test each visual strip section with different colors
-    Serial.println("   Testing Wave Height strip...");
-    updateWaveHeightLEDs(WAVE_HEIGHT_LENGTH, CHSV(160, 255, 255));  // Blue
-    FastLED.show();
-    delay(1000);
+void playStartupAnimation() {
+    Serial.println("🎬 Starting 'The Rising Tide' animation...");
 
-    Serial.println("   Testing Wave Period strip...");
-    updateWavePeriodLEDs(WAVE_PERIOD_LENGTH, CHSV(60, 255, 255));   // Yellow
-    FastLED.show();
-    delay(1000);
+    // Create strip configurations from Config.h constants
+    Animation::StripConfig waveHeight = {
+        WAVE_HEIGHT_START,
+        WAVE_HEIGHT_END,
+        WAVE_HEIGHT_FORWARD,
+        WAVE_HEIGHT_LENGTH
+    };
 
-    Serial.println("   Testing Wind Speed strip...");
-    updateWindSpeedLEDs(WIND_SPEED_LENGTH - 2, CHSV(0, 50, 255));   // White
-    FastLED.show();
-    delay(1000);
+    Animation::StripConfig wavePeriod = {
+        WAVE_PERIOD_START,
+        WAVE_PERIOD_END,
+        WAVE_PERIOD_FORWARD,
+        WAVE_PERIOD_LENGTH
+    };
 
-    Serial.println("   Testing status LED...");
-    leds[STATUS_LED_INDEX] = CRGB::Green;
-    FastLED.show();
-    delay(1000);
+    Animation::StripConfig windSpeed = {
+        WIND_SPEED_START,
+        WIND_SPEED_END,
+        WIND_SPEED_FORWARD,
+        WIND_SPEED_LENGTH
+    };
 
-    Serial.println("   Testing wind direction LED...");
-    leds[WIND_DIRECTION_INDEX] = CRGB::Red;
-    FastLED.show();
-    delay(1000);
-
-    // Rainbow test on entire strip (low brightness for startup ambiance)
-    Serial.println("   Running rainbow test on all LEDs...");
-    for (int hue = 0; hue < 256; hue += 5) {
-        fill_solid(leds, TOTAL_LEDS, CHSV(hue, 255, 80));  // Low brightness (80/255)
-        FastLED.show();
-        delay(20);
-    }
-
-    // Leave rainbow on - WiFi visuals will replace it naturally
-    Serial.println("✅ LED test completed - rainbow left on until WiFi connects");
+    // Execute the animation using the shared Animation module
+    // This allows the animation logic to be reused or updated in one place
+    Animation::playStartupTide(leds, waveHeight, wavePeriod, windSpeed);
 }
 
 void testAllStatusLEDStates() {
