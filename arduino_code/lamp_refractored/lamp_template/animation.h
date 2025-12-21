@@ -148,32 +148,32 @@ namespace Animation {
         FastLED.clear();
 
         const int FPS = 60;
-        const int durationSeconds = 20; 
-        const int totalFrames = durationSeconds * FPS;
         const int frameInterval = 1000 / FPS;
 
-        // Helper to calculate the water level for a given time t (0.0 to 1.0)
+        // --- Part 1: Tide Rise (20 seconds) ---
+        const int tideDuration = 20; 
+        const int tideFrames = tideDuration * FPS;
+
         auto calculateLevelForTime = [](float t) {
             float riseLevel = easeInOutCubic(t);
             float breath = sinf(t * PI * 4.0) * 0.03 * (1.0 - t);
             return constrain(riseLevel + breath, 0.0, 1.0);
         };
 
-        // Helper to draw the tide on a single strip for a given water level and brightness
         auto drawTideOnStrip = [&](const StripConfig& strip, float waterLevel, uint8_t brightnessScale) {
             uint32_t ms = millis();
-            float turbulence = easeInOutCubic(waterLevel); // Turbulence increases with height
+            float turbulence = easeInOutCubic(waterLevel);
             uint16_t noiseScale = lerp16by16(30, 80, turbulence * 65535);
             uint32_t noiseTime = ms / lerp8by8(10, 2, turbulence * 255);
+            
+            int tideLength = strip.length - 1;
+            int crestIndex = (int)(waterLevel * tideLength);
 
-            int crestIndex = (int)(waterLevel * strip.length);
-
-            for (int i = 0; i < strip.length; i++) {
+            for (int i = 0; i < tideLength; i++) {
                 int ledIndex = strip.forward ? (strip.start + i) : (strip.end - i);
 
                 if (i <= crestIndex) {
-                    uint8_t hue = map(i, 0, strip.length, 140, 96);
-                    
+                    uint8_t hue = map(i, 0, tideLength, 140, 96);
                     int tempBrightness = 180 + (inoise8(i * noiseScale, noiseTime) / 3);
                     uint8_t baseBrightness = min(tempBrightness, 255);
 
@@ -189,18 +189,19 @@ namespace Animation {
             }
         };
 
-        for (int frame = 0; frame < totalFrames; frame++) {
+        for (int frame = 0; frame < tideFrames; frame++) {
             unsigned long frameStart = millis();
-            float t = (float)frame / totalFrames;
+            float t = (float)frame / tideFrames;
 
-            // Calculate a single, unified water level for all strips
+            // Explicitly keep top LEDs off during tide rise
+            leds[waveHeight.forward ? waveHeight.end : waveHeight.start] = CRGB::Black;
+            leds[wavePeriod.forward ? wavePeriod.end : wavePeriod.start] = CRGB::Black;
+            leds[windSpeed.forward ? windSpeed.end : windSpeed.start] = CRGB::Black;
+
             float finalLevel = calculateLevelForTime(t);
-            
-            // Define brightness differential
-            const uint8_t centerBrightness = 230; // ~90%
-            const uint8_t sideBrightness = 178;   // ~70%
+            const uint8_t centerBrightness = 230;
+            const uint8_t sideBrightness = 178;
 
-            // Render each strip with the same water level but different brightness
             drawTideOnStrip(windSpeed, finalLevel, centerBrightness);
             drawTideOnStrip(waveHeight, finalLevel, sideBrightness);
             drawTideOnStrip(wavePeriod, finalLevel, sideBrightness);
@@ -211,7 +212,35 @@ namespace Animation {
             if (frameTime < frameInterval) delay(frameInterval - frameTime);
         }
         
-        Serial.println("✅ Tide animation complete");
+        Serial.println("🌊 Tide rise complete. Starting sunrise on crest...");
+
+        // --- Part 2: Sunrise on Crest (5 seconds) ---
+        const int sunriseDuration = 5;
+        const int sunriseFrames = sunriseDuration * FPS;
+
+        for (int frame = 0; frame < sunriseFrames; frame++) {
+            unsigned long frameStart = millis();
+            float t = (float)frame / sunriseFrames;
+
+            uint8_t sunHue = lerp8by8(0, 60, t * 255); // Red -> Yellow
+            uint8_t sunBrightness = lerp8by8(80, 255, easeInOutCubic(t) * 255); // Dim -> Bright, with easing
+            CHSV sunColor = CHSV(sunHue, 255, sunBrightness);
+
+            int whTopIndex = waveHeight.forward ? waveHeight.end : waveHeight.start;
+            int wpTopIndex = wavePeriod.forward ? wavePeriod.end : wavePeriod.start;
+            int wsTopIndex = windSpeed.forward ? windSpeed.end : windSpeed.start;
+
+            leds[whTopIndex] = sunColor;
+            leds[wpTopIndex] = sunColor;
+            leds[wsTopIndex] = sunColor;
+
+            FastLED.show();
+
+            unsigned long frameTime = millis() - frameStart;
+            if (frameTime < frameInterval) delay(frameInterval - frameTime);
+        }
+
+        Serial.println("✅ Full startup animation complete.");
     }
 
     /**
