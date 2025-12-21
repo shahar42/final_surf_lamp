@@ -13,7 +13,7 @@ namespace Animation {
     };
 
     // Easing function: Cubic ease-in-out for smooth acceleration/deceleration
-    float easeInOutCubic(float t) {
+    inline float easeInOutCubic(float t) {
         if (t < 0.5) {
             return 4.0 * t * t * t;  // Ease in: slow start
         } else {
@@ -23,7 +23,7 @@ namespace Animation {
     }
 
     // Easing function: Sine ease-in-out for ultra-smooth transitions
-    float easeInOutSine(float t) {
+    inline float easeInOutSine(float t) {
         return -(cos(PI * t) - 1.0) / 2.0;
     }
 
@@ -39,7 +39,7 @@ namespace Animation {
      * - HSV color space for smooth blending
      * - Starts at pure orange (hue 16), no yellow/green tones
      */
-    void playSunset(CRGB* leds, StripConfig waveHeight, StripConfig wavePeriod, StripConfig windSpeed, int durationSeconds = 30) {
+    inline void playSunset(CRGB* leds, StripConfig waveHeight, StripConfig wavePeriod, StripConfig windSpeed, int durationSeconds = 30) {
         Serial.println("🌅 Starting sunset animation...");
         Serial.printf("   Wave Height: %d LEDs | Wave Period: %d LEDs | Wind Speed: %d LEDs\n",
                       waveHeight.length, wavePeriod.length, windSpeed.length);
@@ -143,7 +143,7 @@ namespace Animation {
      * - Deep Ocean Gradient: Indigo (bottom) to Aqua (surface).
      * - Foam Crest: Bright white/cyan edge at the rising waterline.
      */
-    void playStartupTide(CRGB* leds, StripConfig waveHeight, StripConfig wavePeriod, StripConfig windSpeed) {
+    inline void playStartupTide(CRGB* leds, StripConfig waveHeight, StripConfig wavePeriod, StripConfig windSpeed) {
         Serial.println("🌊 Starting 'The Rising Tide' animation...");
         FastLED.clear();
 
