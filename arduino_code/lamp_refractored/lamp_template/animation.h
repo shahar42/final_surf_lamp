@@ -182,7 +182,10 @@ namespace Animation {
                         
                         // B. DYNAMIC TEXTURE: Shimmering water
                         uint8_t noise = inoise8(i * noiseScale, noiseTime);
-                        uint8_t baseBrightness = scale8(255, 180 + (noise / 3));
+                        // FIX: Prevent uint8_t overflow. 180 + (noise/3) can exceed 255.
+                        // Clamp the value at 255 to prevent wrapping around to a low number.
+                        int tempBrightness = 180 + (noise / 3);
+                        uint8_t baseBrightness = min(tempBrightness, 255);
 
                         // C. FLICKERING CREST
                         if (i >= crestIndex - 2 && crestIndex > 0) {
