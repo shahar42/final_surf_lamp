@@ -208,9 +208,9 @@ void showAPMode() {
     // Clear ALL LEDs first - only defined strips should be visible
     FastLED.clear();
 
-    // Wave Height (Right): Red
+    // Wave Height (Right): Cyan
     for (int i = 0; i < WAVE_HEIGHT_LENGTH; i++) {
-        leds[WAVE_HEIGHT_START + i] = CRGB::Red;
+        leds[WAVE_HEIGHT_START + i] = CRGB::Cyan;
     }
 
     // Wind Speed (Center): White
@@ -220,9 +220,9 @@ void showAPMode() {
         leds[i] = CRGB::White;
     }
 
-    // Wave Period (Left): Green
+    // Wave Period (Left): Cyan
     for (int i = 0; i < WAVE_PERIOD_LENGTH; i++) {
-        leds[WAVE_PERIOD_START + i] = CRGB::Green;
+        leds[WAVE_PERIOD_START + i] = CRGB::Cyan;
     }
 
     FastLED.show();
@@ -477,6 +477,9 @@ void updateBlinkingAnimation() {
     unsigned long currentMillis = millis();
     if (currentMillis - lastBlinkUpdate >= 5) { // 200 FPS for ultra-smooth animation
         blinkPhase += 0.0419; // 1.5-second cycle (slower threshold alerts)
+        if (blinkPhase >= 2 * PI) {
+            blinkPhase -= 2 * PI; // Wrap the phase to prevent precision loss
+        }
         lastBlinkUpdate = currentMillis;
     }
 
