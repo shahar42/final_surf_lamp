@@ -152,57 +152,66 @@ namespace Animation {
         const int totalFrames = durationSeconds * FPS;
         const int frameInterval = 1000 / FPS;
 
-        for (int frame = 0; frame < totalFrames; frame++) {
-            unsigned long frameStart = millis();
-            float t = (float)frame / totalFrames; // 0.0 to 1.0
-            uint32_t ms = millis();
-
-            // 1. ADVANCED PHYSICS: Compound Easing (Cubic + Sine Oscillation)
+        // Helper to calculate the water level for a given time t (0.0 to 1.0)
+        auto calculateLevelForTime = [](float t) {
             float riseLevel = easeInOutCubic(t);
-            float breath = sinf(t * PI * 4.0) * 0.03 * (1.0 - t); // Gentle oscillation that dampens at the end
-            float finalLevel = constrain(riseLevel + breath, 0.0, 1.0);
+            float breath = sinf(t * PI * 4.0) * 0.03 * (1.0 - t);
+            return constrain(riseLevel + breath, 0.0, 1.0);
+        };
 
-            // 2. DYNAMIC TEXTURE: Noise parameters change over time
-            float turbulence = easeInOutCubic(t < 0.5 ? 2*t : 1); // Becomes turbulent faster
+        // Helper to draw the tide on a single strip for a given water level and brightness
+        auto drawTideOnStrip = [&](const StripConfig& strip, float waterLevel, uint8_t brightnessScale) {
+            uint32_t ms = millis();
+            float turbulence = easeInOutCubic(waterLevel); // Turbulence increases with height
             uint16_t noiseScale = lerp16by16(30, 80, turbulence * 65535);
             uint32_t noiseTime = ms / lerp8by8(10, 2, turbulence * 255);
 
-            uint8_t masterBrightnessScale = 204; // 80% of 255
+            int crestIndex = (int)(waterLevel * strip.length);
 
-            auto drawTideOnStrip = [&](const StripConfig& strip) {
-                float waterLevel = finalLevel * strip.length;
-                int crestIndex = (int)waterLevel;
+            for (int i = 0; i < strip.length; i++) {
+                int ledIndex = strip.forward ? (strip.start + i) : (strip.end - i);
 
-                for (int i = 0; i < strip.length; i++) {
-                    int ledIndex = strip.forward ? (strip.start + i) : (strip.end - i);
+                if (i <= crestIndex) {
+                    uint8_t hue = map(i, 0, strip.length, 140, 96);
+                    
+                    int tempBrightness = 180 + (inoise8(i * noiseScale, noiseTime) / 3);
+                    uint8_t baseBrightness = min(tempBrightness, 255);
 
-                    if (i <= crestIndex) {
-                        // A. OCEAN GRADIENT: Deep Indigo (140) -> Tropical Teal (96)
-                        uint8_t hue = map(i, 0, strip.length, 140, 96);
-                        
-                        // B. DYNAMIC TEXTURE: Shimmering water
-                        uint8_t noise = inoise8(i * noiseScale, noiseTime);
-                        // FIX: Prevent uint8_t overflow. 180 + (noise/3) can exceed 255.
-                        // Clamp the value at 255 to prevent wrapping around to a low number.
-                        int tempBrightness = 180 + (noise / 3);
-                        uint8_t baseBrightness = min(tempBrightness, 255);
-
-                        // C. FLICKERING CREST
-                        if (i >= crestIndex - 2 && crestIndex > 0) {
-                            uint8_t flicker = random8(200, 255);
-                            leds[ledIndex] = CHSV(110, 80, scale8(flicker, masterBrightnessScale));
-                        } else {
-                            leds[ledIndex] = CHSV(hue, 255, scale8(baseBrightness, masterBrightnessScale));
-                        }
+                    if (i >= crestIndex - 2 && crestIndex > 0) {
+                        uint8_t flicker = random8(200, 255);
+                        leds[ledIndex] = CHSV(110, 80, scale8(flicker, brightnessScale));
                     } else {
-                        leds[ledIndex] = CRGB::Black;
+                        leds[ledIndex] = CHSV(hue, 255, scale8(baseBrightness, brightnessScale));
                     }
+                } else {
+                    leds[ledIndex] = CRGB::Black;
                 }
-            };
+            }
+        };
 
-            drawTideOnStrip(waveHeight);
-            drawTideOnStrip(wavePeriod);
-            drawTideOnStrip(windSpeed);
+        for (int frame = 0; frame < totalFrames; frame++) {
+            unsigned long frameStart = millis();
+            float t = (float)frame / totalFrames;
+
+            // Introduce a time offset for a wave-like effect
+            const float offset = 0.03; // ~600ms difference
+            float centerTime = t;
+            float rightTime = constrain(t - offset, 0.0, 1.0);
+            float leftTime = constrain(t + offset, 0.0, 1.0);
+
+            // Calculate distinct water levels for each strip
+            float centerLevel = calculateLevelForTime(centerTime);
+            float rightLevel = calculateLevelForTime(rightTime);
+            float leftLevel = calculateLevelForTime(leftTime);
+            
+            // Define brightness differential
+            const uint8_t centerBrightness = 230; // ~90%
+            const uint8_t sideBrightness = 178;   // ~70%
+
+            // Render each strip with its own water level and brightness
+            drawTideOnStrip(windSpeed, centerLevel, centerBrightness);
+            drawTideOnStrip(waveHeight, rightLevel, sideBrightness);
+            drawTideOnStrip(wavePeriod, leftLevel, sideBrightness);
 
             FastLED.show();
 
