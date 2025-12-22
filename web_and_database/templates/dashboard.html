@@ -73,9 +73,11 @@
             transition: all 0.3s ease;
         }
         .brightness-active {
-            background-color: rgba(59, 130, 246, 0.4) !important;
-            border-color: rgba(59, 130, 246, 0.6) !important;
-            box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+            background-color: rgba(234, 88, 12, 0.8) !important;
+            border-color: #f97316 !important;
+            box-shadow: 0 0 15px rgba(234, 88, 12, 0.3);
+            color: white !important;
+            font-weight: 600;
         }
         .preset-btn:active {
             transform: scale(0.95);
@@ -338,7 +340,17 @@
                 {% if off_hours_feature_enabled %}
                 <!-- Off Hours Configuration -->
                 <div class="space-y-3">
-                    <span class="text-white/80 block mb-2">Sleep Mode (Lamp Off):</span>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-white/80">Sleep Mode (Lamp Off):</span>
+                        <span id="sleepModeStatus" class="text-xs font-bold uppercase tracking-wider
+                            {% if data.user.off_times_enabled %}
+                                text-orange-500
+                            {% else %}
+                                text-white/50
+                            {% endif %}">
+                            {% if data.user.off_times_enabled %}Active{% else %}Disabled{% endif %}
+                        </span>
+                    </div>
 
                     <!-- Preset Buttons -->
                     <div class="space-y-2">
@@ -372,26 +384,15 @@
                             </button>
                         </div>
                         
-                        <div class="grid grid-cols-2 gap-2">
-                            <button id="customPresetBtn" 
-                                    class="text-xs py-2 rounded transition-all border
-                                    {% if data.user.off_times_enabled and data.user.off_time_start not in ['23:00', '22:00', '01:00'] %}
-                                        bg-orange-600/80 border-orange-500 text-white font-semibold shadow-[0_0_15px_rgba(234,88,12,0.3)]
-                                    {% else %}
-                                        bg-white/10 hover:bg-white/20 text-white/80 border-white/20
-                                    {% endif %}">
-                                Custom...
-                            </button>
-                            <button id="alwaysOnBtn"
-                                    class="text-xs py-2 rounded transition-all border
-                                    {% if not data.user.off_times_enabled %}
-                                        bg-orange-600/80 border-orange-500 text-white font-semibold shadow-[0_0_15px_rgba(234,88,12,0.3)]
-                                    {% else %}
-                                        bg-white/10 hover:bg-white/20 text-white/80 border-white/20
-                                    {% endif %}">
-                                Always On
-                            </button>
-                        </div>
+                        <button id="customPresetBtn" 
+                                class="w-full text-xs py-2 rounded transition-all border
+                                {% if data.user.off_times_enabled and data.user.off_time_start not in ['23:00', '22:00', '01:00'] %}
+                                    bg-orange-600/80 border-orange-500 text-white font-semibold shadow-[0_0_15px_rgba(234,88,12,0.3)]
+                                {% else %}
+                                    bg-white/10 hover:bg-white/20 text-white/80 border-white/20
+                                {% endif %}">
+                            Custom...
+                        </button>
                     </div>
 
                     <!-- Custom Time Inputs (hidden by default) -->
@@ -720,14 +721,20 @@
     // Helper function to update off hours
     function updateOffHours(startTime, endTime, enabled) {
         const statusDiv = document.getElementById('off-times-status');
+        const modeStatus = document.getElementById('sleepModeStatus');
         
         // Optimistic UI updates
         resetButtonStyles();
+        
         if (!enabled) {
-            const btn = document.getElementById('alwaysOnBtn');
-            btn.classList.remove('bg-white/10', 'border-white/20', 'text-white/80');
-            btn.classList.add('bg-orange-600/80', 'border-orange-500', 'text-white', 'font-semibold', 'shadow-[0_0_15px_rgba(234,88,12,0.3)]');
+            // update status text
+            modeStatus.textContent = 'DISABLED';
+            modeStatus.className = 'text-xs font-bold uppercase tracking-wider text-white/50';
         } else {
+            // update status text
+            modeStatus.textContent = 'ACTIVE';
+            modeStatus.className = 'text-xs font-bold uppercase tracking-wider text-orange-500';
+
             let matched = false;
             // Find button matching this preset
             document.querySelectorAll('.preset-btn').forEach(btn => {
@@ -791,11 +798,6 @@
         const customBtn = document.getElementById('customPresetBtn');
         customBtn.classList.remove(...activeClasses);
         customBtn.classList.add(...inactiveClasses);
-
-        // Reset Always On
-        const alwaysOn = document.getElementById('alwaysOnBtn');
-        alwaysOn.classList.remove(...activeClasses);
-        alwaysOn.classList.add(...inactiveClasses);
     }
 
     // Preset button handlers
@@ -803,28 +805,40 @@
         btn.addEventListener('click', function() {
             const startTime = this.getAttribute('data-start');
             const endTime = this.getAttribute('data-end');
-
+            
+            // Check if already active (toggle logic)
+            const isActive = this.classList.contains('bg-orange-600/80');
+            
             // Hide custom inputs if open
             document.getElementById('customTimeInputs').classList.add('hidden');
 
-            // Implicitly enable and set time
-            updateOffHours(startTime, endTime, true);
+            if (isActive) {
+                // Toggle OFF
+                updateOffHours(startTime, endTime, false);
+            } else {
+                // Toggle ON
+                updateOffHours(startTime, endTime, true);
+            }
         });
     });
 
-    // "Always On" button handler
-    document.getElementById('alwaysOnBtn').addEventListener('click', function() {
-        document.getElementById('customTimeInputs').classList.add('hidden');
-        updateOffHours(null, null, false);
-    });
-
-    // Custom button toggles custom time inputs
+    // Custom button toggles custom time inputs OR disables if active
     document.getElementById('customPresetBtn').addEventListener('click', function() {
         const customInputs = document.getElementById('customTimeInputs');
-        customInputs.classList.toggle('hidden');
+        const isActive = this.classList.contains('bg-orange-600/80');
         
-        // Reset other styles to indicate "Custom" mode is active (though not yet applied)
-        resetButtonStyles();
+        if (isActive) {
+            // State: Active -> Click -> Disable (Turn Off)
+            updateOffHours(null, null, false);
+            customInputs.classList.add('hidden');
+        } else {
+            // State: Inactive -> Click -> Open Drawer
+            customInputs.classList.remove('hidden');
+            // We don't enable yet; user must click "Apply" in the drawer
+            
+            // Optional: Close drawer if clicking while inactive but drawer is already open?
+            // Let's keep it simple: Ensure it's open.
+        }
     });
 
     // Custom time apply button
