@@ -17,11 +17,6 @@
                 {% endif %}
                 <h3>{{ worker['name'] }}</h3>
                 <p class="worker-role">{{ worker['role'] }}</p>
-                <div class="mb-4">
-                    {% for i in range(worker['rating']) %}
-                        <span style="color: var(--accent);">★</span>
-                    {% endfor %}
-                </div>
                 <hr>
                 <div class="text-start">
                     <p><strong>Email:</strong> {{ worker['email'] or 'N/A' }}</p>
@@ -54,7 +49,11 @@
                                     <h6 class="mb-0">{{ contract['title'] }}</h6>
                                     <small class="text-muted">Started: {{ contract['start_date'] }}</small>
                                     {% if contract['pdf_filename'] %}
-                                        <br><a href="{{ url_for('static', filename='uploads/contracts/' + contract['pdf_filename']) }}" class="text-decoration-none" target="_blank">📄 {{ contract['pdf_filename'] }}</a>
+                                        <br>
+                                        <a href="{{ url_for('static', filename='uploads/contracts/' + contract['pdf_filename']) }}" class="text-decoration-none" target="_blank">📄 {{ contract['pdf_filename'] }}</a>
+                                        <form method="post" action="{{ url_for('delete_contract_file', contract_id=contract['id']) }}" class="d-inline ms-2" onsubmit="return confirm('Delete this file?');">
+                                            <button type="submit" class="btn btn-sm btn-link text-danger p-0">✕</button>
+                                        </form>
                                     {% endif %}
                                 </div>
                                 <div class="text-end">
@@ -80,29 +79,6 @@
             </div>
         </div>
 
-        <div class="card card-custom">
-            <div class="card-header bg-white border-0 pt-4 px-4">
-                <h4>Document Vault</h4>
-            </div>
-            <div class="card-body">
-                <div class="d-flex align-items-center p-3 border rounded mb-2 bg-light">
-                    <span class="me-3">📄</span>
-                    <div class="flex-grow-1">
-                        <h6 class="mb-0">Liability Waiver 2024.pdf</h6>
-                        <small class="text-muted">Signed May 1st, 2024</small>
-                    </div>
-                    <a href="#" class="text-decoration-none">Download</a>
-                </div>
-                 <div class="d-flex align-items-center p-3 border rounded mb-2 bg-light">
-                    <span class="me-3">🆔</span>
-                    <div class="flex-grow-1">
-                        <h6 class="mb-0">Driver's License Scan</h6>
-                        <small class="text-muted">Expires Dec 2026</small>
-                    </div>
-                    <a href="#" class="text-decoration-none">View</a>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 {% endblock %}

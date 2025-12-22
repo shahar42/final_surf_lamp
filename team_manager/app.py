@@ -182,6 +182,21 @@ def delete_contract(contract_id):
     repository.delete_contract(conn, contract_id)
     return redirect(url_for('worker_detail', worker_id=worker_id))
 
+@app.route('/contract/<int:contract_id>/delete_file', methods=('POST',))
+def delete_contract_file(contract_id):
+    conn = get_db()
+    contract = repository.get_contract_by_id(conn, contract_id)
+
+    if contract['pdf_filename']:
+        filepath = os.path.join(UPLOAD_FOLDER_CONTRACTS, contract['pdf_filename'])
+        if os.path.exists(filepath):
+            os.remove(filepath)
+
+    repository.update_contract(conn, contract_id, contract['title'], contract['rate'],
+                              contract['start_date'], contract['end_date'],
+                              contract['terms'], contract['status'], None)
+    return redirect(url_for('worker_detail', worker_id=contract['worker_id']))
+
 @app.route('/contracts')
 def contracts():
     conn = get_db()
