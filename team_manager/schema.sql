@@ -1,8 +1,8 @@
-DROP TABLE IF EXISTS workers;
-DROP TABLE IF EXISTS contracts;
+DROP TABLE IF EXISTS tm_contracts;
+DROP TABLE IF EXISTS tm_workers;
 
-CREATE TABLE workers (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+CREATE TABLE tm_workers (
+    id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,
     role TEXT NOT NULL,
     tags TEXT,
@@ -13,8 +13,8 @@ CREATE TABLE workers (
     image_url TEXT
 );
 
-CREATE TABLE contracts (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+CREATE TABLE tm_contracts (
+    id SERIAL PRIMARY KEY,
     worker_id INTEGER NOT NULL,
     title TEXT NOT NULL,
     rate TEXT NOT NULL,
@@ -22,5 +22,8 @@ CREATE TABLE contracts (
     end_date TEXT,
     terms TEXT,
     status TEXT DEFAULT 'Active',
-    FOREIGN KEY (worker_id) REFERENCES workers (id)
+    CONSTRAINT fk_worker
+        FOREIGN KEY (worker_id) 
+        REFERENCES tm_workers (id)
+        ON DELETE CASCADE
 );

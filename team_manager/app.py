@@ -1,41 +1,46 @@
 from flask import Flask, render_template, g, request, redirect, url_for
-import sqlite3
+import psycopg2
+import psycopg2.extras
+import os
 
 app = Flask(__name__)
-DATABASE = 'staff_command.db'
 
 def get_db():
-    db = getattr(g, '_database', None)
-    if db is None:
-        db = g._database = sqlite3.connect(DATABASE)
-        db.row_factory = sqlite3.Row
-    return db
+    if 'db' not in g:
+        g.db = psycopg2.connect(
+            os.environ.get('DATABASE_URL'),
+            cursor_factory=psycopg2.extras.DictCursor
+        )
+    return g.db
 
 @app.teardown_appcontext
 def close_connection(exception):
-    db = getattr(g, '_database', None)
+    db = g.pop('db', None)
     if db is not None:
         db.close()
 
 @app.route('/')
 def dashboard():
-    cur = get_db().cursor()
-    cur.execute("SELECT * FROM workers")
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM tm_workers")
     workers = cur.fetchall()
+    cur.close()
     
-    # Simple count stats
     total_workers = len(workers)
-    
     return render_template('dashboard.html', workers=workers, total_workers=total_workers)
 
 @app.route('/worker/<int:worker_id>')
 def worker_detail(worker_id):
-    cur = get_db().cursor()
-    cur.execute("SELECT * FROM workers WHERE id = ?", (worker_id,))
+    conn = get_db()
+    cur = conn.cursor()
+    
+    cur.execute("SELECT * FROM tm_workers WHERE id = %s", (worker_id,))
     worker = cur.fetchone()
     
-    cur.execute("SELECT * FROM contracts WHERE worker_id = ?", (worker_id,))
+    cur.execute("SELECT * FROM tm_contracts WHERE worker_id = %s", (worker_id,))
     contracts = cur.fetchall()
+    cur.close()
     
     return render_template('worker_detail.html', worker=worker, contracts=contracts)
 
@@ -46,10 +51,12 @@ def add_worker():
         role = request.form['role']
         tags = request.form['tags']
         
-        db = get_db()
-        db.execute('INSERT INTO workers (name, role, tags) VALUES (?, ?, ?)',
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute('INSERT INTO tm_workers (name, role, tags) VALUES (%s, %s, %s)',
                    (name, role, tags))
-        db.commit()
+        conn.commit()
+        cur.close()
         return redirect(url_for('dashboard'))
     
     return render_template('add_worker.html')
