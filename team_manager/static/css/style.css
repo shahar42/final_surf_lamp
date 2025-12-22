@@ -110,7 +110,7 @@ h1, h2, h3 {
 }
 
 .btn-primary-custom {
-    background-color: var(--accent);
+    background-color: #27ae60; /* Grass Green */
     border: none;
     padding: 10px 20px;
     color: white;
@@ -122,5 +122,5 @@ h1, h2, h3 {
 }
 
 .btn-primary-custom:hover {
-    background-color: #d35400;
+    background-color: #219150;
 }
