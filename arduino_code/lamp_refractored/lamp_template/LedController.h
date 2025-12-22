@@ -42,11 +42,7 @@ void initializeLEDs();
  */
 void playStartupAnimation();
 
-/**
- * Test all status LED error states
- * Cycles through all status colors (red, blue, green, orange, yellow) and patterns
- */
-void testAllStatusLEDStates();
+// testAllStatusLEDStates() removed to save flash memory
 
 // ---------------- BASIC LED CONTROL ----------------
 

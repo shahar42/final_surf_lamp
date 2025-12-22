@@ -15,6 +15,12 @@ static unsigned long lastBlinkUpdate = 0;
 static float blinkPhase = 0.0;
 static const unsigned long BLINK_INTERVAL = 1500; // 1.5 seconds for slow smooth blink
 
+// File-static guard function - Scott Meyers Item 23 (prefer non-member functions)
+// Single point of truth for LED suppression logic during off hours
+static inline bool shouldSuppressAllLEDs() {
+    return lastSurfData.offHoursActive;
+}
+
 // ---------------- INITIALIZATION ----------------
 
 void initializeLEDs() {
@@ -56,65 +62,7 @@ void playStartupAnimation() {
     Animation::playStartupTide(leds, waveHeight, wavePeriod, windSpeed, SUNRISE_OVERLAP_SECONDS);
 }
 
-void testAllStatusLEDStates() {
-    Serial.println("🧪 Testing all status LED error states...");
-
-    // 1. RED - WiFi Error
-    Serial.println("   🔴 RED - WiFi Disconnected");
-    for (int i = 0; i < 3; i++) {
-        blinkRedLED();
-        delay(500);
-    }
-    delay(2000);
-
-    // 2. BLUE - Connecting
-    Serial.println("   🔵 BLUE - Connecting to WiFi");
-    for (int i = 0; i < 3; i++) {
-        blinkBlueLED();
-        delay(500);
-    }
-    delay(2000);
-
-    // 3. GREEN - Connected & Fresh Data
-    Serial.println("   🟢 GREEN - Connected & Fresh Data");
-    for (int i = 0; i < 3; i++) {
-        blinkGreenLED();
-        delay(500);
-    }
-    delay(2000);
-
-    // 4. ORANGE - Stale Data / Server Issues
-    Serial.println("   🟠 ORANGE - Stale Data / Server Issues");
-    for (int i = 0; i < 3; i++) {
-        blinkOrangeLED();
-        delay(500);
-    }
-    delay(2000);
-
-    // 5. YELLOW - Config Mode
-    Serial.println("   🟡 YELLOW - Configuration Portal");
-    for (int i = 0; i < 3; i++) {
-        blinkYellowLED();
-        delay(500);
-    }
-    delay(2000);
-
-    // 6. Full system patterns
-    Serial.println("   🟢 Full System: Trying to Connect");
-    showTryingToConnect();
-    delay(3000);
-
-    Serial.println("   🟣 Full System: Checking Location");
-    showCheckingLocation();
-    delay(3000);
-
-    Serial.println("   🔴🔵🟢 Full System: AP Mode");
-    showAPMode();
-    delay(3000);
-
-    clearLEDs();
-    Serial.println("✅ Status LED test completed");
-}
+// testAllStatusLEDStates() removed to save flash memory
 
 // ---------------- BASIC LED CONTROL ----------------
 
@@ -124,6 +72,7 @@ void clearLEDs() {
 }
 
 void setStatusLED(CRGB color) {
+    if (shouldSuppressAllLEDs()) return;  // Off hours: all LEDs off
     leds[STATUS_LED_INDEX] = color;
     FastLED.show();
 }
@@ -131,6 +80,8 @@ void setStatusLED(CRGB color) {
 // ---------------- STATUS PATTERNS ----------------
 
 void blinkStatusLED(CRGB color) {
+    if (shouldSuppressAllLEDs()) return;  // Off hours: all LEDs off
+
     static unsigned long lastStatusUpdate = 0;
     static float statusPhase = 0.0;
 
@@ -160,8 +111,10 @@ void blinkYellowLED() { blinkStatusLED(CRGB::Yellow); }
 void blinkOrangeLED() { blinkStatusLED(CRGB::Orange); }
 
 void showNoDataConnected() {
+    if (shouldSuppressAllLEDs()) return;  // Off hours: all LEDs off
+
     static unsigned long lastUpdate = 0;
-    
+
     // Limit refresh rate to 10Hz to avoid excessive CPU/LED updates
     if (millis() - lastUpdate >= 100) {
         fill_solid(leds, TOTAL_LEDS, CRGB::Green);
@@ -171,6 +124,8 @@ void showNoDataConnected() {
 }
 
 void showTryingToConnect() {
+    if (shouldSuppressAllLEDs()) return;  // Off hours: all LEDs off
+
     static unsigned long lastUpdate = 0;
     static float phase = 0.0;
 
@@ -188,6 +143,8 @@ void showTryingToConnect() {
 }
 
 void showCheckingLocation() {
+    if (shouldSuppressAllLEDs()) return;  // Off hours: all LEDs off
+
     static unsigned long lastUpdate = 0;
     static float phase = 0.0;
 
@@ -205,6 +162,8 @@ void showCheckingLocation() {
 }
 
 void showAPMode() {
+    if (shouldSuppressAllLEDs()) return;  // Off hours: all LEDs off
+
     // Clear ALL LEDs first - only defined strips should be visible
     FastLED.clear();
 
@@ -280,7 +239,7 @@ void updateWindSpeedLEDs(int numActiveLeds, CHSV color) {
 }
 
 void setWindDirection(int windDirection) {
-    Serial.printf("🐛 DEBUG: Wind direction = %d°\n", windDirection);
+    // Debug statement removed to save flash memory
 
     // Wind direction color coding (ALWAYS consistent for navigation)
     if ((windDirection >= 0 && windDirection <= 10) || (windDirection >= 300 && windDirection <= 360)) {

@@ -214,49 +214,6 @@ struct LEDMappingConfig {
 extern WaveConfig waveConfig;
 extern LEDMappingConfig ledMapping;
 
-// ---------------- CONFIGURATION PRINTING (for debugging) ----------------
-
-inline void printConfiguration() {
-    Serial.println("\n🌊 ================================================================");
-    Serial.println("🌊 SURF LAMP - MODULAR TEMPLATE CONFIGURATION");
-    Serial.println("🌊 ================================================================");
-    Serial.printf("🔧 Arduino ID: %d\n", ARDUINO_ID);
-    Serial.println();
-
-    Serial.println("📍 LED STRIP CONFIGURATION:");
-    Serial.printf("   Total LEDs: %d\n", TOTAL_LEDS);
-    Serial.printf("   Wave Height: LEDs %d→%d (%d total, %s)\n",
-                  WAVE_HEIGHT_BOTTOM, WAVE_HEIGHT_TOP, WAVE_HEIGHT_LENGTH,
-                  WAVE_HEIGHT_FORWARD ? "FORWARD" : "REVERSE");
-    Serial.printf("   Wave Period: LEDs %d→%d (%d total, %s)\n",
-                  WAVE_PERIOD_BOTTOM, WAVE_PERIOD_TOP, WAVE_PERIOD_LENGTH,
-                  WAVE_PERIOD_FORWARD ? "FORWARD" : "REVERSE");
-    Serial.printf("   Wind Speed:  LEDs %d→%d (%d total, %s)\n",
-                  WIND_SPEED_BOTTOM, WIND_SPEED_TOP, WIND_SPEED_LENGTH,
-                  WIND_SPEED_FORWARD ? "FORWARD" : "REVERSE");
-    Serial.println();
-
-    Serial.println("🎯 SPECIAL FUNCTION LEDS:");
-    Serial.printf("   Status LED: %d (wind strip bottom)\n", STATUS_LED_INDEX);
-    Serial.printf("   Wind Direction LED: %d (wind strip top)\n", WIND_DIRECTION_INDEX);
-    Serial.println();
-
-    Serial.println("📊 SCALING CONFIGURATION:");
-    Serial.printf("   Max Wave Height: %.1f meters\n", MAX_WAVE_HEIGHT_METERS);
-    Serial.printf("   Max Wind Speed: %.1f m/s (%.1f knots)\n",
-                  MAX_WIND_SPEED_MPS, MAX_WIND_SPEED_MPS * 1.94384);
-    Serial.printf("   Wave Height Scaling: %d cm per LED\n", ledMapping.wave_height_divisor);
-    Serial.printf("   Wind Speed Scaling: %.1f LEDs per m/s\n",
-                  ledMapping.wind_scale_numerator / ledMapping.wind_scale_denominator);
-    Serial.println();
-
-    Serial.println("🌊 WAVE ANIMATION SETTINGS:");
-    Serial.printf("   Brightness Range: %d%% - %d%%\n",
-                  waveConfig.brightness_min_percent, waveConfig.brightness_max_percent);
-    Serial.printf("   Wave Length: Side=%.1f, Center=%.1f LEDs\n",
-                  waveConfig.wave_length_side, waveConfig.wave_length_center);
-    Serial.printf("   Animation Speed: %.1fx\n", waveConfig.wave_speed);
-    Serial.println();
-}
+// Configuration printing removed to save flash memory
 
 #endif // CONFIG_H

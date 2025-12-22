@@ -38,15 +38,6 @@ void setupHTTPEndpoints(WebServer& server) {
     // Status endpoint for monitoring
     server.on("/api/status", HTTP_GET, handleStatusRequest);
 
-    // Test endpoint for manual testing
-    server.on("/api/test", HTTP_GET, handleTestRequest);
-
-    // LED test endpoint
-    server.on("/api/led-test", HTTP_GET, handleLEDTestRequest);
-
-    // Status LED error state test endpoint
-    server.on("/api/status-led-test", HTTP_GET, handleStatusLEDTestRequest);
-
     // Device info endpoint
     server.on("/api/info", HTTP_GET, handleDeviceInfoRequest);
 
@@ -56,20 +47,8 @@ void setupHTTPEndpoints(WebServer& server) {
     // WiFi diagnostics endpoint
     server.on("/api/wifi-diagnostics", HTTP_GET, handleWiFiDiagnostics);
 
-    // Server discovery test endpoint
-    server.on("/api/discovery-test", HTTP_GET, handleDiscoveryTest);
-
     server.begin();
-    Serial.println("🌐 HTTP server started with endpoints:");
-    Serial.println("   POST /api/update          - Receive surf data");
-    Serial.println("   GET  /api/discovery-test  - Test server discovery");
-    Serial.println("   GET  /api/status          - Device status");
-    Serial.println("   GET  /api/test            - Connection test");
-    Serial.println("   GET  /api/led-test        - LED test");
-    Serial.println("   GET  /api/status-led-test - Test all error LED states");
-    Serial.println("   GET  /api/info            - Device information");
-    Serial.println("   GET  /api/fetch           - Manual surf data fetch");
-    Serial.println("   GET  /api/wifi-diagnostics - WiFi connection diagnostics");
+    Serial.println("🌐 HTTP server started");
 }
 
 // ---------------- ENDPOINT HANDLERS ----------------
@@ -150,33 +129,7 @@ void handleStatusRequest() {
     Serial.println("📊 Status request served");
 }
 
-void handleTestRequest() {
-    DynamicJsonDocument testDoc(256);
-    testDoc["status"] = "ok";
-    testDoc["message"] = "Arduino is responding";
-    testDoc["arduino_id"] = ARDUINO_ID;
-    testDoc["timestamp"] = millis();
-
-    String testJson;
-    serializeJson(testDoc, testJson);
-
-    webServer->send(200, "application/json", testJson);
-    Serial.println("🧪 Test request served");
-}
-
-void handleLEDTestRequest() {
-    Serial.println("🧪 Startup animation test requested via HTTP");
-    playStartupAnimation();
-
-    webServer->send(200, "application/json", "{\"status\":\"ok\",\"message\":\"Startup animation played\"}");
-}
-
-void handleStatusLEDTestRequest() {
-    Serial.println("🧪 Status LED test requested via HTTP");
-    testAllStatusLEDStates();
-
-    webServer->send(200, "application/json", "{\"status\":\"ok\",\"message\":\"Status LED test completed\"}");
-}
+// Test endpoints removed to save flash memory
 
 void handleDeviceInfoRequest() {
     DynamicJsonDocument infoDoc(512);
@@ -201,15 +154,7 @@ void handleDeviceInfoRequest() {
     Serial.println("ℹ️ Device info request served");
 }
 
-void handleDiscoveryTest() {
-    Serial.println("🧪 Discovery test requested");
-
-    bool result = serverDiscovery.forceDiscovery();
-    String current = serverDiscovery.getCurrentServer();
-
-    String response = "{\"server\":\"" + current + "\"}";
-    webServer->send(200, "application/json", response);
-}
+// Discovery test endpoint removed to save flash memory
 
 void handleManualFetchRequest() {
     Serial.println("🔄 Manual surf data fetch requested");

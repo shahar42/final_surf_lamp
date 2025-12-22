@@ -62,8 +62,7 @@ void setup() {
     Serial.begin(115200);
     delay(1000);
 
-    // Print configuration to serial (for debugging)
-    printConfiguration();
+    // Configuration printing removed to save flash memory
 
     // Initialize hardware
     pinMode(BUTTON_PIN, INPUT_PULLUP);

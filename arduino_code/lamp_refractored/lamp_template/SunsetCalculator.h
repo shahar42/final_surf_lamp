@@ -52,8 +52,7 @@ public:
     int getSunsetMinutesSinceMidnight() const { return sunsetMinutesSinceMidnight; }
     bool wasSunsetPlayedToday() const { return sunsetPlayedToday; }
 
-    // Debug
-    void printStatus();
+    // Debug functions removed to save flash memory
 };
 
 // Helper functions

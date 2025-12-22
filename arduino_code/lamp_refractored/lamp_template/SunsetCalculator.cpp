@@ -192,22 +192,7 @@ int SunsetCalculator::getDayOfYear(int year, int month, int day) {
     return dayOfYear;
 }
 
-void SunsetCalculator::printStatus() {
-    Serial.println("=== Sunset Calculator Status ===");
-    Serial.printf("Coordinates: %.4f, %.4f (tz_offset: %d)\n", latitude, longitude, tz_offset);
-    Serial.printf("Time initialized: %s\n", timeInitialized ? "YES" : "NO");
-    if (timeInitialized) {
-        Serial.printf("Current time: %04d-%02d-%02d %02d:%02d:%02d\n",
-                     currentTime.year, currentTime.month, currentTime.day,
-                     currentTime.hour, currentTime.minute, currentTime.second);
-    }
-    if (sunsetMinutesSinceMidnight >= 0) {
-        Serial.printf("Sunset today: %02d:%02d\n",
-                     sunsetMinutesSinceMidnight / 60, sunsetMinutesSinceMidnight % 60);
-    }
-    Serial.printf("Sunset played today: %s\n", sunsetPlayedToday ? "YES" : "NO");
-    Serial.println("================================");
-}
+// printStatus() removed to save flash memory
 
 // Helper function: Convert month name to integer
 int monthToInt(String month) {
