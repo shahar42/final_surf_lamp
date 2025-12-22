@@ -9,8 +9,15 @@ def get_db():
     if 'db' not in g:
         db_url = os.environ.get('DATABASE_URL')
         print(f"DEBUG: DATABASE_URL type: {type(db_url)}")
+        
         if db_url:
             print(f"DEBUG: DATABASE_URL starts with: {db_url[:15]}...")
+            # Auto-append SSL mode for Render
+            if 'sslmode' not in db_url:
+                 if '?' in db_url:
+                    db_url += "&sslmode=require"
+                 else:
+                    db_url += "?sslmode=require"
         else:
             print("DEBUG: DATABASE_URL is MISSING or Empty!")
             
