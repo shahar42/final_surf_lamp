@@ -10,7 +10,11 @@
     <div class="col-md-4">
         <div class="card card-custom">
             <div class="card-body text-center">
-                <div class="bg-secondary rounded-circle mx-auto mb-3" style="width: 100px; height: 100px;"></div>
+                {% if worker['image_url'] %}
+                    <img src="{{ url_for('static', filename=worker['image_url']) }}" alt="Profile" class="rounded-circle mx-auto mb-3" style="width: 100px; height: 100px; object-fit: cover;">
+                {% else %}
+                    <div class="bg-secondary rounded-circle mx-auto mb-3" style="width: 100px; height: 100px;"></div>
+                {% endif %}
                 <h3>{{ worker['name'] }}</h3>
                 <p class="worker-role">{{ worker['role'] }}</p>
                 <div class="mb-4">

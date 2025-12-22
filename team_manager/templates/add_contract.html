@@ -40,8 +40,8 @@
                         <textarea class="form-control" id="terms" name="terms" rows="4"></textarea>
                     </div>
                     <div class="mb-3">
-                        <label for="pdf" class="form-label">Upload Contract PDF (Optional)</label>
-                        <input type="file" class="form-control" id="pdf" name="pdf" accept=".pdf">
+                        <label for="pdf" class="form-label">Upload Document (PDF/Image, Optional)</label>
+                        <input type="file" class="form-control" id="pdf" name="pdf" accept=".pdf,image/*">
                     </div>
                     <div class="d-flex justify-content-end">
                         <a href="{{ url_for('worker_detail', worker_id=worker['id']) }}" class="btn btn-secondary me-2">Cancel</a>

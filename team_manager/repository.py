@@ -22,21 +22,21 @@ def get_contracts_by_worker_id(conn, worker_id):
     cur.close()
     return contracts
 
-def create_worker(conn, name, role, tags):
+def create_worker(conn, name, role, tags, image_url=None):
     """Insert a new worker into the database."""
     cur = conn.cursor()
-    cur.execute('INSERT INTO tm_workers (name, role, tags) VALUES (%s, %s, %s)',
-               (name, role, tags))
+    cur.execute('INSERT INTO tm_workers (name, role, tags, image_url) VALUES (%s, %s, %s, %s)',
+               (name, role, tags, image_url))
     conn.commit()
     cur.close()
 
-def update_worker(conn, worker_id, name, role, tags, email, phone, bio, rating):
+def update_worker(conn, worker_id, name, role, tags, email, phone, bio, rating, image_url=None):
     """Update an existing worker."""
     cur = conn.cursor()
     cur.execute('''UPDATE tm_workers
-                   SET name=%s, role=%s, tags=%s, email=%s, phone=%s, bio=%s, rating=%s
+                   SET name=%s, role=%s, tags=%s, email=%s, phone=%s, bio=%s, rating=%s, image_url=%s
                    WHERE id=%s''',
-               (name, role, tags, email, phone, bio, rating, worker_id))
+               (name, role, tags, email, phone, bio, rating, image_url, worker_id))
     conn.commit()
     cur.close()
 

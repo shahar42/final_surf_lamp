@@ -7,11 +7,13 @@ import repository
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
-UPLOAD_FOLDER = 'static/uploads/contracts'
+UPLOAD_FOLDER_CONTRACTS = 'static/uploads/contracts'
+UPLOAD_FOLDER_PROFILES = 'static/uploads/profiles'
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
-ALLOWED_EXTENSIONS = {'pdf'}
+ALLOWED_EXTENSIONS = {'pdf', 'jpg', 'jpeg', 'png', 'gif'}
 
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(UPLOAD_FOLDER_CONTRACTS, exist_ok=True)
+os.makedirs(UPLOAD_FOLDER_PROFILES, exist_ok=True)
 
 def get_db():
     if 'db' not in g:
@@ -68,10 +70,19 @@ def add_worker():
     if request.method == 'POST':
         name = request.form['name']
         role = request.form['role']
-        tags = request.form['tags']
+        tags = request.form.get('tags', '')
+
+        image_url = None
+        if 'profile_image' in request.files:
+            file = request.files['profile_image']
+            if file and file.filename and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                image_url = f'uploads/profiles/{filename}'
+                filepath = os.path.join(UPLOAD_FOLDER_PROFILES, filename)
+                file.save(filepath)
 
         conn = get_db()
-        repository.create_worker(conn, name, role, tags)
+        repository.create_worker(conn, name, role, tags, image_url)
         return redirect(url_for('dashboard'))
 
     return render_template('add_worker.html')
@@ -79,6 +90,8 @@ def add_worker():
 @app.route('/worker/<int:worker_id>/edit', methods=('GET', 'POST'))
 def edit_worker(worker_id):
     conn = get_db()
+    worker = repository.get_worker_by_id(conn, worker_id)
+
     if request.method == 'POST':
         name = request.form['name']
         role = request.form['role']
@@ -88,10 +101,18 @@ def edit_worker(worker_id):
         bio = request.form.get('bio', '')
         rating = request.form.get('rating', 5)
 
-        repository.update_worker(conn, worker_id, name, role, tags, email, phone, bio, rating)
+        image_url = worker['image_url']
+        if 'profile_image' in request.files:
+            file = request.files['profile_image']
+            if file and file.filename and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                image_url = f'uploads/profiles/{filename}'
+                filepath = os.path.join(UPLOAD_FOLDER_PROFILES, filename)
+                file.save(filepath)
+
+        repository.update_worker(conn, worker_id, name, role, tags, email, phone, bio, rating, image_url)
         return redirect(url_for('worker_detail', worker_id=worker_id))
 
-    worker = repository.get_worker_by_id(conn, worker_id)
     return render_template('edit_worker.html', worker=worker)
 
 @app.route('/worker/<int:worker_id>/delete', methods=('POST',))
@@ -117,7 +138,7 @@ def add_contract(worker_id):
             if file and file.filename and allowed_file(file.filename):
                 filename = secure_filename(file.filename)
                 pdf_filename = filename
-                filepath = os.path.join(UPLOAD_FOLDER, filename)
+                filepath = os.path.join(UPLOAD_FOLDER_CONTRACTS, filename)
                 file.save(filepath)
 
         repository.create_contract(conn, worker_id, title, rate, start_date, end_date, terms, status, pdf_filename)
@@ -145,7 +166,7 @@ def edit_contract(contract_id):
             if file and file.filename and allowed_file(file.filename):
                 filename = secure_filename(file.filename)
                 pdf_filename = filename
-                filepath = os.path.join(UPLOAD_FOLDER, filename)
+                filepath = os.path.join(UPLOAD_FOLDER_CONTRACTS, filename)
                 file.save(filepath)
 
         repository.update_contract(conn, contract_id, title, rate, start_date, end_date, terms, status, pdf_filename)

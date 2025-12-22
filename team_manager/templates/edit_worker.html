@@ -8,7 +8,16 @@
                 <h2>Edit Worker</h2>
             </div>
             <div class="card-body">
-                <form method="post">
+                <form method="post" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="profile_image" class="form-label">Profile Picture</label>
+                        {% if worker['image_url'] %}
+                            <div class="mb-2">
+                                <img src="{{ url_for('static', filename=worker['image_url']) }}" alt="Profile" style="max-width: 150px; border-radius: 8px;">
+                            </div>
+                        {% endif %}
+                        <input type="file" class="form-control" id="profile_image" name="profile_image" accept="image/*">
+                    </div>
                     <div class="mb-3">
                         <label for="name" class="form-label">Full Name</label>
                         <input type="text" class="form-control" id="name" name="name" value="{{ worker['name'] }}" required>
