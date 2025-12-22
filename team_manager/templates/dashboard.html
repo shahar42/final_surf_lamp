@@ -6,6 +6,7 @@
     <a href="{{ url_for('add_worker') }}" class="btn btn-primary-custom">+ Add Worker</a>
 </div>
 
+{% if search_enabled %}
 <div class="mb-4">
     <form method="get" action="{{ url_for('dashboard') }}" class="row g-2">
         <div class="col-md-10">
@@ -16,6 +17,7 @@
         </div>
     </form>
 </div>
+{% endif %}
 
 <div class="row">
     {% for worker in workers %}

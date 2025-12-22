@@ -53,7 +53,8 @@ def dashboard():
     else:
         workers = repository.get_all_workers(conn)
     total_workers = len(workers)
-    return render_template('dashboard.html', workers=workers, total_workers=total_workers, search_query=query)
+    search_enabled = os.environ.get('ENABLE_SEARCH', 'true').lower() == 'true'
+    return render_template('dashboard.html', workers=workers, total_workers=total_workers, search_query=query, search_enabled=search_enabled)
 
 @app.route('/worker/<int:worker_id>')
 def worker_detail(worker_id):
