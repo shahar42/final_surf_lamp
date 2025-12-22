@@ -338,56 +338,84 @@
                 {% if off_hours_feature_enabled %}
                 <!-- Off Hours Configuration -->
                 <div class="space-y-3">
-                    <div class="flex justify-between items-center">
-                        <span class="text-white/80">Off Hours:</span>
-                        <div class="flex items-center space-x-2">
-                            <input type="checkbox" id="offHoursEnabled"
-                                   {% if data.user.off_times_enabled %}checked{% endif %}
-                                   class="w-5 h-5 bg-white/20 border-2 border-white/40 rounded cursor-pointer checked:bg-blue-500 checked:border-blue-500 focus:ring-2 focus:ring-blue-500/50">
-                        </div>
-                    </div>
+                    <span class="text-white/80 block mb-2">Sleep Mode (Lamp Off):</span>
 
                     <!-- Preset Buttons -->
                     <div class="space-y-2">
                         <div class="grid grid-cols-3 gap-2">
                             <button data-preset="typical" data-start="23:00" data-end="07:00"
-                                    class="preset-btn bg-white/10 hover:bg-white/20 text-white text-xs py-2 px-2 rounded transition-all border border-white/20">
-                                Typical<br><span class="text-white/60">11pm-7am</span>
+                                    class="preset-btn text-xs py-2 px-2 rounded transition-all border
+                                    {% if data.user.off_times_enabled and data.user.off_time_start == '23:00' %}
+                                        bg-orange-600/80 border-orange-500 text-white font-semibold shadow-[0_0_15px_rgba(234,88,12,0.3)]
+                                    {% else %}
+                                        bg-white/10 hover:bg-white/20 text-white/80 border-white/20
+                                    {% endif %}">
+                                Typical<br><span class="opacity-60">11pm-7am</span>
                             </button>
                             <button data-preset="early" data-start="22:00" data-end="06:00"
-                                    class="preset-btn bg-white/10 hover:bg-white/20 text-white text-xs py-2 px-2 rounded transition-all border border-white/20">
-                                Early<br><span class="text-white/60">10pm-6am</span>
+                                    class="preset-btn text-xs py-2 px-2 rounded transition-all border
+                                    {% if data.user.off_times_enabled and data.user.off_time_start == '22:00' %}
+                                        bg-orange-600/80 border-orange-500 text-white font-semibold shadow-[0_0_15px_rgba(234,88,12,0.3)]
+                                    {% else %}
+                                        bg-white/10 hover:bg-white/20 text-white/80 border-white/20
+                                    {% endif %}">
+                                Early<br><span class="opacity-60">10pm-6am</span>
                             </button>
                             <button data-preset="night-owl" data-start="01:00" data-end="09:00"
-                                    class="preset-btn bg-white/10 hover:bg-white/20 text-white text-xs py-2 px-2 rounded transition-all border border-white/20">
-                                Night Owl<br><span class="text-white/60">1am-9am</span>
+                                    class="preset-btn text-xs py-2 px-2 rounded transition-all border
+                                    {% if data.user.off_times_enabled and data.user.off_time_start == '01:00' %}
+                                        bg-orange-600/80 border-orange-500 text-white font-semibold shadow-[0_0_15px_rgba(234,88,12,0.3)]
+                                    {% else %}
+                                        bg-white/10 hover:bg-white/20 text-white/80 border-white/20
+                                    {% endif %}">
+                                Night Owl<br><span class="opacity-60">1am-9am</span>
                             </button>
                         </div>
-                        <button id="customPresetBtn" class="w-full bg-white/10 hover:bg-white/20 text-white text-xs py-2 rounded transition-all border border-white/20">
-                            Custom...
-                        </button>
+                        
+                        <div class="grid grid-cols-2 gap-2">
+                            <button id="customPresetBtn" 
+                                    class="text-xs py-2 rounded transition-all border
+                                    {% if data.user.off_times_enabled and data.user.off_time_start not in ['23:00', '22:00', '01:00'] %}
+                                        bg-orange-600/80 border-orange-500 text-white font-semibold shadow-[0_0_15px_rgba(234,88,12,0.3)]
+                                    {% else %}
+                                        bg-white/10 hover:bg-white/20 text-white/80 border-white/20
+                                    {% endif %}">
+                                Custom...
+                            </button>
+                            <button id="alwaysOnBtn"
+                                    class="text-xs py-2 rounded transition-all border
+                                    {% if not data.user.off_times_enabled %}
+                                        bg-orange-600/80 border-orange-500 text-white font-semibold shadow-[0_0_15px_rgba(234,88,12,0.3)]
+                                    {% else %}
+                                        bg-white/10 hover:bg-white/20 text-white/80 border-white/20
+                                    {% endif %}">
+                                Always On
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Custom Time Inputs (hidden by default) -->
-                    <div id="customTimeInputs" class="space-y-3 hidden">
-                        <div>
-                            <label class="text-white/80 text-sm block mb-1">Start time:</label>
-                            <input type="time" id="offTimeStart"
-                                   value="{{ data.user.off_time_start if data.user.off_time_start else '22:00' }}"
-                                   class="bg-white/20 text-white rounded px-2 py-1 text-sm border border-white/30 w-full">
+                    <div id="customTimeInputs" class="space-y-3 hidden bg-black/20 p-3 rounded-lg mt-2">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-white/60 text-xs block mb-1">Start (Off):</label>
+                                <input type="time" id="offTimeStart"
+                                       value="{{ data.user.off_time_start if data.user.off_time_start else '22:00' }}"
+                                       class="bg-white/10 text-white rounded px-2 py-1 text-sm border border-white/20 w-full focus:border-blue-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="text-white/60 text-xs block mb-1">End (On):</label>
+                                <input type="time" id="offTimeEnd"
+                                       value="{{ data.user.off_time_end if data.user.off_time_end else '06:00' }}"
+                                       class="bg-white/10 text-white rounded px-2 py-1 text-sm border border-white/20 w-full focus:border-blue-500 focus:outline-none">
+                            </div>
                         </div>
-                        <div>
-                            <label class="text-white/80 text-sm block mb-1">End time:</label>
-                            <input type="time" id="offTimeEnd"
-                                   value="{{ data.user.off_time_end if data.user.off_time_end else '06:00' }}"
-                                   class="bg-white/20 text-white rounded px-2 py-1 text-sm border border-white/30 w-full">
-                        </div>
-                        <div class="text-right">
-                            <button id="updateOffTimes" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm text-white">Apply Custom</button>
-                        </div>
+                        <button id="updateOffTimes" class="w-full bg-blue-500 hover:bg-blue-600 py-1.5 rounded text-sm text-white font-semibold shadow-lg transition-transform active:scale-95">
+                            Apply Schedule
+                        </button>
                     </div>
 
-                    <div id="off-times-status" class="text-sm text-white/80 mt-2"></div>
+                    <div id="off-times-status" class="text-xs font-semibold mt-2 h-4"></div>
                 </div>
                 {% endif %}
 
@@ -690,12 +718,32 @@
     {% if off_hours_feature_enabled %}
 
     // Helper function to update off hours
-    function updateOffHours(startTime, endTime, enableToggle = true) {
+    function updateOffHours(startTime, endTime, enabled) {
         const statusDiv = document.getElementById('off-times-status');
-        const toggle = document.getElementById('offHoursEnabled');
-
-        if (enableToggle && !toggle.checked) {
-            toggle.checked = true;
+        
+        // Optimistic UI updates
+        resetButtonStyles();
+        if (!enabled) {
+            const btn = document.getElementById('alwaysOnBtn');
+            btn.classList.remove('bg-white/10', 'border-white/20', 'text-white/80');
+            btn.classList.add('bg-orange-600/80', 'border-orange-500', 'text-white', 'font-semibold', 'shadow-[0_0_15px_rgba(234,88,12,0.3)]');
+        } else {
+            let matched = false;
+            // Find button matching this preset
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                if (btn.getAttribute('data-start') === startTime) {
+                    btn.classList.remove('bg-white/10', 'border-white/20', 'text-white/80');
+                    btn.classList.add('bg-orange-600/80', 'border-orange-500', 'text-white', 'font-semibold', 'shadow-[0_0_15px_rgba(234,88,12,0.3)]');
+                    matched = true;
+                }
+            });
+            
+            // If no preset matched and enabled is true, highlight "Custom"
+            if (!matched) {
+                 const customBtn = document.getElementById('customPresetBtn');
+                 customBtn.classList.remove('bg-white/10', 'border-white/20', 'text-white/80');
+                 customBtn.classList.add('bg-orange-600/80', 'border-orange-500', 'text-white', 'font-semibold', 'shadow-[0_0_15px_rgba(234,88,12,0.3)]');
+            }
         }
 
         statusDiv.textContent = 'Updating...';
@@ -707,7 +755,7 @@
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                enabled: toggle.checked,
+                enabled: enabled,
                 start_time: startTime,
                 end_time: endTime
             })
@@ -715,8 +763,9 @@
         .then(response => response.json().then(data => ({ok: response.ok, body: data})))
         .then(({ok, body}) => {
             if (ok) {
-                statusDiv.textContent = body.message;
-                statusDiv.style.color = '#10b981';
+                statusDiv.textContent = '✓ ' + body.message;
+                statusDiv.style.color = '#fb923c'; // Orange-400
+                setTimeout(() => { statusDiv.textContent = ''; }, 3000);
             } else {
                 statusDiv.textContent = 'Error: ' + body.message;
                 statusDiv.style.color = '#ef4444';
@@ -728,47 +777,63 @@
         });
     }
 
+    function resetButtonStyles() {
+        const inactiveClasses = ['bg-white/10', 'hover:bg-white/20', 'text-white/80', 'border-white/20'];
+        const activeClasses = ['bg-orange-600/80', 'border-orange-500', 'text-white', 'font-semibold', 'shadow-[0_0_15px_rgba(234,88,12,0.3)]'];
+
+        // Reset Presets
+        document.querySelectorAll('.preset-btn').forEach(b => {
+            b.classList.remove(...activeClasses);
+            b.classList.add(...inactiveClasses);
+        });
+        
+        // Reset Custom
+        const customBtn = document.getElementById('customPresetBtn');
+        customBtn.classList.remove(...activeClasses);
+        customBtn.classList.add(...inactiveClasses);
+
+        // Reset Always On
+        const alwaysOn = document.getElementById('alwaysOnBtn');
+        alwaysOn.classList.remove(...activeClasses);
+        alwaysOn.classList.add(...inactiveClasses);
+    }
+
     // Preset button handlers
     document.querySelectorAll('.preset-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const startTime = this.getAttribute('data-start');
             const endTime = this.getAttribute('data-end');
 
-            // Visual feedback
-            document.querySelectorAll('.preset-btn').forEach(b => {
-                b.classList.remove('bg-blue-500/40', 'border-blue-500/60');
-                b.classList.add('bg-white/10', 'border-white/20');
-            });
-            this.classList.remove('bg-white/10', 'border-white/20');
-            this.classList.add('bg-blue-500/40', 'border-blue-500/60');
-
-            // Hide custom inputs
+            // Hide custom inputs if open
             document.getElementById('customTimeInputs').classList.add('hidden');
 
-            // Update
+            // Implicitly enable and set time
             updateOffHours(startTime, endTime, true);
         });
+    });
+
+    // "Always On" button handler
+    document.getElementById('alwaysOnBtn').addEventListener('click', function() {
+        document.getElementById('customTimeInputs').classList.add('hidden');
+        updateOffHours(null, null, false);
     });
 
     // Custom button toggles custom time inputs
     document.getElementById('customPresetBtn').addEventListener('click', function() {
         const customInputs = document.getElementById('customTimeInputs');
         customInputs.classList.toggle('hidden');
-
-        // Clear preset selection
-        document.querySelectorAll('.preset-btn').forEach(b => {
-            b.classList.remove('bg-blue-500/40', 'border-blue-500/60');
-            b.classList.add('bg-white/10', 'border-white/20');
-        });
+        
+        // Reset other styles to indicate "Custom" mode is active (though not yet applied)
+        resetButtonStyles();
     });
 
-    // Custom time update button
+    // Custom time apply button
     const updateOffTimesBtn = document.getElementById('updateOffTimes');
     if (updateOffTimesBtn) {
         updateOffTimesBtn.addEventListener('click', function() {
             const startTime = document.getElementById('offTimeStart').value;
             const endTime = document.getElementById('offTimeEnd').value;
-            updateOffHours(startTime, endTime, false);
+            updateOffHours(startTime, endTime, true);
         });
     }
     {% endif %}
