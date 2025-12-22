@@ -6,6 +6,17 @@
     <a href="{{ url_for('add_worker') }}" class="btn btn-primary-custom">+ Add Worker</a>
 </div>
 
+<div class="mb-4">
+    <form method="get" action="{{ url_for('dashboard') }}" class="row g-2">
+        <div class="col-md-10">
+            <input type="text" class="form-control" name="q" placeholder="Search workers by name, role, or tags..." value="{{ search_query or '' }}">
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary-custom w-100">Search</button>
+        </div>
+    </form>
+</div>
+
 <div class="row">
     {% for worker in workers %}
     <div class="col-md-4 mb-4">

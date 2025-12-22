@@ -22,8 +22,9 @@ CREATE TABLE tm_contracts (
     end_date TEXT,
     terms TEXT,
     status TEXT DEFAULT 'Active',
+    pdf_filename TEXT,
     CONSTRAINT fk_worker
-        FOREIGN KEY (worker_id) 
+        FOREIGN KEY (worker_id)
         REFERENCES tm_workers (id)
         ON DELETE CASCADE
 );

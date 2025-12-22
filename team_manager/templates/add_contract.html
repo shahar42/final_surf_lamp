@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card card-custom">
+            <div class="card-header bg-white border-0 pt-4 px-4">
+                <h2>New Contract for {{ worker['name'] }}</h2>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Contract Title</label>
+                        <input type="text" class="form-control" id="title" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="rate" class="form-label">Rate/Salary</label>
+                        <input type="text" class="form-control" id="rate" name="rate" placeholder="e.g. $50,000/year or $25/hour" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="start_date" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="start_date" name="start_date" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="end_date" class="form-label">End Date (Optional)</label>
+                            <input type="date" class="form-control" id="end_date" name="end_date">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Status</label>
+                        <select class="form-control" id="status" name="status">
+                            <option value="Active" selected>Active</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Terminated">Terminated</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="terms" class="form-label">Terms & Conditions</label>
+                        <textarea class="form-control" id="terms" name="terms" rows="4"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="pdf" class="form-label">Upload Contract PDF (Optional)</label>
+                        <input type="file" class="form-control" id="pdf" name="pdf" accept=".pdf">
+                    </div>
+                    <div class="d-flex justify-content-end">
+                        <a href="{{ url_for('worker_detail', worker_id=worker['id']) }}" class="btn btn-secondary me-2">Cancel</a>
+                        <button type="submit" class="btn btn-primary-custom">Create Contract</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

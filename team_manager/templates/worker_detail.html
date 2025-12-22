@@ -20,8 +20,15 @@
                 </div>
                 <hr>
                 <div class="text-start">
-                    <p><strong>Email:</strong> {{ worker['email'] }}</p>
-                    <p><strong>Bio:</strong> {{ worker['bio'] }}</p>
+                    <p><strong>Email:</strong> {{ worker['email'] or 'N/A' }}</p>
+                    <p><strong>Bio:</strong> {{ worker['bio'] or 'N/A' }}</p>
+                </div>
+                <hr>
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('edit_worker', worker_id=worker['id']) }}" class="btn btn-primary-custom btn-sm">Edit Worker</a>
+                    <form method="post" action="{{ url_for('delete_worker', worker_id=worker['id']) }}" onsubmit="return confirm('Delete this worker and all contracts?');">
+                        <button type="submit" class="btn btn-danger btn-sm w-100">Delete Worker</button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -37,14 +44,25 @@
                 {% if contracts %}
                     <div class="list-group list-group-flush">
                         {% for contract in contracts %}
-                        <div class="list-group-item d-flex justify-content-between align-items-center py-3">
-                            <div>
-                                <h6 class="mb-0">{{ contract['title'] }}</h6>
-                                <small class="text-muted">Started: {{ contract['start_date'] }}</small>
+                        <div class="list-group-item py-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <h6 class="mb-0">{{ contract['title'] }}</h6>
+                                    <small class="text-muted">Started: {{ contract['start_date'] }}</small>
+                                    {% if contract['pdf_filename'] %}
+                                        <br><a href="{{ url_for('static', filename='uploads/contracts/' + contract['pdf_filename']) }}" class="text-decoration-none" target="_blank">📄 {{ contract['pdf_filename'] }}</a>
+                                    {% endif %}
+                                </div>
+                                <div class="text-end">
+                                    <span class="d-block fw-bold">{{ contract['rate'] }}</span>
+                                    <span class="badge bg-success rounded-pill">{{ contract['status'] }}</span>
+                                </div>
                             </div>
-                            <div class="text-end">
-                                <span class="d-block fw-bold">{{ contract['rate'] }}</span>
-                                <span class="badge bg-success rounded-pill">{{ contract['status'] }}</span>
+                            <div class="d-flex gap-2 justify-content-end">
+                                <a href="{{ url_for('edit_contract', contract_id=contract['id']) }}" class="btn btn-outline-primary btn-sm">Edit</a>
+                                <form method="post" action="{{ url_for('delete_contract', contract_id=contract['id']) }}" onsubmit="return confirm('Delete this contract?');" class="d-inline">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+                                </form>
                             </div>
                         </div>
                         {% endfor %}
@@ -53,7 +71,7 @@
                     <p class="text-muted text-center py-4">No active contracts found.</p>
                 {% endif %}
                 <div class="mt-3 text-end">
-                    <button class="btn btn-outline-secondary btn-sm">Generate New Contract</button>
+                    <a href="{{ url_for('add_contract', worker_id=worker['id']) }}" class="btn btn-primary-custom btn-sm">Generate New Contract</a>
                 </div>
             </div>
         </div>
