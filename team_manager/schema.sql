@@ -1,7 +1,4 @@
-DROP TABLE IF EXISTS tm_contracts;
-DROP TABLE IF EXISTS tm_workers;
-
-CREATE TABLE tm_workers (
+CREATE TABLE IF NOT EXISTS tm_workers (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,
     role TEXT NOT NULL,
@@ -13,7 +10,7 @@ CREATE TABLE tm_workers (
     image_url TEXT
 );
 
-CREATE TABLE tm_contracts (
+CREATE TABLE IF NOT EXISTS tm_contracts (
     id SERIAL PRIMARY KEY,
     worker_id INTEGER NOT NULL,
     title TEXT NOT NULL,
