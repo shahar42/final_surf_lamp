@@ -11,53 +11,53 @@
                 <form method="post" enctype="multipart/form-data">
                     <div class="mb-3">
                         <label for="title" class="form-label">Contract Title</label>
-                        <input type="text" class="form-control" id="title" name="title" value="{{ contract['title'] }}" required>
+                        <input type="text" class="form-control" id="title" name="title" value="{{ contract.title }}" required>
                     </div>
                     <div class="mb-3">
                         <label for="rate" class="form-label">Rate/Salary</label>
-                        <input type="text" class="form-control" id="rate" name="rate" value="{{ contract['rate'] }}" required>
+                        <input type="text" class="form-control" id="rate" name="rate" value="{{ contract.rate }}" required>
                     </div>
                     <div class="mb-3">
                         <label for="payment_type" class="form-label">Payment Type</label>
                         <select class="form-control" id="payment_type" name="payment_type">
-                            <option value="Monthly Salary" {% if contract['payment_type'] == 'Monthly Salary' %}selected{% endif %}>Monthly Salary</option>
-                            <option value="One-time Payment" {% if contract['payment_type'] == 'One-time Payment' %}selected{% endif %}>One-time Payment</option>
-                            <option value="Percentage of Sales" {% if contract['payment_type'] == 'Percentage of Sales' %}selected{% endif %}>Percentage of Sales</option>
+                            <option value="Monthly Salary" {% if contract.payment_type == 'Monthly Salary' %}selected{% endif %}>Monthly Salary</option>
+                            <option value="One-time Payment" {% if contract.payment_type == 'One-time Payment' %}selected{% endif %}>One-time Payment</option>
+                            <option value="Percentage of Sales" {% if contract.payment_type == 'Percentage of Sales' %}selected{% endif %}>Percentage of Sales</option>
                         </select>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="start_date" class="form-label">Start Date</label>
-                            <input type="date" class="form-control" id="start_date" name="start_date" value="{{ contract['start_date'] }}" required>
+                            <input type="date" class="form-control" id="start_date" name="start_date" value="{{ contract.start_date }}" required>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label for="end_date" class="form-label">End Date (Optional)</label>
-                            <input type="date" class="form-control" id="end_date" name="end_date" value="{{ contract['end_date'] or '' }}">
+                            <input type="date" class="form-control" id="end_date" name="end_date" value="{{ contract.end_date or '' }}">
                         </div>
                     </div>
                     <div class="mb-3">
                         <label for="status" class="form-label">Status</label>
                         <select class="form-control" id="status" name="status">
-                            <option value="Active" {% if contract['status'] == 'Active' %}selected{% endif %}>Active</option>
-                            <option value="Completed" {% if contract['status'] == 'Completed' %}selected{% endif %}>Completed</option>
-                            <option value="Terminated" {% if contract['status'] == 'Terminated' %}selected{% endif %}>Terminated</option>
+                            <option value="Active" {% if contract.status == 'Active' %}selected{% endif %}>Active</option>
+                            <option value="Completed" {% if contract.status == 'Completed' %}selected{% endif %}>Completed</option>
+                            <option value="Terminated" {% if contract.status == 'Terminated' %}selected{% endif %}>Terminated</option>
                         </select>
                     </div>
                     <div class="mb-3">
                         <label for="terms" class="form-label">Terms & Conditions</label>
-                        <textarea class="form-control" id="terms" name="terms" rows="4">{{ contract['terms'] or '' }}</textarea>
+                        <textarea class="form-control" id="terms" name="terms" rows="4">{{ contract.terms or '' }}</textarea>
                     </div>
                     <div class="mb-3">
                         <label for="pdf" class="form-label">Upload Document (PDF/Image, Optional)</label>
-                        {% if contract['pdf_filename'] %}
+                        {% if contract.pdf_filename %}
                             <div class="mb-2">
-                                <small class="text-muted">Current: <a href="{{ url_for('static', filename='uploads/contracts/' + contract['pdf_filename']) }}" target="_blank">{{ contract['pdf_filename'] }}</a></small>
+                                <small class="text-muted">Current: <a href="{{ url_for('static', filename='uploads/contracts/' + contract.pdf_filename) }}" target="_blank">{{ contract.pdf_filename }}</a></small>
                             </div>
                         {% endif %}
                         <input type="file" class="form-control" id="pdf" name="pdf" accept=".pdf,image/*">
                     </div>
                     <div class="d-flex justify-content-end">
-                        <a href="{{ url_for('worker_detail', worker_id=contract['worker_id']) }}" class="btn btn-secondary me-2">Cancel</a>
+                        <a href="{{ url_for('worker_detail', worker_id=contract.worker_id) }}" class="btn btn-secondary me-2">Cancel</a>
                         <button type="submit" class="btn btn-primary-custom">Save Changes</button>
                     </div>
                 </form>

@@ -1,26 +1,28 @@
+from models import Worker, Contract
+
 def get_all_workers(conn):
     """Fetch all workers from the database."""
     cur = conn.cursor()
     cur.execute("SELECT * FROM tm_workers ORDER BY id DESC")
-    workers = cur.fetchall()
+    rows = cur.fetchall()
     cur.close()
-    return workers
+    return [Worker(**row) for row in rows]
 
 def get_worker_by_id(conn, worker_id):
     """Fetch a single worker by their ID."""
     cur = conn.cursor()
     cur.execute("SELECT * FROM tm_workers WHERE id = %s", (worker_id,))
-    worker = cur.fetchone()
+    row = cur.fetchone()
     cur.close()
-    return worker
+    return Worker(**row) if row else None
 
 def get_contracts_by_worker_id(conn, worker_id):
     """Fetch all contracts associated with a specific worker."""
     cur = conn.cursor()
     cur.execute("SELECT * FROM tm_contracts WHERE worker_id = %s", (worker_id,))
-    contracts = cur.fetchall()
+    rows = cur.fetchall()
     cur.close()
-    return contracts
+    return [Contract(**row) for row in rows]
 
 def create_worker(conn, name, role, tags, image_url=None):
     """Insert a new worker into the database."""
@@ -51,9 +53,9 @@ def get_contract_by_id(conn, contract_id):
     """Fetch a single contract by ID."""
     cur = conn.cursor()
     cur.execute('SELECT * FROM tm_contracts WHERE id=%s', (contract_id,))
-    contract = cur.fetchone()
+    row = cur.fetchone()
     cur.close()
-    return contract
+    return Contract(**row) if row else None
 
 def create_contract(conn, worker_id, title, rate, payment_type, start_date, end_date, terms, status, pdf_filename):
     """Create a new contract."""
@@ -89,9 +91,9 @@ def get_all_contracts(conn):
                    FROM tm_contracts c
                    LEFT JOIN tm_workers w ON c.worker_id = w.id
                    ORDER BY c.start_date DESC''')
-    contracts = cur.fetchall()
+    rows = cur.fetchall()
     cur.close()
-    return contracts
+    return [Contract(**row) for row in rows]
 
 def search_workers(conn, query):
     """Search workers by name, role, or tags."""
@@ -101,6 +103,6 @@ def search_workers(conn, query):
                    WHERE name ILIKE %s OR role ILIKE %s OR tags ILIKE %s
                    ORDER BY id DESC''',
                (search_term, search_term, search_term))
-    workers = cur.fetchall()
+    rows = cur.fetchall()
     cur.close()
-    return workers
+    return [Worker(**row) for row in rows]

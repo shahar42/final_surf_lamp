@@ -1,40 +1,20 @@
 from flask import Flask, render_template, g, request, redirect, url_for, flash
 from werkzeug.utils import secure_filename
-import psycopg2
-import psycopg2.extras
 import os
 import repository
+import database
+from config import config
+from storage import LocalStorageService
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
-UPLOAD_FOLDER_CONTRACTS = 'static/uploads/contracts'
-UPLOAD_FOLDER_PROFILES = 'static/uploads/profiles'
-MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
-ALLOWED_EXTENSIONS = {'pdf', 'jpg', 'jpeg', 'png', 'gif'}
+env_name = os.environ.get('FLASK_ENV', 'default')
+app.config.from_object(config[env_name])
 
-os.makedirs(UPLOAD_FOLDER_CONTRACTS, exist_ok=True)
-os.makedirs(UPLOAD_FOLDER_PROFILES, exist_ok=True)
+storage_service = LocalStorageService(app.config)
 
 def get_db():
     if 'db' not in g:
-        db_url = os.environ.get('DATABASE_URL')
-        print(f"DEBUG: DATABASE_URL type: {type(db_url)}")
-        
-        if db_url:
-            print(f"DEBUG: DATABASE_URL starts with: {db_url[:15]}...")
-            # Auto-append SSL mode for Render
-            if 'sslmode' not in db_url:
-                 if '?' in db_url:
-                    db_url += "&sslmode=require"
-                 else:
-                    db_url += "?sslmode=require"
-        else:
-            print("DEBUG: DATABASE_URL is MISSING or Empty!")
-            
-        g.db = psycopg2.connect(
-            db_url,
-            cursor_factory=psycopg2.extras.DictCursor
-        )
+        g.db = database.get_connection(app.config['DATABASE_URL'])
     return g.db
 
 @app.teardown_appcontext
@@ -42,9 +22,6 @@ def close_connection(exception):
     db = g.pop('db', None)
     if db is not None:
         db.close()
-
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route('/')
 def dashboard():
@@ -55,7 +32,7 @@ def dashboard():
     else:
         workers = repository.get_all_workers(conn)
     total_workers = len(workers)
-    search_enabled = os.environ.get('ENABLE_SEARCH', 'true').lower() == 'true'
+    search_enabled = app.config['ENABLE_SEARCH']
     return render_template('dashboard.html', workers=workers, total_workers=total_workers, search_query=query, search_enabled=search_enabled)
 
 @app.route('/worker/<int:worker_id>')
@@ -74,12 +51,9 @@ def add_worker():
 
         image_url = None
         if 'profile_image' in request.files:
-            file = request.files['profile_image']
-            if file and file.filename and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                image_url = f'uploads/profiles/{filename}'
-                filepath = os.path.join(UPLOAD_FOLDER_PROFILES, filename)
-                file.save(filepath)
+             saved_path = storage_service.save_profile(request.files['profile_image'])
+             if saved_path:
+                 image_url = saved_path
 
         conn = get_db()
         repository.create_worker(conn, name, role, tags, image_url)
@@ -101,14 +75,11 @@ def edit_worker(worker_id):
         bio = request.form.get('bio', '')
         rating = request.form.get('rating', 5)
 
-        image_url = worker['image_url']
+        image_url = worker.image_url
         if 'profile_image' in request.files:
-            file = request.files['profile_image']
-            if file and file.filename and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                image_url = f'uploads/profiles/{filename}'
-                filepath = os.path.join(UPLOAD_FOLDER_PROFILES, filename)
-                file.save(filepath)
+            saved_path = storage_service.save_profile(request.files['profile_image'])
+            if saved_path:
+                image_url = saved_path
 
         repository.update_worker(conn, worker_id, name, role, tags, email, phone, bio, rating, image_url)
         return redirect(url_for('worker_detail', worker_id=worker_id))
@@ -135,12 +106,9 @@ def add_contract(worker_id):
 
         pdf_filename = None
         if 'pdf' in request.files:
-            file = request.files['pdf']
-            if file and file.filename and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                pdf_filename = filename
-                filepath = os.path.join(UPLOAD_FOLDER_CONTRACTS, filename)
-                file.save(filepath)
+            saved_name = storage_service.save_contract(request.files['pdf'])
+            if saved_name:
+                pdf_filename = saved_name
 
         repository.create_contract(conn, worker_id, title, rate, payment_type, start_date, end_date, terms, status, pdf_filename)
         return redirect(url_for('worker_detail', worker_id=worker_id))
@@ -162,17 +130,14 @@ def edit_contract(contract_id):
         terms = request.form.get('terms', '')
         status = request.form.get('status', 'Active')
 
-        pdf_filename = contract['pdf_filename']
+        pdf_filename = contract.pdf_filename
         if 'pdf' in request.files:
-            file = request.files['pdf']
-            if file and file.filename and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                pdf_filename = filename
-                filepath = os.path.join(UPLOAD_FOLDER_CONTRACTS, filename)
-                file.save(filepath)
+            saved_name = storage_service.save_contract(request.files['pdf'])
+            if saved_name:
+                pdf_filename = saved_name
 
         repository.update_contract(conn, contract_id, title, rate, payment_type, start_date, end_date, terms, status, pdf_filename)
-        return redirect(url_for('worker_detail', worker_id=contract['worker_id']))
+        return redirect(url_for('worker_detail', worker_id=contract.worker_id))
 
     return render_template('edit_contract.html', contract=contract)
 
@@ -180,7 +145,7 @@ def edit_contract(contract_id):
 def delete_contract(contract_id):
     conn = get_db()
     contract = repository.get_contract_by_id(conn, contract_id)
-    worker_id = contract['worker_id']
+    worker_id = contract.worker_id
     repository.delete_contract(conn, contract_id)
     return redirect(url_for('worker_detail', worker_id=worker_id))
 
@@ -189,15 +154,13 @@ def delete_contract_file(contract_id):
     conn = get_db()
     contract = repository.get_contract_by_id(conn, contract_id)
 
-    if contract['pdf_filename']:
-        filepath = os.path.join(UPLOAD_FOLDER_CONTRACTS, contract['pdf_filename'])
-        if os.path.exists(filepath):
-            os.remove(filepath)
+    if contract.pdf_filename:
+        storage_service.delete_contract(contract.pdf_filename)
 
-    repository.update_contract(conn, contract_id, contract['title'], contract['rate'],
-                              contract['payment_type'], contract['start_date'], contract['end_date'],
-                              contract['terms'], contract['status'], None)
-    return redirect(url_for('worker_detail', worker_id=contract['worker_id']))
+    repository.update_contract(conn, contract_id, contract.title, contract.rate,
+                              contract.payment_type, contract.start_date, contract.end_date,
+                              contract.terms, contract.status, None)
+    return redirect(url_for('worker_detail', worker_id=contract.worker_id))
 
 @app.route('/contracts')
 def contracts():

@@ -16,7 +16,11 @@
 </head>
 <body>
 
-    <button class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('active')">☰</button>
+    <!-- Mobile Header -->
+    <div class="mobile-header">
+        <button class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('active')">☰</button>
+        <div class="mobile-logo">StaffCmd</div>
+    </div>
 
     <div class="sidebar" onclick="if(window.innerWidth <= 768) this.classList.remove('active')">
         <div class="logo">

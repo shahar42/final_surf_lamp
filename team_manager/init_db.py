@@ -1,9 +1,12 @@
 import os
 import psycopg2
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse
+import database
+from config import config
 
 def init_db():
-    database_url = os.environ.get('DATABASE_URL')
+    env_name = os.environ.get('FLASK_ENV', 'default')
+    database_url = config[env_name].DATABASE_URL
     
     print("--- Database Initialization ---")
     if not database_url:
@@ -27,15 +30,8 @@ def init_db():
         exit(1)
 
     try:
-        # Append sslmode=require if not present (required for Render)
-        if 'sslmode' not in database_url:
-            print("Auto-appending '?sslmode=require' to connection string.")
-            if '?' in database_url:
-                database_url += "&sslmode=require"
-            else:
-                database_url += "?sslmode=require"
-
-        conn = psycopg2.connect(database_url)
+        # database.get_connection handles SSL mode
+        conn = database.get_connection(database_url)
         cur = conn.cursor()
         
         print("Connected successfully. Applying schema...")
