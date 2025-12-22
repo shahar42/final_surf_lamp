@@ -15,7 +15,15 @@
                     </div>
                     <div class="mb-3">
                         <label for="rate" class="form-label">Rate/Salary</label>
-                        <input type="text" class="form-control" id="rate" name="rate" placeholder="e.g. $50,000/year or $25/hour" required>
+                        <input type="text" class="form-control" id="rate" name="rate" placeholder="e.g. $50,000 or $25/hour or 10%" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="payment_type" class="form-label">Payment Type</label>
+                        <select class="form-control" id="payment_type" name="payment_type">
+                            <option value="Monthly Salary">Monthly Salary</option>
+                            <option value="One-time Payment">One-time Payment</option>
+                            <option value="Percentage of Sales">Percentage of Sales</option>
+                        </select>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">

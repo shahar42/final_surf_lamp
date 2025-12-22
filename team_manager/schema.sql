@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS tm_contracts (
     worker_id INTEGER NOT NULL,
     title TEXT NOT NULL,
     rate TEXT NOT NULL,
+    payment_type TEXT DEFAULT 'Monthly Salary',
     start_date TEXT NOT NULL,
     end_date TEXT,
     terms TEXT,

@@ -127,6 +127,7 @@ def add_contract(worker_id):
     if request.method == 'POST':
         title = request.form['title']
         rate = request.form['rate']
+        payment_type = request.form.get('payment_type', 'Monthly Salary')
         start_date = request.form['start_date']
         end_date = request.form.get('end_date', '')
         terms = request.form.get('terms', '')
@@ -141,7 +142,7 @@ def add_contract(worker_id):
                 filepath = os.path.join(UPLOAD_FOLDER_CONTRACTS, filename)
                 file.save(filepath)
 
-        repository.create_contract(conn, worker_id, title, rate, start_date, end_date, terms, status, pdf_filename)
+        repository.create_contract(conn, worker_id, title, rate, payment_type, start_date, end_date, terms, status, pdf_filename)
         return redirect(url_for('worker_detail', worker_id=worker_id))
 
     worker = repository.get_worker_by_id(conn, worker_id)
@@ -155,6 +156,7 @@ def edit_contract(contract_id):
     if request.method == 'POST':
         title = request.form['title']
         rate = request.form['rate']
+        payment_type = request.form.get('payment_type', 'Monthly Salary')
         start_date = request.form['start_date']
         end_date = request.form.get('end_date', '')
         terms = request.form.get('terms', '')
@@ -169,7 +171,7 @@ def edit_contract(contract_id):
                 filepath = os.path.join(UPLOAD_FOLDER_CONTRACTS, filename)
                 file.save(filepath)
 
-        repository.update_contract(conn, contract_id, title, rate, start_date, end_date, terms, status, pdf_filename)
+        repository.update_contract(conn, contract_id, title, rate, payment_type, start_date, end_date, terms, status, pdf_filename)
         return redirect(url_for('worker_detail', worker_id=contract['worker_id']))
 
     return render_template('edit_contract.html', contract=contract)
@@ -193,7 +195,7 @@ def delete_contract_file(contract_id):
             os.remove(filepath)
 
     repository.update_contract(conn, contract_id, contract['title'], contract['rate'],
-                              contract['start_date'], contract['end_date'],
+                              contract['payment_type'], contract['start_date'], contract['end_date'],
                               contract['terms'], contract['status'], None)
     return redirect(url_for('worker_detail', worker_id=contract['worker_id']))
 

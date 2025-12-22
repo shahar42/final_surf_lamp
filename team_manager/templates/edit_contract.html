@@ -17,6 +17,14 @@
                         <label for="rate" class="form-label">Rate/Salary</label>
                         <input type="text" class="form-control" id="rate" name="rate" value="{{ contract['rate'] }}" required>
                     </div>
+                    <div class="mb-3">
+                        <label for="payment_type" class="form-label">Payment Type</label>
+                        <select class="form-control" id="payment_type" name="payment_type">
+                            <option value="Monthly Salary" {% if contract['payment_type'] == 'Monthly Salary' %}selected{% endif %}>Monthly Salary</option>
+                            <option value="One-time Payment" {% if contract['payment_type'] == 'One-time Payment' %}selected{% endif %}>One-time Payment</option>
+                            <option value="Percentage of Sales" {% if contract['payment_type'] == 'Percentage of Sales' %}selected{% endif %}>Percentage of Sales</option>
+                        </select>
+                    </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="start_date" class="form-label">Start Date</label>

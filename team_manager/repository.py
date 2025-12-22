@@ -55,23 +55,23 @@ def get_contract_by_id(conn, contract_id):
     cur.close()
     return contract
 
-def create_contract(conn, worker_id, title, rate, start_date, end_date, terms, status, pdf_filename):
+def create_contract(conn, worker_id, title, rate, payment_type, start_date, end_date, terms, status, pdf_filename):
     """Create a new contract."""
     cur = conn.cursor()
     cur.execute('''INSERT INTO tm_contracts
-                   (worker_id, title, rate, start_date, end_date, terms, status, pdf_filename)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s)''',
-               (worker_id, title, rate, start_date, end_date, terms, status, pdf_filename))
+                   (worker_id, title, rate, payment_type, start_date, end_date, terms, status, pdf_filename)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)''',
+               (worker_id, title, rate, payment_type, start_date, end_date, terms, status, pdf_filename))
     conn.commit()
     cur.close()
 
-def update_contract(conn, contract_id, title, rate, start_date, end_date, terms, status, pdf_filename):
+def update_contract(conn, contract_id, title, rate, payment_type, start_date, end_date, terms, status, pdf_filename):
     """Update an existing contract."""
     cur = conn.cursor()
     cur.execute('''UPDATE tm_contracts
-                   SET title=%s, rate=%s, start_date=%s, end_date=%s, terms=%s, status=%s, pdf_filename=%s
+                   SET title=%s, rate=%s, payment_type=%s, start_date=%s, end_date=%s, terms=%s, status=%s, pdf_filename=%s
                    WHERE id=%s''',
-               (title, rate, start_date, end_date, terms, status, pdf_filename, contract_id))
+               (title, rate, payment_type, start_date, end_date, terms, status, pdf_filename, contract_id))
     conn.commit()
     cur.close()
 
