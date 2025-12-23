@@ -339,7 +339,6 @@ def get_lamps_for_location(location):
             l.arduino_id,
             l.lamp_id,
             u.location,
-            u.preferred_output as format,
             l.last_updated
         FROM lamps l
         JOIN users u ON l.user_id = u.user_id
@@ -362,55 +361,6 @@ def get_lamps_for_location(location):
         return []
 
 
-def format_for_arduino(surf_data, format_type="meters", location=None):
-    """Format surf data for Arduino consumption with location-aware time"""
-    logger.info(f"🔧 Formatting data for Arduino (format: {format_type}, location: {location})")
-
-    formatted = surf_data.copy()
-
-    # Add location-aware current time (import shared timezone mapping from data_base)
-    if location:
-        import sys
-        import pytz
-        from datetime import datetime
-
-        # Import LOCATION_TIMEZONES from shared config (single source of truth)
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        parent_dir = os.path.dirname(current_dir)
-        web_db_path = os.path.join(parent_dir, 'web_and_database')
-        if web_db_path not in sys.path:
-            sys.path.append(web_db_path)
-
-        from data_base import LOCATION_TIMEZONES
-
-        if location in LOCATION_TIMEZONES:
-            timezone_str = LOCATION_TIMEZONES[location]
-            local_tz = pytz.timezone(timezone_str)
-            current_time = datetime.now(local_tz)
-
-            formatted['local_time'] = current_time.strftime('%Y-%m-%d %H:%M:%S %Z')
-            formatted['timezone'] = timezone_str
-            logger.info(f"🕐 Added local time: {formatted['local_time']}")
-
-    # Convert wave height to cm and wind speed to integer
-    if 'wave_height_m' in formatted:
-        formatted['wave_height_cm'] = int(round(formatted['wave_height_m'] * 100))
-        del formatted['wave_height_m']
-
-    # Keep wind_speed_mps as float for Arduino precision
-    # Arduino uses: windSpeedLEDs = windSpeed * 18.0 / 13.0
-    # Converting to int loses precision (e.g., 3.93 → 4, 4.35 → 4)
-
-    if format_type == "feet":
-        if 'wave_height_cm' in formatted:
-            formatted["wave_height_ft"] = round(formatted["wave_height_cm"] / 30.48, 2)
-        if 'wind_speed_mps' in formatted:
-            formatted["wind_speed_mph"] = round(formatted["wind_speed_mps"] * 2.237, 2)
-        logger.info(f"   Converted to imperial: {formatted.get('wave_height_ft', 0)}ft waves")
-    else:
-        logger.info(f"   Metric format: {formatted.get('wave_height_cm', 0)}cm waves")
-    
-    return formatted
 
 def fetch_surf_data(api_key, endpoint):
     """Fetch surf data from external API and standardize using config
