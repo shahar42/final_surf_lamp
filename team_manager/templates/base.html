@@ -19,7 +19,11 @@
     <!-- Mobile Header -->
     <div class="mobile-header">
         <button class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('active')">☰</button>
-        <div class="mobile-logo">StaffCmd</div>
+        {% if request.endpoint == 'dashboard' %}
+            <div class="mobile-logo disabled">StaffCmd</div>
+        {% else %}
+            <a href="{{ url_for('dashboard') }}" class="mobile-logo">StaffCmd</a>
+        {% endif %}
     </div>
 
     <div class="sidebar" onclick="if(window.innerWidth <= 768) this.classList.remove('active')">
