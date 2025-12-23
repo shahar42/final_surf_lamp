@@ -1,0 +1,178 @@
+SURF LAMP - THIRD-PARTY LICENSES AND ATTRIBUTIONS
+=================================================
+
+This document lists all third-party software, libraries, and services used in the Surf Lamp project.
+All dependencies have been reviewed for commercial use compatibility.
+
+Last Updated: 2025-12-23
+
+================================================================================
+SECTION 1: PYTHON DEPENDENCIES (Backend Services)
+================================================================================
+
+Web Application (Flask Backend):
+--------------------------------
+Flask==2.3.3                    - BSD-3-Clause License
+Werkzeug==2.3.8                 - BSD-3-Clause License
+Flask-Bcrypt==1.0.1             - BSD-3-Clause License
+Flask-WTF==1.1.1                - BSD-3-Clause License
+Flask-Limiter==3.5.0            - MIT License
+Flask-Mail==0.9.1               - BSD-3-Clause License
+WTForms==3.0.1                  - BSD-3-Clause License
+
+Database:
+---------
+SQLAlchemy==2.0.21              - MIT License
+psycopg2-binary==2.9.7          - LGPL-3.0 License (dynamically linked, commercial use allowed)
+
+Utilities:
+----------
+requests==2.31.0                - Apache 2.0 License
+python-dateutil==2.8.2          - Apache 2.0 License / BSD-3-Clause
+pytz>=2024.1                    - MIT License
+schedule==1.2.0                 - MIT License
+python-dotenv==1.0.0            - BSD-3-Clause License
+redis==5.0.0                    - MIT License
+email-validator==2.0.0          - CC0 1.0 Universal (Public Domain)
+bleach==6.0.0                   - Apache 2.0 License
+markdown                        - BSD-3-Clause License
+astral==3.2                     - Apache 2.0 License
+
+Server:
+-------
+gunicorn                        - MIT License
+
+AI/ML:
+------
+google-generativeai>=0.8.5      - Apache 2.0 License
+
+Development Tools:
+------------------
+fastmcp>=0.9.0                  - MIT License
+aiohttp>=3.8.0                  - Apache 2.0 License
+
+================================================================================
+SECTION 2: ARDUINO/ESP32 LIBRARIES (Embedded Firmware)
+================================================================================
+
+Core ESP32 Libraries:
+---------------------
+WiFi.h                          - LGPL-2.1 License (Espressif ESP32 Core)
+WebServer.h                     - LGPL-2.1 License (Espressif ESP32 Core)
+HTTPClient.h                    - LGPL-2.1 License (Espressif ESP32 Core)
+WiFiClientSecure.h              - LGPL-2.1 License (Espressif ESP32 Core)
+
+Third-Party Arduino Libraries:
+-------------------------------
+FastLED                         - MIT License
+ArduinoJson                     - MIT License
+WiFiManager                     - MIT License
+
+Note on LGPL for Embedded Systems:
+These libraries are part of the Arduino/ESP32 framework and are dynamically linked
+through the Arduino IDE compilation process. This is standard for commercial Arduino
+products. For legal certainty, consult with IP counsel regarding LGPL compliance
+for embedded distribution.
+
+================================================================================
+SECTION 3: EXTERNAL APIs AND SERVICES
+================================================================================
+
+Weather Data Providers:
+-----------------------
+Open-Meteo API
+  - License: CC BY 4.0 (Creative Commons Attribution 4.0 International)
+  - Attribution Required: YES
+  - Attribution Text: "Weather data provided by Open-Meteo (https://open-meteo.com)"
+  - Commercial Use: Allowed with attribution
+  - Documentation: https://open-meteo.com/en/terms
+
+OpenWeatherMap API
+  - License: Proprietary (Free tier for testing, paid plans for commercial use)
+  - Free Tier Limit: 1,000 calls/day
+  - Commercial Use: Requires paid subscription
+  - Pricing: https://openweathermap.org/price
+
+Cloud Infrastructure:
+---------------------
+Render (Hosting)
+  - Free Tier: Personal/hobby projects only
+  - Commercial Use: Requires paid plan (Starter $7/month or higher)
+  - Terms: https://render.com/terms
+
+Supabase (Database & Auth)
+  - Free Tier: Hobby projects only
+  - Commercial Use: Requires Pro plan ($25/month)
+  - Terms: https://supabase.com/pricing
+
+Redis (Rate Limiting)
+  - Open Source: BSD-3-Clause License
+  - Commercial Use: Fully allowed
+
+================================================================================
+SECTION 4: REQUIRED ATTRIBUTIONS
+================================================================================
+
+The following attributions must be displayed in your application/documentation:
+
+1. Open-Meteo Attribution:
+   "Weather data provided by Open-Meteo (https://open-meteo.com)"
+   Location: Should appear in app footer, about page, or weather data displays
+
+2. OpenWeatherMap Attribution (if using):
+   "Weather data provided by OpenWeatherMap (https://openweathermap.org)"
+   Location: Should appear in app footer, about page, or weather data displays
+
+================================================================================
+SECTION 5: COMMERCIAL USE CHECKLIST
+================================================================================
+
+Before selling Surf Lamp commercially:
+
+[ ] Upgrade Supabase to Pro plan ($25/month)
+[ ] Upgrade Render to paid plan ($7-21/month per service)
+[ ] Upgrade OpenWeatherMap to paid plan OR ensure usage stays under free tier
+[ ] Add Open-Meteo attribution to app footer/about page
+[ ] Add OpenWeatherMap attribution if using their API
+[ ] Consult IP lawyer regarding ESP32 LGPL libraries (standard but verify)
+[ ] Create Terms of Service for end users
+[ ] Create Privacy Policy (collecting emails, locations, usage data)
+[ ] Verify total API costs at expected user scale
+
+Estimated Monthly Operating Costs (minimum):
+- Supabase Pro: $25
+- Render (2 services): $14-42
+- OpenWeatherMap: $0-40 (depending on call volume)
+Total: ~$50-100/month minimum
+
+================================================================================
+SECTION 6: YOUR PROPRIETARY CODE
+================================================================================
+
+The following components are original works owned by you (Shahar):
+
+- All Python application code (Flask routes, business logic)
+- All Arduino firmware code (lamp control, themes, animations)
+- Database schema design
+- LED control algorithms and themes
+- WiFi setup workflows
+- Dashboard UI/UX design
+
+License: Your choice (proprietary, MIT, GPL, etc.)
+Copyright: © 2025 Shahar Nitzan
+
+================================================================================
+SECTION 7: DISCLAIMER
+================================================================================
+
+This license file is provided for informational purposes and does not constitute
+legal advice. Licenses and terms of service may change. Always:
+
+1. Verify current license terms for all dependencies
+2. Review API provider terms of service
+3. Consult with qualified legal counsel before commercial distribution
+4. Keep this file updated as dependencies change
+
+For questions about licensing, contact a qualified intellectual property attorney.
+
+================================================================================
