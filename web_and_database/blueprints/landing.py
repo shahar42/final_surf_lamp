@@ -14,10 +14,11 @@ def get_landing_page_dir():
     root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     return os.path.join(root_dir, 'landing_page')
 
-@bp.route("/")
+@bp.route("/landing")
 def index():
     """
-    Serves the landing page for new visitors.
+    Serves the landing page for new visitors at /landing.
+    Root route (/) is handled by app.py to redirect to dashboard/login.
 
     If the user is logged in, redirects to dashboard.
     """
