@@ -57,10 +57,17 @@ if DATABASE_URL:
     safe_url = DATABASE_URL.replace(DATABASE_URL.split('://')[1].split('@')[0].split(':')[1], '***') if '@' in DATABASE_URL else DATABASE_URL
     logger.info(f"Final DATABASE_URL: {safe_url}")
 
-# Create the SQLAlchemy engine
+# Create the SQLAlchemy engine with optimized connection pooling
 try:
-    engine = create_engine(DATABASE_URL)
-    logger.info("SQLAlchemy engine created successfully")
+    engine = create_engine(
+        DATABASE_URL,
+        pool_size=10,           # 10 persistent connections (up from default 5)
+        max_overflow=20,        # Allow 30 total connections under load (up from 10)
+        pool_pre_ping=True,     # Test connections before use (critical for Supabase)
+        pool_recycle=1800,      # Recycle connections after 30min (Supabase idle timeout is 1hr)
+        echo=False              # Set to True for SQL query logging during debugging
+    )
+    logger.info("SQLAlchemy engine created with optimized connection pool (size=10, max=30)")
 except Exception as e:
     logger.error(f"Failed to create SQLAlchemy engine: {e}")
     raise

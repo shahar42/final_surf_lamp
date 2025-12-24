@@ -90,8 +90,16 @@ try:
     if "supabase.com" in DATABASE_URL:
         connect_args["sslmode"] = "require"
 
-    engine = create_engine(DATABASE_URL, connect_args=connect_args)
-    logger.info("Database engine created successfully")
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args=connect_args,
+        pool_size=5,            # Background processor needs fewer connections
+        max_overflow=5,         # Max 10 total (background worker is single-threaded)
+        pool_pre_ping=True,     # Test connections before use (critical for Supabase)
+        pool_recycle=1800,      # Recycle connections after 30min (Supabase idle timeout is 1hr)
+        echo=False              # Set to True for SQL query logging during debugging
+    )
+    logger.info("Database engine created with optimized connection pool (size=5, max=10)")
 except Exception as e:
     logger.error(f"Failed to create database engine: {e}")
     exit(1)
