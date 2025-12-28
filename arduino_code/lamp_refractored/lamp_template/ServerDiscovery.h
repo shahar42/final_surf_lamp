@@ -83,20 +83,28 @@ private:
     
     String attemptDiscovery() {
         Serial.println("🔍 Attempting server discovery...");
-        
-        for (int i = 0; i < 2; i++) {
-            Serial.printf("   Trying discovery URL %d: %s\n", i+1, discovery_urls[i]);
-            
-            String result = fetchDiscoveryConfig(discovery_urls[i]);
+
+        const int MAX_ATTEMPTS = 5;
+
+        for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            // Alternate between the two discovery URLs
+            int urlIndex = (attempt - 1) % 2;
+            Serial.printf("   Attempt %d/%d - Trying discovery URL %d: %s\n",
+                         attempt, MAX_ATTEMPTS, urlIndex + 1, discovery_urls[urlIndex]);
+
+            String result = fetchDiscoveryConfig(discovery_urls[urlIndex]);
             if (result.length() > 0) {
-                Serial.println("   ✅ Discovery successful from URL " + String(i+1));
+                Serial.println("   ✅ Discovery successful from URL " + String(urlIndex + 1));
                 return result;
             }
-            
-            delay(1000); // Wait between attempts
+
+            if (attempt < MAX_ATTEMPTS) {
+                Serial.println("   ⏳ Waiting 5 seconds before next attempt...");
+                delay(5000); // 5 second wait between attempts
+            }
         }
-        
-        Serial.println("   ❌ All discovery URLs failed");
+
+        Serial.println("   ❌ All discovery attempts failed");
         return "";
     }
     

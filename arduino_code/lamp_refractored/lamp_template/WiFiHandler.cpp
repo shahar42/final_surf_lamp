@@ -236,23 +236,39 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
         wifiManager.setConfigPortalTimeout(1020); // 17 minutes - safe for all scenarios
     } else {
         Serial.println("🔌 WiFi credentials found - assuming router reboot scenario");
-        Serial.printf("   Will retry up to %d times with exponential backoff\n", MAX_WIFI_RETRIES);
+        Serial.println("   Will retry for 5 minutes with exponential backoff");
     }
 
     // Retry loop with scenario-based timeout strategy
-    int maxAttempts = (scenario == ROUTER_REBOOT) ? MAX_WIFI_RETRIES : 1;
-    for (int attempt = 1; attempt <= maxAttempts && !connected; attempt++) {
-        Serial.printf("🔄 WiFi connection attempt %d of %d\n", attempt, maxAttempts);
+    unsigned long retryStartTime = millis();
+    const unsigned long ROUTER_REBOOT_TIMEOUT = 300000; // 5 minutes in milliseconds
+    int attempt = 0;
+
+    while (!connected) {
+        attempt++;
+
+        // ROUTER_REBOOT: Check if 5 minutes elapsed
+        if (scenario == ROUTER_REBOOT) {
+            unsigned long elapsed = millis() - retryStartTime;
+            if (elapsed >= ROUTER_REBOOT_TIMEOUT) {
+                Serial.println("⏱️ 5 minutes elapsed, opening AP indefinitely");
+                wifiManager.setConfigPortalTimeout(0); // Indefinite
+                break; // Exit retry loop, will open AP below
+            }
+            Serial.printf("🔄 WiFi connection attempt %d (elapsed: %lu seconds)\n", attempt, elapsed / 1000);
+        } else {
+            Serial.printf("🔄 WiFi connection attempt %d\n", attempt);
+        }
 
         // Visual feedback: Trying to connect (all LEDs slow blinking green)
         showTryingToConnect();
 
         // Set timeout based on scenario
         if (scenario == ROUTER_REBOOT) {
-            // ROUTER REBOOT: Exponential backoff - capped at 17 minutes
-            int timeout = min(30 * (int)pow(2, attempt - 1), 1020);
+            // ROUTER REBOOT: Exponential backoff starting at 20s
+            int timeout = min(20 * (int)pow(2, attempt - 1), 60);
             wifiManager.setConfigPortalTimeout(timeout);
-            Serial.printf("   Portal timeout: %d seconds (exponential backoff for router reboot)\n", timeout);
+            Serial.printf("   Portal timeout: %d seconds (exponential backoff)\n", timeout);
         } else if (scenario == HAS_CREDENTIALS) {
             // HAS CREDENTIALS but connection failing - standard retry strategy
             if (attempt < MAX_WIFI_RETRIES) {
@@ -260,6 +276,9 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
             } else {
                 wifiManager.setConfigPortalTimeout(0); // Final attempt: indefinite
             }
+        } else {
+            // FIRST_SETUP: single attempt with timeout already set
+            if (attempt > 1) break; // Only one attempt for first setup
         }
         // else: FIRST_SETUP and NEW_LOCATION timeouts already set above
 
@@ -318,10 +337,14 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
             }
 
             // Retry delay for ROUTER_REBOOT and HAS_CREDENTIALS scenarios
-            if ((scenario == ROUTER_REBOOT || scenario == HAS_CREDENTIALS) && attempt < maxAttempts) {
-                int delaySeconds = (scenario == ROUTER_REBOOT) ? 10 : 5;
+            if (scenario == ROUTER_REBOOT) {
+                // Exponential backoff delay: 5s, 10s, 20s, 40s...
+                int delaySeconds = min(5 * (int)pow(2, attempt - 1), 60);
                 Serial.printf("⏳ Waiting %d seconds before retry...\n", delaySeconds);
                 delay(delaySeconds * 1000);
+            } else if (scenario == HAS_CREDENTIALS && attempt < MAX_WIFI_RETRIES) {
+                Serial.printf("⏳ Waiting 5 seconds before retry...\n");
+                delay(5000);
             }
         }
     }
