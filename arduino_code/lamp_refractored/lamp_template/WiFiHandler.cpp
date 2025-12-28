@@ -263,24 +263,19 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
         // Visual feedback: Trying to connect (all LEDs slow blinking green)
         showTryingToConnect();
 
-        // Set timeout based on scenario
-        if (scenario == ROUTER_REBOOT) {
-            // ROUTER REBOOT: Exponential backoff starting at 20s
-            int timeout = min(20 * (int)pow(2, attempt - 1), 60);
-            wifiManager.setConfigPortalTimeout(timeout);
-            Serial.printf("   Portal timeout: %d seconds (exponential backoff)\n", timeout);
-        } else if (scenario == HAS_CREDENTIALS) {
+        // Set portal timeout for scenarios that use autoConnect
+        if (scenario == HAS_CREDENTIALS) {
             // HAS CREDENTIALS but connection failing - standard retry strategy
             if (attempt < MAX_WIFI_RETRIES) {
                 wifiManager.setConfigPortalTimeout(1020); // 17 minutes
             } else {
                 wifiManager.setConfigPortalTimeout(0); // Final attempt: indefinite
             }
-        } else {
+        } else if (scenario == FIRST_SETUP) {
             // FIRST_SETUP: single attempt with timeout already set
             if (attempt > 1) break; // Only one attempt for first setup
         }
-        // else: FIRST_SETUP and NEW_LOCATION timeouts already set above
+        // Note: ROUTER_REBOOT doesn't use portal timeout (uses WiFi.begin instead of autoConnect)
 
         // Enable error injection now that we're about to attempt connection
         // But NOT for FIRST_SETUP (old credentials from NVS shouldn't show errors)
@@ -288,7 +283,23 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
             allowErrorInjection = true;
         }
 
-        connected = wifiManager.autoConnect("SurfLamp-Setup", "surf123456");
+        // CRITICAL: Use different connection methods based on scenario
+        if (scenario == ROUTER_REBOOT) {
+            // ROUTER_REBOOT: Just retry connection with saved credentials, NO AP portal
+            Serial.println("   Attempting connection with saved credentials (no AP)...");
+            WiFi.begin();  // Reconnect with saved credentials
+
+            // Wait for connection with timeout
+            int timeout = min(20 * (int)pow(2, attempt - 1), 60);
+            unsigned long startTime = millis();
+            while (WiFi.status() != WL_CONNECTED && (millis() - startTime) < (timeout * 1000)) {
+                delay(500);
+            }
+            connected = (WiFi.status() == WL_CONNECTED);
+        } else {
+            // FIRST_SETUP or other scenarios: Use autoConnect (opens AP portal)
+            connected = wifiManager.autoConnect("SurfLamp-Setup", "surf123456");
+        }
 
         // If connection failed, run diagnostics to determine WHY
         if (!connected) {
