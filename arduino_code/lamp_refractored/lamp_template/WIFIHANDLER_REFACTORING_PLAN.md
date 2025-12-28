@@ -2,15 +2,30 @@
 
 *Following Effective C++ principles for cleaner, more maintainable code*
 
-**12 phases - small, focused changes following "little by little" approach**
+**Updated after WiFi.begin() fix - 12 phases, small focused changes**
+
+---
+
+## Current State After Bug Fix
+
+The code now correctly uses:
+- `WiFi.begin()` for ROUTER_REBOOT (no AP during retries)
+- `autoConnect()` for FIRST_SETUP (opens AP for credentials)
+- Time-based retry (5 minutes) instead of attempt-based
+- Exponential backoff for both timeouts and delays
+
+Main function still ~200 lines with deep nesting. Ready for refactoring.
 
 ---
 
 ## Phase 1: Extract Timeout Constants
 
 **Current Issue:**
-- Timeout values `1020`, `20`, `60` scattered throughout
-- Unclear what each timeout represents
+- Timeout values `1020`, `20`, `60`, `300000` scattered throughout
+- Line 236: `1020`
+- Line 244: `300000`
+- Line 270: `1020`
+- Line 293: `20 * pow(2, attempt - 1), 60`
 
 **Action:**
 ```cpp
@@ -23,19 +38,28 @@ namespace WiFiTimeouts {
 }
 ```
 
-**Replace all hardcoded timeout numbers with named constants**
+**Replace:**
+- Line 236: `WiFiTimeouts::PORTAL_TIMEOUT_GENEROUS_SEC`
+- Line 244: `WiFiTimeouts::ROUTER_REBOOT_TIMEOUT_MS`
+- Line 270: `WiFiTimeouts::PORTAL_TIMEOUT_GENEROUS_SEC`
+- Line 293: Use with `WiFiTimeouts::INITIAL_CONNECTION_TIMEOUT_SEC` and `WiFiTimeouts::MAX_CONNECTION_TIMEOUT_SEC`
 
 **Benefit:** Clear intent, single place to adjust timings
 
-**Lines Changed:** ~10 replacements
+**Lines Changed:** ~6 replacements
 
 ---
 
 ## Phase 2: Extract Delay Constants
 
 **Current Issue:**
-- Delay values `5000`, `10`, `5`, `1000` mixed throughout
-- Hard to see delay strategy at a glance
+- Delay values `5000`, `5`, `60`, `1000`, `3000`, `500` mixed throughout
+- Line 296: `500` (connection polling)
+- Line 316: `3000` (restart delay)
+- Line 340: `1000` (location check display)
+- Line 353: `5 * pow(2, attempt - 1), 60` (exponential delay)
+- Line 355: `delaySeconds * 1000`
+- Line 358: `5000` (HAS_CREDENTIALS retry delay)
 
 **Action:**
 ```cpp
@@ -44,10 +68,9 @@ namespace WiFiDelays {
     const int MAX_RETRY_DELAY_SEC = 60;              // Cap for exponential backoff
     const int LOCATION_CHECK_DISPLAY_MS = 1000;      // Show purple LED
     const int RESTART_DELAY_MS = 3000;               // Before ESP.restart()
+    const int CONNECTION_POLL_MS = 500;              // WiFi.status() polling interval
 }
 ```
-
-**Replace all hardcoded delay numbers with named constants**
 
 **Benefit:** Self-documenting delays, easy to tune
 
@@ -58,13 +81,13 @@ namespace WiFiDelays {
 ## Phase 3: Move Enum to File Scope
 
 **Current Issue:**
-- `enum SetupScenario` defined inside `setupWiFi()` function
+- `enum SetupScenario` defined inside `setupWiFi()` at line 225
 - Can't reuse in helper functions
 
 **Action:**
-Move enum definition to top of file:
+Move enum definition to top of file (before any functions):
 ```cpp
-// Near top of WiFiHandler.cpp, before any functions
+// Near top of WiFiHandler.cpp, before setupWiFi()
 enum class WiFiSetupScenario {
     FIRST_SETUP,       // No credentials saved
     ROUTER_REBOOT,     // Has credentials, same location
@@ -73,17 +96,28 @@ enum class WiFiSetupScenario {
 };
 ```
 
-**Benefit:** Can use in function signatures, clearer scope
+**Change line 225-226 from:**
+```cpp
+enum SetupScenario { FIRST_SETUP, ROUTER_REBOOT, NEW_LOCATION, HAS_CREDENTIALS };
+SetupScenario scenario = hasCredentials ? ROUTER_REBOOT : FIRST_SETUP;
+```
 
-**Lines Changed:** Move 4 lines from inside function to file scope
+**To:**
+```cpp
+WiFiSetupScenario scenario = hasCredentials ? WiFiSetupScenario::ROUTER_REBOOT : WiFiSetupScenario::FIRST_SETUP;
+```
+
+**Benefit:** Can use in function signatures, clearer scope, type safety
+
+**Lines Changed:** Move 1 line to file scope, update all enum references
 
 ---
 
 ## Phase 4: Extract Scenario Detection Function
 
 **Current Issue:**
-- Credential checking and scenario logic mixed in main function
-- Lines 218-226 do one logical thing but aren't separated
+- Lines 218-226 do credential detection and scenario assignment
+- Mixed in main function
 
 **Action:**
 ```cpp
@@ -101,21 +135,21 @@ WiFiSetupScenario detectWiFiScenario() {
 }
 ```
 
-**In main function, replace lines 218-226 with:**
+**Replace lines 218-226 with:**
 ```cpp
 WiFiSetupScenario scenario = detectWiFiScenario();
 ```
 
 **Benefit:** Single responsibility, testable, clear intent
 
-**Lines Changed:** Extract ~9 lines into new function, replace with 1 line call
+**Lines Changed:** Extract ~9 lines into function, replace with 1 line call
 
 ---
 
 ## Phase 5: Extract Scenario Configuration Function
 
 **Current Issue:**
-- Portal timeout configuration logic for each scenario (lines 228-240)
+- Lines 228-240 configure portal based on scenario
 - Mixing configuration with detection
 
 **Action:**
@@ -140,15 +174,15 @@ configurePortalForScenario(wifiManager, scenario);
 
 **Benefit:** Configuration isolated, clear what each scenario does
 
-**Lines Changed:** Extract ~13 lines into new function, replace with 1 line call
+**Lines Changed:** Extract ~13 lines into function, replace with 1 line call
 
 ---
 
 ## Phase 6: Extract Timeout Calculation Function
 
 **Current Issue:**
-- Exponential backoff calculation inline: `min(20 * (int)pow(2, attempt - 1), 60)`
-- Formula duplicated, unclear intent
+- Exponential timeout calculation inline at line 293: `min(20 * (int)pow(2, attempt - 1), 60)`
+- Formula not reusable
 
 **Action:**
 ```cpp
@@ -157,7 +191,7 @@ int calculateExponentialTimeout(int attempt, int initialSeconds, int maxSeconds)
 }
 ```
 
-**Replace timeout calculation (line 269) with:**
+**Replace line 293 with:**
 ```cpp
 int timeout = calculateExponentialTimeout(
     attempt,
@@ -175,7 +209,7 @@ int timeout = calculateExponentialTimeout(
 ## Phase 7: Extract Delay Calculation Function
 
 **Current Issue:**
-- Delay calculation also uses exponential backoff: `min(5 * (int)pow(2, attempt - 1), 60)`
+- Delay calculation at line 353: `min(5 * (int)pow(2, attempt - 1), 60)`
 - Same formula pattern as timeout
 
 **Action:**
@@ -185,7 +219,7 @@ int calculateExponentialDelay(int attempt, int initialSeconds, int maxSeconds) {
 }
 ```
 
-**Replace delay calculation (line 342) with:**
+**Replace line 353 with:**
 ```cpp
 int delaySeconds = calculateExponentialDelay(
     attempt,
@@ -203,7 +237,7 @@ int delaySeconds = calculateExponentialDelay(
 ## Phase 8: Extract Visual Feedback Functions
 
 **Current Issue:**
-- `showTryingToConnect()`, `showCheckingLocation()` calls scattered
+- Display logic scattered at lines 258-260, 264, 339-340
 - Visual feedback mixed with logic
 
 **Action:**
@@ -224,17 +258,28 @@ void displayLocationCheck() {
 }
 ```
 
+**Replace lines 258-264 with:**
+```cpp
+displayConnectionAttempt(attempt, (millis() - retryStartTime) / 1000, scenario);
+```
+
+**Replace lines 339-340 with:**
+```cpp
+displayLocationCheck();
+```
+
 **Benefit:** UI logic separated, easier to modify visuals
 
-**Lines Changed:** Extract ~5 scattered lines into 2 focused functions
+**Lines Changed:** Extract ~8 scattered lines into 2 focused functions
 
 ---
 
 ## Phase 9: Extract Diagnostic Logic
 
 **Current Issue:**
-- Diagnostic logic (lines 274-325) mixed with retry loop
-- ~50 lines doing diagnosis and location checking
+- Diagnostic logic (lines 305-348) is ~43 lines
+- Mixed with retry loop
+- Handles SSID checking, error messages, location detection
 
 **Action:**
 ```cpp
@@ -265,6 +310,10 @@ DiagnosticResult diagnoseConnectionFailure(
         Serial.println("🔴 DIAGNOSTIC RESULT:");
         Serial.println(diagnostic);
         Serial.println("🔴 ==========================================");
+    } else if (lastDisconnectReason != 0) {
+        Serial.println("🔴 DISCONNECT REASON:");
+        Serial.println(lastWiFiError);
+        Serial.println("🔴 ==========================================");
     }
 
     displayLocationCheck();
@@ -279,7 +328,7 @@ DiagnosticResult diagnoseConnectionFailure(
 }
 ```
 
-**Replace lines 274-337 with:**
+**Replace lines 305-348 with:**
 ```cpp
 DiagnosticResult diag = diagnoseConnectionFailure(fingerprinting, scenario);
 if (diag.shouldRestart) {
@@ -294,14 +343,14 @@ if (diag.isNewLocation) {
 
 **Benefit:** Huge reduction in nesting, diagnostic logic isolated, clear output
 
-**Lines Changed:** Extract ~50 lines into function, replace with ~8 lines
+**Lines Changed:** Extract ~43 lines into function, replace with ~8 lines
 
 ---
 
 ## Phase 10: Extract Retry Delay Logic
 
 **Current Issue:**
-- Retry delay logic (lines 339-348) handles multiple scenarios
+- Retry delay logic (lines 350-359) handles multiple scenarios
 - Logic for "should we delay?" mixed with "how long?"
 
 **Action:**
@@ -322,7 +371,7 @@ void delayBeforeRetry(WiFiSetupScenario scenario, int attempt) {
 }
 ```
 
-**Replace lines 339-348 with:**
+**Replace lines 350-359 with:**
 ```cpp
 delayBeforeRetry(scenario, attempt);
 ```
@@ -336,46 +385,70 @@ delayBeforeRetry(scenario, attempt);
 ## Phase 11: Extract Connection Attempt Logic
 
 **Current Issue:**
-- Core connection attempt (lines 285-290) buried in diagnostics
-- Unclear what's the "attempt" vs what's the "response"
+- Connection attempt logic (lines 280-302) handles two different methods
+- Router reboot uses WiFi.begin() with manual polling
+- Other scenarios use autoConnect()
+- 22 lines doing connection with different strategies
 
 **Action:**
 ```cpp
 bool attemptWiFiConnection(
     WiFiManager& wifiManager,
     WiFiSetupScenario scenario,
-    int timeoutSeconds
+    int attempt
 ) {
+    // Enable error injection for non-first-setup scenarios
     if (scenario != WiFiSetupScenario::FIRST_SETUP) {
         allowErrorInjection = true;
     }
 
-    wifiManager.setConfigPortalTimeout(timeoutSeconds);
-    return wifiManager.autoConnect("SurfLamp-Setup", "surf123456");
+    if (scenario == WiFiSetupScenario::ROUTER_REBOOT) {
+        // ROUTER_REBOOT: Retry with saved credentials, NO AP portal
+        Serial.println("   Attempting connection with saved credentials (no AP)...");
+        WiFi.begin();  // Reconnect with saved credentials
+
+        // Wait for connection with exponential backoff timeout
+        int timeout = calculateExponentialTimeout(
+            attempt,
+            WiFiTimeouts::INITIAL_CONNECTION_TIMEOUT_SEC,
+            WiFiTimeouts::MAX_CONNECTION_TIMEOUT_SEC
+        );
+
+        unsigned long startTime = millis();
+        while (WiFi.status() != WL_CONNECTED && (millis() - startTime) < (timeout * 1000)) {
+            delay(WiFiDelays::CONNECTION_POLL_MS);
+        }
+        return (WiFi.status() == WL_CONNECTED);
+    } else {
+        // FIRST_SETUP or other scenarios: Use autoConnect (opens AP portal)
+        return wifiManager.autoConnect("SurfLamp-Setup", "surf123456");
+    }
 }
 ```
 
-**Replace connection attempt with:**
+**Replace lines 266-302 with:**
 ```cpp
-int timeout = calculateExponentialTimeout(...);
-bool connected = attemptWiFiConnection(wifiManager, scenario, timeout);
+connected = attemptWiFiConnection(wifiManager, scenario, attempt);
 ```
 
-**Benefit:** Clean separation of attempt from result handling
+**Benefit:** Clean separation of two connection strategies, cleaner call site
 
-**Lines Changed:** Extract ~5 lines into function, cleaner call site
+**Lines Changed:** Extract ~37 lines into function, replace with 1 line call
 
 ---
 
 ## Phase 12: Simplify Main Loop Structure
 
 **Current Issue:**
-- Main retry loop (lines 247-350) is ~100 lines
+- Main retry loop (lines 247-361) is ~114 lines
 - Hard to see control flow
+- Deep nesting
 
 **Action - Final Simplified Structure:**
 ```cpp
 bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
+    Serial.println("📶 Starting WiFi setup...");
+
     wifiManager.setConfigPortalTimeout(0);  // Default: indefinite
     fingerprinting.load();
 
@@ -386,6 +459,7 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
     int attempt = 0;
     bool connected = false;
 
+    // Main retry loop
     while (!connected) {
         attempt++;
 
@@ -399,25 +473,31 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
             }
         }
 
+        // Display attempt status
         displayConnectionAttempt(attempt, (millis() - retryStartTime) / 1000, scenario);
 
-        int timeout = calculateTimeout(scenario, attempt);
-        connected = attemptWiFiConnection(wifiManager, scenario, timeout);
+        // Break for single-attempt scenarios
+        if (scenario == WiFiSetupScenario::FIRST_SETUP && attempt > 1) {
+            break;
+        }
 
+        // Attempt connection
+        connected = attemptWiFiConnection(wifiManager, scenario, attempt);
+
+        // Handle connection failure
         if (!connected) {
+            Serial.println("❌ Connection failed - running diagnostics...");
+
             DiagnosticResult diag = diagnoseConnectionFailure(fingerprinting, scenario);
 
             if (diag.shouldRestart) {
+                Serial.println("🔄 Restarting to reopen configuration portal...");
                 delay(WiFiDelays::RESTART_DELAY_MS);
                 ESP.restart();
             }
 
             if (diag.isNewLocation) {
-                break;  // Exit to AP mode
-            }
-
-            // Break for single-attempt scenarios
-            if (scenario == WiFiSetupScenario::FIRST_SETUP && attempt > 1) {
+                Serial.println("🏠 Exiting retry loop - new location detected");
                 break;
             }
 
@@ -425,7 +505,7 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
         }
     }
 
-    // Handle not connected case (existing code from line 352+)
+    // Handle not connected case (existing code continues...)
     if (!connected) {
         // ... AP mode logic ...
     }
@@ -434,27 +514,9 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
 }
 ```
 
-**Where `calculateTimeout()` is:**
-```cpp
-int calculateTimeout(WiFiSetupScenario scenario, int attempt) {
-    if (scenario == WiFiSetupScenario::ROUTER_REBOOT) {
-        return calculateExponentialTimeout(
-            attempt,
-            WiFiTimeouts::INITIAL_CONNECTION_TIMEOUT_SEC,
-            WiFiTimeouts::MAX_CONNECTION_TIMEOUT_SEC
-        );
-    } else if (scenario == WiFiSetupScenario::HAS_CREDENTIALS) {
-        return (attempt < MAX_WIFI_RETRIES)
-            ? WiFiTimeouts::PORTAL_TIMEOUT_GENEROUS_SEC
-            : 0;  // Indefinite on final attempt
-    }
-    return 0;  // Already set for FIRST_SETUP
-}
-```
+**Benefit:** Main function now ~50 lines, clear flow, easy to understand
 
-**Benefit:** Main function now ~40 lines, clear flow, easy to understand
-
-**Lines Changed:** Reorganize ~100 lines into cleaner structure using extracted functions
+**Lines Changed:** Reorganize ~114 lines into cleaner structure using extracted functions
 
 ---
 
@@ -474,13 +536,16 @@ int calculateTimeout(WiFiSetupScenario scenario, int attempt) {
 
 ### Single Responsibility Principle
 - Each function has ONE clear job
-- Diagnostic → diagnose
-- Delay calculation → calculate delay
-- Visual feedback → display
+- Detection → detect scenario
+- Configuration → configure portal
+- Diagnostic → diagnose failure
+- Delay → calculate and execute delay
+- Connection → attempt connection
 
 ### Don't Repeat Yourself (DRY)
-- Exponential backoff formula extracted once
-- Timeout/delay strategy in named functions
+- Exponential backoff formula extracted once (used for both timeout and delay)
+- Display logic in dedicated functions
+- Connection logic in one place
 
 ### Clear Separation of Concerns
 ```
@@ -497,19 +562,22 @@ Detection → Configuration → Retry Loop → Attempt → Diagnose → Delay �
 - Functions: 1 giant function
 - Magic numbers: 12+
 - Testable units: 0 (must test entire WiFi stack)
+- Connection strategies: Mixed inline
 
 **After Refactoring (12 phases):**
-- Main function: ~40 lines
+- Main function: ~50 lines
 - Max nesting level: 2
-- Functions: 11 focused functions (5-30 lines each)
+- Functions: 11 focused functions (5-35 lines each)
 - Magic numbers: 0 (all named constants)
 - Testable units: 10 functions
+- Connection strategies: Cleanly separated
 
 **Maintainability Improvements:**
-- Change retry strategy → modify 1 function
+- Change retry strategy → modify `attemptWiFiConnection()` or delay functions
 - Adjust timeouts → modify constants
-- Add new scenario → add enum value + case in switch
+- Add new scenario → add enum value + update switch cases
 - Change visual feedback → modify display functions
+- Fix connection logic → modify `attemptWiFiConnection()` only
 
 **Readability:**
 - Function names describe intent
@@ -522,17 +590,17 @@ Detection → Configuration → Retry Loop → Attempt → Diagnose → Delay �
 ## Implementation Order
 
 **Safe order (each phase independently compilable):**
-1. Phase 1 (timeouts)
-2. Phase 2 (delays)
-3. Phase 6 (timeout calc)
-4. Phase 7 (delay calc)
-5. Phase 3 (move enum)
+1. Phase 1 (timeout constants)
+2. Phase 2 (delay constants)
+3. Phase 6 (timeout calculation)
+4. Phase 7 (delay calculation)
+5. Phase 3 (move enum to file scope)
 6. Phase 4 (detect scenario)
 7. Phase 5 (configure scenario)
 8. Phase 8 (visual feedback)
-9. Phase 11 (connection attempt)
-10. Phase 10 (retry delay)
-11. Phase 9 (diagnostics - big one)
+9. Phase 10 (retry delay)
+10. Phase 9 (diagnostics - big one)
+11. Phase 11 (connection attempt - big one)
 12. Phase 12 (simplify main)
 
 **Each phase:**
@@ -540,3 +608,5 @@ Detection → Configuration → Retry Loop → Attempt → Diagnose → Delay �
 - Maintains existing behavior
 - Improves one aspect of code quality
 - Takes 10-30 minutes to implement
+
+**Test after phases 3, 6, 9, 11, 12** to ensure behavior unchanged
