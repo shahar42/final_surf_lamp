@@ -216,23 +216,27 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
     bool connected = false;
 
     // CRITICAL: Detect credentials state BEFORE entering retry loop
+    // Initialize WiFi mode first so WiFi.SSID() can read native persistent storage
+    WiFi.mode(WIFI_STA);
     String savedSSID = WiFi.SSID();
     bool hasCredentials = (savedSSID.length() > 0);
 
     // Scenario detection for optimal timeout strategy
     enum SetupScenario { FIRST_SETUP, ROUTER_REBOOT, NEW_LOCATION, HAS_CREDENTIALS };
-    SetupScenario scenario = HAS_CREDENTIALS;
+    SetupScenario scenario = hasCredentials ? ROUTER_REBOOT : FIRST_SETUP;
 
-    if (!hasCredentials) {
+    if (scenario == FIRST_SETUP) {
         Serial.println("📋 No WiFi credentials saved - opening configuration portal");
 
         // CRITICAL FIX: Do NOT scan for fingerprinting before AP mode
         // WiFi scanning while AP is active causes watchdog crashes
         // Default to generous timeout for all first-time setup scenarios
-        scenario = FIRST_SETUP;
         Serial.println("🆕 FIRST SETUP MODE");
         Serial.println("   Opening configuration portal for 17 minutes");
         wifiManager.setConfigPortalTimeout(1020); // 17 minutes - safe for all scenarios
+    } else {
+        Serial.println("🔌 WiFi credentials found - assuming router reboot scenario");
+        Serial.printf("   Will retry up to %d times with exponential backoff\n", MAX_WIFI_RETRIES);
     }
 
     // Retry loop with scenario-based timeout strategy
