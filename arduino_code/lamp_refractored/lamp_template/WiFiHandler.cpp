@@ -14,6 +14,7 @@ uint8_t lastDisconnectReason = 0;
 int reconnectAttempts = 0;
 unsigned long lastReconnectAttempt = 0;
 WiFiManager* globalWiFiManager = nullptr; // For error injection from event handler
+bool wifiJustReconnected = false; // Flag to trigger immediate data fetch after reconnection
 static String persistentErrorHTML = ""; // Persistent storage for error message HTML
 static bool allowErrorInjection = false; // Only inject after first connection attempt
 
@@ -429,7 +430,11 @@ void handleWiFiHealth() {
         // Reset reconnect counter when connected
         if (reconnectAttempts > 0) {
             Serial.println("✅ WiFi reconnected successfully");
+            Serial.println("⏳ Waiting 3 seconds for network stack to stabilize...");
+            delay(3000);  // Let DNS, routing, DHCP settle
             reconnectAttempts = 0;
+            wifiJustReconnected = true;  // Signal to fetch data immediately
+            Serial.println("📡 Network ready - data fetch triggered");
         }
     }
 }

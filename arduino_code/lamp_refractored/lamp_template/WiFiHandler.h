@@ -106,6 +106,7 @@ extern uint8_t lastDisconnectReason;
 extern int reconnectAttempts;
 extern unsigned long lastReconnectAttempt;
 extern WiFiManager* globalWiFiManager; // For error injection from event handler
+extern bool wifiJustReconnected; // Flag to trigger immediate data fetch after reconnection
 
 // Constants
 extern const int MAX_WIFI_RETRIES;

@@ -99,8 +99,10 @@ private:
             }
 
             if (attempt < MAX_ATTEMPTS) {
-                Serial.println("   ⏳ Waiting 5 seconds before next attempt...");
-                delay(5000); // 5 second wait between attempts
+                // Exponential backoff: 5s, 10s, 20s, 40s
+                int delaySeconds = min(5 * (int)pow(2, attempt - 1), 40);
+                Serial.printf("   ⏳ Waiting %d seconds before next attempt...\n", delaySeconds);
+                delay(delaySeconds * 1000);
             }
         }
 
