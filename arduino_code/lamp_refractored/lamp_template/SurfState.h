@@ -40,7 +40,7 @@ struct SurfData {
     float waveThreshold = 1.0;        // Wave threshold in meters (MUST be float for comparison!)
     int windSpeedThreshold = 15;      // Wind threshold in knots (user-facing unit)
     String theme = "classic_surf";    // LED color theme name
-    float brightnessMultiplier = 0.6; // User brightness: 0.3=Low, 0.6=Mid, 1.0=High
+    float brightnessMultiplier = 0.6; // User brightness: 0.2=Low, 0.6=Mid, 1.0=High
 
     // Operating modes (mutually exclusive priority: off_hours > quiet_hours > normal)
     bool quietHoursActive = false;    // Sleep mode: only top LED of each strip on

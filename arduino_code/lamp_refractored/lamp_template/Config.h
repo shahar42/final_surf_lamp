@@ -17,11 +17,13 @@
 // ============================================================================================
 
 // ---------------- DEVICE IDENTITY ----------------
-const int ARDUINO_ID = 6;  // Unique lamp ID from database (must match backend)
+const int ARDUINO_ID = 8;  // Unique lamp ID from database (must match backend)
 
 // ---------------- HARDWARE SETUP ----------------
 #define LED_PIN 2              // GPIO pin connected to LED strip data line
-#define TOTAL_LEDS 56          // Total number of LEDs in the physical strip
+// NOTE: TOTAL_LEDS should be set to the highest LED index used in your strips + 1.
+// In most cases this is WAVE_PERIOD_TOP + 1, but check all three strip TOP values to be sure.
+#define TOTAL_LEDS 88          // Total number of LEDs in the physical strip
 #define LED_TYPE WS2812B       // LED chipset type (WS2812B, SK6812, APA102, etc.)
 #define COLOR_ORDER GRB        // Color order for your LED strip (GRB, RGB, BRG, etc.)
 #define BRIGHTNESS 75          // Global brightness (0-255, recommend 50-100 for indoor use)
@@ -31,17 +33,17 @@ const int ARDUINO_ID = 6;  // Unique lamp ID from database (must match backend)
 // Direction is auto-detected: if bottom < top = FORWARD, if bottom > top = REVERSE
 
 // Wave Height Strip (Right Side in typical lamp orientation)
-#define WAVE_HEIGHT_BOTTOM 2   // First LED index of wave height strip
-#define WAVE_HEIGHT_TOP 16     // Last LED index of wave height strip
+#define WAVE_HEIGHT_BOTTOM 5   // First LED index of wave height strip
+#define WAVE_HEIGHT_TOP 27     // Last LED index of wave height strip
 
 // Wave Period Strip (Left Side in typical lamp orientation)
-#define WAVE_PERIOD_BOTTOM 41  // First LED index of wave period strip
-#define WAVE_PERIOD_TOP 55     // Last LED index of wave period strip
+#define WAVE_PERIOD_BOTTOM 64  // First LED index of wave period strip
+#define WAVE_PERIOD_TOP 87     // Last LED index of wave period strip
 
 // Wind Speed Strip (Center)
 // NOTE: Bottom LED serves as status indicator, Top LED shows wind direction
-#define WIND_SPEED_BOTTOM 38   // First LED index (also used for status LED)
-#define WIND_SPEED_TOP 21      // Last LED index (also used for wind direction LED)
+#define WIND_SPEED_BOTTOM 59   // First LED index (also used for status LED)
+#define WIND_SPEED_TOP 34      // Last LED index (also used for wind direction LED)
 
 // ---------------- SURF DATA SCALING ----------------
 // These values determine the maximum range displayed on each strip
@@ -168,7 +170,7 @@ struct LEDMappingConfig {
     float wind_scale_denominator = MAX_WIND_SPEED_MPS;   // Maximum wind speed from admin config
     float mps_to_knots_factor = 1.94384;                 // Conversion constant: m/s to knots
     uint8_t wave_height_divisor = (MAX_WAVE_HEIGHT_METERS * 100) / WAVE_HEIGHT_LENGTH;  // Centimeters per LED
-    float threshold_brightness_multiplier = 1.4;         // Brightness boost when threshold exceeded (60% brighter)
+    float threshold_brightness_multiplier = 1.2;         // Brightness boost when threshold exceeded (60% brighter)
 
     // Helper: Calculate wind speed LEDs from m/s (used by all wind speed calculations)
     int calculateWindLEDs(float windSpeed_mps) const {

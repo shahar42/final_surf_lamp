@@ -85,6 +85,10 @@ void setup() {
     Serial.println("🚀 Surf Lamp ready for operation!");
     Serial.printf("📍 Device accessible at: http://%s\n", WiFi.localIP().toString().c_str());
 
+    // Wait for network stack to fully stabilize after boot (critical for power outage recovery)
+    Serial.println("⏳ Waiting 10 seconds for network stack to stabilize...");
+    delay(10000);
+
     // Try to fetch surf data immediately on startup (before Core 0 task starts)
     Serial.println("🔄 Attempting initial surf data fetch...");
     if (fetchSurfDataFromServer()) {
