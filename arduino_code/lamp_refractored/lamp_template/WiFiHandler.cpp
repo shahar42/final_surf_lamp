@@ -76,6 +76,18 @@ WiFiSetupScenario detectWiFiScenario() {
     return WiFiSetupScenario::ROUTER_REBOOT;
 }
 
+void configurePortalForScenario(WiFiManager& wifiManager, WiFiSetupScenario scenario) {
+    if (scenario == WiFiSetupScenario::FIRST_SETUP) {
+        Serial.println("📋 No WiFi credentials saved - opening configuration portal");
+        Serial.println("🆕 FIRST SETUP MODE");
+        Serial.println("   Opening configuration portal for 17 minutes");
+        wifiManager.setConfigPortalTimeout(WiFiTimeouts::PORTAL_TIMEOUT_GENEROUS_SEC);
+    } else {
+        Serial.println("🔌 WiFi credentials found - assuming router reboot scenario");
+        Serial.println("   Will retry for 5 minutes with exponential backoff");
+    }
+}
+
 // ---------------- DIAGNOSTICS ----------------
 
 String getDisconnectReasonText(uint8_t reason) {
@@ -275,20 +287,7 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
 
     // Detect WiFi scenario (credentials state determines strategy)
     WiFiSetupScenario scenario = detectWiFiScenario();
-
-    if (scenario == WiFiSetupScenario::FIRST_SETUP) {
-        Serial.println("📋 No WiFi credentials saved - opening configuration portal");
-
-        // CRITICAL FIX: Do NOT scan for fingerprinting before AP mode
-        // WiFi scanning while AP is active causes watchdog crashes
-        // Default to generous timeout for all first-time setup scenarios
-        Serial.println("🆕 FIRST SETUP MODE");
-        Serial.println("   Opening configuration portal for 17 minutes");
-        wifiManager.setConfigPortalTimeout(WiFiTimeouts::PORTAL_TIMEOUT_GENEROUS_SEC);
-    } else {
-        Serial.println("🔌 WiFi credentials found - assuming router reboot scenario");
-        Serial.println("   Will retry for 5 minutes with exponential backoff");
-    }
+    configurePortalForScenario(wifiManager, scenario);
 
     // Retry loop with scenario-based timeout strategy
     unsigned long retryStartTime = millis();
