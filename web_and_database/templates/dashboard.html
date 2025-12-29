@@ -432,6 +432,7 @@
     <script src="{{ url_for('static', filename='js/features/wave-threshold.js') }}"></script>
     <script src="{{ url_for('static', filename='js/features/wind-threshold.js') }}"></script>
     <script src="{{ url_for('static', filename='js/features/brightness-control.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/features/off-hours.js') }}"></script>
 
     <!-- Error Report Modal -->
     <div id="errorReportModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
@@ -486,139 +487,7 @@
 
     // Night Mode (Off Hours) - Preset & Custom Controls
     {% if off_hours_feature_enabled %}
-
-    // Helper function to update off hours
-    function updateOffHours(startTime, endTime, enabled) {
-        const statusDiv = document.getElementById('off-times-status');
-        const modeStatus = document.getElementById('sleepModeStatus');
-        
-        // Optimistic UI updates
-        resetButtonStyles();
-        
-        if (!enabled) {
-            // update status text
-            modeStatus.textContent = 'DISABLED';
-            modeStatus.className = 'text-xs font-bold uppercase tracking-wider text-white/50';
-        } else {
-            // update status text
-            modeStatus.textContent = 'ACTIVE';
-            modeStatus.className = 'text-xs font-bold uppercase tracking-wider text-orange-500';
-
-            let matched = false;
-            // Find button matching this preset
-            document.querySelectorAll('.preset-btn').forEach(btn => {
-                if (btn.getAttribute('data-start') === startTime) {
-                    btn.classList.remove('bg-white/10', 'border-white/20', 'text-white/80');
-                    btn.classList.add('bg-orange-600/80', 'border-orange-500', 'text-white', 'font-semibold', 'shadow-[0_0_15px_rgba(234,88,12,0.3)]');
-                    matched = true;
-                }
-            });
-            
-            // If no preset matched and enabled is true, highlight "Custom"
-            if (!matched) {
-                 const customBtn = document.getElementById('customPresetBtn');
-                 customBtn.classList.remove('bg-white/10', 'border-white/20', 'text-white/80');
-                 customBtn.classList.add('bg-orange-600/80', 'border-orange-500', 'text-white', 'font-semibold', 'shadow-[0_0_15px_rgba(234,88,12,0.3)]');
-            }
-        }
-
-        statusDiv.textContent = 'Updating...';
-        statusDiv.style.color = '#ffffff';
-
-        fetch('/update-off-times', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                enabled: enabled,
-                start_time: startTime,
-                end_time: endTime
-            })
-        })
-        .then(response => response.json().then(data => ({ok: response.ok, body: data})))
-        .then(({ok, body}) => {
-            if (ok) {
-                statusDiv.textContent = '✓ ' + body.message;
-                statusDiv.style.color = '#fb923c'; // Orange-400
-                setTimeout(() => { statusDiv.textContent = ''; }, 3000);
-            } else {
-                statusDiv.textContent = 'Error: ' + body.message;
-                statusDiv.style.color = '#ef4444';
-            }
-        })
-        .catch(error => {
-            statusDiv.textContent = 'Failed to update night mode';
-            statusDiv.style.color = '#ef4444';
-        });
-    }
-
-    function resetButtonStyles() {
-        const inactiveClasses = ['bg-white/10', 'hover:bg-white/20', 'text-white/80', 'border-white/20'];
-        const activeClasses = ['bg-orange-600/80', 'border-orange-500', 'text-white', 'font-semibold', 'shadow-[0_0_15px_rgba(234,88,12,0.3)]'];
-
-        // Reset Presets
-        document.querySelectorAll('.preset-btn').forEach(b => {
-            b.classList.remove(...activeClasses);
-            b.classList.add(...inactiveClasses);
-        });
-        
-        // Reset Custom
-        const customBtn = document.getElementById('customPresetBtn');
-        customBtn.classList.remove(...activeClasses);
-        customBtn.classList.add(...inactiveClasses);
-    }
-
-    // Preset button handlers
-    document.querySelectorAll('.preset-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const startTime = this.getAttribute('data-start');
-            const endTime = this.getAttribute('data-end');
-            
-            // Check if already active (toggle logic)
-            const isActive = this.classList.contains('bg-orange-600/80');
-            
-            // Hide custom inputs if open
-            document.getElementById('customTimeInputs').classList.add('hidden');
-
-            if (isActive) {
-                // Toggle OFF
-                updateOffHours(startTime, endTime, false);
-            } else {
-                // Toggle ON
-                updateOffHours(startTime, endTime, true);
-            }
-        });
-    });
-
-    // Custom button toggles custom time inputs OR disables if active
-    document.getElementById('customPresetBtn').addEventListener('click', function() {
-        const customInputs = document.getElementById('customTimeInputs');
-        const isActive = this.classList.contains('bg-orange-600/80');
-        
-        if (isActive) {
-            // State: Active -> Click -> Disable (Turn Off)
-            updateOffHours(null, null, false);
-            customInputs.classList.add('hidden');
-        } else {
-            // State: Inactive -> Click -> Open Drawer
-            customInputs.classList.remove('hidden');
-            // We don't enable yet; user must click "Apply" in the drawer
-            
-            // Optional: Close drawer if clicking while inactive but drawer is already open?
-            // Let's keep it simple: Ensure it's open.
-        }
-    });
-
-    // Custom time apply button
-    const updateOffTimesBtn = document.getElementById('updateOffTimes');
-    if (updateOffTimesBtn) {
-        updateOffTimesBtn.addEventListener('click', function() {
-            const startTime = document.getElementById('offTimeStart').value;
-            const endTime = document.getElementById('offTimeEnd').value;
-            updateOffHours(startTime, endTime, true);
-        });
-    }
+    OffHours.init();
     {% endif %}
 
     // ==============================
