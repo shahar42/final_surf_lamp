@@ -88,6 +88,21 @@ void configurePortalForScenario(WiFiManager& wifiManager, WiFiSetupScenario scen
     }
 }
 
+void displayConnectionAttempt(int attempt, unsigned long elapsedSec, WiFiSetupScenario scenario) {
+    if (scenario == WiFiSetupScenario::ROUTER_REBOOT) {
+        Serial.printf("🔄 WiFi connection attempt %d (elapsed: %lu seconds)\n", attempt, elapsedSec);
+    } else {
+        Serial.printf("🔄 WiFi connection attempt %d\n", attempt);
+    }
+    showTryingToConnect();
+}
+
+void displayLocationCheck() {
+    Serial.println("👀 Checking if same location...");
+    showCheckingLocation();
+    delay(WiFiDelays::LOCATION_CHECK_DISPLAY_MS);
+}
+
 // ---------------- DIAGNOSTICS ----------------
 
 String getDisconnectReasonText(uint8_t reason) {
@@ -304,13 +319,10 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
                 wifiManager.setConfigPortalTimeout(0); // Indefinite
                 break; // Exit retry loop, will open AP below
             }
-            Serial.printf("🔄 WiFi connection attempt %d (elapsed: %lu seconds)\n", attempt, elapsed / 1000);
-        } else {
-            Serial.printf("🔄 WiFi connection attempt %d\n", attempt);
         }
 
-        // Visual feedback: Trying to connect (all LEDs slow blinking green)
-        showTryingToConnect();
+        // Display attempt status with visual feedback
+        displayConnectionAttempt(attempt, (millis() - retryStartTime) / 1000, scenario);
 
         // Set portal timeout for scenarios that use autoConnect
         if (scenario == WiFiSetupScenario::HAS_CREDENTIALS) {
@@ -388,9 +400,8 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
                     Serial.println("🔴 ==========================================");
                 }
 
-                // Visual feedback: Checking location (all LEDs slow blinking purple)
-                showCheckingLocation();
-                delay(WiFiDelays::LOCATION_CHECK_DISPLAY_MS);
+                // Visual feedback: Checking location
+                displayLocationCheck();
 
                 // Check if moved to new location using fingerprinting
                 if (!fingerprinting.isSameLocation()) {
