@@ -20,6 +20,14 @@ static bool allowErrorInjection = false; // Only inject after first connection a
 
 const int MAX_WIFI_RETRIES = 10;  // 10 attempts × 30s = ~5 min (covers router boot times)
 
+// ---------------- TIMEOUT CONSTANTS ----------------
+namespace WiFiTimeouts {
+    const int PORTAL_TIMEOUT_GENEROUS_SEC = 1020;    // 17 minutes
+    const int INITIAL_CONNECTION_TIMEOUT_SEC = 20;   // First attempt
+    const int MAX_CONNECTION_TIMEOUT_SEC = 60;       // Cap for exponential backoff
+    const unsigned long ROUTER_REBOOT_TIMEOUT_MS = 300000;  // 5 minutes total
+}
+
 // ---------------- DIAGNOSTICS ----------------
 
 String getDisconnectReasonText(uint8_t reason) {
@@ -242,7 +250,7 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
         // Default to generous timeout for all first-time setup scenarios
         Serial.println("🆕 FIRST SETUP MODE");
         Serial.println("   Opening configuration portal for 17 minutes");
-        wifiManager.setConfigPortalTimeout(1020); // 17 minutes - safe for all scenarios
+        wifiManager.setConfigPortalTimeout(WiFiTimeouts::PORTAL_TIMEOUT_GENEROUS_SEC);
     } else {
         Serial.println("🔌 WiFi credentials found - assuming router reboot scenario");
         Serial.println("   Will retry for 5 minutes with exponential backoff");
@@ -250,7 +258,6 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
 
     // Retry loop with scenario-based timeout strategy
     unsigned long retryStartTime = millis();
-    const unsigned long ROUTER_REBOOT_TIMEOUT = 300000; // 5 minutes in milliseconds
     int attempt = 0;
 
     while (!connected) {
@@ -259,7 +266,7 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
         // ROUTER_REBOOT: Check if 5 minutes elapsed
         if (scenario == ROUTER_REBOOT) {
             unsigned long elapsed = millis() - retryStartTime;
-            if (elapsed >= ROUTER_REBOOT_TIMEOUT) {
+            if (elapsed >= WiFiTimeouts::ROUTER_REBOOT_TIMEOUT_MS) {
                 Serial.println("⏱️ 5 minutes elapsed, opening AP indefinitely");
                 wifiManager.setConfigPortalTimeout(0); // Indefinite
                 break; // Exit retry loop, will open AP below
@@ -276,7 +283,7 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
         if (scenario == HAS_CREDENTIALS) {
             // HAS CREDENTIALS but connection failing - standard retry strategy
             if (attempt < MAX_WIFI_RETRIES) {
-                wifiManager.setConfigPortalTimeout(1020); // 17 minutes
+                wifiManager.setConfigPortalTimeout(WiFiTimeouts::PORTAL_TIMEOUT_GENEROUS_SEC);
             } else {
                 wifiManager.setConfigPortalTimeout(0); // Final attempt: indefinite
             }
@@ -298,8 +305,11 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
             Serial.println("   Attempting connection with saved credentials (no AP)...");
             WiFi.begin();  // Reconnect with saved credentials
 
-            // Wait for connection with timeout
-            int timeout = min(20 * (int)pow(2, attempt - 1), 60);
+            // Wait for connection with timeout (exponential backoff)
+            int timeout = min(
+                WiFiTimeouts::INITIAL_CONNECTION_TIMEOUT_SEC * (int)pow(2, attempt - 1),
+                WiFiTimeouts::MAX_CONNECTION_TIMEOUT_SEC
+            );
             unsigned long startTime = millis();
             while (WiFi.status() != WL_CONNECTED && (millis() - startTime) < (timeout * 1000)) {
                 delay(500);
@@ -430,8 +440,8 @@ void handleWiFiHealth() {
         // Reset reconnect counter when connected
         if (reconnectAttempts > 0) {
             Serial.println("✅ WiFi reconnected successfully");
-            Serial.println("⏳ Waiting 3 seconds for network stack to stabilize...");
-            delay(3000);  // Let DNS, routing, DHCP settle
+            Serial.println("⏳ Waiting 10 seconds for network stack to stabilize...");
+            delay(10000);  // Let DNS, routing, DHCP, ARP fully settle (critical after router power loss)
             reconnectAttempts = 0;
             wifiJustReconnected = true;  // Signal to fetch data immediately
             Serial.println("📡 Network ready - data fetch triggered");
