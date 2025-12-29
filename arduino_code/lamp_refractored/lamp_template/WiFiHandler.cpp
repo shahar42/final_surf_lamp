@@ -56,6 +56,12 @@ enum class WiFiSetupScenario {
     HAS_CREDENTIALS    // Has credentials (generic fallback)
 };
 
+struct DiagnosticResult {
+    String errorMessage;
+    bool isNewLocation;
+    bool shouldRestart;
+};
+
 WiFiSetupScenario detectWiFiScenario() {
     // Read from ESP32's NVS storage (WiFi.SSID() only works when connected)
     WiFi.mode(WIFI_STA);
@@ -116,6 +122,44 @@ void delayBeforeRetry(WiFiSetupScenario scenario, int attempt) {
         Serial.printf("⏳ Waiting %d seconds before retry...\n", WiFiDelays::INITIAL_RETRY_DELAY_SEC);
         delay(WiFiDelays::INITIAL_RETRY_DELAY_SEC * 1000);
     }
+}
+
+DiagnosticResult diagnoseConnectionFailure(
+    WiFiFingerprinting& fingerprinting,
+    WiFiSetupScenario scenario
+) {
+    String attemptedSSID = WiFi.SSID();
+
+    if (attemptedSSID.length() == 0) {
+        Serial.println("⚠️ No SSID stored - user did not enter credentials");
+        bool shouldRestart = (scenario == WiFiSetupScenario::FIRST_SETUP ||
+                             scenario == WiFiSetupScenario::NEW_LOCATION);
+        return {"No credentials entered", false, shouldRestart};
+    }
+
+    Serial.printf("🔍 Diagnosing connection to: %s\n", attemptedSSID.c_str());
+    String diagnostic = diagnoseSSID(attemptedSSID.c_str());
+
+    if (diagnostic.length() > 0) {
+        lastWiFiError = diagnostic;
+        Serial.println("🔴 DIAGNOSTIC RESULT:");
+        Serial.println(diagnostic);
+        Serial.println("🔴 ==========================================");
+    } else if (lastDisconnectReason != 0) {
+        Serial.println("🔴 DISCONNECT REASON:");
+        Serial.println(lastWiFiError);
+        Serial.println("🔴 ==========================================");
+    }
+
+    displayLocationCheck();
+
+    bool newLocation = !fingerprinting.isSameLocation();
+    if (newLocation) {
+        Serial.println("🏠 NEW LOCATION DETECTED - Forcing AP mode");
+        lastWiFiError = "Moved to new location. Please reconfigure WiFi.";
+    }
+
+    return {diagnostic, newLocation, false};
 }
 
 // ---------------- DIAGNOSTICS ----------------
@@ -385,45 +429,17 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
         if (!connected) {
             Serial.println("❌ Connection failed - running diagnostics...");
 
-            // Get SSID from WiFiManager (it stores the last attempted SSID)
-            String attemptedSSID = WiFi.SSID();
-            if (attemptedSSID.length() == 0) {
-                Serial.println("⚠️ No SSID stored - user did not enter credentials during portal session");
+            DiagnosticResult diag = diagnoseConnectionFailure(fingerprinting, scenario);
 
-                // For FIRST_SETUP and NEW_LOCATION, restart to reopen portal
-                if (scenario == WiFiSetupScenario::FIRST_SETUP || scenario == WiFiSetupScenario::NEW_LOCATION) {
-                    Serial.println("🔄 Restarting to reopen configuration portal...");
-                    delay(WiFiDelays::RESTART_DELAY_MS);
-                    ESP.restart();
-                }
-            } else {
-                Serial.printf("🔍 Diagnosing connection to: %s\n", attemptedSSID.c_str());
+            if (diag.shouldRestart) {
+                Serial.println("🔄 Restarting to reopen configuration portal...");
+                delay(WiFiDelays::RESTART_DELAY_MS);
+                ESP.restart();
+            }
 
-                // Run pre-scan diagnostics
-                String diagnostic = diagnoseSSID(attemptedSSID.c_str());
-
-                if (diagnostic.length() > 0) {
-                    // Store for display in portal
-                    lastWiFiError = diagnostic;
-                    Serial.println("🔴 DIAGNOSTIC RESULT:");
-                    Serial.println(diagnostic);
-                    Serial.println("🔴 ==========================================");
-                } else if (lastDisconnectReason != 0) {
-                    // Store disconnect reason
-                    Serial.println("🔴 DISCONNECT REASON:");
-                    Serial.println(lastWiFiError);
-                    Serial.println("🔴 ==========================================");
-                }
-
-                // Visual feedback: Checking location
-                displayLocationCheck();
-
-                // Check if moved to new location using fingerprinting
-                if (!fingerprinting.isSameLocation()) {
-                    Serial.println("🏠 NEW LOCATION DETECTED - Forcing AP mode");
-                    lastWiFiError = "Moved to new location. Please reconfigure WiFi.";
-                    break;  // Exit retry loop, go straight to AP mode
-                }
+            if (diag.isNewLocation) {
+                Serial.println("🏠 Exiting retry loop - new location detected");
+                break;
             }
 
             // Apply retry delay based on scenario
