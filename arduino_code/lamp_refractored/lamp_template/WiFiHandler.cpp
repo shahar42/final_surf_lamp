@@ -128,7 +128,14 @@ DiagnosticResult diagnoseConnectionFailure(
     WiFiFingerprinting& fingerprinting,
     WiFiSetupScenario scenario
 ) {
-    String attemptedSSID = WiFi.SSID();
+    // Read SSID from NVS storage (WiFi.SSID() is unreliable after failed connection)
+    wifi_config_t wifi_cfg;
+    esp_err_t err = esp_wifi_get_config(WIFI_IF_STA, &wifi_cfg);
+    String attemptedSSID = "";
+
+    if (err == ESP_OK && strlen((char*)wifi_cfg.sta.ssid) > 0) {
+        attemptedSSID = String((char*)wifi_cfg.sta.ssid);
+    }
 
     if (attemptedSSID.length() == 0) {
         Serial.println("⚠️ No SSID stored - user did not enter credentials");
@@ -167,11 +174,6 @@ bool attemptWiFiConnection(
     WiFiSetupScenario scenario,
     int attempt
 ) {
-    // Enable error injection for non-first-setup scenarios
-    if (scenario != WiFiSetupScenario::FIRST_SETUP) {
-        allowErrorInjection = true;
-    }
-
     if (scenario == WiFiSetupScenario::ROUTER_REBOOT) {
         // ROUTER_REBOOT: Retry with saved credentials, NO AP portal
         Serial.println("   Attempting connection with saved credentials (no AP)...");

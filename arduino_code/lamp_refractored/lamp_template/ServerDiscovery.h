@@ -8,46 +8,39 @@
 
 class ServerDiscovery {
 private:
-    // Hardcoded fallback servers (Phase 1 compatibility)
-    const char* fallback_servers[3] = {
-        "final-surf-lamp.onrender.com",
-        "backup-api.herokuapp.com", 
-        "localhost:5001"  // For development
-    };
-    
     // Discovery URLs (static files - free and reliable)
     const char* discovery_urls[2] = {
         "https://shahar42.github.io/final_surf_lamp/discovery-config/config.json",
-        "https://raw.githubusercontent.com/shahar42/final_surf_lamp/master/discovery-config/config.json"     
+        "https://raw.githubusercontent.com/shahar42/final_surf_lamp/master/discovery-config/config.json"
     };
-    
-    String current_server = "";
+
+    String current_server = "";  // MUST be discovered from GitHub, no fallback
     unsigned long last_discovery_attempt = 0;
     const unsigned long DISCOVERY_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
     bool discovery_enabled = true;
-    
+
 public:
     ServerDiscovery() {
-        // Initialize with first fallback server
-        current_server = fallback_servers[0];
+        // No fallback - server MUST be discovered from GitHub
+        current_server = "";
     }
     
     // Main method - gets current API server
     String getApiServer() {
-        // Try discovery if it's time
-        if (shouldTryDiscovery()) {
+        // CRITICAL: If no server available, MUST attempt discovery (ignore interval)
+        if (current_server.length() == 0 || shouldTryDiscovery()) {
             String discovered = attemptDiscovery();
             if (discovered.length() > 0) {
                 Serial.println("📡 Discovery successful: " + discovered);
                 current_server = discovered;
                 last_discovery_attempt = millis();
             } else {
-                Serial.println("⚠️ Discovery failed, using current: " + current_server);
+                Serial.println("⚠️ Discovery failed - NO FALLBACK, will return empty");
                 last_discovery_attempt = millis(); // Don't retry immediately
             }
         }
-        
-        return current_server;
+
+        return current_server;  // Empty if discovery never succeeded
     }
     
     // Force discovery attempt (for testing)
