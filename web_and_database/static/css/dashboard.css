@@ -137,11 +137,11 @@
    ================================== */
 
 .legal-footer {
-    background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+    background: transparent;
     padding: 20px;
     text-align: center;
     margin-top: 40px;
-    border-top: 3px solid #00c6ff;
+    border-top: 1px solid rgba(255, 252, 222, 0.2);
 }
 
 .legal-footer a {
