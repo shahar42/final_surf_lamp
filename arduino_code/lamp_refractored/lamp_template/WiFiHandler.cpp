@@ -6,6 +6,7 @@
 
 #include "WiFiHandler.h"
 #include "LedController.h"
+#include "esp_wifi.h"
 
 // Global WiFi state (defined here, declared extern in header)
 String lastWiFiError = "";
@@ -216,10 +217,17 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
     bool connected = false;
 
     // CRITICAL: Detect credentials state BEFORE entering retry loop
-    // Initialize WiFi mode first so WiFi.SSID() can read native persistent storage
+    // Read from ESP32's NVS storage (WiFi.SSID() only works when connected)
     WiFi.mode(WIFI_STA);
-    String savedSSID = WiFi.SSID();
-    bool hasCredentials = (savedSSID.length() > 0);
+    wifi_config_t wifi_cfg;
+    esp_err_t err = esp_wifi_get_config(WIFI_IF_STA, &wifi_cfg);
+    bool hasCredentials = (err == ESP_OK && strlen((char*)wifi_cfg.sta.ssid) > 0);
+
+    if (hasCredentials) {
+        Serial.printf("📡 Found saved credentials for SSID: %s\n", (char*)wifi_cfg.sta.ssid);
+    } else {
+        Serial.println("📡 No saved WiFi credentials found");
+    }
 
     // Scenario detection for optimal timeout strategy
     enum SetupScenario { FIRST_SETUP, ROUTER_REBOOT, NEW_LOCATION, HAS_CREDENTIALS };
