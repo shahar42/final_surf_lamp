@@ -43,6 +43,10 @@ int calculateExponentialTimeout(int attempt, int initialSeconds, int maxSeconds)
     return min(initialSeconds * (int)pow(2, attempt - 1), maxSeconds);
 }
 
+int calculateExponentialDelay(int attempt, int initialSeconds, int maxSeconds) {
+    return min(initialSeconds * (int)pow(2, attempt - 1), maxSeconds);
+}
+
 // ---------------- DIAGNOSTICS ----------------
 
 String getDisconnectReasonText(uint8_t reason) {
@@ -385,8 +389,9 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
             // Retry delay for ROUTER_REBOOT and HAS_CREDENTIALS scenarios
             if (scenario == ROUTER_REBOOT) {
                 // Exponential backoff delay: 5s, 10s, 20s, 40s...
-                int delaySeconds = min(
-                    WiFiDelays::INITIAL_RETRY_DELAY_SEC * (int)pow(2, attempt - 1),
+                int delaySeconds = calculateExponentialDelay(
+                    attempt,
+                    WiFiDelays::INITIAL_RETRY_DELAY_SEC,
                     WiFiDelays::MAX_RETRY_DELAY_SEC
                 );
                 Serial.printf("⏳ Waiting %d seconds before retry...\n", delaySeconds);
