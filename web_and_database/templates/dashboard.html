@@ -22,6 +22,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <!-- Global ocean color system -->
     <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
+    <!-- Dashboard specific styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
     <style>
         .flash-message {
             position: fixed;
@@ -510,6 +512,9 @@
 
     <!-- Broadcast Notifications (bottom-left to avoid chat button) -->
     <div id="broadcastContainer" class="fixed bottom-6 left-6 z-40 space-y-3 max-w-sm"></div>
+
+    <!-- Dashboard Configuration -->
+    <script src="{{ url_for('static', filename='js/config.js') }}"></script>
 
     <!-- Error Report Modal -->
     <div id="errorReportModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
