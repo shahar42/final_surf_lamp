@@ -103,6 +103,21 @@ void displayLocationCheck() {
     delay(WiFiDelays::LOCATION_CHECK_DISPLAY_MS);
 }
 
+void delayBeforeRetry(WiFiSetupScenario scenario, int attempt) {
+    if (scenario == WiFiSetupScenario::ROUTER_REBOOT) {
+        int delaySeconds = calculateExponentialDelay(
+            attempt,
+            WiFiDelays::INITIAL_RETRY_DELAY_SEC,
+            WiFiDelays::MAX_RETRY_DELAY_SEC
+        );
+        Serial.printf("⏳ Waiting %d seconds before retry...\n", delaySeconds);
+        delay(delaySeconds * 1000);
+    } else if (scenario == WiFiSetupScenario::HAS_CREDENTIALS && attempt < MAX_WIFI_RETRIES) {
+        Serial.printf("⏳ Waiting %d seconds before retry...\n", WiFiDelays::INITIAL_RETRY_DELAY_SEC);
+        delay(WiFiDelays::INITIAL_RETRY_DELAY_SEC * 1000);
+    }
+}
+
 // ---------------- DIAGNOSTICS ----------------
 
 String getDisconnectReasonText(uint8_t reason) {
@@ -411,20 +426,8 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
                 }
             }
 
-            // Retry delay for ROUTER_REBOOT and HAS_CREDENTIALS scenarios
-            if (scenario == WiFiSetupScenario::ROUTER_REBOOT) {
-                // Exponential backoff delay: 5s, 10s, 20s, 40s...
-                int delaySeconds = calculateExponentialDelay(
-                    attempt,
-                    WiFiDelays::INITIAL_RETRY_DELAY_SEC,
-                    WiFiDelays::MAX_RETRY_DELAY_SEC
-                );
-                Serial.printf("⏳ Waiting %d seconds before retry...\n", delaySeconds);
-                delay(delaySeconds * 1000);
-            } else if (scenario == WiFiSetupScenario::HAS_CREDENTIALS && attempt < MAX_WIFI_RETRIES) {
-                Serial.printf("⏳ Waiting %d seconds before retry...\n", WiFiDelays::INITIAL_RETRY_DELAY_SEC);
-                delay(WiFiDelays::INITIAL_RETRY_DELAY_SEC * 1000);
-            }
+            // Apply retry delay based on scenario
+            delayBeforeRetry(scenario, attempt);
         }
     }
 
