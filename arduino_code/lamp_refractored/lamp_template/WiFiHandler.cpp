@@ -37,6 +37,12 @@ namespace WiFiDelays {
     const int CONNECTION_POLL_MS = 500;              // WiFi.status() polling interval
 }
 
+// ---------------- HELPER FUNCTIONS ----------------
+
+int calculateExponentialTimeout(int attempt, int initialSeconds, int maxSeconds) {
+    return min(initialSeconds * (int)pow(2, attempt - 1), maxSeconds);
+}
+
 // ---------------- DIAGNOSTICS ----------------
 
 String getDisconnectReasonText(uint8_t reason) {
@@ -315,8 +321,9 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
             WiFi.begin();  // Reconnect with saved credentials
 
             // Wait for connection with timeout (exponential backoff)
-            int timeout = min(
-                WiFiTimeouts::INITIAL_CONNECTION_TIMEOUT_SEC * (int)pow(2, attempt - 1),
+            int timeout = calculateExponentialTimeout(
+                attempt,
+                WiFiTimeouts::INITIAL_CONNECTION_TIMEOUT_SEC,
                 WiFiTimeouts::MAX_CONNECTION_TIMEOUT_SEC
             );
             unsigned long startTime = millis();
