@@ -83,7 +83,15 @@ const OffHours = {
         updateBtn.addEventListener('click', () => {
             const startTime = document.getElementById('offTimeStart').value;
             const endTime = document.getElementById('offTimeEnd').value;
+            const customInputs = document.getElementById('customTimeInputs');
+
+            // Apply the custom times
             this.updateOffHours(startTime, endTime, true);
+
+            // Close the drawer
+            if (customInputs) {
+                customInputs.classList.add('hidden');
+            }
         });
     },
 
