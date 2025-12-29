@@ -389,51 +389,49 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
     // Load WiFi fingerprint from NVS
     fingerprinting.load();
 
-    // Auto-connect with scenario-based timeout strategy (IoT industry best practices)
-    bool connected = false;
-
-    // Detect WiFi scenario (credentials state determines strategy)
+    // Detect WiFi scenario and configure portal
     WiFiSetupScenario scenario = detectWiFiScenario();
     configurePortalForScenario(wifiManager, scenario);
 
-    // Retry loop with scenario-based timeout strategy
+    // Main retry loop with scenario-based strategy
     unsigned long retryStartTime = millis();
     int attempt = 0;
+    bool connected = false;
 
     while (!connected) {
         attempt++;
 
-        // ROUTER_REBOOT: Check if 5 minutes elapsed
+        // Check time limit for router reboot scenario
         if (scenario == WiFiSetupScenario::ROUTER_REBOOT) {
             unsigned long elapsed = millis() - retryStartTime;
             if (elapsed >= WiFiTimeouts::ROUTER_REBOOT_TIMEOUT_MS) {
                 Serial.println("⏱️ 5 minutes elapsed, opening AP indefinitely");
-                wifiManager.setConfigPortalTimeout(0); // Indefinite
-                break; // Exit retry loop, will open AP below
+                wifiManager.setConfigPortalTimeout(0);
+                break;
             }
         }
 
-        // Display attempt status with visual feedback
+        // Display attempt status
         displayConnectionAttempt(attempt, (millis() - retryStartTime) / 1000, scenario);
 
-        // Set portal timeout for scenarios that use autoConnect
+        // Break for single-attempt scenarios
+        if (scenario == WiFiSetupScenario::FIRST_SETUP && attempt > 1) {
+            break;
+        }
+
+        // Set portal timeout for scenarios using autoConnect
         if (scenario == WiFiSetupScenario::HAS_CREDENTIALS) {
-            // HAS CREDENTIALS but connection failing - standard retry strategy
             if (attempt < MAX_WIFI_RETRIES) {
                 wifiManager.setConfigPortalTimeout(WiFiTimeouts::PORTAL_TIMEOUT_GENEROUS_SEC);
             } else {
-                wifiManager.setConfigPortalTimeout(0); // Final attempt: indefinite
+                wifiManager.setConfigPortalTimeout(0);
             }
-        } else if (scenario == WiFiSetupScenario::FIRST_SETUP) {
-            // FIRST_SETUP: single attempt with timeout already set
-            if (attempt > 1) break; // Only one attempt for first setup
         }
-        // Note: ROUTER_REBOOT doesn't use portal timeout (uses WiFi.begin instead of autoConnect)
 
-        // Attempt WiFi connection using scenario-appropriate method
+        // Attempt connection
         connected = attemptWiFiConnection(wifiManager, scenario, attempt);
 
-        // If connection failed, run diagnostics to determine WHY
+        // Handle connection failure
         if (!connected) {
             Serial.println("❌ Connection failed - running diagnostics...");
 
@@ -450,7 +448,6 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
                 break;
             }
 
-            // Apply retry delay based on scenario
             delayBeforeRetry(scenario, attempt);
         }
     }
