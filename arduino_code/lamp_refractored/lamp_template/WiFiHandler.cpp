@@ -47,6 +47,15 @@ int calculateExponentialDelay(int attempt, int initialSeconds, int maxSeconds) {
     return min(initialSeconds * (int)pow(2, attempt - 1), maxSeconds);
 }
 
+// ---------------- WIFI SETUP SCENARIOS ----------------
+
+enum class WiFiSetupScenario {
+    FIRST_SETUP,       // No credentials saved
+    ROUTER_REBOOT,     // Has credentials, same location
+    NEW_LOCATION,      // Has credentials, moved to different location
+    HAS_CREDENTIALS    // Has credentials (generic fallback)
+};
+
 // ---------------- DIAGNOSTICS ----------------
 
 String getDisconnectReasonText(uint8_t reason) {
@@ -258,10 +267,9 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
     }
 
     // Scenario detection for optimal timeout strategy
-    enum SetupScenario { FIRST_SETUP, ROUTER_REBOOT, NEW_LOCATION, HAS_CREDENTIALS };
-    SetupScenario scenario = hasCredentials ? ROUTER_REBOOT : FIRST_SETUP;
+    WiFiSetupScenario scenario = hasCredentials ? WiFiSetupScenario::ROUTER_REBOOT : WiFiSetupScenario::FIRST_SETUP;
 
-    if (scenario == FIRST_SETUP) {
+    if (scenario == WiFiSetupScenario::FIRST_SETUP) {
         Serial.println("📋 No WiFi credentials saved - opening configuration portal");
 
         // CRITICAL FIX: Do NOT scan for fingerprinting before AP mode
@@ -283,7 +291,7 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
         attempt++;
 
         // ROUTER_REBOOT: Check if 5 minutes elapsed
-        if (scenario == ROUTER_REBOOT) {
+        if (scenario == WiFiSetupScenario::ROUTER_REBOOT) {
             unsigned long elapsed = millis() - retryStartTime;
             if (elapsed >= WiFiTimeouts::ROUTER_REBOOT_TIMEOUT_MS) {
                 Serial.println("⏱️ 5 minutes elapsed, opening AP indefinitely");
@@ -299,14 +307,14 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
         showTryingToConnect();
 
         // Set portal timeout for scenarios that use autoConnect
-        if (scenario == HAS_CREDENTIALS) {
+        if (scenario == WiFiSetupScenario::HAS_CREDENTIALS) {
             // HAS CREDENTIALS but connection failing - standard retry strategy
             if (attempt < MAX_WIFI_RETRIES) {
                 wifiManager.setConfigPortalTimeout(WiFiTimeouts::PORTAL_TIMEOUT_GENEROUS_SEC);
             } else {
                 wifiManager.setConfigPortalTimeout(0); // Final attempt: indefinite
             }
-        } else if (scenario == FIRST_SETUP) {
+        } else if (scenario == WiFiSetupScenario::FIRST_SETUP) {
             // FIRST_SETUP: single attempt with timeout already set
             if (attempt > 1) break; // Only one attempt for first setup
         }
@@ -314,12 +322,12 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
 
         // Enable error injection now that we're about to attempt connection
         // But NOT for FIRST_SETUP (old credentials from NVS shouldn't show errors)
-        if (scenario != FIRST_SETUP) {
+        if (scenario != WiFiSetupScenario::FIRST_SETUP) {
             allowErrorInjection = true;
         }
 
         // CRITICAL: Use different connection methods based on scenario
-        if (scenario == ROUTER_REBOOT) {
+        if (scenario == WiFiSetupScenario::ROUTER_REBOOT) {
             // ROUTER_REBOOT: Just retry connection with saved credentials, NO AP portal
             Serial.println("   Attempting connection with saved credentials (no AP)...");
             WiFi.begin();  // Reconnect with saved credentials
@@ -350,7 +358,7 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
                 Serial.println("⚠️ No SSID stored - user did not enter credentials during portal session");
 
                 // For FIRST_SETUP and NEW_LOCATION, restart to reopen portal
-                if (scenario == FIRST_SETUP || scenario == NEW_LOCATION) {
+                if (scenario == WiFiSetupScenario::FIRST_SETUP || scenario == WiFiSetupScenario::NEW_LOCATION) {
                     Serial.println("🔄 Restarting to reopen configuration portal...");
                     delay(WiFiDelays::RESTART_DELAY_MS);
                     ESP.restart();
@@ -387,7 +395,7 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
             }
 
             // Retry delay for ROUTER_REBOOT and HAS_CREDENTIALS scenarios
-            if (scenario == ROUTER_REBOOT) {
+            if (scenario == WiFiSetupScenario::ROUTER_REBOOT) {
                 // Exponential backoff delay: 5s, 10s, 20s, 40s...
                 int delaySeconds = calculateExponentialDelay(
                     attempt,
@@ -396,7 +404,7 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
                 );
                 Serial.printf("⏳ Waiting %d seconds before retry...\n", delaySeconds);
                 delay(delaySeconds * 1000);
-            } else if (scenario == HAS_CREDENTIALS && attempt < MAX_WIFI_RETRIES) {
+            } else if (scenario == WiFiSetupScenario::HAS_CREDENTIALS && attempt < MAX_WIFI_RETRIES) {
                 Serial.printf("⏳ Waiting %d seconds before retry...\n", WiFiDelays::INITIAL_RETRY_DELAY_SEC);
                 delay(WiFiDelays::INITIAL_RETRY_DELAY_SEC * 1000);
             }
