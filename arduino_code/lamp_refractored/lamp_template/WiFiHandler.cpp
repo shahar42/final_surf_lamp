@@ -28,6 +28,15 @@ namespace WiFiTimeouts {
     const unsigned long ROUTER_REBOOT_TIMEOUT_MS = 300000;  // 5 minutes total
 }
 
+// ---------------- DELAY CONSTANTS ----------------
+namespace WiFiDelays {
+    const int INITIAL_RETRY_DELAY_SEC = 5;           // First retry delay
+    const int MAX_RETRY_DELAY_SEC = 60;              // Cap for exponential backoff
+    const int LOCATION_CHECK_DISPLAY_MS = 1000;      // Show purple LED
+    const int RESTART_DELAY_MS = 3000;               // Before ESP.restart()
+    const int CONNECTION_POLL_MS = 500;              // WiFi.status() polling interval
+}
+
 // ---------------- DIAGNOSTICS ----------------
 
 String getDisconnectReasonText(uint8_t reason) {
@@ -312,7 +321,7 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
             );
             unsigned long startTime = millis();
             while (WiFi.status() != WL_CONNECTED && (millis() - startTime) < (timeout * 1000)) {
-                delay(500);
+                delay(WiFiDelays::CONNECTION_POLL_MS);
             }
             connected = (WiFi.status() == WL_CONNECTED);
         } else {
@@ -332,7 +341,7 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
                 // For FIRST_SETUP and NEW_LOCATION, restart to reopen portal
                 if (scenario == FIRST_SETUP || scenario == NEW_LOCATION) {
                     Serial.println("🔄 Restarting to reopen configuration portal...");
-                    delay(3000);
+                    delay(WiFiDelays::RESTART_DELAY_MS);
                     ESP.restart();
                 }
             } else {
@@ -356,7 +365,7 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
 
                 // Visual feedback: Checking location (all LEDs slow blinking purple)
                 showCheckingLocation();
-                delay(1000);  // Show purple for 1 second before decision
+                delay(WiFiDelays::LOCATION_CHECK_DISPLAY_MS);
 
                 // Check if moved to new location using fingerprinting
                 if (!fingerprinting.isSameLocation()) {
@@ -369,12 +378,15 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
             // Retry delay for ROUTER_REBOOT and HAS_CREDENTIALS scenarios
             if (scenario == ROUTER_REBOOT) {
                 // Exponential backoff delay: 5s, 10s, 20s, 40s...
-                int delaySeconds = min(5 * (int)pow(2, attempt - 1), 60);
+                int delaySeconds = min(
+                    WiFiDelays::INITIAL_RETRY_DELAY_SEC * (int)pow(2, attempt - 1),
+                    WiFiDelays::MAX_RETRY_DELAY_SEC
+                );
                 Serial.printf("⏳ Waiting %d seconds before retry...\n", delaySeconds);
                 delay(delaySeconds * 1000);
             } else if (scenario == HAS_CREDENTIALS && attempt < MAX_WIFI_RETRIES) {
-                Serial.printf("⏳ Waiting 5 seconds before retry...\n");
-                delay(5000);
+                Serial.printf("⏳ Waiting %d seconds before retry...\n", WiFiDelays::INITIAL_RETRY_DELAY_SEC);
+                delay(WiFiDelays::INITIAL_RETRY_DELAY_SEC * 1000);
             }
         }
     }
