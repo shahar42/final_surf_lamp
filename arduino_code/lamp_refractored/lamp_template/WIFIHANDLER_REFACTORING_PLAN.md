@@ -6,9 +6,10 @@
 
 ---
 
-## Current State After Bug Fix
+## Current State After Bug Fixes
 
 The code now correctly uses:
+- `esp_wifi_get_config()` to read credentials from NVS storage (WiFi.SSID() only works when connected)
 - `WiFi.begin()` for ROUTER_REBOOT (no AP during retries)
 - `autoConnect()` for FIRST_SETUP (opens AP for credentials)
 - Time-based retry (5 minutes) instead of attempt-based
@@ -116,16 +117,24 @@ WiFiSetupScenario scenario = hasCredentials ? WiFiSetupScenario::ROUTER_REBOOT :
 ## Phase 4: Extract Scenario Detection Function
 
 **Current Issue:**
-- Lines 218-226 do credential detection and scenario assignment
+- Lines 219-234 do credential detection and scenario assignment
 - Mixed in main function
+- Uses esp_wifi_get_config() to read from NVS storage
 
 **Action:**
 ```cpp
 WiFiSetupScenario detectWiFiScenario() {
-    // Initialize WiFi mode first so WiFi.SSID() can read persistent storage
+    // Read from ESP32's NVS storage (WiFi.SSID() only works when connected)
     WiFi.mode(WIFI_STA);
-    String savedSSID = WiFi.SSID();
-    bool hasCredentials = (savedSSID.length() > 0);
+    wifi_config_t wifi_cfg;
+    esp_err_t err = esp_wifi_get_config(WIFI_IF_STA, &wifi_cfg);
+    bool hasCredentials = (err == ESP_OK && strlen((char*)wifi_cfg.sta.ssid) > 0);
+
+    if (hasCredentials) {
+        Serial.printf("📡 Found saved credentials for SSID: %s\n", (char*)wifi_cfg.sta.ssid);
+    } else {
+        Serial.println("📡 No saved WiFi credentials found");
+    }
 
     if (!hasCredentials) {
         return WiFiSetupScenario::FIRST_SETUP;
@@ -135,21 +144,23 @@ WiFiSetupScenario detectWiFiScenario() {
 }
 ```
 
-**Replace lines 218-226 with:**
+**Replace lines 219-234 with:**
 ```cpp
 WiFiSetupScenario scenario = detectWiFiScenario();
 ```
 
-**Benefit:** Single responsibility, testable, clear intent
+**Benefit:** Single responsibility, testable, clear intent, correctly reads from NVS
 
-**Lines Changed:** Extract ~9 lines into function, replace with 1 line call
+**Lines Changed:** Extract ~16 lines into function, replace with 1 line call
+
+**Note:** Requires `#include "esp_wifi.h"` at top of file (already added)
 
 ---
 
 ## Phase 5: Extract Scenario Configuration Function
 
 **Current Issue:**
-- Lines 228-240 configure portal based on scenario
+- Lines 236-248 configure portal based on scenario
 - Mixing configuration with detection
 
 **Action:**
@@ -167,7 +178,7 @@ void configurePortalForScenario(WiFiManager& wifiManager, WiFiSetupScenario scen
 }
 ```
 
-**Replace lines 228-240 with:**
+**Replace lines 236-248 with:**
 ```cpp
 configurePortalForScenario(wifiManager, scenario);
 ```
