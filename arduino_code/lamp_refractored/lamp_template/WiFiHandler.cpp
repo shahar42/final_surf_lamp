@@ -56,6 +56,26 @@ enum class WiFiSetupScenario {
     HAS_CREDENTIALS    // Has credentials (generic fallback)
 };
 
+WiFiSetupScenario detectWiFiScenario() {
+    // Read from ESP32's NVS storage (WiFi.SSID() only works when connected)
+    WiFi.mode(WIFI_STA);
+    wifi_config_t wifi_cfg;
+    esp_err_t err = esp_wifi_get_config(WIFI_IF_STA, &wifi_cfg);
+    bool hasCredentials = (err == ESP_OK && strlen((char*)wifi_cfg.sta.ssid) > 0);
+
+    if (hasCredentials) {
+        Serial.printf("📡 Found saved credentials for SSID: %s\n", (char*)wifi_cfg.sta.ssid);
+    } else {
+        Serial.println("📡 No saved WiFi credentials found");
+    }
+
+    if (!hasCredentials) {
+        return WiFiSetupScenario::FIRST_SETUP;
+    }
+
+    return WiFiSetupScenario::ROUTER_REBOOT;
+}
+
 // ---------------- DIAGNOSTICS ----------------
 
 String getDisconnectReasonText(uint8_t reason) {
@@ -253,21 +273,8 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
     // Auto-connect with scenario-based timeout strategy (IoT industry best practices)
     bool connected = false;
 
-    // CRITICAL: Detect credentials state BEFORE entering retry loop
-    // Read from ESP32's NVS storage (WiFi.SSID() only works when connected)
-    WiFi.mode(WIFI_STA);
-    wifi_config_t wifi_cfg;
-    esp_err_t err = esp_wifi_get_config(WIFI_IF_STA, &wifi_cfg);
-    bool hasCredentials = (err == ESP_OK && strlen((char*)wifi_cfg.sta.ssid) > 0);
-
-    if (hasCredentials) {
-        Serial.printf("📡 Found saved credentials for SSID: %s\n", (char*)wifi_cfg.sta.ssid);
-    } else {
-        Serial.println("📡 No saved WiFi credentials found");
-    }
-
-    // Scenario detection for optimal timeout strategy
-    WiFiSetupScenario scenario = hasCredentials ? WiFiSetupScenario::ROUTER_REBOOT : WiFiSetupScenario::FIRST_SETUP;
+    // Detect WiFi scenario (credentials state determines strategy)
+    WiFiSetupScenario scenario = detectWiFiScenario();
 
     if (scenario == WiFiSetupScenario::FIRST_SETUP) {
         Serial.println("📋 No WiFi credentials saved - opening configuration portal");
