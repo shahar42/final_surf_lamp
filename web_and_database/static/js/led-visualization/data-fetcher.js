@@ -107,7 +107,9 @@ const LEDDataFetcher = {
         );
 
         // Update last update time
-        const lastUpdate = new Date(data.last_updated);
+        // Database returns UTC timestamps - ensure proper parsing by appending 'Z' if not present
+        const timestamp = data.last_updated.endsWith('Z') ? data.last_updated : data.last_updated + 'Z';
+        const lastUpdate = new Date(timestamp);
         const now = new Date();
         const diffMinutes = Math.floor((now - lastUpdate) / 1000 / 60);
         const lastUpdateEl = document.getElementById('lastUpdateTime');
