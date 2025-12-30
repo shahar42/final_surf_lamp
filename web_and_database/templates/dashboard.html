@@ -116,11 +116,11 @@
                     <span class="text-white/80">Wind Alert:</span>
                     <div class="flex items-center space-x-2 w-32 justify-end">
                         <input type="number" id="windThreshold"
-                               value="{% if data.user.preferred_output == 'feet' %}{{ '%.0f'|format((data.user.wind_threshold_knots or 22) * 1.15078) }}{% else %}{{ data.user.wind_threshold_knots or 22 }}{% endif %}"
-                               min="1" max="{% if data.user.preferred_output == 'feet' %}29{% else %}25{% endif %}" step="1"
-                               data-unit="{{ data.user.preferred_output or 'meters' }}"
+                               value="{{ data.user.wind_threshold_knots or 22 }}"
+                               min="1" max="25" step="1"
+                               data-unit="knots"
                                class="bg-white/20 text-white rounded px-2 py-1 w-16 text-sm border border-white/30">
-                        <span class="text-white/80 text-sm">{% if data.user.preferred_output == 'feet' %}mph{% else %}knots{% endif %}</span>
+                        <span class="text-white/80 text-sm">knots</span>
                         <button id="updateWindThreshold" class="bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded text-xs text-white">Set</button>
                     </div>
                 </div>
@@ -142,7 +142,7 @@
                     <span class="text-white/80">Units:</span>
                     <div class="flex items-center space-x-2 w-32 justify-end">
                         <button id="unitToggle" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm text-white font-semibold transition-colors">
-                            {% if data.user.preferred_output == 'feet' %}ft/mph{% else %}m/knots{% endif %}
+                            {% if data.user.preferred_output == 'feet' %}ft/knots{% else %}m/knots{% endif %}
                         </button>
                     </div>
                 </div>
@@ -203,11 +203,7 @@
                             <div class="text-white/80 text-sm">Wind Speed</div>
                             <div class="text-white font-bold text-xl">
                                 {% if data.conditions.wind_speed_mps %}
-                                    {% if data.user.preferred_output == 'feet' %}
-                                        {{ "%.1f"|format(data.conditions.wind_speed_mps * 2.237) }} mph
-                                    {% else %}
-                                        {{ "%.1f"|format(data.conditions.wind_speed_mps * 1.94384) }} knots
-                                    {% endif %}
+                                    {{ "%.1f"|format(data.conditions.wind_speed_mps * 1.94384) }} knots
                                 {% else %}
                                     --
                                 {% endif %}
@@ -361,10 +357,10 @@
                 <a href="{{ url_for('dashboard.wifi_setup_guide') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors text-center">
                     WiFi Setup
                 </a>
-                <button id="reportErrorBtn" class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors">
+                <button id="reportErrorBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors">
                     Report Error
                 </button>
-                <a href="{{ url_for('auth.logout') }}" class="logout-btn text-white font-semibold py-2 px-4 rounded-lg shadow-lg text-center">
+                <a href="{{ url_for('auth.logout') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors text-center">
                     Logout
                 </a>
             </div>
