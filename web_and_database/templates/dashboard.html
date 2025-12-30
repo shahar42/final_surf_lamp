@@ -142,7 +142,7 @@
                     <span class="text-white/80">Units:</span>
                     <div class="flex items-center space-x-2 w-32 justify-end">
                         <button id="unitToggle" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm text-white font-semibold transition-colors">
-                            {% if data.user.preferred_output == 'feet' %}ft/knots{% else %}m/knots{% endif %}
+                            {% if data.user.preferred_output == 'feet' %}ft/mph{% else %}m/knots{% endif %}
                         </button>
                     </div>
                 </div>
@@ -203,7 +203,11 @@
                             <div class="text-white/80 text-sm">Wind Speed</div>
                             <div class="text-white font-bold text-xl">
                                 {% if data.conditions.wind_speed_mps %}
-                                    {{ "%.1f"|format(data.conditions.wind_speed_mps * 1.94384) }} knots
+                                    {% if data.user.preferred_output == 'feet' %}
+                                        {{ "%.1f"|format(data.conditions.wind_speed_mps * 2.23694) }} mph
+                                    {% else %}
+                                        {{ "%.1f"|format(data.conditions.wind_speed_mps * 1.94384) }} knots
+                                    {% endif %}
                                 {% else %}
                                     --
                                 {% endif %}
