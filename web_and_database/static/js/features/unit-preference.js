@@ -1,8 +1,7 @@
 /**
  * Unit Preference Feature
- * Handles toggling between metric and imperial units
- * - Meters: wave height in meters, wind speed in knots
- * - Feet: wave height in feet, wind speed in mph
+ * Handles toggling between meters and feet for wave height ONLY
+ * Wind speed is ALWAYS in knots regardless of preference
  */
 
 const UnitPreference = {
