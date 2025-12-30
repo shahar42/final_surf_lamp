@@ -138,10 +138,15 @@
                     Current: {{ data.user.theme.replace('_', ' ').title() if data.user.theme else 'Ocean Breeze' }}
                 </div>
 
-                <div class="flex justify-between pt-2 border-t border-white/20">
+                <div class="flex justify-between items-center pt-2 border-t border-white/20">
                     <span class="text-white/80">Units:</span>
-                    <span class="font-semibold capitalize">{{ data.user.preferred_output }}</span>
+                    <div class="flex items-center space-x-2 w-32 justify-end">
+                        <button id="unitToggle" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm text-white font-semibold transition-colors">
+                            {% if data.user.preferred_output == 'feet' %}ft/mph{% else %}m/knots{% endif %}
+                        </button>
+                    </div>
                 </div>
+                <div id="unit-status" class="text-sm text-white/80 mt-2"></div>
 
                 <div class="flex justify-between items-center pt-2 border-t border-white/20">
                     <span class="text-white/80">Status:</span>
@@ -201,7 +206,7 @@
                                     {% if data.user.preferred_output == 'feet' %}
                                         {{ "%.1f"|format(data.conditions.wind_speed_mps * 2.237) }} mph
                                     {% else %}
-                                        {{ "%.1f"|format(data.conditions.wind_speed_mps) }} m/s
+                                        {{ "%.1f"|format(data.conditions.wind_speed_mps * 1.94384) }} knots
                                     {% endif %}
                                 {% else %}
                                     --
@@ -333,7 +338,7 @@
                 <div class="{% if off_hours_feature_enabled %}pt-4 border-t border-white/20 {% endif %}space-y-2">
                     <span class="text-white/80 block mb-2">Brightness:</span>
                     <div class="flex gap-3">
-                        <button data-brightness="0.3" class="brightness-btn flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-4 rounded-lg transition-all border border-white/20">
+                        <button data-brightness="0.1" class="brightness-btn flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-4 rounded-lg transition-all border border-white/20">
                             Low
                         </button>
                         <button data-brightness="0.6" class="brightness-btn flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-4 rounded-lg transition-all border border-white/20">
@@ -432,6 +437,7 @@
     <script src="{{ url_for('static', filename='js/features/wave-threshold.js') }}"></script>
     <script src="{{ url_for('static', filename='js/features/wind-threshold.js') }}"></script>
     <script src="{{ url_for('static', filename='js/features/brightness-control.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/features/unit-preference.js') }}"></script>
     <script src="{{ url_for('static', filename='js/features/off-hours.js') }}"></script>
     <script src="{{ url_for('static', filename='js/features/error-report.js') }}"></script>
     <script src="{{ url_for('static', filename='js/features/chat-assistant.js') }}"></script>
@@ -491,6 +497,7 @@
     WaveThreshold.init();
     WindThreshold.init();
     BrightnessControl.init({{ data.user.brightness_level or 0.6 }});
+    UnitPreference.init('{{ data.user.preferred_output or "meters" }}');
 
     // Night Mode (Off Hours) - Preset & Custom Controls
     {% if off_hours_feature_enabled %}

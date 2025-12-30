@@ -40,6 +40,7 @@
 #include "SunsetCalculator.h"    // Autonomous sunset calculation
 #include "DualCoreManager.h"     // Dual-core task management
 #include "animation.h"           // Sunset animation
+#include "ArduinoIdDisplay.h"    // Arduino ID binary display on startup
 
 // ==================== GLOBAL INSTANCES ====================
 
@@ -67,6 +68,11 @@ void setup() {
     // Initialize hardware
     pinMode(BUTTON_PIN, INPUT_PULLUP);
     initializeLEDs();
+
+    // Display Arduino ID in binary (5 seconds)
+    ArduinoId::displayId(leds);
+
+    // Play startup tide animation
     playStartupAnimation();
 
     // Setup WiFi with event handlers

@@ -39,6 +39,7 @@ const DashboardConfig = {
         UPDATE_THRESHOLD: '/update-threshold',
         UPDATE_WIND_THRESHOLD: '/update-wind-threshold',
         UPDATE_BRIGHTNESS: '/update-brightness',
+        UPDATE_UNIT_PREFERENCE: '/update-unit-preference',
         UPDATE_OFF_TIMES: '/update-off-times',
         REPORT_ERROR: '/report-error',
         CHAT: '/api/chat',
