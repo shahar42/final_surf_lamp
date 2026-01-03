@@ -118,10 +118,10 @@ void loop() {
     // No need to call fetchSurfDataFromServer() here - Core 0 handles it
 
     // Update display if state changed (decoupled architecture)
-    if (lastSurfData.needsDisplayUpdate) {
+    if (lastSurfData.needsDisplayUpdate.load()) {
         Serial.println("🔄 [Core 1] Detected state change, updating display...");
         updateSurfDisplay();
-        lastSurfData.needsDisplayUpdate = false;
+        lastSurfData.needsDisplayUpdate.store(false);
     }
 
     // Autonomous sunset animation (V2 - calculated locally, checked on Core 1)
@@ -155,7 +155,7 @@ void loop() {
         DualCore::markSunsetPlayed();
 
         // Refresh surf display after animation completes
-        lastSurfData.needsDisplayUpdate = true;
+        lastSurfData.needsDisplayUpdate.store(true);
     }
 
     // Update blinking animations for threshold alerts
