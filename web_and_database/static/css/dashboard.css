@@ -1,0 +1,190 @@
+/**
+ * Dashboard Styles
+ * Refactored from inline styles in dashboard.html
+ */
+
+/* ===================================
+   UTILITY CLASSES
+   ================================== */
+
+.flash-message {
+    position: fixed;
+    top: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+}
+
+.logout-btn {
+    background-color: var(--btn-red);
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.logout-btn:hover {
+    background-color: var(--btn-red-hover);
+    transform: translateY(-1px);
+}
+
+
+/* ===================================
+   STATUS INDICATORS
+   ================================== */
+
+.status-online {
+    color: var(--status-online);
+}
+
+.status-offline {
+    color: var(--status-offline);
+}
+
+.wave-icon {
+    color: var(--wave-icon);
+}
+
+.wind-icon {
+    color: var(--wind-icon);
+}
+
+.png-icon {
+    mix-blend-mode: screen;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+}
+
+.lamp-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    background-color: #00c6ff; /* Bright blue */
+    border-radius: 50%;
+    margin-left: 8px;
+    animation: softPulse 4s ease-in-out infinite;
+    vertical-align: middle;
+}
+
+
+/* ===================================
+   FORM CONTROLS
+   ================================== */
+
+.brightness-btn, .preset-btn {
+    transition: all 0.3s ease;
+}
+
+.brightness-active {
+    background-color: rgba(234, 88, 12, 0.8) !important;
+    border-color: #f97316 !important;
+    box-shadow: 0 0 15px rgba(234, 88, 12, 0.3);
+    color: white !important;
+    font-weight: 600;
+}
+
+.preset-btn:active {
+    transform: scale(0.95);
+}
+
+#locationSelect {
+    background-color: rgba(10, 77, 104, 0.3);  /* Deep ocean blue with transparency */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23FFFCDE' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    padding-right: 28px;
+}
+
+#locationSelect option {
+    background-color: #0a4d68;  /* Deep ocean blue to match gradient */
+    color: #FFFCDE;
+    padding: 4px 8px;
+}
+
+/* Force option styling on all browsers including mobile */
+@supports (-webkit-appearance: none) {
+    #locationSelect option {
+        background: #0a4d68;
+        color: #FFFCDE;
+    }
+}
+
+
+/* ===================================
+   LED CANVAS
+   ================================== */
+
+.led-strip-canvas {
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 20px rgba(0, 198, 255, 0.3);
+}
+
+.blinking {
+    animation: blink 0.8s ease-in-out infinite;
+}
+
+
+/* ===================================
+   MODALS
+   ================================== */
+
+/* Modal styles use Tailwind classes - no custom styles needed */
+
+
+/* ===================================
+   FOOTER
+   ================================== */
+
+.legal-footer {
+    background: transparent;
+    padding: 20px;
+    text-align: center;
+    margin-top: 40px;
+    border-top: 1px solid rgba(255, 252, 222, 0.2);
+}
+
+.legal-footer a {
+    color: #FFFCDE;
+    text-decoration: none;
+    margin: 0 15px;
+    font-size: 14px;
+    opacity: 0.9;
+    transition: opacity 0.2s;
+}
+
+.legal-footer a:hover {
+    opacity: 1;
+    text-decoration: underline;
+}
+
+.legal-footer p {
+    color: #FFFCDE;
+    margin: 10px 0 0 0;
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+
+/* ===================================
+   ANIMATIONS
+   ================================== */
+
+.animate-slide-in {
+    animation: slide-in 0.3s ease-out;
+}
+
+@keyframes softPulse {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+@keyframes slide-in {
+    from { transform: translateX(-100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}

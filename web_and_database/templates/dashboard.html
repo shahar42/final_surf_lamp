@@ -22,102 +22,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <!-- Global ocean color system -->
     <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
-    <style>
-        .flash-message {
-            position: fixed;
-            top: 1.5rem;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 50;
-        }
-        .logout-btn {
-            background-color: var(--btn-red);
-            transition: background-color 0.3s ease, transform 0.2s ease;
-        }
-        .logout-btn:hover {
-            background-color: var(--btn-red-hover);
-            transform: translateY(-1px);
-        }
-        @keyframes softPulse {
-            0%, 100% { opacity: 0.7; }
-            50% { opacity: 1; }
-        }
-        .status-online {
-            color: var(--status-online);
-        }
-        .status-offline {
-            color: var(--status-offline);
-        }
-        .wave-icon {
-            color: var(--wave-icon);
-        }
-        .wind-icon {
-            color: var(--wind-icon);
-        }
-        .png-icon {
-            mix-blend-mode: screen;
-            object-fit: contain;
-            filter: brightness(0) invert(1);
-        }
-        .lamp-indicator {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            background-color: #00c6ff; /* A bright blue */
-            border-radius: 50%;
-            margin-left: 8px;
-            animation: softPulse 4s ease-in-out infinite; /* Assuming softPulse is defined or will be */
-            vertical-align: middle; /* Align with text */
-        }
-        .brightness-btn, .preset-btn {
-            transition: all 0.3s ease;
-        }
-        .brightness-active {
-            background-color: rgba(234, 88, 12, 0.8) !important;
-            border-color: #f97316 !important;
-            box-shadow: 0 0 15px rgba(234, 88, 12, 0.3);
-            color: white !important;
-            font-weight: 600;
-        }
-        .preset-btn:active {
-            transform: scale(0.95);
-        }
-        #locationSelect {
-            background-color: rgba(10, 77, 104, 0.3);  /* Deep ocean blue with transparency */
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23FFFCDE' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 8px center;
-            padding-right: 28px;
-        }
-        #locationSelect option {
-            background-color: #0a4d68;  /* Deep ocean blue to match gradient */
-            color: #FFFCDE;
-            padding: 4px 8px;
-        }
-        /* Force option styling on all browsers including mobile */
-        @supports (-webkit-appearance: none) {
-            #locationSelect option {
-                background: #0a4d68;
-                color: #FFFCDE;
-            }
-        }
-        /* LED Strip Styles */
-        .led-strip-canvas {
-            border-radius: 8px;
-            background: rgba(0, 0, 0, 0.3);
-            box-shadow: 0 0 20px rgba(0, 198, 255, 0.3);
-        }
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
-        .blinking {
-            animation: blink 0.8s ease-in-out infinite;
-        }
-    </style>
+    <!-- Dashboard specific styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
 </head>
 <body class="min-h-screen p-4">
 
@@ -136,7 +42,8 @@
     <div class="max-w-6xl mx-auto mb-2">
         <div class="card rounded-2xl p-6 shadow-2xl" style="transform: scale(0.8); transform-origin: top center;">
             <div class="flex flex-col items-center">
-                <h2 class="text-xl font-bold text-white mb-4">Your Lamp - Live Status <span class="lamp-indicator"></span></h2>
+                <h2 class="text-xl font-bold text-white mb-2">Your Lamp - Live Status <span class="lamp-indicator"></span></h2>
+                <p class="text-white/60 text-sm mb-4">Updated <span id="lastUpdateTime">--</span></p>
 
                 <!-- Surfboard LED Visualization -->
                 <div class="flex flex-col items-center">
@@ -209,11 +116,11 @@
                     <span class="text-white/80">Wind Alert:</span>
                     <div class="flex items-center space-x-2 w-32 justify-end">
                         <input type="number" id="windThreshold"
-                               value="{% if data.user.preferred_output == 'feet' %}{{ '%.0f'|format((data.user.wind_threshold_knots or 22) * 1.15078) }}{% else %}{{ data.user.wind_threshold_knots or 22 }}{% endif %}"
-                               min="1" max="{% if data.user.preferred_output == 'feet' %}29{% else %}25{% endif %}" step="1"
-                               data-unit="{{ data.user.preferred_output or 'meters' }}"
+                               value="{{ data.user.wind_threshold_knots or 22 }}"
+                               min="1" max="25" step="1"
+                               data-unit="knots"
                                class="bg-white/20 text-white rounded px-2 py-1 w-16 text-sm border border-white/30">
-                        <span class="text-white/80 text-sm">{% if data.user.preferred_output == 'feet' %}mph{% else %}knots{% endif %}</span>
+                        <span class="text-white/80 text-sm">knots</span>
                         <button id="updateWindThreshold" class="bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded text-xs text-white">Set</button>
                     </div>
                 </div>
@@ -231,10 +138,15 @@
                     Current: {{ data.user.theme.replace('_', ' ').title() if data.user.theme else 'Ocean Breeze' }}
                 </div>
 
-                <div class="flex justify-between pt-2 border-t border-white/20">
+                <div class="flex justify-between items-center pt-2 border-t border-white/20">
                     <span class="text-white/80">Units:</span>
-                    <span class="font-semibold capitalize">{{ data.user.preferred_output }}</span>
+                    <div class="flex items-center space-x-2 justify-end">
+                        <button id="unitToggle" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm text-white font-semibold transition-colors whitespace-nowrap">
+                            {% if data.user.preferred_output == 'feet' %}Switch to Meters{% else %}Switch to Feet{% endif %}
+                        </button>
+                    </div>
                 </div>
+                <div id="unit-status" class="text-sm text-white/80 mt-2"></div>
 
                 <div class="flex justify-between items-center pt-2 border-t border-white/20">
                     <span class="text-white/80">Status:</span>
@@ -291,11 +203,7 @@
                             <div class="text-white/80 text-sm">Wind Speed</div>
                             <div class="text-white font-bold text-xl">
                                 {% if data.conditions.wind_speed_mps %}
-                                    {% if data.user.preferred_output == 'feet' %}
-                                        {{ "%.1f"|format(data.conditions.wind_speed_mps * 2.237) }} mph
-                                    {% else %}
-                                        {{ "%.1f"|format(data.conditions.wind_speed_mps) }} m/s
-                                    {% endif %}
+                                    {{ "%.1f"|format(data.conditions.wind_speed_mps * 1.94384) }} knots
                                 {% else %}
                                     --
                                 {% endif %}
@@ -426,7 +334,7 @@
                 <div class="{% if off_hours_feature_enabled %}pt-4 border-t border-white/20 {% endif %}space-y-2">
                     <span class="text-white/80 block mb-2">Brightness:</span>
                     <div class="flex gap-3">
-                        <button data-brightness="0.3" class="brightness-btn flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-4 rounded-lg transition-all border border-white/20">
+                        <button data-brightness="0.1" class="brightness-btn flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-4 rounded-lg transition-all border border-white/20">
                             Low
                         </button>
                         <button data-brightness="0.6" class="brightness-btn flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-4 rounded-lg transition-all border border-white/20">
@@ -449,10 +357,10 @@
                 <a href="{{ url_for('dashboard.wifi_setup_guide') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors text-center">
                     WiFi Setup
                 </a>
-                <button id="reportErrorBtn" class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors">
+                <button id="reportErrorBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors">
                     Report Error
                 </button>
-                <a href="{{ url_for('auth.logout') }}" class="logout-btn text-white font-semibold py-2 px-4 rounded-lg shadow-lg text-center">
+                <a href="{{ url_for('auth.logout') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors text-center">
                     Logout
                 </a>
             </div>
@@ -511,6 +419,30 @@
     <!-- Broadcast Notifications (bottom-left to avoid chat button) -->
     <div id="broadcastContainer" class="fixed bottom-6 left-6 z-40 space-y-3 max-w-sm"></div>
 
+    <!-- Dashboard Configuration -->
+    <script src="{{ url_for('static', filename='js/config.js') }}"></script>
+
+    <!-- Utilities -->
+    <script src="{{ url_for('static', filename='js/status-messages.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/api-client.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modal-manager.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/theme-manager.js') }}"></script>
+
+    <!-- Features -->
+    <script src="{{ url_for('static', filename='js/features/location-update.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/features/wave-threshold.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/features/wind-threshold.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/features/brightness-control.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/features/unit-preference.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/features/off-hours.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/features/error-report.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/features/chat-assistant.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/features/broadcasts.js') }}"></script>
+
+    <!-- LED Visualization -->
+    <script src="{{ url_for('static', filename='js/led-visualization/core.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/led-visualization/data-fetcher.js') }}"></script>
+
     <!-- Error Report Modal -->
     <div id="errorReportModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
         <div class="bg-white rounded-2xl p-8 max-w-lg w-full mx-4 shadow-2xl">
@@ -556,900 +488,31 @@
     </div>
 
     <script>
-    document.getElementById('locationSelect').addEventListener('change', function() {
-        const newLocation = this.value;
-        const originalLocation = '{{ data.user.location }}';
-        const statusDiv = document.getElementById('location-status');
-        
-        if (newLocation === originalLocation) return;
-        
-        // Disable dropdown during update
-        this.disabled = true;
-        statusDiv.textContent = 'Updating...';
-        statusDiv.style.color = '#FFFCDE';
-        
-        fetch('/update-location', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                // Note: CSRF token might be needed depending on your setup
-            },
-            body: JSON.stringify({ location: newLocation })
-        })
-        .then(response => response.json().then(data => ({ok: response.ok, status: response.status, body: data})))
-        .then(({ok, status, body}) => {
-            if (ok) {
-                statusDiv.textContent = body.message;
-                statusDiv.style.color = '#4dff00'; // Green for success
-                // Update the display
-                document.querySelector("#locationSelect option[value='"+originalLocation+"']").removeAttribute('selected');
-                document.querySelector("#locationSelect option[value='"+newLocation+"']").setAttribute('selected', 'selected');
-            } else {
-                statusDiv.textContent = 'Error: ' + body.message;
-                statusDiv.style.color = '#ef4444'; // Red for error
-                this.value = originalLocation; // Reset dropdown
-            }
-        })
-        .catch(error => {
-            statusDiv.textContent = 'Network error. Please try again.';
-            statusDiv.style.color = '#ef4444';
-            this.value = originalLocation; // Reset dropdown
-        })
-        .finally(() => {
-            this.disabled = false; // Re-enable dropdown
-        });
-    });
-
-    
-
-    // Add this to the existing script section
-    document.getElementById('updateThreshold').addEventListener('click', function() {
-        const thresholdInput = document.getElementById('waveThreshold');
-        const threshold = parseFloat(thresholdInput.value);
-        const unit = thresholdInput.dataset.unit;
-        const statusDiv = document.getElementById('threshold-status');
-
-        // Convert to meters if user prefers feet
-        const thresholdMeters = (unit === 'feet') ? threshold / 3.28084 : threshold;
-
-        statusDiv.textContent = 'Updating...';
-        statusDiv.style.color = '#ffffff';
-
-        fetch('/update-threshold', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ threshold: thresholdMeters })
-        })
-        .then(response => response.json().then(data => ({ok: response.ok, body: data})))
-        .then(({ok, body}) => {
-            if (ok) {
-                statusDiv.textContent = body.message;
-                statusDiv.style.color = '#10b981';
-            } else {
-                statusDiv.textContent = 'Error: ' + body.message;
-                statusDiv.style.color = '#ef4444';
-            }
-        })
-        .catch(error => {
-            statusDiv.textContent = 'Network error. Please try again.';
-            statusDiv.style.color = '#ef4444';
-        });
-    });
-
-    // Add this to the existing script section
-    document.getElementById('updateWindThreshold').addEventListener('click', function() {
-        const thresholdInput = document.getElementById('windThreshold');
-        const threshold = parseInt(thresholdInput.value);
-        const unit = thresholdInput.dataset.unit;
-        const statusDiv = document.getElementById('wind-threshold-status');
-
-        // Convert to knots if user prefers feet (mph → knots)
-        const thresholdKnots = (unit === 'feet') ? Math.round(threshold / 1.15078) : threshold;
-
-        statusDiv.textContent = 'Updating...';
-        statusDiv.style.color = '#ffffff';
-
-        fetch('/update-wind-threshold', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ threshold: thresholdKnots })
-        })
-        .then(response => response.json().then(data => ({ok: response.ok, body: data})))
-        .then(({ok, body}) => {
-            if (ok) {
-                statusDiv.textContent = body.message;
-                statusDiv.style.color = '#10b981';
-            } else {
-                statusDiv.textContent = 'Error: ' + body.message;
-                statusDiv.style.color = '#ef4444';
-            }
-        })
-        .catch(error => {
-            statusDiv.textContent = 'Network error. Please try again.';
-            statusDiv.style.color = '#ef4444';
-        });
-    });
-
-    // Brightness Control
-    const currentBrightness = {{ data.user.brightness_level or 0.6 }};
-
-    // First, clear all active states (defensive programming)
-    document.querySelectorAll('.brightness-btn').forEach(btn => {
-        btn.classList.remove('brightness-active');
-    });
-
-    // Then set the active state based on database value
-    document.querySelectorAll('.brightness-btn').forEach(btn => {
-        const brightness = parseFloat(btn.getAttribute('data-brightness'));
-
-        // Set initial active state
-        if (Math.abs(brightness - currentBrightness) < 0.01) {
-            btn.classList.add('brightness-active');
-        }
-
-        // Add click handler
-        btn.addEventListener('click', function() {
-            const selectedBrightness = parseFloat(this.getAttribute('data-brightness'));
-            const statusDiv = document.getElementById('brightness-status');
-
-            statusDiv.textContent = 'Updating...';
-            statusDiv.style.color = '#ffffff';
-
-            fetch('/update-brightness', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ brightness: selectedBrightness })
-            })
-            .then(response => response.json().then(data => ({ok: response.ok, body: data})))
-            .then(({ok, body}) => {
-                if (ok) {
-                    // Update active state
-                    document.querySelectorAll('.brightness-btn').forEach(b => b.classList.remove('brightness-active'));
-                    this.classList.add('brightness-active');
-
-                    statusDiv.textContent = body.message;
-                    statusDiv.style.color = '#10b981';
-                } else {
-                    statusDiv.textContent = 'Error: ' + body.message;
-                    statusDiv.style.color = '#ef4444';
-                }
-            })
-            .catch(error => {
-                statusDiv.textContent = 'Network error. Please try again.';
-                statusDiv.style.color = '#ef4444';
-            });
-        });
-    });
+    // Initialize feature handlers
+    LocationUpdate.init('{{ data.user.location }}');
+    WaveThreshold.init();
+    WindThreshold.init();
+    BrightnessControl.init({{ data.user.brightness_level or 0.6 }});
+    UnitPreference.init('{{ data.user.preferred_output or "meters" }}');
 
     // Night Mode (Off Hours) - Preset & Custom Controls
     {% if off_hours_feature_enabled %}
-
-    // Helper function to update off hours
-    function updateOffHours(startTime, endTime, enabled) {
-        const statusDiv = document.getElementById('off-times-status');
-        const modeStatus = document.getElementById('sleepModeStatus');
-        
-        // Optimistic UI updates
-        resetButtonStyles();
-        
-        if (!enabled) {
-            // update status text
-            modeStatus.textContent = 'DISABLED';
-            modeStatus.className = 'text-xs font-bold uppercase tracking-wider text-white/50';
-        } else {
-            // update status text
-            modeStatus.textContent = 'ACTIVE';
-            modeStatus.className = 'text-xs font-bold uppercase tracking-wider text-orange-500';
-
-            let matched = false;
-            // Find button matching this preset
-            document.querySelectorAll('.preset-btn').forEach(btn => {
-                if (btn.getAttribute('data-start') === startTime) {
-                    btn.classList.remove('bg-white/10', 'border-white/20', 'text-white/80');
-                    btn.classList.add('bg-orange-600/80', 'border-orange-500', 'text-white', 'font-semibold', 'shadow-[0_0_15px_rgba(234,88,12,0.3)]');
-                    matched = true;
-                }
-            });
-            
-            // If no preset matched and enabled is true, highlight "Custom"
-            if (!matched) {
-                 const customBtn = document.getElementById('customPresetBtn');
-                 customBtn.classList.remove('bg-white/10', 'border-white/20', 'text-white/80');
-                 customBtn.classList.add('bg-orange-600/80', 'border-orange-500', 'text-white', 'font-semibold', 'shadow-[0_0_15px_rgba(234,88,12,0.3)]');
-            }
-        }
-
-        statusDiv.textContent = 'Updating...';
-        statusDiv.style.color = '#ffffff';
-
-        fetch('/update-off-times', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                enabled: enabled,
-                start_time: startTime,
-                end_time: endTime
-            })
-        })
-        .then(response => response.json().then(data => ({ok: response.ok, body: data})))
-        .then(({ok, body}) => {
-            if (ok) {
-                statusDiv.textContent = '✓ ' + body.message;
-                statusDiv.style.color = '#fb923c'; // Orange-400
-                setTimeout(() => { statusDiv.textContent = ''; }, 3000);
-            } else {
-                statusDiv.textContent = 'Error: ' + body.message;
-                statusDiv.style.color = '#ef4444';
-            }
-        })
-        .catch(error => {
-            statusDiv.textContent = 'Failed to update night mode';
-            statusDiv.style.color = '#ef4444';
-        });
-    }
-
-    function resetButtonStyles() {
-        const inactiveClasses = ['bg-white/10', 'hover:bg-white/20', 'text-white/80', 'border-white/20'];
-        const activeClasses = ['bg-orange-600/80', 'border-orange-500', 'text-white', 'font-semibold', 'shadow-[0_0_15px_rgba(234,88,12,0.3)]'];
-
-        // Reset Presets
-        document.querySelectorAll('.preset-btn').forEach(b => {
-            b.classList.remove(...activeClasses);
-            b.classList.add(...inactiveClasses);
-        });
-        
-        // Reset Custom
-        const customBtn = document.getElementById('customPresetBtn');
-        customBtn.classList.remove(...activeClasses);
-        customBtn.classList.add(...inactiveClasses);
-    }
-
-    // Preset button handlers
-    document.querySelectorAll('.preset-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const startTime = this.getAttribute('data-start');
-            const endTime = this.getAttribute('data-end');
-            
-            // Check if already active (toggle logic)
-            const isActive = this.classList.contains('bg-orange-600/80');
-            
-            // Hide custom inputs if open
-            document.getElementById('customTimeInputs').classList.add('hidden');
-
-            if (isActive) {
-                // Toggle OFF
-                updateOffHours(startTime, endTime, false);
-            } else {
-                // Toggle ON
-                updateOffHours(startTime, endTime, true);
-            }
-        });
-    });
-
-    // Custom button toggles custom time inputs OR disables if active
-    document.getElementById('customPresetBtn').addEventListener('click', function() {
-        const customInputs = document.getElementById('customTimeInputs');
-        const isActive = this.classList.contains('bg-orange-600/80');
-        
-        if (isActive) {
-            // State: Active -> Click -> Disable (Turn Off)
-            updateOffHours(null, null, false);
-            customInputs.classList.add('hidden');
-        } else {
-            // State: Inactive -> Click -> Open Drawer
-            customInputs.classList.remove('hidden');
-            // We don't enable yet; user must click "Apply" in the drawer
-            
-            // Optional: Close drawer if clicking while inactive but drawer is already open?
-            // Let's keep it simple: Ensure it's open.
-        }
-    });
-
-    // Custom time apply button
-    const updateOffTimesBtn = document.getElementById('updateOffTimes');
-    if (updateOffTimesBtn) {
-        updateOffTimesBtn.addEventListener('click', function() {
-            const startTime = document.getElementById('offTimeStart').value;
-            const endTime = document.getElementById('offTimeEnd').value;
-            updateOffHours(startTime, endTime, true);
-        });
-    }
+    OffHours.init();
     {% endif %}
 
-    // ==============================
-    // SURFBOARD LED VISUALIZATION CODE
-    // ==============================
+    // LED Visualization
+    LEDDataFetcher.init({{ data.lamp.arduino_id }}, '{{ data.user.theme }}');
 
-    // Match Arduino hardware exactly
-    const NUM_LEDS_CENTER = 20;  // Wind speed strip
-    const NUM_LEDS_RIGHT = 15;   // Wave height strip
-    const NUM_LEDS_LEFT = 15;    // Wave period strip
-    const LED_RADIUS = 8;
+    // Error Report Modal
+    ErrorReport.init();
 
-    // Wind direction to color mapping (Arduino wind direction system)
-    const WIND_DIRECTION_COLORS = {
-        0: [0, 255, 0],      // North - Green
-        45: [128, 255, 0],   // Northeast - Yellow-Green
-        90: [255, 255, 0],   // East - Yellow
-        135: [255, 128, 0],  // Southeast - Orange
-        180: [255, 0, 0],    // South - Red
-        225: [128, 0, 255],  // Southwest - Purple
-        270: [0, 0, 255],    // West - Blue
-        315: [0, 255, 255]   // Northwest - Cyan
-    };
+    // Chat Assistant
+    ChatAssistant.init();
 
-    // Color theme palettes (matching Arduino themes)
-    const COLOR_THEMES = {
-        'ocean_breeze': {
-            wave: [0, 150, 255],
-            period: [0, 255, 200],
-            wind: [100, 200, 255]
-        },
-        'sunset_glow': {
-            wave: [255, 100, 50],
-            period: [255, 150, 0],
-            wind: [255, 50, 100]
-        },
-        'tropical_vibes': {
-            wave: [0, 255, 150],
-            period: [255, 200, 0],
-            wind: [255, 100, 200]
-        },
-        'day': { // Default theme
-            wave: [0, 150, 255],
-            period: [0, 255, 200],
-            wind: [100, 200, 255]
-        }
-    };
-
-    let currentTheme = '{{ data.user.theme }}' || 'ocean_breeze';
-    let arduinoId = {{ data.lamp.arduino_id }};
-    let isBlinking = false;
-    let blinkState = true;
-
-    // Get canvas context
-    const surfboardCanvas = document.getElementById('surfboardCanvas');
-    const ctx = surfboardCanvas.getContext('2d');
-
-    // Apply canvas styling
-    surfboardCanvas.classList.add('led-strip-canvas');
-
-    function getWindDirectionColor(degrees) {
-        // Find closest direction
-        const directions = Object.keys(WIND_DIRECTION_COLORS).map(Number);
-        let closest = directions[0];
-        let minDiff = Math.abs(degrees - closest);
-
-        for (let dir of directions) {
-            const diff = Math.abs(degrees - dir);
-            if (diff < minDiff) {
-                minDiff = diff;
-                closest = dir;
-            }
-        }
-
-        return WIND_DIRECTION_COLORS[closest];
-    }
-
-    function drawLED(ctx, x, y, color, isLit, glow = true) {
-        if (!isLit) {
-            // Dim LED (off state)
-            ctx.fillStyle = 'rgba(50, 50, 50, 0.3)';
-            ctx.beginPath();
-            ctx.arc(x, y, LED_RADIUS, 0, Math.PI * 2);
-            ctx.fill();
-            return;
-        }
-
-        // Draw glow effect
-        if (glow) {
-            const gradient = ctx.createRadialGradient(x, y, 0, x, y, LED_RADIUS * 2);
-            gradient.addColorStop(0, `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.8)`);
-            gradient.addColorStop(0.5, `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.4)`);
-            gradient.addColorStop(1, `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0)`);
-            ctx.fillStyle = gradient;
-            ctx.beginPath();
-            ctx.arc(x, y, LED_RADIUS * 2, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
-        // Draw LED core
-        ctx.fillStyle = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
-        ctx.beginPath();
-        ctx.arc(x, y, LED_RADIUS, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Add bright center highlight
-        const highlightGradient = ctx.createRadialGradient(x - 5, y - 5, 0, x, y, LED_RADIUS);
-        highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
-        highlightGradient.addColorStop(0.5, `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.5)`);
-        highlightGradient.addColorStop(1, `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0)`);
-        ctx.fillStyle = highlightGradient;
-        ctx.beginPath();
-        ctx.arc(x, y, LED_RADIUS, 0, Math.PI * 2);
-        ctx.fill();
-    }
-
-    // Surfboard LED positions - matching Arduino hardware
-    // Center strip: 20 LEDs (0-19), LED 19 = wind direction, LED 0 unused
-    // Side strips: 15 LEDs each (0-14)
-    function getSurfboardLEDPositions() {
-        const width = surfboardCanvas.width;
-        const height = surfboardCanvas.height;
-        const centerX = width / 2;
-        const spacing = 26; // Vertical spacing between LEDs
-
-        const positions = [];
-
-        // Generate 20 rows for center strip (max LED count)
-        for (let i = 0; i < NUM_LEDS_CENTER; i++) {
-            const y = height - 30 - (i * spacing); // Bottom to top
-
-            // Calculate surfboard width at this position (classic surfboard shape)
-            let widthAtPosition;
-            const normalizedPos = i / (NUM_LEDS_CENTER - 1); // 0 to 1
-
-            if (normalizedPos < 0.2) {
-                // Tail (narrow) - LEDs 0-3
-                widthAtPosition = 30 + (normalizedPos / 0.2) * 30;
-            } else if (normalizedPos < 0.4) {
-                // Lower body (widening) - LEDs 4-7
-                widthAtPosition = 60 + ((normalizedPos - 0.2) / 0.2) * 25;
-            } else if (normalizedPos < 0.7) {
-                // Mid body (widest point) - LEDs 8-13
-                widthAtPosition = 85;
-            } else if (normalizedPos < 0.85) {
-                // Upper body (tapering) - LEDs 14-16
-                widthAtPosition = 85 - ((normalizedPos - 0.7) / 0.15) * 35;
-            } else {
-                // Nose (sharp taper) - LEDs 17-19
-                widthAtPosition = 50 - ((normalizedPos - 0.85) / 0.15) * 50;
-            }
-
-            const row = {
-                // Left strip (wave period) - only 15 LEDs
-                left: i < NUM_LEDS_LEFT ? {x: centerX - widthAtPosition, y: y} : null,
-                // Center strip (wind speed) - all 20 LEDs
-                center: {x: centerX, y: y},
-                // Right strip (wave height) - only 15 LEDs
-                right: i < NUM_LEDS_RIGHT ? {x: centerX + widthAtPosition, y: y} : null
-            };
-
-            positions.push(row);
-        }
-
-        return positions;
-    }
-
-    function drawSurfboard(leftLEDCount, centerLEDCount, rightLEDCount, theme, windDirColor, blink) {
-        ctx.clearRect(0, 0, surfboardCanvas.width, surfboardCanvas.height);
-
-        const positions = getSurfboardLEDPositions();
-
-        // Draw each row of LEDs
-        for (let i = 0; i < NUM_LEDS_CENTER; i++) {
-            const row = positions[i];
-
-            // Apply blinking effect if threshold exceeded
-            const shouldBlink = blink && !blinkState;
-
-            // LEFT RAIL: Wave period (15 LEDs, 0-14)
-            if (row.left) {
-                const leftLit = (i < leftLEDCount);
-                drawLED(ctx, row.left.x, row.left.y, theme.period, leftLit && !shouldBlink);
-            }
-
-            // CENTER STRIP: Wind speed (20 LEDs)
-            // LED 0 = unused (off)
-            // LEDs 1-18 = wind speed bars
-            // LED 19 = wind direction indicator (always on with direction color)
-            if (row.center) {
-                const isWindDirection = (i === NUM_LEDS_CENTER - 1); // LED 19 = top
-                const isLED0 = (i === 0); // Bottom LED unused
-
-                if (isWindDirection) {
-                    // LED 19: Always show wind direction color
-                    drawLED(ctx, row.center.x, row.center.y, windDirColor, true);
-                } else if (isLED0) {
-                    // LED 0: Always off
-                    drawLED(ctx, row.center.x, row.center.y, theme.wind, false);
-                } else {
-                    // LEDs 1-18: Wind speed bars (centerLEDCount already accounts for LED 1 start)
-                    const centerLit = (i <= centerLEDCount); // i=1 is first bar, i=2 is second, etc.
-                    drawLED(ctx, row.center.x, row.center.y, theme.wind, centerLit && !shouldBlink);
-                }
-            }
-
-            // RIGHT RAIL: Wave height (15 LEDs, 0-14)
-            if (row.right) {
-                const rightLit = (i < rightLEDCount);
-                drawLED(ctx, row.right.x, row.right.y, theme.wave, rightLit && !shouldBlink);
-            }
-        }
-    }
-
-    function updateLEDVisualization(data) {
-        const theme = COLOR_THEMES[currentTheme] || COLOR_THEMES['day'];
-
-        // Calculate LED counts matching Arduino formulas EXACTLY
-        // Wave height: waveHeight_cm / 25 + 1 (Arduino line 829, max 15 LEDs)
-        const waveLEDCount = Math.max(0, Math.min(NUM_LEDS_RIGHT, Math.floor(data.wave_height_cm / 25) + 1));
-
-        // Wave period: Direct value (Arduino line 830, max 15 LEDs)
-        const periodLEDCount = Math.max(0, Math.min(NUM_LEDS_LEFT, Math.floor(data.wave_period_s)));
-
-        // Wind speed: windSpeed * 18.0 / 13.0 (Arduino line 828, max 18 LEDs, constrain 1 to NUM_LEDS_CENTER-2)
-        // Note: Wind speed LEDs are 1-18, so we return the count that includes LED 1
-        const windLEDCount = Math.max(1, Math.min(NUM_LEDS_CENTER - 2, Math.floor(data.wind_speed_mps * 18.0 / 13.0)));
-
-        // Get wind direction color for nose LED
-        const windDirColor = getWindDirectionColor(data.wind_direction_deg);
-
-        // Check threshold alerts
-        const waveThresholdExceeded = data.wave_height_cm > data.wave_threshold_cm;
-        const windThresholdExceeded = data.wind_speed_mps > (data.wind_speed_threshold_knots / 1.944); // Convert knots to m/s
-
-        isBlinking = waveThresholdExceeded || windThresholdExceeded;
-
-        // Draw surfboard with LED data
-        // Left rail = period, Center = WIND speed, Right rail = wave height
-        drawSurfboard(periodLEDCount, windLEDCount, waveLEDCount, theme, windDirColor, isBlinking);
-
-        // Update last update time
-        const lastUpdate = new Date(data.last_updated);
-        const now = new Date();
-        const diffMinutes = Math.floor((now - lastUpdate) / 1000 / 60);
-        document.getElementById('lastUpdateTime').textContent = diffMinutes < 1 ? 'just now' : `${diffMinutes} min ago`;
-    }
-
-    function fetchLampData() {
-        fetch(`/api/arduino/${arduinoId}/data`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.data_available) {
-                    updateLEDVisualization(data);
-                } else {
-                    console.log('No lamp data available yet');
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching lamp data:', error);
-            });
-    }
-
-    // Blink animation loop
-    function blinkLoop() {
-        if (isBlinking) {
-            blinkState = !blinkState;
-        } else {
-            blinkState = true;
-        }
-        // Re-fetch data to update (this will redraw with current blink state)
-    }
-
-    // Initial fetch
-    fetchLampData();
-
-    // Update every 13 minutes (780000 ms)
-    setInterval(fetchLampData, 780000);
-
-    // Blink animation at 0.8s intervals
-    setInterval(blinkLoop, 800);
-
-    // ==============================
-    // ERROR REPORTING MODAL CODE
-    // ==============================
-
-    const modal = document.getElementById('errorReportModal');
-    const reportBtn = document.getElementById('reportErrorBtn');
-    const cancelBtn = document.getElementById('cancelErrorReport');
-    const form = document.getElementById('errorReportForm');
-    const textarea = document.getElementById('errorDescription');
-    const charCount = document.getElementById('charCount');
-    const statusDiv = document.getElementById('errorReportStatus');
-
-    // Open modal
-    reportBtn.addEventListener('click', function() {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-        textarea.focus();
-    });
-
-    // Close modal
-    function closeModal() {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-        textarea.value = '';
-        charCount.textContent = '0';
-        statusDiv.classList.add('hidden');
-    }
-
-    cancelBtn.addEventListener('click', closeModal);
-
-    // Close on background click
-    modal.addEventListener('click', function(e) {
-        if (e.target === modal) {
-            closeModal();
-        }
-    });
-
-    // Character counter
-    textarea.addEventListener('input', function() {
-        charCount.textContent = this.value.length;
-    });
-
-    // Submit error report
-    form.addEventListener('submit', function(e) {
-        e.preventDefault();
-
-        const description = textarea.value.trim();
-
-        if (!description) {
-            statusDiv.textContent = 'Please enter a description of the error.';
-            statusDiv.className = 'mb-4 text-sm text-red-600';
-            statusDiv.classList.remove('hidden');
-            return;
-        }
-
-        // Disable submit button during submission
-        const submitBtn = document.getElementById('submitErrorReport');
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Submitting...';
-
-        statusDiv.textContent = 'Submitting your report...';
-        statusDiv.className = 'mb-4 text-sm text-blue-600';
-        statusDiv.classList.remove('hidden');
-
-        fetch('/report-error', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ error_description: description })
-        })
-        .then(response => response.json().then(data => ({ok: response.ok, body: data})))
-        .then(({ok, body}) => {
-            if (ok) {
-                statusDiv.textContent = body.message;
-                statusDiv.className = 'mb-4 text-sm text-green-600';
-
-                // Close modal after 2 seconds
-                setTimeout(closeModal, 2000);
-            } else {
-                statusDiv.textContent = 'Error: ' + body.message;
-                statusDiv.className = 'mb-4 text-sm text-red-600';
-
-                // Re-enable submit button
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Submit Report';
-            }
-        })
-        .catch(error => {
-            statusDiv.textContent = 'Network error. Please try again.';
-            statusDiv.className = 'mb-4 text-sm text-red-600';
-
-            // Re-enable submit button
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Submit Report';
-        });
-    });
-
-    // --- Chat Assistant Functionality ---
-    (function() {
-        const chatFloatingBtn = document.getElementById('chatFloatingBtn');
-        const chatModal = document.getElementById('chatModal');
-        const closeChatBtn = document.getElementById('closeChatBtn');
-        const chatInput = document.getElementById('chatInput');
-        const sendChatBtn = document.getElementById('sendChatBtn');
-        const chatMessages = document.getElementById('chatMessages');
-
-        // Check if chat feature is enabled
-        fetch('/api/chat/status')
-            .then(r => r.json())
-            .then(data => {
-                if (data.enabled) {
-                    chatFloatingBtn.classList.remove('hidden');
-                }
-            })
-            .catch(err => console.log('Chat feature not available'));
-
-        // Open chat modal
-        chatFloatingBtn.addEventListener('click', () => {
-            chatModal.classList.remove('hidden');
-            chatModal.classList.add('flex');
-            chatInput.focus();
-        });
-
-        // Close chat modal
-        function closeChat() {
-            chatModal.classList.add('hidden');
-            chatModal.classList.remove('flex');
-        }
-
-        closeChatBtn.addEventListener('click', closeChat);
-
-        // Close on backdrop click
-        chatModal.addEventListener('click', (e) => {
-            if (e.target === chatModal) closeChat();
-        });
-
-        // Add message to chat
-        function addMessage(text, isUser = false) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `flex items-start space-x-2 ${isUser ? 'justify-end' : ''}`;
-
-            const bubble = document.createElement('div');
-            bubble.className = `rounded-2xl px-4 py-2 max-w-xs ${isUser ? 'bg-blue-500 text-white' : 'bg-blue-100 text-gray-800'}`;
-
-            const p = document.createElement('p');
-            p.className = 'text-sm whitespace-pre-wrap';
-            p.textContent = text;
-
-            bubble.appendChild(p);
-            messageDiv.appendChild(bubble);
-            chatMessages.appendChild(messageDiv);
-
-            // Scroll to bottom
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        // Add loading indicator
-        function addLoadingIndicator() {
-            const loadingDiv = document.createElement('div');
-            loadingDiv.className = 'flex items-start space-x-2';
-            loadingDiv.id = 'loadingIndicator';
-
-            const bubble = document.createElement('div');
-            bubble.className = 'bg-blue-100 text-gray-800 rounded-2xl px-4 py-2';
-            bubble.innerHTML = '<div class="flex space-x-1"><div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div><div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div><div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div></div>';
-
-            loadingDiv.appendChild(bubble);
-            chatMessages.appendChild(loadingDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        function removeLoadingIndicator() {
-            const loading = document.getElementById('loadingIndicator');
-            if (loading) loading.remove();
-        }
-
-        // Send message
-        async function sendMessage() {
-            const message = chatInput.value.trim();
-            if (!message) return;
-
-            // Add user message
-            addMessage(message, true);
-            chatInput.value = '';
-
-            // Disable input while processing
-            chatInput.disabled = true;
-            sendChatBtn.disabled = true;
-            addLoadingIndicator();
-
-            try {
-                const response = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ message: message })
-                });
-
-                const data = await response.json();
-                removeLoadingIndicator();
-
-                if (response.ok && data.success) {
-                    addMessage(data.response, false);
-                } else {
-                    addMessage(data.error || 'Sorry, I encountered an error. Please try again.', false);
-                }
-            } catch (error) {
-                removeLoadingIndicator();
-                addMessage('Network error. Please check your connection and try again.', false);
-            } finally {
-                chatInput.disabled = false;
-                sendChatBtn.disabled = false;
-                chatInput.focus();
-            }
-        }
-
-        // Send on button click
-        sendChatBtn.addEventListener('click', sendMessage);
-
-        // Send on Enter key
-        chatInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
-        });
-    })();
-
-    // ==============================
-    // BROADCAST NOTIFICATIONS
-    // ==============================
-
-    // Fetch and display broadcasts
-    async function loadBroadcasts() {
-        try {
-            const response = await fetch('/api/broadcasts');
-            const data = await response.json();
-
-            const container = document.getElementById('broadcastContainer');
-            container.innerHTML = '';
-
-            data.broadcasts.forEach(broadcast => {
-                const bubble = document.createElement('div');
-                bubble.className = 'bg-gradient-to-r from-yellow-400 to-orange-500 text-gray-900 rounded-2xl p-4 shadow-2xl relative animate-slide-in';
-                bubble.innerHTML = `
-                    <button class="absolute top-2 right-2 text-gray-700 hover:text-gray-900" onclick="this.parentElement.remove()">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
-                    <div class="pr-6">
-                        <div class="font-bold text-sm mb-1">📢 Message from Surf Lamp</div>
-                        <div class="text-sm">${broadcast.message}</div>
-                    </div>
-                `;
-                container.appendChild(bubble);
-            });
-        } catch (error) {
-            console.error('Failed to load broadcasts:', error);
-        }
-    }
-
-    // Load on page load
-    loadBroadcasts();
-
-    // Refresh every 5 minutes
-    setInterval(loadBroadcasts, 300000);
+    // Broadcast Notifications
+    Broadcasts.init();
 
     </script>
-
-    <style>
-    @keyframes slide-in {
-        from { transform: translateX(-100%); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-    }
-    .animate-slide-in { animation: slide-in 0.3s ease-out; }
-
-    /* Legal footer */
-    .legal-footer {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 20px;
-        text-align: center;
-        margin-top: 40px;
-        border-top: 3px solid #667eea;
-    }
-    .legal-footer a {
-        color: #FFFCDE;
-        text-decoration: none;
-        margin: 0 15px;
-        font-size: 14px;
-        opacity: 0.9;
-        transition: opacity 0.2s;
-    }
-    .legal-footer a:hover {
-        opacity: 1;
-        text-decoration: underline;
-    }
-    .legal-footer p {
-        color: #FFFCDE;
-        margin: 10px 0 0 0;
-        font-size: 12px;
-        opacity: 0.8;
-    }
-    </style>
 
     <!-- Legal Footer -->
     <footer class="legal-footer">

@@ -96,7 +96,7 @@
         }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4">
+<body class="min-h-screen flex flex-col">
 
     <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -109,7 +109,9 @@
       {% endif %}
     {% endwith %}
 
-    <div class="form-container w-full max-w-md p-8 rounded-2xl shadow-2xl">
+    <!-- Main content wrapper -->
+    <div class="flex-grow flex items-center justify-center p-4">
+        <div class="form-container w-full max-w-md p-8 rounded-2xl shadow-2xl">
         <div class="text-center mb-8">
             <h1 class="text-4xl font-bold text-white">Surf Lamp</h1>
             <p class="text-white/80 mt-2">thanks for using SurfLamp, waves are on their way...</p>
@@ -231,7 +233,9 @@
         <p class="text-center text-white/70 mt-6">
             Already have an account? <a href="{{ url_for('auth.login') }}" class="font-semibold text-white hover:text-pink-300">Sign In</a>
         </p>
+        </div>
     </div>
+    <!-- End main content wrapper -->
 
     <script>
         // Toggle password visibility
@@ -347,10 +351,13 @@
     <style>
     /* Legal footer */
     .legal-footer {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+        backdrop-filter: blur(10px);
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
         padding: 20px;
         text-align: center;
-        margin-top: 40px;
+        width: 100%;
+        margin-top: auto;
     }
     .legal-footer a {
         color: #FFFCDE;
