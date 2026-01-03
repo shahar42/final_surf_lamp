@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מדיניות פרטיות - Surf Lamp</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.8;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #764ba2;
+            margin-top: 30px;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .highlight {
+            background: #f0f4ff;
+            padding: 15px;
+            border-right: 4px solid #667eea;
+            margin: 20px 0;
+        }
+        ul {
+            margin: 10px 0;
+        }
+        li {
+            margin: 8px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/dashboard" class="back-link">← חזרה ללוח הבקרה</a>
+        <div style="text-align: right; margin-bottom: 15px;">
+            <a href="/privacy-policy" style="color: #667eea; text-decoration: none; font-weight: bold;">🇺🇸 English</a>
+        </div>
+
+        <h1>מדיניות פרטיות</h1>
+        <p><strong>עדכון אחרון:</strong> 29 בדצמבר 2025</p>
+        <p><strong>תאריך תחילה:</strong> 29 בדצמבר 2025</p>
+
+        <div class="highlight">
+            <strong>תקציר:</strong> אנחנו אוספים את האימייל, מיקום הגלישה שלך, והעדפות המנורה כדי שהמנורה תעבוד. אנחנו משתמשים בהצפנת bcrypt, לא מוכרים את המידע שלך, ואתה יכול למחוק את החשבון בכל רגע.
+        </div>
+
+        <h2>1. המידע שאנחנו אוספים</h2>
+
+        <h3>מידע אישי</h3>
+        <ul>
+            <li><strong>נתוני חשבון:</strong> שם משתמש, כתובת אימייל, סיסמה מוצפנת</li>
+            <li><strong>נתוני מיקום:</strong> מיקום נקודת הגלישה/חוף (למשל "מרינה אשקלון")</li>
+            <li><strong>העדפות:</strong> סף גובה גלים, סף מהירות רוח, סוג ספורט (גלישה/קייט), ערכת צבעים, רמת בהירות, שעות כיבוי</li>
+            <li><strong>מזהה מכשיר:</strong> מזהה Arduino המחובר למנורה שלך</li>
+            <li><strong>דיווחי תקלות:</strong> אם אתה שולח דיווח תקלה, אנחנו אוספים את התיאור, סוג הדפדפן, וחותמת זמן</li>
+        </ul>
+
+        <h3>נתוני תנאי גלישה</h3>
+        <ul>
+            <li><strong>נתוני מזג אוויר:</strong> גובה גלים, תקופת גלים, מהירות רוח, כיוון רוח (נשלפים מ-API ציבוריים למיקום שלך)</li>
+            <li><strong>חותמות זמן עדכון:</strong> מתי תנאי הגלישה עודכנו לאחרונה</li>
+        </ul>
+
+        <h3>נתוני רשת WiFi (מאוחסנים במנורה שלך, לא בשרתים שלנו)</h3>
+        <ul>
+            <li>שם רשת WiFi וסיסמה מאוחסנים **רק במכשיר ESP32 שלך** באחסון מוצפן</li>
+            <li>שמות רשתות WiFi סמוכות נשמרים במנורה לזיהוי שינוי מיקום</li>
+            <li><strong>חשוב:</strong> המידע הזה לא יוצא מהמנורה ו**לא** נשלח לשרתים שלנו</li>
+        </ul>
+
+        <h2>2. איך אנחנו משתמשים במידע</h2>
+        <ul>
+            <li><strong>אספקת שירות:</strong> שליפת תנאי גלישה למיקום שלך ושליחתם למנורה</li>
+            <li><strong>התאמה אישית:</strong> הפעלת התראות סף, ערכת צבעים, בהירות, ושעות כיבוי</li>
+            <li><strong>ניהול חשבון:</strong> אימות כניסה, איפוס סיסמה, חיבור המנורה לחשבון</li>
+            <li><strong>תמיכה:</strong> מענה לדיווחי תקלות ופתרון בעיות טכניות</li>
+            <li><strong>שיפור:</strong> ניתוח דפוסי תקלות לתיקון באגים ושיפור השירות</li>
+        </ul>
+
+        <h2>3. אחסון מידע ואבטחה</h2>
+        <ul>
+            <li><strong>מסד נתונים:</strong> Supabase (PostgreSQL) מתארח באירופה עם הצפנה במנוחה</li>
+            <li><strong>שירות אינטרנט:</strong> שרתי Render.com עם הצפנת HTTPS/TLS לכל המידע בתעבורה</li>
+            <li><strong>אבטחת סיסמאות:</strong> סיסמאות מוצפנות ב-bcrypt (הצפנה חד-כיוונית סטנדרטית בתעשייה)</li>
+            <li><strong>בקרת גישה:</strong> רק מנהלי מערכת מורשים יכולים לגשת למסד הנתונים</li>
+        </ul>
+
+        <h2>4. שיתוף מידע</h2>
+        <p>אנחנו **לא** מוכרים, משכירים, או משתפים את המידע האישי שלך עם צדדים שלישיים, מלבד:</p>
+        <ul>
+            <li><strong>ספקי שירות:</strong> Supabase (מסד נתונים), Render.com (אירוח), API מזג אוויר (Open-Meteo, OpenWeatherMap) - רק מידע נחוץ להפעלת השירות</li>
+            <li><strong>דרישות חוק:</strong> אם נדרש על-פי חוק ישראלי או צו בית משפט</li>
+        </ul>
+
+        <h2>5. הזכויות שלך (חוק הגנת הפרטיות הישראלי)</h2>
+        <p>יש לך את הזכות:</p>
+        <ul>
+            <li><strong>גישה:</strong> לבקש עותק של כל המידע שיש לנו עליך</li>
+            <li><strong>תיקון:</strong> לעדכן מידע לא נכון דרך לוח הבקרה</li>
+            <li><strong>מחיקה:</strong> למחוק את החשבון וכל המידע הקשור בכל רגע (כפתור "מחק חשבון" בלוח הבקרה)</li>
+            <li><strong>ניידות:</strong> לבקש את המידע שלך בפורמט קריא-מכונה (JSON)</li>
+            <li><strong>התנגדות:</strong> לצאת מעיבוד מידע (שים לב: זה ימנע מהמנורה לעבוד)</li>
+        </ul>
+        <p>למימוש זכויות אלה, צור קשר: <strong>[האימייל שלך כאן]</strong></p>
+
+        <h2>6. שמירת מידע</h2>
+        <ul>
+            <li><strong>חשבונות פעילים:</strong> המידע נשמר כל עוד החשבון פעיל</li>
+            <li><strong>חשבונות שנמחקו:</strong> כל המידע האישי נמחק לצמיתות תוך 30 יום</li>
+            <li><strong>דיווחי תקלות:</strong> נשמרים 90 יום לצורך פתרון בעיות, ואז נמחקים</li>
+            <li><strong>אסימוני איפוס סיסמה:</strong> פגים לאחר שעה, נמחקים לאחר 24 שעות</li>
+        </ul>
+
+        <h2>7. עוגיות ומעקב</h2>
+        <ul>
+            <li><strong>עוגיות סשן:</strong> משמשות לשמירת החיבור שלך (נמחקות כשאתה מתנתק)</li>
+            <li><strong>ללא מעקב צד שלישי:</strong> אנחנו **לא** משתמשים ב-Google Analytics, Facebook Pixel, או כלי מעקב פרסומיים</li>
+        </ul>
+
+        <h2>8. הודעה על דליפת מידע</h2>
+        <p>במקרה של דליפת מידע המהווה סיכון משמעותי לפרטיות שלך, נבצע:</p>
+        <ul>
+            <li>הודעה לרשות הגנת הפרטיות תוך 72 שעות</li>
+            <li>הודעה למשתמשים המושפעים באימייל תוך 72 שעות</li>
+            <li>פרטים על הדליפה, המידע המושפע, וצעדים להגנה עצמית</li>
+        </ul>
+
+        <h2>9. פרטיות ילדים</h2>
+        <p>השירות שלנו לא מיועד למשתמשים מתחת לגיל 18. אנחנו לא אוספים במכוון מידע מקטינים.</p>
+
+        <h2>10. העברות מידע בינלאומיות</h2>
+        <p>המידע שלך מאוחסן בשרתים באירופה (Supabase) ועשוי להיות מעובד על-ידי שירותים בארה"ב (Render.com). כל ההעברות עומדות בדרישות GDPR.</p>
+
+        <h2>11. שינויים במדיניות</h2>
+        <p>אנחנו עשויים לעדכן מדיניות זו כדי לשקף שינויים חוקיים או שיפורי שירות. עדכונים יפורסמו בעמוד זה עם תאריך "עדכון אחרון" חדש. המשך שימוש בשירות לאחר עדכונים מהווה קבלה.</p>
+
+        <h2>12. יצירת קשר</h2>
+        <p>לשאלות פרטיות, בקשות מידע, או דאגות:</p>
+        <ul>
+            <li><strong>אימייל:</strong> [האימייל שלך כאן]</li>
+            <li><strong>רשות הגנת הפרטיות:</strong> <a href="https://www.gov.il/he/departments/the_privacy_protection_authority" target="_blank">www.gov.il/privacy</a></li>
+        </ul>
+
+        <hr style="margin: 40px 0;">
+
+        <p style="text-align: center; color: #666; font-size: 14px;">
+            מדיניות פרטיות זו עומדת בהוראות חוק הגנת הפרטיות, התשמ"א-1981 (כפי שתוקן ב-2024).
+        </p>
+    </div>
+</body>
+</html>

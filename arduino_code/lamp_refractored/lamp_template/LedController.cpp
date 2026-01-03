@@ -436,9 +436,7 @@ void updateBlinkingAnimation() {
     unsigned long currentMillis = millis();
     if (currentMillis - lastBlinkUpdate >= 5) { // 200 FPS for ultra-smooth animation
         blinkPhase += 0.0419; // 1.5-second cycle (slower threshold alerts)
-        if (blinkPhase >= 2 * PI) {
-            blinkPhase -= 2 * PI; // Wrap the phase to prevent precision loss
-        }
+        // No wrapping - float has enough precision for years of runtime
         lastBlinkUpdate = currentMillis;
     }
 

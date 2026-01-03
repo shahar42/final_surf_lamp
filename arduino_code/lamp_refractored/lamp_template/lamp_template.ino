@@ -85,6 +85,10 @@ void setup() {
     Serial.println("🚀 Surf Lamp ready for operation!");
     Serial.printf("📍 Device accessible at: http://%s\n", WiFi.localIP().toString().c_str());
 
+    // Wait for network stack to fully stabilize after boot (critical for power outage recovery)
+    Serial.println("⏳ Waiting 10 seconds for network stack to stabilize...");
+    delay(10000);
+
     // Try to fetch surf data immediately on startup (before Core 0 task starts)
     Serial.println("🔄 Attempting initial surf data fetch...");
     if (fetchSurfDataFromServer()) {
@@ -114,10 +118,10 @@ void loop() {
     // No need to call fetchSurfDataFromServer() here - Core 0 handles it
 
     // Update display if state changed (decoupled architecture)
-    if (lastSurfData.needsDisplayUpdate) {
+    if (lastSurfData.needsDisplayUpdate.load()) {
         Serial.println("🔄 [Core 1] Detected state change, updating display...");
         updateSurfDisplay();
-        lastSurfData.needsDisplayUpdate = false;
+        lastSurfData.needsDisplayUpdate.store(false);
     }
 
     // Autonomous sunset animation (V2 - calculated locally, checked on Core 1)
@@ -151,7 +155,7 @@ void loop() {
         DualCore::markSunsetPlayed();
 
         // Refresh surf display after animation completes
-        lastSurfData.needsDisplayUpdate = true;
+        lastSurfData.needsDisplayUpdate.store(true);
     }
 
     // Update blinking animations for threshold alerts

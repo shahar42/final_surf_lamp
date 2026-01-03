@@ -720,11 +720,19 @@ bool processSurfData(const String &jsonData) {
     bool quiet_hours_active = doc["quiet_hours_active"] | false;
     bool off_hours_active = doc["off_hours_active"] | false;
     String led_theme = doc["led_theme"] | "day";
+    
+    // V1 Payload specific fields
+    bool sunset_animation = doc["sunset_animation"] | false;
+    int day_of_year = doc["day_of_year"] | 0;
 
     // Update theme if changed
     if (led_theme != currentTheme) {
         currentTheme = led_theme;
         Serial.printf("🎨 LED theme updated to: %s\n", currentTheme.c_str());
+    }
+    
+    if (sunset_animation) {
+        Serial.printf("🌅 Sunset animation trigger received (Day %d) - Animation skipped per config\n", day_of_year);
     }
 
     Serial.println("🌊 Surf Data Received:");

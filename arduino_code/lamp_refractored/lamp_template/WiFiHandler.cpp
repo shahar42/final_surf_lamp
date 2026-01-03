@@ -6,6 +6,7 @@
 
 #include "WiFiHandler.h"
 #include "LedController.h"
+#include "esp_wifi.h"
 
 // Global WiFi state (defined here, declared extern in header)
 String lastWiFiError = "";
@@ -13,10 +14,188 @@ uint8_t lastDisconnectReason = 0;
 int reconnectAttempts = 0;
 unsigned long lastReconnectAttempt = 0;
 WiFiManager* globalWiFiManager = nullptr; // For error injection from event handler
+bool wifiJustReconnected = false; // Flag to trigger immediate data fetch after reconnection
 static String persistentErrorHTML = ""; // Persistent storage for error message HTML
 static bool allowErrorInjection = false; // Only inject after first connection attempt
 
 const int MAX_WIFI_RETRIES = 10;  // 10 attempts × 30s = ~5 min (covers router boot times)
+
+// ---------------- TIMEOUT CONSTANTS ----------------
+namespace WiFiTimeouts {
+    const int PORTAL_TIMEOUT_GENEROUS_SEC = 1020;    // 17 minutes
+    const int INITIAL_CONNECTION_TIMEOUT_SEC = 20;   // First attempt
+    const int MAX_CONNECTION_TIMEOUT_SEC = 60;       // Cap for exponential backoff
+    const unsigned long ROUTER_REBOOT_TIMEOUT_MS = 300000;  // 5 minutes total
+}
+
+// ---------------- DELAY CONSTANTS ----------------
+namespace WiFiDelays {
+    const int INITIAL_RETRY_DELAY_SEC = 5;           // First retry delay
+    const int MAX_RETRY_DELAY_SEC = 60;              // Cap for exponential backoff
+    const int LOCATION_CHECK_DISPLAY_MS = 1000;      // Show purple LED
+    const int RESTART_DELAY_MS = 3000;               // Before ESP.restart()
+    const int CONNECTION_POLL_MS = 500;              // WiFi.status() polling interval
+}
+
+// ---------------- HELPER FUNCTIONS ----------------
+
+int calculateExponentialTimeout(int attempt, int initialSeconds, int maxSeconds) {
+    return min(initialSeconds * (int)pow(2, attempt - 1), maxSeconds);
+}
+
+int calculateExponentialDelay(int attempt, int initialSeconds, int maxSeconds) {
+    return min(initialSeconds * (int)pow(2, attempt - 1), maxSeconds);
+}
+
+// ---------------- WIFI SETUP SCENARIOS ----------------
+
+enum class WiFiSetupScenario {
+    FIRST_SETUP,       // No credentials saved
+    ROUTER_REBOOT,     // Has credentials, same location
+    NEW_LOCATION,      // Has credentials, moved to different location
+    HAS_CREDENTIALS    // Has credentials (generic fallback)
+};
+
+struct DiagnosticResult {
+    String errorMessage;
+    bool isNewLocation;
+    bool shouldRestart;
+};
+
+WiFiSetupScenario detectWiFiScenario() {
+    // Read from ESP32's NVS storage (WiFi.SSID() only works when connected)
+    WiFi.mode(WIFI_STA);
+    wifi_config_t wifi_cfg;
+    esp_err_t err = esp_wifi_get_config(WIFI_IF_STA, &wifi_cfg);
+    bool hasCredentials = (err == ESP_OK && strlen((char*)wifi_cfg.sta.ssid) > 0);
+
+    if (hasCredentials) {
+        Serial.printf("📡 Found saved credentials for SSID: %s\n", (char*)wifi_cfg.sta.ssid);
+    } else {
+        Serial.println("📡 No saved WiFi credentials found");
+    }
+
+    if (!hasCredentials) {
+        return WiFiSetupScenario::FIRST_SETUP;
+    }
+
+    return WiFiSetupScenario::ROUTER_REBOOT;
+}
+
+void configurePortalForScenario(WiFiManager& wifiManager, WiFiSetupScenario scenario) {
+    if (scenario == WiFiSetupScenario::FIRST_SETUP) {
+        Serial.println("📋 No WiFi credentials saved - opening configuration portal");
+        Serial.println("🆕 FIRST SETUP MODE");
+        Serial.println("   Opening configuration portal for 17 minutes");
+        wifiManager.setConfigPortalTimeout(WiFiTimeouts::PORTAL_TIMEOUT_GENEROUS_SEC);
+    } else {
+        Serial.println("🔌 WiFi credentials found - assuming router reboot scenario");
+        Serial.println("   Will retry for 5 minutes with exponential backoff");
+    }
+}
+
+void displayConnectionAttempt(int attempt, unsigned long elapsedSec, WiFiSetupScenario scenario) {
+    if (scenario == WiFiSetupScenario::ROUTER_REBOOT) {
+        Serial.printf("🔄 WiFi connection attempt %d (elapsed: %lu seconds)\n", attempt, elapsedSec);
+    } else {
+        Serial.printf("🔄 WiFi connection attempt %d\n", attempt);
+    }
+    showTryingToConnect();
+}
+
+void displayLocationCheck() {
+    Serial.println("👀 Checking if same location...");
+    showCheckingLocation();
+    delay(WiFiDelays::LOCATION_CHECK_DISPLAY_MS);
+}
+
+void delayBeforeRetry(WiFiSetupScenario scenario, int attempt) {
+    if (scenario == WiFiSetupScenario::ROUTER_REBOOT) {
+        int delaySeconds = calculateExponentialDelay(
+            attempt,
+            WiFiDelays::INITIAL_RETRY_DELAY_SEC,
+            WiFiDelays::MAX_RETRY_DELAY_SEC
+        );
+        Serial.printf("⏳ Waiting %d seconds before retry...\n", delaySeconds);
+        delay(delaySeconds * 1000);
+    } else if (scenario == WiFiSetupScenario::HAS_CREDENTIALS && attempt < MAX_WIFI_RETRIES) {
+        Serial.printf("⏳ Waiting %d seconds before retry...\n", WiFiDelays::INITIAL_RETRY_DELAY_SEC);
+        delay(WiFiDelays::INITIAL_RETRY_DELAY_SEC * 1000);
+    }
+}
+
+DiagnosticResult diagnoseConnectionFailure(
+    WiFiFingerprinting& fingerprinting,
+    WiFiSetupScenario scenario
+) {
+    // Read SSID from NVS storage (WiFi.SSID() is unreliable after failed connection)
+    wifi_config_t wifi_cfg;
+    esp_err_t err = esp_wifi_get_config(WIFI_IF_STA, &wifi_cfg);
+    String attemptedSSID = "";
+
+    if (err == ESP_OK && strlen((char*)wifi_cfg.sta.ssid) > 0) {
+        attemptedSSID = String((char*)wifi_cfg.sta.ssid);
+    }
+
+    if (attemptedSSID.length() == 0) {
+        Serial.println("⚠️ No SSID stored - user did not enter credentials");
+        bool shouldRestart = (scenario == WiFiSetupScenario::FIRST_SETUP ||
+                             scenario == WiFiSetupScenario::NEW_LOCATION);
+        return {"No credentials entered", false, shouldRestart};
+    }
+
+    Serial.printf("🔍 Diagnosing connection to: %s\n", attemptedSSID.c_str());
+    String diagnostic = diagnoseSSID(attemptedSSID.c_str());
+
+    if (diagnostic.length() > 0) {
+        lastWiFiError = diagnostic;
+        Serial.println("🔴 DIAGNOSTIC RESULT:");
+        Serial.println(diagnostic);
+        Serial.println("🔴 ==========================================");
+    } else if (lastDisconnectReason != 0) {
+        Serial.println("🔴 DISCONNECT REASON:");
+        Serial.println(lastWiFiError);
+        Serial.println("🔴 ==========================================");
+    }
+
+    displayLocationCheck();
+
+    bool newLocation = !fingerprinting.isSameLocation();
+    if (newLocation) {
+        Serial.println("🏠 NEW LOCATION DETECTED - Forcing AP mode");
+        lastWiFiError = "Moved to new location. Please reconfigure WiFi.";
+    }
+
+    return {diagnostic, newLocation, false};
+}
+
+bool attemptWiFiConnection(
+    WiFiManager& wifiManager,
+    WiFiSetupScenario scenario,
+    int attempt
+) {
+    if (scenario == WiFiSetupScenario::ROUTER_REBOOT) {
+        // ROUTER_REBOOT: Retry with saved credentials, NO AP portal
+        Serial.println("   Attempting connection with saved credentials (no AP)...");
+        WiFi.begin();  // Reconnect with saved credentials
+
+        // Wait for connection with exponential backoff timeout
+        int timeout = calculateExponentialTimeout(
+            attempt,
+            WiFiTimeouts::INITIAL_CONNECTION_TIMEOUT_SEC,
+            WiFiTimeouts::MAX_CONNECTION_TIMEOUT_SEC
+        );
+
+        unsigned long startTime = millis();
+        while (WiFi.status() != WL_CONNECTED && (millis() - startTime) < (timeout * 1000)) {
+            delay(WiFiDelays::CONNECTION_POLL_MS);
+        }
+        return (WiFi.status() == WL_CONNECTED);
+    } else {
+        // FIRST_SETUP or other scenarios: Use autoConnect (opens AP portal)
+        return wifiManager.autoConnect("SurfLamp-Setup", "surf123456");
+    }
+}
 
 // ---------------- DIAGNOSTICS ----------------
 
@@ -212,113 +391,66 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
     // Load WiFi fingerprint from NVS
     fingerprinting.load();
 
-    // Auto-connect with scenario-based timeout strategy (IoT industry best practices)
+    // Detect WiFi scenario and configure portal
+    WiFiSetupScenario scenario = detectWiFiScenario();
+    configurePortalForScenario(wifiManager, scenario);
+
+    // Main retry loop with scenario-based strategy
+    unsigned long retryStartTime = millis();
+    int attempt = 0;
     bool connected = false;
 
-    // CRITICAL: Detect credentials state BEFORE entering retry loop
-    String savedSSID = WiFi.SSID();
-    bool hasCredentials = (savedSSID.length() > 0);
+    while (!connected) {
+        attempt++;
 
-    // Scenario detection for optimal timeout strategy
-    enum SetupScenario { FIRST_SETUP, ROUTER_REBOOT, NEW_LOCATION, HAS_CREDENTIALS };
-    SetupScenario scenario = HAS_CREDENTIALS;
-
-    if (!hasCredentials) {
-        Serial.println("📋 No WiFi credentials saved - opening configuration portal");
-
-        // CRITICAL FIX: Do NOT scan for fingerprinting before AP mode
-        // WiFi scanning while AP is active causes watchdog crashes
-        // Default to generous timeout for all first-time setup scenarios
-        scenario = FIRST_SETUP;
-        Serial.println("🆕 FIRST SETUP MODE");
-        Serial.println("   Opening configuration portal for 17 minutes");
-        wifiManager.setConfigPortalTimeout(1020); // 17 minutes - safe for all scenarios
-    }
-
-    // Retry loop with scenario-based timeout strategy
-    int maxAttempts = (scenario == ROUTER_REBOOT) ? MAX_WIFI_RETRIES : 1;
-    for (int attempt = 1; attempt <= maxAttempts && !connected; attempt++) {
-        Serial.printf("🔄 WiFi connection attempt %d of %d\n", attempt, maxAttempts);
-
-        // Visual feedback: Trying to connect (all LEDs slow blinking green)
-        showTryingToConnect();
-
-        // Set timeout based on scenario
-        if (scenario == ROUTER_REBOOT) {
-            // ROUTER REBOOT: Exponential backoff - capped at 17 minutes
-            int timeout = min(30 * (int)pow(2, attempt - 1), 1020);
-            wifiManager.setConfigPortalTimeout(timeout);
-            Serial.printf("   Portal timeout: %d seconds (exponential backoff for router reboot)\n", timeout);
-        } else if (scenario == HAS_CREDENTIALS) {
-            // HAS CREDENTIALS but connection failing - standard retry strategy
-            if (attempt < MAX_WIFI_RETRIES) {
-                wifiManager.setConfigPortalTimeout(1020); // 17 minutes
-            } else {
-                wifiManager.setConfigPortalTimeout(0); // Final attempt: indefinite
+        // Check time limit for router reboot scenario
+        if (scenario == WiFiSetupScenario::ROUTER_REBOOT) {
+            unsigned long elapsed = millis() - retryStartTime;
+            if (elapsed >= WiFiTimeouts::ROUTER_REBOOT_TIMEOUT_MS) {
+                Serial.println("⏱️ 5 minutes elapsed, opening AP indefinitely");
+                wifiManager.setConfigPortalTimeout(0);
+                break;
             }
         }
-        // else: FIRST_SETUP and NEW_LOCATION timeouts already set above
 
-        // Enable error injection now that we're about to attempt connection
-        // But NOT for FIRST_SETUP (old credentials from NVS shouldn't show errors)
-        if (scenario != FIRST_SETUP) {
-            allowErrorInjection = true;
+        // Display attempt status
+        displayConnectionAttempt(attempt, (millis() - retryStartTime) / 1000, scenario);
+
+        // Break for single-attempt scenarios
+        if (scenario == WiFiSetupScenario::FIRST_SETUP && attempt > 1) {
+            break;
         }
 
-        connected = wifiManager.autoConnect("SurfLamp-Setup", "surf123456");
+        // Set portal timeout for scenarios using autoConnect
+        if (scenario == WiFiSetupScenario::HAS_CREDENTIALS) {
+            if (attempt < MAX_WIFI_RETRIES) {
+                wifiManager.setConfigPortalTimeout(WiFiTimeouts::PORTAL_TIMEOUT_GENEROUS_SEC);
+            } else {
+                wifiManager.setConfigPortalTimeout(0);
+            }
+        }
 
-        // If connection failed, run diagnostics to determine WHY
+        // Attempt connection
+        connected = attemptWiFiConnection(wifiManager, scenario, attempt);
+
+        // Handle connection failure
         if (!connected) {
             Serial.println("❌ Connection failed - running diagnostics...");
 
-            // Get SSID from WiFiManager (it stores the last attempted SSID)
-            String attemptedSSID = WiFi.SSID();
-            if (attemptedSSID.length() == 0) {
-                Serial.println("⚠️ No SSID stored - user did not enter credentials during portal session");
+            DiagnosticResult diag = diagnoseConnectionFailure(fingerprinting, scenario);
 
-                // For FIRST_SETUP and NEW_LOCATION, restart to reopen portal
-                if (scenario == FIRST_SETUP || scenario == NEW_LOCATION) {
-                    Serial.println("🔄 Restarting to reopen configuration portal...");
-                    delay(3000);
-                    ESP.restart();
-                }
-            } else {
-                Serial.printf("🔍 Diagnosing connection to: %s\n", attemptedSSID.c_str());
-
-                // Run pre-scan diagnostics
-                String diagnostic = diagnoseSSID(attemptedSSID.c_str());
-
-                if (diagnostic.length() > 0) {
-                    // Store for display in portal
-                    lastWiFiError = diagnostic;
-                    Serial.println("🔴 DIAGNOSTIC RESULT:");
-                    Serial.println(diagnostic);
-                    Serial.println("🔴 ==========================================");
-                } else if (lastDisconnectReason != 0) {
-                    // Store disconnect reason
-                    Serial.println("🔴 DISCONNECT REASON:");
-                    Serial.println(lastWiFiError);
-                    Serial.println("🔴 ==========================================");
-                }
-
-                // Visual feedback: Checking location (all LEDs slow blinking purple)
-                showCheckingLocation();
-                delay(1000);  // Show purple for 1 second before decision
-
-                // Check if moved to new location using fingerprinting
-                if (!fingerprinting.isSameLocation()) {
-                    Serial.println("🏠 NEW LOCATION DETECTED - Forcing AP mode");
-                    lastWiFiError = "Moved to new location. Please reconfigure WiFi.";
-                    break;  // Exit retry loop, go straight to AP mode
-                }
+            if (diag.shouldRestart) {
+                Serial.println("🔄 Restarting to reopen configuration portal...");
+                delay(WiFiDelays::RESTART_DELAY_MS);
+                ESP.restart();
             }
 
-            // Retry delay for ROUTER_REBOOT and HAS_CREDENTIALS scenarios
-            if ((scenario == ROUTER_REBOOT || scenario == HAS_CREDENTIALS) && attempt < maxAttempts) {
-                int delaySeconds = (scenario == ROUTER_REBOOT) ? 10 : 5;
-                Serial.printf("⏳ Waiting %d seconds before retry...\n", delaySeconds);
-                delay(delaySeconds * 1000);
+            if (diag.isNewLocation) {
+                Serial.println("🏠 Exiting retry loop - new location detected");
+                break;
             }
+
+            delayBeforeRetry(scenario, attempt);
         }
     }
 
@@ -383,7 +515,11 @@ void handleWiFiHealth() {
         // Reset reconnect counter when connected
         if (reconnectAttempts > 0) {
             Serial.println("✅ WiFi reconnected successfully");
+            Serial.println("⏳ Waiting 10 seconds for network stack to stabilize...");
+            delay(10000);  // Let DNS, routing, DHCP, ARP fully settle (critical after router power loss)
             reconnectAttempts = 0;
+            wifiJustReconnected = true;  // Signal to fetch data immediately
+            Serial.println("📡 Network ready - data fetch triggered");
         }
     }
 }

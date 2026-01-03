@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - Surf Lamp</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #764ba2;
+            margin-top: 30px;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .highlight {
+            background: #f0f4ff;
+            padding: 15px;
+            border-left: 4px solid #667eea;
+            margin: 20px 0;
+        }
+        ul {
+            margin: 10px 0;
+        }
+        li {
+            margin: 8px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/dashboard" class="back-link">← Back to Dashboard</a>
+        <div style="text-align: left; margin-bottom: 15px;">
+            <a href="/privacy-policy-he" style="color: #667eea; text-decoration: none; font-weight: bold;">🇮🇱 עברית</a>
+        </div>
+
+        <h1>Privacy Policy</h1>
+        <p><strong>Last Updated:</strong> December 29, 2025</p>
+        <p><strong>Effective Date:</strong> December 29, 2025</p>
+
+        <div class="highlight">
+            <strong>TL;DR:</strong> We collect your email, location (surf spot), and lamp preferences to make your Surf Lamp work. We use bcrypt encryption, don't sell your data, and you can delete your account anytime.
+        </div>
+
+        <h2>1. Information We Collect</h2>
+
+        <h3>Personal Information</h3>
+        <ul>
+            <li><strong>Account Data:</strong> Username, email address, encrypted password</li>
+            <li><strong>Location Data:</strong> Surf spot/beach location (e.g., "Ashkelon Marina")</li>
+            <li><strong>Preferences:</strong> Wave height threshold, wind speed threshold, sport type (surfing/kitesurfing), lamp theme, brightness level, off-times schedule</li>
+            <li><strong>Hardware ID:</strong> Arduino device ID linked to your lamp</li>
+            <li><strong>Error Reports:</strong> If you submit error reports, we collect your description, browser type, and timestamp</li>
+        </ul>
+
+        <h3>Surf Condition Data</h3>
+        <ul>
+            <li><strong>Weather Data:</strong> Wave height, wave period, wind speed, wind direction (fetched from public weather APIs for your location)</li>
+            <li><strong>Last Update Timestamps:</strong> When surf conditions were last refreshed</li>
+        </ul>
+
+        <h3>WiFi Network Data (Stored on Your Lamp, Not Our Servers)</h3>
+        <ul>
+            <li>Your WiFi SSID and password are stored ONLY on your ESP32 lamp device in encrypted non-volatile storage</li>
+            <li>Nearby WiFi network names (SSIDs) are stored on your lamp to detect location changes</li>
+            <li><strong>Important:</strong> This data never leaves your lamp and is NOT sent to our servers</li>
+        </ul>
+
+        <h2>2. How We Use Your Information</h2>
+        <ul>
+            <li><strong>Service Delivery:</strong> Fetch surf conditions for your location and send them to your lamp</li>
+            <li><strong>Personalization:</strong> Apply your threshold alerts, theme, brightness, and off-times schedule</li>
+            <li><strong>Account Management:</strong> Authenticate logins, process password resets, link your lamp to your account</li>
+            <li><strong>Support:</strong> Respond to error reports and troubleshoot technical issues</li>
+            <li><strong>Improvement:</strong> Analyze error patterns to fix bugs and improve the service</li>
+        </ul>
+
+        <h2>3. Data Storage & Security</h2>
+        <ul>
+            <li><strong>Database:</strong> Supabase (PostgreSQL) hosted in the EU with encryption at rest</li>
+            <li><strong>Web Service:</strong> Render.com servers with HTTPS/TLS encryption for all data in transit</li>
+            <li><strong>Password Security:</strong> Passwords are hashed using bcrypt (industry-standard one-way encryption)</li>
+            <li><strong>Access Control:</strong> Only authorized system administrators can access the database</li>
+        </ul>
+
+        <h2>4. Data Sharing</h2>
+        <p>We do NOT sell, rent, or share your personal data with third parties, except:</p>
+        <ul>
+            <li><strong>Service Providers:</strong> Supabase (database), Render.com (hosting), weather APIs (Open-Meteo, OpenWeatherMap) - only necessary data for service operation</li>
+            <li><strong>Legal Requirements:</strong> If required by Israeli law or court order</li>
+        </ul>
+
+        <h2>5. Your Rights (Israeli Privacy Protection Law)</h2>
+        <p>You have the right to:</p>
+        <ul>
+            <li><strong>Access:</strong> Request a copy of all data we hold about you</li>
+            <li><strong>Correction:</strong> Update incorrect information via your dashboard</li>
+            <li><strong>Deletion:</strong> Delete your account and all associated data at any time (use "Delete Account" button on dashboard)</li>
+            <li><strong>Portability:</strong> Request your data in machine-readable format (JSON)</li>
+            <li><strong>Object:</strong> Opt out of data processing (note: this will prevent your lamp from working)</li>
+        </ul>
+        <p>To exercise these rights, contact: <strong>[YOUR EMAIL HERE]</strong></p>
+
+        <h2>6. Data Retention</h2>
+        <ul>
+            <li><strong>Active Accounts:</strong> Data retained while your account is active</li>
+            <li><strong>Deleted Accounts:</strong> All personal data permanently deleted within 30 days</li>
+            <li><strong>Error Reports:</strong> Retained for 90 days for troubleshooting, then deleted</li>
+            <li><strong>Password Reset Tokens:</strong> Expire after 1 hour, deleted after 24 hours</li>
+        </ul>
+
+        <h2>7. Cookies & Tracking</h2>
+        <ul>
+            <li><strong>Session Cookies:</strong> Used to keep you logged in (deleted when you log out)</li>
+            <li><strong>No Third-Party Tracking:</strong> We do NOT use Google Analytics, Facebook Pixel, or any advertising trackers</li>
+        </ul>
+
+        <h2>8. Data Breach Notification</h2>
+        <p>In the event of a data breach that poses significant risk to your privacy, we will:</p>
+        <ul>
+            <li>Notify the Israeli Privacy Protection Authority (PPA) within 72 hours</li>
+            <li>Notify affected users via email within 72 hours</li>
+            <li>Provide details of the breach, affected data, and steps to protect yourself</li>
+        </ul>
+
+        <h2>9. Children's Privacy</h2>
+        <p>Our service is not intended for users under 18 years old. We do not knowingly collect data from minors.</p>
+
+        <h2>10. International Data Transfers</h2>
+        <p>Your data is stored on EU servers (Supabase) and may be processed by US-based services (Render.com). All transfers comply with GDPR adequacy requirements.</p>
+
+        <h2>11. Changes to This Policy</h2>
+        <p>We may update this policy to reflect legal changes or service improvements. Updates will be posted on this page with a new "Last Updated" date. Continued use of the service after updates constitutes acceptance.</p>
+
+        <h2>12. Contact Information</h2>
+        <p>For privacy questions, data requests, or concerns:</p>
+        <ul>
+            <li><strong>Email:</strong> [YOUR EMAIL HERE]</li>
+            <li><strong>Israeli Privacy Protection Authority:</strong> <a href="https://www.gov.il/en/departments/the_privacy_protection_authority" target="_blank">www.gov.il/privacy</a></li>
+        </ul>
+
+        <hr style="margin: 40px 0;">
+
+        <p style="text-align: center; color: #666; font-size: 14px;">
+            This privacy policy complies with the Israeli Privacy Protection Law, 1981 (as amended 2024).
+        </p>
+    </div>
+</body>
+</html>
