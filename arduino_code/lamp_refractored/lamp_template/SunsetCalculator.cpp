@@ -103,16 +103,56 @@ bool SunsetCalculator::parseAndUpdateTime(String dateHeader) {
 
         timeInitialized = true;
 
-        Serial.printf("🕐 Time synced: %04d-%02d-%02d %02d:%02d:%02d\n",
+        Serial.printf("🕐 Time synced (GMT): %04d-%02d-%02d %02d:%02d:%02d\n",
                      currentTime.year, currentTime.month, currentTime.day,
                      currentTime.hour, currentTime.minute, currentTime.second);
 
-        // Check if day changed (reset sunset played flag)
-        int currentDay = getDayOfYear(currentTime.year, currentTime.month, currentTime.day);
-        if (currentDay != lastDayOfYear) {
+        // Convert to local time for day-of-year detection
+        // This ensures sunset flag resets at local midnight, not GMT midnight
+        int localHour = currentTime.hour + tz_offset;
+        int localDay = currentTime.day;
+        int localMonth = currentTime.month;
+        int localYear = currentTime.year;
+
+        // Handle day rollover from hour adjustment
+        if (localHour >= 24) {
+            localHour -= 24;
+            localDay++;
+            // Simple day overflow (doesn't handle month/year rollover perfectly, but good enough)
+            int daysInMonth[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+            bool isLeap = (localYear % 4 == 0 && localYear % 100 != 0) || (localYear % 400 == 0);
+            if (isLeap) daysInMonth[1] = 29;
+
+            if (localDay > daysInMonth[localMonth - 1]) {
+                localDay = 1;
+                localMonth++;
+                if (localMonth > 12) {
+                    localMonth = 1;
+                    localYear++;
+                }
+            }
+        } else if (localHour < 0) {
+            localHour += 24;
+            localDay--;
+            if (localDay < 1) {
+                localMonth--;
+                if (localMonth < 1) {
+                    localMonth = 12;
+                    localYear--;
+                }
+                int daysInMonth[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+                bool isLeap = (localYear % 4 == 0 && localYear % 100 != 0) || (localYear % 400 == 0);
+                if (isLeap) daysInMonth[1] = 29;
+                localDay = daysInMonth[localMonth - 1];
+            }
+        }
+
+        // Check if LOCAL day changed (reset sunset played flag)
+        int currentLocalDay = getDayOfYear(localYear, localMonth, localDay);
+        if (currentLocalDay != lastDayOfYear) {
             sunsetPlayedToday = false;
-            lastDayOfYear = currentDay;
-            Serial.println("🌅 New day detected, sunset flag reset");
+            lastDayOfYear = currentLocalDay;
+            Serial.printf("🌅 New LOCAL day detected (day %d), sunset flag reset\n", currentLocalDay);
         }
 
         return true;
@@ -154,15 +194,26 @@ bool SunsetCalculator::isSunsetTime() {
         return false;
     }
 
-    int currentMinutes = currentTime.hour * 60 + currentTime.minute;
+    // Convert GMT to local time for sunset comparison
+    int localHour = currentTime.hour + tz_offset;
+    int localMinute = currentTime.minute;
+
+    // Handle hour overflow/underflow
+    if (localHour >= 24) {
+        localHour -= 24;
+    } else if (localHour < 0) {
+        localHour += 24;
+    }
+
+    int currentLocalMinutes = localHour * 60 + localMinute;
     int windowStart = sunsetMinutesSinceMidnight - 15;
     int windowEnd = sunsetMinutesSinceMidnight + 15;
 
-    bool inWindow = (currentMinutes >= windowStart && currentMinutes <= windowEnd);
+    bool inWindow = (currentLocalMinutes >= windowStart && currentLocalMinutes <= windowEnd);
 
     if (inWindow && !sunsetPlayedToday) {
-        Serial.printf("🌅 SUNSET TRIGGER! Current: %02d:%02d, Sunset: %02d:%02d\n",
-                     currentTime.hour, currentTime.minute,
+        Serial.printf("🌅 SUNSET TRIGGER! Local time: %02d:%02d, Sunset: %02d:%02d\n",
+                     localHour, localMinute,
                      sunsetMinutesSinceMidnight / 60, sunsetMinutesSinceMidnight % 60);
     }
 

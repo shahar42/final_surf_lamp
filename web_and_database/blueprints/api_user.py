@@ -201,10 +201,10 @@ def update_brightness():
         brightness = float(data.get('brightness'))
         user_id = session.get('user_id')
 
-        # Validate brightness level (Low=0.3, Mid=0.6, High=1.0)
-        valid_levels = [0.3, 0.6, 1.0]
+        # Validate brightness level (Low=0.1, Mid=0.6, High=1.0)
+        valid_levels = [0.1, 0.6, 1.0]
         if brightness not in valid_levels:
-            return {'success': False, 'message': 'Invalid brightness level. Must be 0.3, 0.6, or 1.0'}, 400
+            return {'success': False, 'message': 'Invalid brightness level. Must be 0.1, 0.6, or 1.0'}, 400
 
         db = SessionLocal()
         try:
@@ -221,4 +221,35 @@ def update_brightness():
 
     except Exception as e:
         logger.error(f"❌ Error updating brightness: {e}")
+        return {'success': False, 'message': f'Server error: {str(e)}'}, 500
+
+@bp.route("/update-unit-preference", methods=['POST'])
+@login_required
+@limiter.limit("30/minute")
+def update_unit_preference():
+    """Update user's wave height unit preference (meters or feet - wind always stays in knots)"""
+    try:
+        data = request.get_json()
+        unit_preference = data.get('unit_preference')
+        user_id = session.get('user_id')
+
+        # Validate unit preference
+        if unit_preference not in ['meters', 'feet']:
+            return {'success': False, 'message': 'Invalid unit preference. Must be meters or feet'}, 400
+
+        db = SessionLocal()
+        try:
+            user = db.query(User).filter(User.user_id == user_id).first()
+            if user:
+                user.preferred_output = unit_preference
+                db.commit()
+                logger.info(f"✅ User {user.username} updated unit preference to: {unit_preference}")
+                return {'success': True, 'message': f'Unit preference updated to {unit_preference}'}
+            else:
+                return {'success': False, 'message': 'User not found'}, 404
+        finally:
+            db.close()
+
+    except Exception as e:
+        logger.error(f"❌ Error updating unit preference: {e}")
         return {'success': False, 'message': f'Server error: {str(e)}'}, 500

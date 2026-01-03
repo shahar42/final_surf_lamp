@@ -429,6 +429,9 @@ void updateBlinkingAnimation() {
     // Only update blinking if we have valid surf data and thresholds are exceeded
     if (!lastSurfData.dataReceived) return;
 
+    // Skip all blinking during off hours (lamp completely off - highest priority)
+    if (lastSurfData.offHoursActive) return;
+
     // Skip all blinking during quiet hours (sleep time)
     if (lastSurfData.quietHoursActive) return;
 

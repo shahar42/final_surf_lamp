@@ -76,12 +76,13 @@ def serialize_for_json(obj: Any) -> Any:
     """Serialize database objects for JSON response"""
     if isinstance(obj, datetime):
         return obj.isoformat()
-    elif hasattr(obj, '__dict__'):
-        return {k: serialize_for_json(v) for k, v in obj.__dict__.items() if not k.startswith('_')}
     elif isinstance(obj, (list, tuple)):
         return [serialize_for_json(item) for item in obj]
     elif isinstance(obj, dict):
         return {k: serialize_for_json(v) for k, v in obj.items()}
+    # For any other non-primitive type, convert to string (prevents circular reference errors)
+    elif not isinstance(obj, (str, int, float, bool, type(None))):
+        return str(obj)
     return obj
 
 def validate_where_clause(where_clause: str) -> tuple[bool, str]:
@@ -216,10 +217,12 @@ async def execute_safe_query(query: str, limit: int = 10) -> str:
     if not query_upper.startswith('SELECT'):
         return "Error: Only SELECT queries are allowed for safety"
 
-    # Block dangerous keywords
+    # Block dangerous keywords (word boundaries to avoid matching column names like 'last_updated')
     dangerous_keywords = ['DROP', 'DELETE', 'UPDATE', 'INSERT', 'ALTER', 'CREATE', 'TRUNCATE']
-    if any(keyword in query_upper for keyword in dangerous_keywords):
-        return "Error: Query contains potentially dangerous keywords"
+    import re
+    for keyword in dangerous_keywords:
+        if re.search(r'\b' + keyword + r'\b', query_upper):
+            return f"Error: Query contains potentially dangerous keyword: {keyword}"
 
     if not 1 <= limit <= 100:
         return "Error: limit must be between 1 and 100"
@@ -315,7 +318,7 @@ async def get_user_dashboard_data(user_id: int) -> str:
             SELECT
                 u.user_id, u.username, u.email, u.location, u.theme, u.preferred_output,
                 u.sport_type, u.wave_threshold_m, u.wind_threshold_knots,
-                l.lamp_id, l.arduino_id, l.arduino_ip, l.last_updated as lamp_updated,
+                l.lamp_id, l.arduino_id, l.last_updated as lamp_updated,
                 cc.wave_height_m, cc.wave_period_s, cc.wind_speed_mps, cc.wind_direction_deg,
                 cc.last_updated as conditions_updated
             FROM users u
