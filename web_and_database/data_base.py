@@ -442,7 +442,7 @@ MULTI_SOURCE_LOCATIONS = {
             "type": "wave"
         },
         {
-            "url": "http://api.openweathermap.org/data/2.5/weather?q=Ashkelon&appid={OPENWEATHERMAP_API_KEY}",
+            "url": f"http://api.openweathermap.org/data/2.5/weather?q=Ashkelon&appid={OPENWEATHERMAP_API_KEY}",
             "priority": 2,
             "type": "wind"
         }

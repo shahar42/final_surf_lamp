@@ -12,7 +12,11 @@ logger = logging.getLogger(__name__)
 # Location coordinates for surf spots (add more as needed)
 LOCATION_COORDS = {
     "Tel Aviv": {"latitude": 32.0853, "longitude": 34.7818, "timezone": "Asia/Jerusalem"},
+    "Tel Aviv, Israel": {"latitude": 32.0853, "longitude": 34.7818, "timezone": "Asia/Jerusalem"},
     "Haifa": {"latitude": 32.7940, "longitude": 34.9896, "timezone": "Asia/Jerusalem"},
+    "Haifa, Israel": {"latitude": 32.7940, "longitude": 34.9896, "timezone": "Asia/Jerusalem"},
+    "Hadera, Israel": {"latitude": 32.4339, "longitude": 34.9186, "timezone": "Asia/Jerusalem"},
+    "Ashkelon, Israel": {"latitude": 31.6688, "longitude": 34.5742, "timezone": "Asia/Jerusalem"},
     "Eilat": {"latitude": 29.5581, "longitude": 34.9482, "timezone": "Asia/Jerusalem"},
     "Herzliya": {"latitude": 32.1624, "longitude": 34.8080, "timezone": "Asia/Jerusalem"},
     # Add more locations as needed

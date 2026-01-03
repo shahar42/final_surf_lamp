@@ -1,6 +1,7 @@
 #include "DualCoreManager.h"
 #include "WebServerHandler.h"
 #include "SunsetCalculator.h"
+#include "WiFiHandler.h"
 
 // External references (global scope)
 extern SunsetCalculator sunsetCalc;
@@ -42,9 +43,16 @@ void networkSecretaryTask(void* parameter) {
     while (true) {
         unsigned long now = millis();
 
-        // Check if it's time to fetch (13-min interval)
-        if (now - lastFetch > FETCH_INTERVAL) {
-            Serial.println("🔧 [Core 0] Starting surf data fetch...");
+        // Check if it's time to fetch (13-min interval OR WiFi just reconnected)
+        bool shouldFetch = (now - lastFetch > FETCH_INTERVAL) || wifiJustReconnected;
+
+        if (shouldFetch) {
+            if (wifiJustReconnected) {
+                Serial.println("🔧 [Core 0] WiFi reconnected - fetching data immediately...");
+                wifiJustReconnected = false;  // Clear flag
+            } else {
+                Serial.println("🔧 [Core 0] Starting surf data fetch...");
+            }
 
             // Fetch data from server (BLOCKING - but only Core 0 blocks)
             if (fetchSurfDataFromServer()) {

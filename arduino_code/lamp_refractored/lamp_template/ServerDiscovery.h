@@ -8,46 +8,39 @@
 
 class ServerDiscovery {
 private:
-    // Hardcoded fallback servers (Phase 1 compatibility)
-    const char* fallback_servers[3] = {
-        "final-surf-lamp.onrender.com",
-        "backup-api.herokuapp.com", 
-        "localhost:5001"  // For development
-    };
-    
     // Discovery URLs (static files - free and reliable)
     const char* discovery_urls[2] = {
         "https://shahar42.github.io/final_surf_lamp/discovery-config/config.json",
-        "https://raw.githubusercontent.com/shahar42/final_surf_lamp/master/discovery-config/config.json"     
+        "https://raw.githubusercontent.com/shahar42/final_surf_lamp/master/discovery-config/config.json"
     };
-    
-    String current_server = "";
+
+    String current_server = "";  // MUST be discovered from GitHub, no fallback
     unsigned long last_discovery_attempt = 0;
     const unsigned long DISCOVERY_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
     bool discovery_enabled = true;
-    
+
 public:
     ServerDiscovery() {
-        // Initialize with first fallback server
-        current_server = fallback_servers[0];
+        // No fallback - server MUST be discovered from GitHub
+        current_server = "";
     }
     
     // Main method - gets current API server
     String getApiServer() {
-        // Try discovery if it's time
-        if (shouldTryDiscovery()) {
+        // CRITICAL: If no server available, MUST attempt discovery (ignore interval)
+        if (current_server.length() == 0 || shouldTryDiscovery()) {
             String discovered = attemptDiscovery();
             if (discovered.length() > 0) {
                 Serial.println("📡 Discovery successful: " + discovered);
                 current_server = discovered;
                 last_discovery_attempt = millis();
             } else {
-                Serial.println("⚠️ Discovery failed, using current: " + current_server);
+                Serial.println("⚠️ Discovery failed - NO FALLBACK, will return empty");
                 last_discovery_attempt = millis(); // Don't retry immediately
             }
         }
-        
-        return current_server;
+
+        return current_server;  // Empty if discovery never succeeded
     }
     
     // Force discovery attempt (for testing)
@@ -83,20 +76,30 @@ private:
     
     String attemptDiscovery() {
         Serial.println("🔍 Attempting server discovery...");
-        
-        for (int i = 0; i < 2; i++) {
-            Serial.printf("   Trying discovery URL %d: %s\n", i+1, discovery_urls[i]);
-            
-            String result = fetchDiscoveryConfig(discovery_urls[i]);
+
+        const int MAX_ATTEMPTS = 5;
+
+        for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            // Alternate between the two discovery URLs
+            int urlIndex = (attempt - 1) % 2;
+            Serial.printf("   Attempt %d/%d - Trying discovery URL %d: %s\n",
+                         attempt, MAX_ATTEMPTS, urlIndex + 1, discovery_urls[urlIndex]);
+
+            String result = fetchDiscoveryConfig(discovery_urls[urlIndex]);
             if (result.length() > 0) {
-                Serial.println("   ✅ Discovery successful from URL " + String(i+1));
+                Serial.println("   ✅ Discovery successful from URL " + String(urlIndex + 1));
                 return result;
             }
-            
-            delay(1000); // Wait between attempts
+
+            if (attempt < MAX_ATTEMPTS) {
+                // Exponential backoff: 5s, 10s, 20s, 40s
+                int delaySeconds = min(5 * (int)pow(2, attempt - 1), 40);
+                Serial.printf("   ⏳ Waiting %d seconds before next attempt...\n", delaySeconds);
+                delay(delaySeconds * 1000);
+            }
         }
-        
-        Serial.println("   ❌ All discovery URLs failed");
+
+        Serial.println("   ❌ All discovery attempts failed");
         return "";
     }
     

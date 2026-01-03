@@ -1145,8 +1145,8 @@ async def check_active_arduinos(minutes: int = 20) -> str:
         active_devices = {}
         cutoff_time = datetime.now(timezone.utc) - timedelta(minutes=minutes)
         
-        # Regex for "GET /api/arduino/<ID>/data"
-        pattern = re.compile(r"GET /api/arduino/(\d+)/data")
+        # Regex for "GET /api/arduino/<ID>/data" and "GET /api/arduino/v2/<ID>/data"
+        pattern = re.compile(r"GET /api/arduino/(?:v2/)?(\d+)/data")
         
         for log in logs:
             timestamp_str = log.get('timestamp')

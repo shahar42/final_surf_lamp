@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, render_template
 from werkzeug.middleware.proxy_fix import ProxyFix
 from config import configure_app
 from utils.helpers import convert_wind_direction
@@ -34,6 +34,27 @@ def create_app():
     @app.route('/')
     def index():
         return redirect(url_for('dashboard.dashboard'))
+
+    # Legal pages
+    @app.route('/privacy-policy')
+    def privacy_policy():
+        return render_template('privacy_policy.html')
+
+    @app.route('/privacy-policy-he')
+    def privacy_policy_he():
+        return render_template('privacy_policy_he.html')
+
+    @app.route('/terms-of-service')
+    def terms_of_service():
+        return render_template('terms_of_service.html')
+
+    @app.route('/terms-of-service-he')
+    def terms_of_service_he():
+        return render_template('terms_of_service_he.html')
+
+    @app.route('/warranty')
+    def warranty():
+        return render_template('warranty.html')
 
     return app
 

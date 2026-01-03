@@ -28,13 +28,12 @@ namespace Animation {
     }
 
     /**
-     * Sunset Animation: Beautiful warm sunset gradient across three LED strips
-     * Colors: Orange → Red → Pink → Purple
+     * Sunset Animation
      * Duration: 30 seconds (configurable)
      *
      * IMPROVED VERSION:
      * - Smooth 60 FPS timing with sine easing
-     * - Proper reversed strip handling (gradient flows bottom→top visually on ALL strips)
+     * - Proper reversed strip handling
      * - Natural sunset progression (warm to cool colors)
      * - HSV color space for smooth blending
      * - Starts at pure orange (hue 16), no yellow/green tones
@@ -74,8 +73,6 @@ namespace Animation {
 
             // Apply easing for smooth acceleration/deceleration
             float easedProgress = easeInOutSine(progress);
-
-            // ORANGE TO RED ONLY - 30 second gradient
             // Hue: 16 (pure orange) → 0 (pure red)
             // Brightness: Adds depth layer (bright→dim)
             uint8_t hue = 16 - (uint8_t)(16.0 * easedProgress);  // 16→0
@@ -92,7 +89,6 @@ namespace Animation {
             uint8_t sat = 255 - (30 * easedProgress);  // 255→225 (stay saturated)
 
             // Brightness: Depth layer - bright orange→dark red
-            // Starts bright (255), ends dim (60) for dramatic sunset feel
             uint8_t val = 255 - (195 * easedProgress);  // 255→60
 
             // Apply gradient to all strips
@@ -102,7 +98,7 @@ namespace Animation {
 
             FastLED.show();
 
-            // Non-blocking frame timing (Perplexity recommendation)
+            // Non-blocking frame timing
             currentFrame++;
             unsigned long frameTime = millis() - frameStart;
             if (frameTime < frameInterval) {
@@ -136,10 +132,8 @@ namespace Animation {
 
     /**
      * Startup Animation: "The Living Tide"
-     * An advanced fluid simulation with realistic physics and texture.
      * Features:
      * - Compound Easing: Cubic rise combined with a gentle sine wave for oscillation.
-     * - Dynamic Texture: Perlin noise turbulence changes from calm to active.
      * - Realistic Ocean Gradient: Deep Indigo (140) to Tropical Teal (96).
      * - Flickering Crest: Random brightness pulses on the foam.
      */

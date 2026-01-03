@@ -14,6 +14,18 @@ unsigned long lastDataFetch = 0;
 const unsigned long FETCH_INTERVAL = 780000; // 13 minutes
 const unsigned long DATA_STALENESS_THRESHOLD = 1800000; // 30 minutes (2 missed fetches + grace period)
 
+// Default values for JSON parsing fallbacks
+#define DEFAULT_WAVE_HEIGHT_CM 0
+#define DEFAULT_WAVE_PERIOD_S 0.0
+#define DEFAULT_WIND_SPEED_MPS 0
+#define DEFAULT_WIND_DIRECTION_DEG 0
+#define DEFAULT_WAVE_THRESHOLD_CM 100
+#define DEFAULT_WIND_SPEED_THRESHOLD_KNOTS 15
+#define DEFAULT_QUIET_HOURS_ACTIVE false
+#define DEFAULT_OFF_HOURS_ACTIVE false
+#define DEFAULT_BRIGHTNESS_MULTIPLIER 0.6
+#define DEFAULT_LED_THEME "classic_surf"
+
 // File-static server reference (set in setupHTTPEndpoints)
 static WebServer* webServer = nullptr;
 
@@ -202,6 +214,9 @@ void handleWiFiDiagnostics() {
 
 // ---------------- DATA PROCESSING ----------------
 
+/// @brief Process surf conditions and configuration from a JSON payload.
+/// @param jsonData JSON string containing surf conditions and configuration data for the lamp.
+/// @return true if the JSON was parsed successfully and the data was applied; false otherwise.
 bool processSurfData(const String& jsonData) {
     DynamicJsonDocument doc(JSON_CAPACITY);
     DeserializationError error = deserializeJson(doc, jsonData);
@@ -212,16 +227,16 @@ bool processSurfData(const String& jsonData) {
     }
 
     // Extract values using the correct keys sent by the server
-    int wave_height_cm = doc["wave_height_cm"] | 0;
-    float wave_period_s = doc["wave_period_s"] | 0.0;
-    int wind_speed_mps = doc["wind_speed_mps"] | 0;
-    int wind_direction_deg = doc["wind_direction_deg"] | 0;
-    int wave_threshold_cm = doc["wave_threshold_cm"] | 100;
-    int wind_speed_threshold_knots = doc["wind_speed_threshold_knots"] | 15;
-    bool quiet_hours_active = doc["quiet_hours_active"] | false;
-    bool off_hours_active = doc["off_hours_active"] | false;
-    float brightness_multiplier = doc["brightness_multiplier"] | 0.6;
-    String led_theme = doc["led_theme"] | "classic_surf";
+    int wave_height_cm = doc["wave_height_cm"] | DEFAULT_WAVE_HEIGHT_CM;
+    float wave_period_s = doc["wave_period_s"] | DEFAULT_WAVE_PERIOD_S;
+    int wind_speed_mps = doc["wind_speed_mps"] | DEFAULT_WIND_SPEED_MPS;
+    int wind_direction_deg = doc["wind_direction_deg"] | DEFAULT_WIND_DIRECTION_DEG;
+    int wave_threshold_cm = doc["wave_threshold_cm"] | DEFAULT_WAVE_THRESHOLD_CM;
+    int wind_speed_threshold_knots = doc["wind_speed_threshold_knots"] | DEFAULT_WIND_SPEED_THRESHOLD_KNOTS;
+    bool quiet_hours_active = doc["quiet_hours_active"] | DEFAULT_QUIET_HOURS_ACTIVE;
+    bool off_hours_active = doc["off_hours_active"] | DEFAULT_OFF_HOURS_ACTIVE;
+    float brightness_multiplier = doc["brightness_multiplier"] | DEFAULT_BRIGHTNESS_MULTIPLIER;
+    String led_theme = doc["led_theme"] | DEFAULT_LED_THEME;
 
     // V2 API: Extract location coordinates for autonomous sunset calculation
     float latitude = doc["latitude"] | 0.0;
@@ -267,7 +282,7 @@ bool processSurfData(const String& jsonData) {
     lastSurfData.theme = led_theme;
     lastSurfData.lastUpdate = millis();
     lastSurfData.dataReceived = true;
-    lastSurfData.needsDisplayUpdate = true;  // Signal to loop() that display needs refresh
+    lastSurfData.needsDisplayUpdate.store(true);  // Thread-safe signal to Core 1 loop()
 
     return true;
 }
@@ -301,8 +316,11 @@ bool fetchSurfDataFromServer() {
 
         if (dateHeader.length() > 0) {
             Serial.println("📅 HTTP Date: " + dateHeader);
-            sunsetCalc.parseAndUpdateTime(dateHeader);
-            sunsetCalc.calculateSunset();
+            if (sunsetCalc.parseAndUpdateTime(dateHeader)) {
+                sunsetCalc.calculateSunset();
+            } else {
+                Serial.println("⚠️ Failed to parse Date header");
+            }
         }
 
         Serial.println("📥 Received surf data from server");
