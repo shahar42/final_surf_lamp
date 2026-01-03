@@ -227,7 +227,7 @@ def update_brightness():
 @login_required
 @limiter.limit("30/minute")
 def update_unit_preference():
-    """Update user's unit preference (meters/knots or feet/mph)"""
+    """Update user's wave height unit preference (meters or feet - wind always stays in knots)"""
     try:
         data = request.get_json()
         unit_preference = data.get('unit_preference')

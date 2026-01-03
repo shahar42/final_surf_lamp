@@ -41,6 +41,7 @@ const int ARDUINO_ID = 8;  // Unique lamp ID from database (must match backend)
 #define WAVE_PERIOD_TOP 87     // Last LED index of wave period strip
 
 // Wind Speed Strip (Center)
+// CRITICAL: Wind strip is ALWAYS REVERSED (BOTTOM > TOP) in hardware design
 // NOTE: Bottom LED serves as status indicator, Top LED shows wind direction
 #define WIND_SPEED_BOTTOM 59   // First LED index (also used for status LED)
 #define WIND_SPEED_TOP 34      // Last LED index (also used for wind direction LED)
@@ -117,6 +118,9 @@ static_assert(BRIGHTNESS >= 0 && BRIGHTNESS <= 255, "BRIGHTNESS must be 0-255");
 static_assert(WAVE_HEIGHT_LENGTH > 0, "Wave height strip is empty (BOTTOM and TOP are same index)");
 static_assert(WAVE_PERIOD_LENGTH > 0, "Wave period strip is empty (BOTTOM and TOP are same index)");
 static_assert(WIND_SPEED_LENGTH >= 3, "Wind speed strip needs minimum 3 LEDs (status + direction + 1 data LED)");
+
+// Hardware design constraint: Wind strip MUST be reversed
+static_assert(WIND_SPEED_BOTTOM > WIND_SPEED_TOP, "CRITICAL: Wind strip MUST be reversed (BOTTOM > TOP) - this is a hardware requirement!");
 
 // LED index bounds checking
 static_assert(WAVE_HEIGHT_BOTTOM < TOTAL_LEDS, "WAVE_HEIGHT_BOTTOM out of range");

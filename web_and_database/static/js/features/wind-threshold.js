@@ -19,19 +19,14 @@ const WindThreshold = {
 
         updateBtn.addEventListener('click', async function() {
             const threshold = parseInt(thresholdInput.value);
-            const unit = thresholdInput.dataset.unit;
 
-            // Convert to knots if user prefers mph
-            const thresholdKnots = (unit === 'feet')
-                ? Math.round(threshold / DashboardConfig.CONVERSIONS.KNOTS_TO_MPH)
-                : threshold;
-
+            // Wind threshold is always in knots (no conversion needed)
             StatusMessage.loading(statusDiv);
 
             // Make API request
             const result = await ApiClient.post(
                 DashboardConfig.API.UPDATE_WIND_THRESHOLD,
-                { threshold: thresholdKnots }
+                { threshold: threshold }
             );
 
             if (result.ok) {
