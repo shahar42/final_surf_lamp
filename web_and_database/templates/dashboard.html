@@ -334,10 +334,10 @@
                 <div class="{% if off_hours_feature_enabled %}pt-4 border-t border-white/20 {% endif %}space-y-2">
                     <span class="text-white/80 block mb-2">Brightness:</span>
                     <div class="flex gap-3">
-                        <button data-brightness="0.1" class="brightness-btn flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-4 rounded-lg transition-all border border-white/20">
+                        <button data-brightness="0.03" class="brightness-btn flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-4 rounded-lg transition-all border border-white/20">
                             Low
                         </button>
-                        <button data-brightness="0.6" class="brightness-btn flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-4 rounded-lg transition-all border border-white/20">
+                        <button data-brightness="0.4" class="brightness-btn flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-4 rounded-lg transition-all border border-white/20">
                             Mid
                         </button>
                         <button data-brightness="1.0" class="brightness-btn flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-4 rounded-lg transition-all border border-white/20">
@@ -492,7 +492,7 @@
     LocationUpdate.init('{{ data.user.location }}');
     WaveThreshold.init();
     WindThreshold.init();
-    BrightnessControl.init({{ data.user.brightness_level or 0.6 }});
+    BrightnessControl.init({{ data.user.brightness_level or 0.4 }});
     UnitPreference.init('{{ data.user.preferred_output or "meters" }}');
 
     // Night Mode (Off Hours) - Preset & Custom Controls

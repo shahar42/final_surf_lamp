@@ -145,7 +145,7 @@ def get_arduino_surf_data(arduino_id):
                     'off_hours_active': off_hours_active,
                     'sunset_animation': sunset_info['sunset_trigger'],
                     'day_of_year': sunset_info['day_of_year'],
-                    'brightness_multiplier': getattr(user, 'brightness_level', 0.6),
+                    'brightness_multiplier': getattr(user, 'brightness_level', 0.4),
                     'last_updated': '1970-01-01T00:00:00Z',
                     'data_available': False
                 }
@@ -163,7 +163,7 @@ def get_arduino_surf_data(arduino_id):
                     'off_hours_active': off_hours_active,
                     'sunset_animation': sunset_info['sunset_trigger'],
                     'day_of_year': sunset_info['day_of_year'],
-                    'brightness_multiplier': getattr(user, 'brightness_level', 0.6),
+                    'brightness_multiplier': getattr(user, 'brightness_level', 0.4),
                     'last_updated': conditions.last_updated.isoformat() if conditions.last_updated else '1970-01-01T00:00:00Z',
                     'data_available': True
                 }
@@ -241,7 +241,7 @@ def get_arduino_surf_data_v2(arduino_id):
                     'led_theme': user.theme or 'day',
                     'quiet_hours_active': quiet_hours_active,
                     'off_hours_active': off_hours_active,
-                    'brightness_multiplier': getattr(user, 'brightness_level', 0.6),
+                    'brightness_multiplier': getattr(user, 'brightness_level', 0.4),
                     'last_updated': '1970-01-01T00:00:00Z',
                     'data_available': False
                 }
@@ -259,7 +259,7 @@ def get_arduino_surf_data_v2(arduino_id):
                     'led_theme': user.theme or 'day',
                     'quiet_hours_active': quiet_hours_active,
                     'off_hours_active': off_hours_active,
-                    'brightness_multiplier': getattr(user, 'brightness_level', 0.6),
+                    'brightness_multiplier': getattr(user, 'brightness_level', 0.4),
                     'last_updated': conditions.last_updated.isoformat() if conditions.last_updated else '1970-01-01T00:00:00Z',
                     'data_available': True
                 }
