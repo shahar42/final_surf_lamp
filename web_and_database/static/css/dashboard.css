@@ -4,6 +4,27 @@
  */
 
 /* ===================================
+   APP-LIKE BEHAVIOR (Global)
+   ================================== */
+body {
+    user-select: none; /* Prevent text selection */
+    -webkit-user-select: none;
+    cursor: default; /* Force default arrow */
+}
+
+/* Re-enable for inputs */
+input, textarea, select {
+    user-select: text;
+    -webkit-user-select: text;
+    cursor: auto;
+}
+
+/* Ensure interactive elements show pointer */
+button, .btn, a, label {
+    cursor: pointer;
+}
+
+/* ===================================
    UTILITY CLASSES
    ================================== */
 
