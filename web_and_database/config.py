@@ -30,6 +30,12 @@ SURF_LOCATIONS = [
     "Nahariya, Israel"
 ]
 
+BRIGHTNESS_LEVELS = {
+    'LOW': 0.07,
+    'MID': 0.4,
+    'HIGH': 1.0
+}
+
 def configure_app(app):
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
     if not app.config['SECRET_KEY']:
