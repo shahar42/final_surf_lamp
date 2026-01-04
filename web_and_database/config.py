@@ -31,7 +31,7 @@ SURF_LOCATIONS = [
 ]
 
 BRIGHTNESS_LEVELS = {
-    'LOW': 0.07,
+    'LOW': 0.03,
     'MID': 0.4,
     'HIGH': 1.0
 }
