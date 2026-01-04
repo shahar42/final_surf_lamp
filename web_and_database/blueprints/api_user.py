@@ -201,10 +201,10 @@ def update_brightness():
         brightness = float(data.get('brightness'))
         user_id = session.get('user_id')
 
-        # Validate brightness level (Low=0.03, Mid=0.4, High=1.0)
-        valid_levels = [0.03, 0.4, 1.0]
+        # Validate brightness level (Low=0.007, Mid=0.4, High=1.0)
+        valid_levels = [0.007, 0.4, 1.0]
         if brightness not in valid_levels:
-            return {'success': False, 'message': 'Invalid brightness level. Must be 0.03, 0.4, or 1.0'}, 400
+            return {'success': False, 'message': 'Invalid brightness level. Must be 0.007, 0.4, or 1.0'}, 400
 
         db = SessionLocal()
         try:
