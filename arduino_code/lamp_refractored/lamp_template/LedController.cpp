@@ -363,7 +363,7 @@ void updateSurfDisplay() {
 
     // QUIET HOURS: Only top LED of each strip (secondary priority)
     if (lastSurfData.quietHoursActive) {
-        FastLED.setBrightness(BRIGHTNESS * lastSurfData.brightnessMultiplier * 0.3); // User brightness + 30% dim for quiet hours
+        FastLED.setBrightness(BRIGHTNESS * lastSurfData.brightnessMultiplier); // Respect user brightness setting directly
 
         // Calculate how many LEDs would be on during daytime
         int windSpeedLEDs = ledMapping.calculateWindLEDs(windSpeed);
