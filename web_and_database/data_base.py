@@ -106,7 +106,7 @@ class User(Base):
     off_time_start = Column(Time, nullable=True)
     off_time_end = Column(Time, nullable=True)
     off_times_enabled = Column(Boolean, default=False, nullable=False)
-    brightness_level = Column(Float, default=0.6, nullable=False)
+    brightness_level = Column(Float, default=0.4, nullable=False)
 
     lamp = relationship("Lamp", back_populates="user", uselist=False, cascade="all, delete-orphan")
 
