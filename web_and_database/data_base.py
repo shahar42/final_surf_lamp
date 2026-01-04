@@ -23,6 +23,7 @@ from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey,
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import func
+from config import BRIGHTNESS_LEVELS
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -106,7 +107,7 @@ class User(Base):
     off_time_start = Column(Time, nullable=True)
     off_time_end = Column(Time, nullable=True)
     off_times_enabled = Column(Boolean, default=False, nullable=False)
-    brightness_level = Column(Float, default=0.6, nullable=False)
+    brightness_level = Column(Float, default=BRIGHTNESS_LEVELS['MID'], nullable=False)
 
     lamp = relationship("Lamp", back_populates="user", uselist=False, cascade="all, delete-orphan")
 

@@ -15,6 +15,7 @@
 #define SURF_STATE_H
 
 #include <Arduino.h>
+#include <atomic>
 
 /**
  * Main surf data structure
@@ -52,7 +53,7 @@ struct SurfData {
     // State tracking
     unsigned long lastUpdate = 0;     // Timestamp of last data update (millis)
     bool dataReceived = false;        // Has any data been received yet?
-    bool needsDisplayUpdate = false;  // Flag to trigger display refresh in loop()
+    std::atomic<bool> needsDisplayUpdate{false};  // Thread-safe flag for cross-core communication (Core 0 writes, Core 1 reads)
 
     // Unit conversion helpers (inline = zero overhead, const = no accidental modification)
     int waveHeightCm() const {
