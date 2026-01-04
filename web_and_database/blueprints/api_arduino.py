@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify
 from data_base import SessionLocal, Lamp, CurrentConditions, User, ErrorReport
 from utils.helpers import is_quiet_hours, is_off_hours, get_current_tz_offset
+from config import BRIGHTNESS_LEVELS
 
 # Add processor path to import sunset calculator
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -145,7 +146,7 @@ def get_arduino_surf_data(arduino_id):
                     'off_hours_active': off_hours_active,
                     'sunset_animation': sunset_info['sunset_trigger'],
                     'day_of_year': sunset_info['day_of_year'],
-                    'brightness_multiplier': getattr(user, 'brightness_level', 0.4),
+                    'brightness_multiplier': getattr(user, 'brightness_level', BRIGHTNESS_LEVELS['MID']),
                     'last_updated': '1970-01-01T00:00:00Z',
                     'data_available': False
                 }
@@ -163,7 +164,7 @@ def get_arduino_surf_data(arduino_id):
                     'off_hours_active': off_hours_active,
                     'sunset_animation': sunset_info['sunset_trigger'],
                     'day_of_year': sunset_info['day_of_year'],
-                    'brightness_multiplier': getattr(user, 'brightness_level', 0.4),
+                    'brightness_multiplier': getattr(user, 'brightness_level', BRIGHTNESS_LEVELS['MID']),
                     'last_updated': conditions.last_updated.isoformat() if conditions.last_updated else '1970-01-01T00:00:00Z',
                     'data_available': True
                 }
@@ -241,7 +242,7 @@ def get_arduino_surf_data_v2(arduino_id):
                     'led_theme': user.theme or 'day',
                     'quiet_hours_active': quiet_hours_active,
                     'off_hours_active': off_hours_active,
-                    'brightness_multiplier': getattr(user, 'brightness_level', 0.4),
+                    'brightness_multiplier': getattr(user, 'brightness_level', BRIGHTNESS_LEVELS['MID']),
                     'last_updated': '1970-01-01T00:00:00Z',
                     'data_available': False
                 }
@@ -259,7 +260,7 @@ def get_arduino_surf_data_v2(arduino_id):
                     'led_theme': user.theme or 'day',
                     'quiet_hours_active': quiet_hours_active,
                     'off_hours_active': off_hours_active,
-                    'brightness_multiplier': getattr(user, 'brightness_level', 0.4),
+                    'brightness_multiplier': getattr(user, 'brightness_level', BRIGHTNESS_LEVELS['MID']),
                     'last_updated': conditions.last_updated.isoformat() if conditions.last_updated else '1970-01-01T00:00:00Z',
                     'data_available': True
                 }
