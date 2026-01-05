@@ -499,6 +499,7 @@
     <script src="{{ url_for('static', filename='js/features/error-report.js') }}"></script>
     <script src="{{ url_for('static', filename='js/features/chat-assistant.js') }}"></script>
     <script src="{{ url_for('static', filename='js/features/broadcasts.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/features/arduino-management.js') }}"></script>
 
     <!-- LED Visualization -->
     <script src="{{ url_for('static', filename='js/led-visualization/core.js') }}"></script>
@@ -573,54 +574,8 @@
     // Broadcast Notifications
     Broadcasts.init();
 
-    // Add Arduino Handler
-    const showAddBtn = document.getElementById('showAddArduinoBtn');
-    const addForm = document.getElementById('addArduinoForm');
-    const cancelAddBtn = document.getElementById('cancelAddArduino');
-    const submitAddBtn = document.getElementById('submitAddArduino');
-
-    if (showAddBtn && addForm) {
-        showAddBtn.addEventListener('click', () => {
-            addForm.classList.toggle('hidden');
-        });
-
-        cancelAddBtn.addEventListener('click', () => {
-            addForm.classList.add('hidden');
-        });
-
-        submitAddBtn.addEventListener('click', async () => {
-            const arduinoId = document.getElementById('newArduinoId').value;
-            const location = document.getElementById('newArduinoLocation').value;
-
-            if (!arduinoId) {
-                alert('Please enter an Arduino ID');
-                return;
-            }
-
-            submitAddBtn.disabled = true;
-            submitAddBtn.textContent = 'Linking...';
-
-            try {
-                const response = await fetch('/add-arduino', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ arduino_id: arduinoId, location: location })
-                });
-
-                const result = await response.json();
-                if (result.success) {
-                    location.reload(); // Refresh to show new lamp
-                } else {
-                    alert(result.message);
-                }
-            } catch (error) {
-                alert('Error linking lamp. Please try again.');
-            } finally {
-                submitAddBtn.disabled = false;
-                submitAddBtn.textContent = 'Link Lamp';
-            }
-        });
-    }
+    // Arduino Management (Link New Lamp)
+    ArduinoManagement.init();
 
     </script>
 
