@@ -157,13 +157,13 @@ def arduino_status_api():
     """API endpoint returning Arduino device status based on lamp.last_updated timestamps"""
     db = SessionLocal()
     try:
-        # Get all lamps with Arduino IDs
-        lamps = db.query(Lamp).filter(Lamp.arduino_id.isnot(None)).all()
+        # Get all lamps with Arduino IDs, join with users to get username
+        results = db.query(Lamp, User).join(User, Lamp.user_id == User.user_id).filter(Lamp.arduino_id.isnot(None)).all()
 
         now = datetime.utcnow()
         devices = []
 
-        for lamp in lamps:
+        for lamp, user in results:
             arduino_id = lamp.arduino_id
 
             # Use lamp.last_updated which is now updated on every Arduino data pull
@@ -204,6 +204,7 @@ def arduino_status_api():
             devices.append({
                 'arduino_id': arduino_id,
                 'lamp_id': lamp.lamp_id,
+                'username': user.username,
                 'status': status,
                 'status_text': status_text,
                 'last_updated': last_updated
