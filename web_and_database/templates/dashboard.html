@@ -160,6 +160,44 @@
                 <div id="unit-status" class="text-sm text-white/80 mt-2"></div>
 
                 <div class="flex justify-between items-center pt-2 border-t border-white/20">
+                    <span class="text-white/80">My Lamps:</span>
+                    <button id="showAddArduinoBtn" class="text-xs bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded text-white font-semibold transition-colors">
+                        + Link New Lamp
+                    </button>
+                </div>
+                <div id="arduinoList" class="space-y-2 mt-1">
+                    {% for arduino in data.arduinos %}
+                        <div class="flex justify-between items-center bg-white/10 rounded px-2 py-1 text-sm">
+                            <span class="text-white/60">#{{ arduino.arduino_id }}</span>
+                            <span class="font-medium">{{ arduino.location.replace(', Israel', '') }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Hidden Add Arduino Form -->
+                <div id="addArduinoForm" class="hidden mt-3 p-3 bg-black/20 rounded-lg border border-white/10">
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-white/60 text-xs block mb-1">Arduino ID:</label>
+                            <input type="number" id="newArduinoId" placeholder="e.g. 123456" 
+                                   class="bg-white/10 text-white rounded px-3 py-1 text-sm border border-white/20 w-full">
+                        </div>
+                        <div>
+                            <label class="text-white/60 text-xs block mb-1">Location:</label>
+                            <select id="newArduinoLocation" class="bg-gray-800 text-white rounded px-3 py-1 text-sm border border-white/20 w-full">
+                                {% for location in locations %}
+                                    <option value="{{ location }}">{{ location }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="flex gap-2">
+                            <button id="cancelAddArduino" class="flex-1 bg-white/10 hover:bg-white/20 py-1 rounded text-xs text-white">Cancel</button>
+                            <button id="submitAddArduino" class="flex-1 bg-blue-500 hover:bg-blue-600 py-1 rounded text-xs text-white font-bold">Link Lamp</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center pt-2 border-t border-white/20">
                     <span class="text-white/80">Status:</span>
                     {% if data.conditions %}
                         <span class="status-online font-semibold">● Online</span>
@@ -534,6 +572,55 @@
 
     // Broadcast Notifications
     Broadcasts.init();
+
+    // Add Arduino Handler
+    const showAddBtn = document.getElementById('showAddArduinoBtn');
+    const addForm = document.getElementById('addArduinoForm');
+    const cancelAddBtn = document.getElementById('cancelAddArduino');
+    const submitAddBtn = document.getElementById('submitAddArduino');
+
+    if (showAddBtn && addForm) {
+        showAddBtn.addEventListener('click', () => {
+            addForm.classList.toggle('hidden');
+        });
+
+        cancelAddBtn.addEventListener('click', () => {
+            addForm.classList.add('hidden');
+        });
+
+        submitAddBtn.addEventListener('click', async () => {
+            const arduinoId = document.getElementById('newArduinoId').value;
+            const location = document.getElementById('newArduinoLocation').value;
+
+            if (!arduinoId) {
+                alert('Please enter an Arduino ID');
+                return;
+            }
+
+            submitAddBtn.disabled = true;
+            submitAddBtn.textContent = 'Linking...';
+
+            try {
+                const response = await fetch('/add-arduino', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ arduino_id: arduinoId, location: location })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    location.reload(); // Refresh to show new lamp
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                alert('Error linking lamp. Please try again.');
+            } finally {
+                submitAddBtn.disabled = false;
+                submitAddBtn.textContent = 'Link Lamp';
+            }
+        });
+    }
 
     </script>
 
