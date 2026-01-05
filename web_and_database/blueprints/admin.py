@@ -7,7 +7,8 @@ from config import limiter, SURF_LOCATIONS
 from utils.decorators import login_required, admin_required
 from waitlist_db import get_all_waitlist_entries, get_recent_signups, get_waitlist_count
 from forms import sanitize_input
-from data_base import SessionLocal, User, Broadcast
+from data_base import SessionLocal, User, Broadcast, Lamp, CurrentConditions
+from sqlalchemy.orm import joinedload
 
 logger = logging.getLogger(__name__)
 
@@ -141,5 +142,79 @@ def get_active_broadcasts():
                 'created_at': b.created_at.isoformat()
             } for b in broadcasts]
         })
+    finally:
+        db.close()
+
+@bp.route('/admin/arduino-monitor')
+@login_required
+def arduino_monitor():
+    """Arduino monitoring dashboard showing device connectivity status"""
+    return render_template('arduino_monitor.html')
+
+@bp.route('/api/admin/arduino-status')
+@login_required
+def arduino_status_api():
+    """API endpoint returning Arduino device status as JSON"""
+    db = SessionLocal()
+    try:
+        # Query all lamps with their current conditions
+        lamps = db.query(Lamp).outerjoin(CurrentConditions).all()
+
+        now = datetime.utcnow()
+        devices = []
+
+        for lamp in lamps:
+            if lamp.arduino_id is None:
+                continue  # Skip lamps without Arduino ID
+
+            # Get last update time from current_conditions if available
+            if lamp.current_conditions and lamp.current_conditions.last_updated:
+                last_updated = lamp.current_conditions.last_updated
+                time_diff = (now - last_updated).total_seconds()
+                minutes_ago = int(time_diff / 60)
+
+                # Classify status
+                if minutes_ago < 15:
+                    status = 'active'
+                    status_text = f'{minutes_ago} min ago' if minutes_ago > 0 else 'Just now'
+                elif minutes_ago < 60:
+                    status = 'stale'
+                    status_text = f'{minutes_ago} min ago'
+                else:
+                    hours_ago = int(minutes_ago / 60)
+                    status = 'offline'
+                    status_text = f'{hours_ago} hour{"s" if hours_ago > 1 else ""} ago'
+            else:
+                status = 'never'
+                status_text = 'Never connected'
+                last_updated = None
+
+            devices.append({
+                'arduino_id': lamp.arduino_id,
+                'lamp_id': lamp.lamp_id,
+                'status': status,
+                'status_text': status_text,
+                'last_updated': last_updated.isoformat() if last_updated else None
+            })
+
+        # Sort by status priority (active -> stale -> offline -> never)
+        status_priority = {'active': 0, 'stale': 1, 'offline': 2, 'never': 3}
+        devices.sort(key=lambda x: (status_priority[x['status']], -x['arduino_id']))
+
+        return jsonify({
+            'success': True,
+            'timestamp': now.isoformat(),
+            'devices': devices,
+            'summary': {
+                'total': len(devices),
+                'active': sum(1 for d in devices if d['status'] == 'active'),
+                'stale': sum(1 for d in devices if d['status'] == 'stale'),
+                'offline': sum(1 for d in devices if d['status'] == 'offline'),
+                'never': sum(1 for d in devices if d['status'] == 'never')
+            }
+        })
+    except Exception as e:
+        logger.error(f"❌ Arduino status API error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
     finally:
         db.close()

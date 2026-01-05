@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arduino Monitor | Surf Lamp</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Manrope:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --clr-bg: #050505;
+            --clr-text-main: #F2F2F2;
+            --clr-text-muted: #a0a0a0;
+            --clr-accent: #38b6ff;
+            --clr-success: #4CAF50;
+            --clr-warning: #FF9800;
+            --clr-error: #f44336;
+            --clr-gray: #444;
+
+            --ff-heading: 'Inter', sans-serif;
+            --ff-body: 'Manrope', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--ff-body);
+            background-color: var(--clr-bg);
+            color: var(--clr-text-main);
+            margin: 0;
+            padding: 2rem 1rem;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        h1 {
+            font-family: var(--ff-heading);
+            font-weight: 600;
+            font-size: 2rem;
+            margin: 0;
+        }
+
+        .back-link {
+            color: var(--clr-accent);
+            text-decoration: none;
+            font-weight: 500;
+            transition: opacity 0.2s;
+        }
+
+        .back-link:hover {
+            opacity: 0.7;
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .summary-card {
+            background: #1a1a1a;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+
+        .summary-card h3 {
+            margin: 0 0 0.5rem 0;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--clr-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .summary-card .value {
+            font-size: 2rem;
+            font-weight: 600;
+            font-family: var(--ff-heading);
+        }
+
+        .devices-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .device-card {
+            background: #1a1a1a;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 2px solid;
+            transition: transform 0.2s;
+        }
+
+        .device-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .device-card.active {
+            border-color: var(--clr-success);
+        }
+
+        .device-card.stale {
+            border-color: var(--clr-warning);
+        }
+
+        .device-card.offline {
+            border-color: var(--clr-error);
+        }
+
+        .device-card.never {
+            border-color: var(--clr-gray);
+        }
+
+        .device-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .status-dot.active {
+            background: var(--clr-success);
+            box-shadow: 0 0 8px var(--clr-success);
+        }
+
+        .status-dot.stale {
+            background: var(--clr-warning);
+        }
+
+        .status-dot.offline {
+            background: var(--clr-error);
+        }
+
+        .status-dot.never {
+            background: var(--clr-gray);
+        }
+
+        .arduino-id {
+            font-size: 1.5rem;
+            font-weight: 600;
+            font-family: var(--ff-heading);
+        }
+
+        .last-seen {
+            color: var(--clr-text-muted);
+            font-size: 0.875rem;
+        }
+
+        .meta {
+            font-size: 0.75rem;
+            color: var(--clr-text-muted);
+            margin-top: 0.5rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--clr-text-muted);
+        }
+
+        .error-message {
+            background: rgba(244, 67, 54, 0.1);
+            border: 1px solid var(--clr-error);
+            padding: 1rem;
+            border-radius: 8px;
+            color: var(--clr-error);
+            margin-bottom: 2rem;
+        }
+
+        .refresh-info {
+            color: var(--clr-text-muted);
+            font-size: 0.875rem;
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .devices-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Arduino Monitor</h1>
+            <a href="{{ url_for('dashboard.dashboard') }}" class="back-link">← Back to Dashboard</a>
+        </div>
+
+        <div id="error-container"></div>
+
+        <div class="summary">
+            <div class="summary-card">
+                <h3>Total</h3>
+                <div class="value" id="total-count">-</div>
+            </div>
+            <div class="summary-card">
+                <h3>Active</h3>
+                <div class="value" style="color: var(--clr-success);" id="active-count">-</div>
+            </div>
+            <div class="summary-card">
+                <h3>Stale</h3>
+                <div class="value" style="color: var(--clr-warning);" id="stale-count">-</div>
+            </div>
+            <div class="summary-card">
+                <h3>Offline</h3>
+                <div class="value" style="color: var(--clr-error);" id="offline-count">-</div>
+            </div>
+            <div class="summary-card">
+                <h3>Never</h3>
+                <div class="value" style="color: var(--clr-gray);" id="never-count">-</div>
+            </div>
+        </div>
+
+        <div id="devices-container" class="devices-grid">
+            <div class="loading">Loading Arduino devices...</div>
+        </div>
+
+        <div class="refresh-info">
+            Auto-refreshes every 30 seconds
+        </div>
+    </div>
+
+    <script>
+        async function fetchArduinoStatus() {
+            try {
+                const response = await fetch('/api/admin/arduino-status');
+                const data = await response.json();
+
+                if (!data.success) {
+                    showError('Failed to load Arduino status: ' + data.error);
+                    return;
+                }
+
+                // Update summary
+                document.getElementById('total-count').textContent = data.summary.total;
+                document.getElementById('active-count').textContent = data.summary.active;
+                document.getElementById('stale-count').textContent = data.summary.stale;
+                document.getElementById('offline-count').textContent = data.summary.offline;
+                document.getElementById('never-count').textContent = data.summary.never;
+
+                // Update devices
+                const container = document.getElementById('devices-container');
+
+                if (data.devices.length === 0) {
+                    container.innerHTML = '<div class="loading">No Arduino devices registered</div>';
+                    return;
+                }
+
+                container.innerHTML = data.devices.map(device => `
+                    <div class="device-card ${device.status}">
+                        <div class="device-header">
+                            <div class="status-dot ${device.status}"></div>
+                            <div class="arduino-id">Arduino ${device.arduino_id}</div>
+                        </div>
+                        <div class="last-seen">${device.status_text}</div>
+                        <div class="meta">Lamp ID: ${device.lamp_id}</div>
+                    </div>
+                `).join('');
+
+                // Clear error if any
+                document.getElementById('error-container').innerHTML = '';
+
+            } catch (error) {
+                showError('Network error: ' + error.message);
+            }
+        }
+
+        function showError(message) {
+            const errorContainer = document.getElementById('error-container');
+            errorContainer.innerHTML = `
+                <div class="error-message">
+                    ⚠️ ${message}
+                </div>
+            `;
+        }
+
+        // Initial load
+        fetchArduinoStatus();
+
+        // Auto-refresh every 30 seconds
+        setInterval(fetchArduinoStatus, 30000);
+    </script>
+</body>
+</html>
