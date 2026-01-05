@@ -25,7 +25,12 @@
 <body class="min-h-screen p-4">
     <div class="max-w-2xl mx-auto">
         <div class="card rounded-2xl p-8 shadow-2xl">
-            <h1 class="text-3xl font-bold text-white mb-6">Broadcast Message</h1>
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-3xl font-bold text-white">Broadcast Message</h1>
+                <a href="{{ url_for('dashboard.dashboard') }}" class="text-[#38b6ff] hover:opacity-70 font-medium transition-opacity">
+                    ← Back to Dashboard
+                </a>
+            </div>
 
             <div class="space-y-4">
                 <div>
@@ -68,9 +73,6 @@
                     <button id="sendBtn" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-colors">
                         Send Broadcast
                     </button>
-                    <a href="{{ url_for('dashboard.dashboard') }}" class="bg-white/20 hover:bg-white/30 text-white font-semibold py-3 px-6 rounded-lg transition-colors text-center">
-                        Back to Dashboard
-                    </a>
                 </div>
             </div>
         </div>
