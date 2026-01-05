@@ -124,10 +124,10 @@ def themes_page():
     Displays the LED theme configuration page.
     """
     user_email = session.get('user_email')
-    user, lamp, conditions = get_user_lamp_data(user_email)
+    user, arduinos, location = get_user_lamp_data(user_email)
 
-    if not user or not lamp:
-        flash('Error loading your lamp data. Please contact support.', 'error')
+    if not user:
+        flash('Error loading your data. Please contact support.', 'error')
         return redirect(url_for('auth.login'))
 
     user_data = {
