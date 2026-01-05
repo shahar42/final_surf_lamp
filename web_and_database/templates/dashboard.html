@@ -47,16 +47,38 @@
 
                 <!-- Surfboard LED Visualization -->
                 <div class="flex flex-col items-center">
-                    <!-- Surfboard Canvas -->
-                    <canvas id="surfboardCanvas" width="350" height="550" role="img" aria-label="Surfboard LED visualization showing current surf conditions with three LED strips for wave period, wind speed, and wave height">
-                        Your browser does not support the canvas element. Current surf conditions: Wave height {{ data.conditions.wave_height_m }}m, Wind speed {{ data.conditions.wind_speed_mps }} m/s, Wave period {{ data.conditions.wave_period_s }}s.
-                    </canvas>
+                    <!-- Surfboard Canvas with Wind Direction Compass -->
+                    <div class="relative inline-block">
+                        <canvas id="surfboardCanvas" width="350" height="550" role="img" aria-label="Surfboard LED visualization showing current surf conditions with three LED strips for wave period, wind speed, and wave height">
+                            Your browser does not support the canvas element. Current surf conditions: Wave height {{ data.conditions.wave_height_m }}m, Wind speed {{ data.conditions.wind_speed_mps }} m/s, Wave period {{ data.conditions.wave_period_s }}s.
+                        </canvas>
+                        <!-- Wind Direction Compass Overlay -->
+                        <div class="absolute top-[10px] left-1/2 -translate-x-1/2 w-12 h-12 flex items-center justify-center">
+                            <span class="absolute -top-2 left-1/2 -translate-x-1/2 text-white font-bold text-xs">N</span>
+                            <div class="text-3xl text-blue-400 transition-transform duration-500" id="windArrow" style="transform: rotate({{ data.conditions.wind_direction_deg if data.conditions.wind_direction_deg else 0 }}deg)">
+                                ↑
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- Legend below surfboard -->
-                    <div class="flex items-center justify-center gap-6 mt-4 text-white/90 text-sm font-semibold">
-                        <span>Wave Period</span>
-                        <span>Wind Speed</span>
-                        <span>Wave Height</span>
+                    <div class="flex flex-col items-center justify-center gap-3 mt-4 text-white/90 text-sm font-semibold">
+                        <div class="flex items-center justify-center gap-6">
+                            <span>Wave Period</span>
+                            <span>Wind Speed</span>
+                            <span>Wave Height</span>
+                        </div>
+                        <div class="flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-sm mt-2 text-white/80">
+                            <span class="font-semibold mr-2">Wind Dir:</span>
+                            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(0, 255, 0);"></span><span>N</span></div>
+                            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(128, 255, 0);"></span><span>NE</span></div>
+                            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(255, 255, 0);"></span><span>E</span></div>
+                            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(255, 128, 0);"></span><span>SE</span></div>
+                            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(255, 0, 0);"></span><span>S</span></div>
+                            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(128, 0, 255);"></span><span>SW</span></div>
+                            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(0, 0, 255);"></span><span>W</span></div>
+                            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(0, 255, 255);"></span><span>NW</span></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -65,9 +87,9 @@
 
     <!-- Main Dashboard Content -->
     <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
+
         <!-- Lamp Information Card -->
-        <div class="card rounded-2xl p-6 shadow-2xl">
+        <div class="card rounded-2xl p-6 shadow-2xl order-2 lg:order-1">
             <h2 class="text-2xl font-bold text-white mb-4">Your Surf Lamp</h2>
             
             <div class="space-y-3 text-white">
@@ -149,9 +171,9 @@
         </div>
 
         <!-- Current Surf Conditions Card -->
-        <div class="card rounded-2xl p-6 shadow-2xl">
+        <div class="card rounded-2xl p-6 shadow-2xl order-1 lg:order-2">
             <h2 class="text-2xl font-bold text-white mb-4">Current Surf Conditions</h2>
-            
+
             {% if data.conditions %}
                 <div class="space-y-4">
                     <!-- Wave Data -->
@@ -200,24 +222,14 @@
                         </div>
 
                         <div class="text-center">
-                            <div class="text-white/80 text-sm mb-2">Wind Direction</div>
-                            <!-- Compass with rotating arrow -->
-                            <div class="relative w-32 h-32 mx-auto flex items-center justify-center">
-                                <!-- Cardinal direction labels -->
-                                <span class="absolute top-0 left-1/2 -translate-x-1/2 text-white font-bold text-lg">N</span>
-                                <span class="absolute right-0 top-1/2 -translate-y-1/2 text-white/60 font-semibold">E</span>
-                                <span class="absolute bottom-0 left-1/2 -translate-x-1/2 text-white/60 font-semibold">S</span>
-                                <span class="absolute left-0 top-1/2 -translate-y-1/2 text-white/60 font-semibold">W</span>
-
-                                <!-- Rotating arrow pointing to wind direction -->
-                                <div class="text-6xl text-blue-400 transition-transform duration-500"
-                                     style="transform: rotate({{ data.conditions.wind_direction_deg if data.conditions.wind_direction_deg else 0 }}deg)">
-                                    ↑
-                                </div>
+                            <div class="wind-icon mb-2 h-32 flex items-center justify-center"><img src="{{ url_for('static', filename='icons/wind_direction_new.png') }}" alt="Wind Direction" class="mx-auto png-icon" style="width: 141px; height: 141px;"></div>
+                            <div class="text-white/80 text-sm">Wind Direction</div>
+                            <div class="text-white font-bold text-xl">
+                                {{ data.conditions.wind_direction_deg | wind_direction }}
                             </div>
                         </div>
                     </div>
-                    
+
                 </div>
             {% else %}
                 <!-- No Data Available -->
@@ -265,36 +277,39 @@
                     <div class="space-y-2">
                         <div class="grid grid-cols-3 gap-2">
                             <button data-preset="typical" data-start="23:00" data-end="07:00"
-                                    class="preset-btn text-xs py-2 px-2 rounded transition-all border
+                                    class="preset-btn text-sm py-3 px-2 rounded transition-all border leading-tight
                                     {% if data.user.off_times_enabled and data.user.off_time_start == '23:00' %}
                                         bg-orange-600/80 border-orange-500 text-white font-semibold shadow-[0_0_15px_rgba(234,88,12,0.3)]
                                     {% else %}
                                         bg-white/10 hover:bg-white/20 text-white/80 border-white/20
                                     {% endif %}">
-                                Typical<br><span class="opacity-60">11pm-7am</span>
+                                <span class="whitespace-nowrap block font-normal">Typical</span>
+                                <span class="opacity-60 text-base whitespace-nowrap block font-light">11pm-7am</span>
                             </button>
                             <button data-preset="early" data-start="22:00" data-end="06:00"
-                                    class="preset-btn text-xs py-2 px-2 rounded transition-all border
+                                    class="preset-btn text-sm py-3 px-2 rounded transition-all border leading-tight
                                     {% if data.user.off_times_enabled and data.user.off_time_start == '22:00' %}
                                         bg-orange-600/80 border-orange-500 text-white font-semibold shadow-[0_0_15px_rgba(234,88,12,0.3)]
                                     {% else %}
                                         bg-white/10 hover:bg-white/20 text-white/80 border-white/20
                                     {% endif %}">
-                                Early<br><span class="opacity-60">10pm-6am</span>
+                                <span class="whitespace-nowrap block font-normal">Early</span>
+                                <span class="opacity-60 text-base whitespace-nowrap block font-light">10pm-6am</span>
                             </button>
                             <button data-preset="night-owl" data-start="01:00" data-end="09:00"
-                                    class="preset-btn text-xs py-2 px-2 rounded transition-all border
+                                    class="preset-btn text-sm py-3 px-2 rounded transition-all border leading-tight
                                     {% if data.user.off_times_enabled and data.user.off_time_start == '01:00' %}
                                         bg-orange-600/80 border-orange-500 text-white font-semibold shadow-[0_0_15px_rgba(234,88,12,0.3)]
                                     {% else %}
                                         bg-white/10 hover:bg-white/20 text-white/80 border-white/20
                                     {% endif %}">
-                                Night Owl<br><span class="opacity-60">1am-9am</span>
+                                <span class="whitespace-nowrap block font-normal">Night Owl</span>
+                                <span class="opacity-60 text-base whitespace-nowrap block font-light">1am-9am</span>
                             </button>
                         </div>
-                        
-                        <button id="customPresetBtn" 
-                                class="w-full text-xs py-2 rounded transition-all border
+
+                        <button id="customPresetBtn"
+                                class="w-full text-sm py-2 rounded transition-all border
                                 {% if data.user.off_times_enabled and data.user.off_time_start not in ['23:00', '22:00', '01:00'] %}
                                     bg-orange-600/80 border-orange-500 text-white font-semibold shadow-[0_0_15px_rgba(234,88,12,0.3)]
                                 {% else %}
@@ -311,13 +326,13 @@
                                 <label class="text-white/60 text-xs block mb-1">Start (Off):</label>
                                 <input type="time" id="offTimeStart"
                                        value="{{ data.user.off_time_start if data.user.off_time_start else '22:00' }}"
-                                       class="bg-white/10 text-white rounded px-2 py-1 text-sm border border-white/20 w-full focus:border-blue-500 focus:outline-none">
+                                       class="bg-white/10 text-white rounded px-3 py-2 text-lg border border-white/20 w-full focus:border-blue-500 focus:outline-none">
                             </div>
                             <div>
                                 <label class="text-white/60 text-xs block mb-1">End (On):</label>
                                 <input type="time" id="offTimeEnd"
                                        value="{{ data.user.off_time_end if data.user.off_time_end else '06:00' }}"
-                                       class="bg-white/10 text-white rounded px-2 py-1 text-sm border border-white/20 w-full focus:border-blue-500 focus:outline-none">
+                                       class="bg-white/10 text-white rounded px-3 py-2 text-lg border border-white/20 w-full focus:border-blue-500 focus:outline-none">
                             </div>
                         </div>
                         <button id="updateOffTimes" class="w-full bg-blue-500 hover:bg-blue-600 py-1.5 rounded text-sm text-white font-semibold shadow-lg transition-transform active:scale-95">
