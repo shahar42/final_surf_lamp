@@ -85,7 +85,7 @@
                 
                 <div class="flex justify-between items-center">
                     <span class="text-white/80">Location:</span>
-                    <select id="locationSelect" class="bg-white/20 text-white rounded px-2 py-1 border border-white/30 text-sm font-semibold">
+                    <select id="locationSelect" aria-label="Select your location" class="bg-white/20 text-white rounded px-2 py-1 border border-white/30 text-sm font-semibold">
                         {% for location in locations %}
                             <option value="{{ location }}" {% if location == data.user.location %}selected{% endif %}>
                                 {{ location.replace(', Israel', '') }}
@@ -101,7 +101,7 @@
                 <div class="flex justify-between items-center">
                     <span class="text-white/80">Wave Alert:</span>
                     <div class="flex items-center space-x-2 w-32 justify-end">
-                        <input type="number" id="waveThreshold"
+                        <input type="number" id="waveThreshold" aria-label="Wave height alert threshold"
                                value="{% if data.user.preferred_output == 'feet' %}{{ '%.1f'|format((data.user.wave_threshold_m or 1.0) * 3.28084) }}{% else %}{{ data.user.wave_threshold_m or 1.0 }}{% endif %}"
                                min="0.1" max="{% if data.user.preferred_output == 'feet' %}33{% else %}10.0{% endif %}" step="0.1"
                                data-unit="{{ data.user.preferred_output or 'meters' }}"
@@ -115,7 +115,7 @@
                 <div class="flex justify-between items-center">
                     <span class="text-white/80">Wind Alert:</span>
                     <div class="flex items-center space-x-2 w-32 justify-end">
-                        <input type="number" id="windThreshold"
+                        <input type="number" id="windThreshold" aria-label="Wind speed alert threshold"
                                value="{{ data.user.wind_threshold_knots or 22 }}"
                                min="1" max="25" step="1"
                                data-unit="knots"
@@ -368,8 +368,8 @@
     </div>
 
     <!-- Floating Chat Button -->
-    <button id="chatFloatingBtn" class="fixed bottom-6 right-6 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full p-4 shadow-2xl hover:shadow-blue-500/50 transition-all hover:scale-110 z-40 hidden">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <button id="chatFloatingBtn" aria-label="Open chat assistant" class="fixed bottom-6 right-6 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full p-4 shadow-2xl hover:shadow-blue-500/50 transition-all hover:scale-110 z-40 hidden">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
         </svg>
     </button>
@@ -380,8 +380,8 @@
             <!-- Header -->
             <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-t-2xl flex justify-between items-center">
                 <h2 class="text-xl font-bold">Surf Lamp Assistant</h2>
-                <button id="closeChatBtn" class="text-white hover:text-gray-200 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <button id="closeChatBtn" aria-label="Close chat assistant" class="text-white hover:text-gray-200 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
@@ -403,6 +403,7 @@
                     <input
                         type="text"
                         id="chatInput"
+                        aria-label="Chat message input"
                         placeholder="Ask a question..."
                         class="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800"
                         maxlength="500"
@@ -520,6 +521,7 @@
             <a href="/privacy-policy" target="_blank">Privacy Policy</a>
             <a href="/terms-of-service" target="_blank">Terms of Service</a>
             <a href="/warranty" target="_blank">Warranty</a>
+            <a href="/accessibility-statement" target="_blank">Accessibility</a>
         </div>
         <p>© 2025 Surf Lamp. All rights reserved.</p>
     </footer>
