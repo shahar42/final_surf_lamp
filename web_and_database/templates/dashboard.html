@@ -524,7 +524,7 @@
     {% endif %}
 
     // LED Visualization
-    LEDDataFetcher.init({{ data.lamp.arduino_id }}, '{{ data.user.theme }}');
+    LEDDataFetcher.init({{ data.arduinos[0].arduino_id if data.arduinos else 0 }}, '{{ data.user.theme }}');
 
     // Error Report Modal
     ErrorReport.init();
