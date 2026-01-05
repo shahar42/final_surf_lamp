@@ -79,8 +79,10 @@ JOIN users u ON l.user_id = u.user_id;
 -- STEP 6: Update error_reports to use arduino_id
 -- ============================================================
 ALTER TABLE error_reports
-    DROP CONSTRAINT IF EXISTS error_reports_lamp_id_fkey,
-    RENAME COLUMN lamp_id TO arduino_id;
+    DROP CONSTRAINT IF EXISTS error_reports_lamp_id_fkey;
+
+ALTER TABLE error_reports
+    DROP COLUMN IF EXISTS lamp_id;
 
 -- Add foreign key constraint to arduinos table
 ALTER TABLE error_reports
