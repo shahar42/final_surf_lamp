@@ -67,7 +67,7 @@
         }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4">
+<body class="min-h-screen flex flex-col p-4">
 
     <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -80,7 +80,9 @@
       {% endif %}
     {% endwith %}
 
-    <div class="form-container w-full max-w-md p-8 rounded-2xl shadow-2xl">
+    <!-- Main Content - Centered Form -->
+    <div class="flex-1 flex items-center justify-center">
+        <div class="form-container w-full max-w-md p-8 rounded-2xl shadow-2xl">
         <div class="text-center mb-8">
             <h1 class="text-4xl font-bold text-white">Welcome Back</h1>
             <p class="text-white/80 mt-2">Sign in to your Surf Lamp account.</p>
@@ -130,7 +132,10 @@
         <p class="text-center text-white/70 mt-6">
             Don't have an account? <a href="{{ url_for('auth.register') }}" class="font-semibold text-white hover:text-pink-300">Register Now</a>
         </p>
+        </div>
     </div>
+
+    {% include 'partials/legal_footer.html' %}
 
 </body>
 </html>
