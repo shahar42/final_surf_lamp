@@ -48,7 +48,9 @@
                 <!-- Surfboard LED Visualization -->
                 <div class="flex flex-col items-center">
                     <!-- Surfboard Canvas -->
-                    <canvas id="surfboardCanvas" width="350" height="550"></canvas>
+                    <canvas id="surfboardCanvas" width="350" height="550" role="img" aria-label="Surfboard LED visualization showing current surf conditions with three LED strips for wave period, wind speed, and wave height">
+                        Your browser does not support the canvas element. Current surf conditions: Wave height {{ data.conditions.wave_height_m }}m, Wind speed {{ data.conditions.wind_speed_mps }} m/s, Wave period {{ data.conditions.wave_period_s }}s.
+                    </canvas>
 
                     <!-- Legend below surfboard -->
                     <div class="flex flex-col items-center justify-center gap-3 mt-4 text-white/90 text-sm font-semibold">
