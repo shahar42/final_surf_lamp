@@ -53,23 +53,10 @@
                     </canvas>
 
                     <!-- Legend below surfboard -->
-                    <div class="flex flex-col items-center justify-center gap-3 mt-4 text-white/90 text-sm font-semibold">
-                        <div class="flex items-center justify-center gap-6">
-                            <span>Wave Period</span>
-                            <span>Wind Speed</span>
-                            <span>Wave Height</span>
-                        </div>
-                        <div class="flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-sm mt-2 text-white/80">
-                            <span class="font-semibold mr-2">Wind Dir:</span>
-                            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(0, 255, 0);"></span><span>N</span></div>
-                            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(128, 255, 0);"></span><span>NE</span></div>
-                            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(255, 255, 0);"></span><span>E</span></div>
-                            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(255, 128, 0);"></span><span>SE</span></div>
-                            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(255, 0, 0);"></span><span>S</span></div>
-                            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(128, 0, 255);"></span><span>SW</span></div>
-                            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(0, 0, 255);"></span><span>W</span></div>
-                            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(0, 255, 255);"></span><span>NW</span></div>
-                        </div>
+                    <div class="flex items-center justify-center gap-6 mt-4 text-white/90 text-sm font-semibold">
+                        <span>Wave Period</span>
+                        <span>Wind Speed</span>
+                        <span>Wave Height</span>
                     </div>
                 </div>
             </div>
@@ -213,10 +200,20 @@
                         </div>
 
                         <div class="text-center">
-                            <div class="wind-icon mb-2 h-32 flex items-center justify-center"><img src="{{ url_for('static', filename='icons/wind_direction_new.png') }}" alt="Wind Direction" class="mx-auto png-icon" style="width: 141px; height: 141px;"></div>
-                            <div class="text-white/80 text-sm">Wind Direction</div>
-                            <div class="text-white font-bold text-xl">
-                                {{ data.conditions.wind_direction_deg | wind_direction }}
+                            <div class="text-white/80 text-sm mb-2">Wind Direction</div>
+                            <!-- Compass with rotating arrow -->
+                            <div class="relative w-32 h-32 mx-auto flex items-center justify-center">
+                                <!-- Cardinal direction labels -->
+                                <span class="absolute top-0 left-1/2 -translate-x-1/2 text-white font-bold text-lg">N</span>
+                                <span class="absolute right-0 top-1/2 -translate-y-1/2 text-white/60 font-semibold">E</span>
+                                <span class="absolute bottom-0 left-1/2 -translate-x-1/2 text-white/60 font-semibold">S</span>
+                                <span class="absolute left-0 top-1/2 -translate-y-1/2 text-white/60 font-semibold">W</span>
+
+                                <!-- Rotating arrow pointing to wind direction -->
+                                <div class="text-6xl text-blue-400 transition-transform duration-500"
+                                     style="transform: rotate({{ data.conditions.wind_direction_deg if data.conditions.wind_direction_deg else 0 }}deg)">
+                                    ↑
+                                </div>
                             </div>
                         </div>
                     </div>
