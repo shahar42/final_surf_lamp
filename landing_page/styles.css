@@ -278,6 +278,26 @@ footer {
     font-size: var(--fs-300);
 }
 
+footer .legal-links {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+footer .legal-links a {
+    color: var(--clr-text-muted);
+    text-decoration: none;
+    transition: color 200ms ease;
+}
+
+footer .legal-links a:hover,
+footer .legal-links a:focus-visible {
+    color: var(--clr-text-main);
+    text-decoration: underline;
+}
+
 footer a {
     color: inherit;
 }
