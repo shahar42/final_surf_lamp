@@ -55,7 +55,7 @@
                         <!-- Wind Direction Compass Overlay -->
                         <div class="absolute top-[10px] left-1/2 -translate-x-1/2 w-12 h-12 flex items-center justify-center">
                             <span class="absolute -top-2 left-1/2 -translate-x-1/2 text-white font-bold text-xs">N</span>
-                            <div class="text-3xl text-blue-400 transition-transform duration-500" id="windArrow" style="transform: rotate({{ data.conditions.wind_direction_deg if data.conditions.wind_direction_deg else 0 }}deg)">
+                            <div class="text-3xl text-white transition-transform duration-500" id="windArrow" style="transform: rotate({{ data.conditions.wind_direction_deg if data.conditions.wind_direction_deg else 0 }}deg)">
                                 ↑
                             </div>
                         </div>
