@@ -140,13 +140,8 @@
                     
                     <div class="space-y-3 text-blue-600">
                         <div class="flex justify-between">
-                            <span class="text-blue-600/80">Lamp ID:</span>
-                            <span class="font-semibold">#{{ data.lamp.lamp_id }}</span>
-                        </div>
-                        
-                        <div class="flex justify-between">
                             <span class="text-blue-600/80">Arduino ID:</span>
-                            <span class="font-semibold">#{{ data.lamp.arduino_id }}</span>
+                            <span class="font-semibold">#{{ data.arduinos[0].arduino_id if data.arduinos else '--' }}</span>
                         </div>
                         
                         <div class="flex justify-between items-center">
@@ -282,7 +277,13 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-blue-600/80 text-sm">
                         <div>
                             <span class="text-blue-600/60">Lamp Last Updated:</span><br>
-                            <span class="text-blue-600">{{ data.lamp.last_updated.strftime('%Y-%m-%d %H:%M:%S') }} UTC</span>
+                            <span class="text-blue-600">
+                                {% if data.arduinos and data.arduinos[0].last_poll_time %}
+                                    {{ data.arduinos[0].last_poll_time.strftime('%Y-%m-%d %H:%M:%S') }} UTC
+                                {% else %}
+                                    --
+                                {% endif %}
+                            </span>
                         </div>
                         
                         <div>

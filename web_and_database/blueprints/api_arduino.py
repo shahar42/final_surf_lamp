@@ -335,7 +335,6 @@ def api_error_reports():
                     'username': report.username,
                     'email': report.email,
                     'location': report.location,
-                    'lamp_id': report.lamp_id,
                     'arduino_id': report.arduino_id,
                     'error_description': report.error_description,
                     'user_agent': report.user_agent
