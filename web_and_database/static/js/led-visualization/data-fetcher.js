@@ -106,6 +106,12 @@ const LEDDataFetcher = {
             this.blinkState
         );
 
+        // Update wind direction arrow
+        const windArrow = document.getElementById('windArrow');
+        if (windArrow && data.wind_direction_deg !== null) {
+            windArrow.style.transform = `rotate(${data.wind_direction_deg}deg)`;
+        }
+
         // Update last update time
         // Database returns UTC timestamps - ensure proper parsing by appending 'Z' if not present
         const timestamp = data.last_updated.endsWith('Z') ? data.last_updated : data.last_updated + 'Z';
