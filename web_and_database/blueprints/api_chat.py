@@ -2,7 +2,7 @@ import logging
 import time
 import google.generativeai as genai
 from flask import Blueprint, request, jsonify, session, current_app
-from data_base import SessionLocal, User, Lamp, CurrentConditions
+from data_base import SessionLocal, User, Arduino, Location
 from utils.decorators import login_required
 from chat_logic import build_chat_context
 
@@ -53,28 +53,13 @@ def chat():
                 if not user_data:
                     return jsonify({"error": "User not found"}), 404
 
-                # Get lamp and conditions
-                lamp_data = db.query(Lamp).filter(Lamp.user_id == user_data.user_id).first()
-                conditions_data = None
-                if lamp_data:
-                    conditions_data = db.query(CurrentConditions).filter(
-                        CurrentConditions.lamp_id == lamp_data.lamp_id
-                    ).first()
+                # Get location conditions directly based on user's dashboard location
+                # The chat context logic expects an object with wave/wind fields, which Location model now provides directly
+                conditions_data = db.query(Location).filter(
+                    Location.location == user_data.location
+                ).first()
 
                 # Cache for 5 minutes
-                # Note: Session storage might not serialize SQLAlchemy objects well if they are not detached or simple dicts.
-                # In original app.py, it seemed to cache objects. SQLAlchemy objects attached to session might be problematic if session closed.
-                # However, original code did it.
-                # To be safe, we might need to convert to dict or ensure they are detached.
-                # But for now I'll stick to original logic.
-                
-                # Actually, storing DB objects in Flask session (cookie) is bad practice (serialization issues).
-                # But let's assume it worked or was intended to work.
-                # If 'user_data' is a SQLAlchemy object, it can't be pickled easily into a cookie unless converted.
-                # The original code did `session[cache_key] = {'user': user_data, ...}`.
-                # If that worked, then okay. If not, it was a bug in original code too.
-                # I'll stick to the original code for now.
-                
                 session[cache_key] = {
                     'user': user_data,
                     'conditions': conditions_data
