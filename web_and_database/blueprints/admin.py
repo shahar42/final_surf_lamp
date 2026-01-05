@@ -87,8 +87,21 @@ def create_broadcast():
     # Sanitize message
     message = sanitize_input(message)
 
-    # Calculate expiry (2 hours from now)
-    expires_at = datetime.utcnow() + timedelta(hours=2)
+    # Duration Policy (Scott Meyers: Enforce invariants via strict lookup)
+    ALLOWED_DURATIONS = {
+        2: timedelta(hours=2),
+        5: timedelta(hours=5),
+        10: timedelta(hours=10)
+    }
+    
+    try:
+        requested_duration = int(request.json.get('duration', 2))
+    except (ValueError, TypeError):
+        requested_duration = 2
+
+    # Calculate expiry based on policy (defaulting to 2h if invalid input)
+    expiry_delta = ALLOWED_DURATIONS.get(requested_duration, timedelta(hours=2))
+    expires_at = datetime.utcnow() + expiry_delta
 
     # Create broadcast
     db = SessionLocal()
