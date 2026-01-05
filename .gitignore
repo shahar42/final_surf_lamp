@@ -166,3 +166,4 @@ constumer_support/
 
 # Arduino - Track all sketches
 !*.ino
+render-mcp-server/
