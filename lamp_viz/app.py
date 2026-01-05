@@ -33,15 +33,15 @@ if DATABASE_URL:
         wave_threshold_m = Column(Float)
         wind_threshold_knots = Column(Integer)
 
-    class Lamp(Base):
-        __tablename__ = 'lamps'
-        lamp_id = Column(Integer, primary_key=True)
+    class Arduino(Base):
+        __tablename__ = 'arduinos'
+        arduino_id = Column(Integer, primary_key=True)
         user_id = Column(Integer, ForeignKey('users.user_id'))
-        arduino_id = Column(Integer)
+        location = Column(String(255), ForeignKey('locations.location'))
 
-    class CurrentConditions(Base):
-        __tablename__ = 'current_conditions'
-        lamp_id = Column(Integer, ForeignKey('lamps.lamp_id'), primary_key=True)
+    class Location(Base):
+        __tablename__ = 'locations'
+        location = Column(String(255), primary_key=True)
         wave_height_m = Column(Float)
         wave_period_s = Column(Float)
         wind_speed_mps = Column(Float)
@@ -96,11 +96,10 @@ def get_locations():
 
     session = Session()
     try:
-        # Only return locations where there's a lamp with current_conditions data
-        locations = session.query(User.location).distinct()\
-            .join(Lamp, User.user_id == Lamp.user_id)\
-            .join(CurrentConditions, Lamp.lamp_id == CurrentConditions.lamp_id)\
-            .filter(User.location.isnot(None))\
+        # Return locations that have both an Arduino assigned AND valid data
+        locations = session.query(Location.location).distinct()\
+            .join(Arduino, Location.location == Arduino.location)\
+            .filter(Location.wave_height_m.isnot(None))\
             .all()
         return jsonify({'locations': [loc[0] for loc in locations]})
     finally:
@@ -114,31 +113,31 @@ def get_lamp_by_location(location):
 
     session = Session()
     try:
-        # Find ANY user at this location who has a lamp with current conditions
-        result = session.query(User, Lamp, CurrentConditions)\
-            .join(Lamp, User.user_id == Lamp.user_id)\
-            .join(CurrentConditions, Lamp.lamp_id == CurrentConditions.lamp_id)\
-            .filter(User.location == location)\
+        # Find ANY user at this location who has an Arduino (to get thresholds/theme)
+        result = session.query(User, Arduino, Location)\
+            .join(Arduino, User.user_id == Arduino.user_id)\
+            .join(Location, Arduino.location == Location.location)\
+            .filter(Location.location == location)\
             .first()
 
         if not result:
             return jsonify({'data_available': False, 'message': 'No lamp found for this location'}), 404
 
-        user, lamp, conditions = result
+        user, arduino, loc_data = result
 
         # Return data in Arduino API format
         return jsonify({
             'data_available': True,
-            'arduino_id': lamp.arduino_id,
-            'wave_height_cm': int(conditions.wave_height_m * 100),
-            'wave_period_s': float(conditions.wave_period_s),
-            'wind_speed_mps': int(conditions.wind_speed_mps),
-            'wind_direction_deg': conditions.wind_direction_deg,
+            'arduino_id': arduino.arduino_id,
+            'wave_height_cm': int(loc_data.wave_height_m * 100) if loc_data.wave_height_m else 0,
+            'wave_period_s': float(loc_data.wave_period_s) if loc_data.wave_period_s else 0.0,
+            'wind_speed_mps': int(loc_data.wind_speed_mps) if loc_data.wind_speed_mps else 0,
+            'wind_direction_deg': loc_data.wind_direction_deg,
             'wave_threshold_cm': int(user.wave_threshold_m * 100) if user.wave_threshold_m else 100,
             'wind_speed_threshold_knots': user.wind_threshold_knots or 15,
             'led_theme': user.theme or 'classic_surf',
             'quiet_hours_active': False,
-            'last_updated': conditions.last_updated.isoformat() if conditions.last_updated else None
+            'last_updated': loc_data.last_updated.isoformat() if loc_data.last_updated else None
         })
     finally:
         session.close()
