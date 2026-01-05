@@ -7,7 +7,7 @@ from config import limiter, SURF_LOCATIONS
 from utils.decorators import login_required, admin_required
 from waitlist_db import get_all_waitlist_entries, get_recent_signups, get_waitlist_count
 from forms import sanitize_input
-from data_base import SessionLocal, User, Broadcast, Lamp, CurrentConditions
+from data_base import SessionLocal, User, Broadcast, Arduino, Location
 from sqlalchemy.orm import joinedload
 
 logger = logging.getLogger(__name__)
@@ -168,21 +168,21 @@ def arduino_monitor():
 @bp.route('/api/admin/arduino-status')
 @login_required
 def arduino_status_api():
-    """API endpoint returning Arduino device status based on lamp.last_updated timestamps"""
+    """API endpoint returning Arduino device status based on arduino.last_poll_time timestamps"""
     db = SessionLocal()
     try:
-        # Get all lamps with Arduino IDs, join with users to get username
-        results = db.query(Lamp, User).join(User, Lamp.user_id == User.user_id).filter(Lamp.arduino_id.isnot(None)).all()
+        # Get all arduinos with their users and locations
+        results = db.query(Arduino, User, Location).join(User, Arduino.user_id == User.user_id).join(Location, Arduino.location == Location.location).all()
 
         now = datetime.utcnow()
         devices = []
 
-        for lamp, user in results:
-            arduino_id = lamp.arduino_id
+        for arduino, user, location in results:
+            arduino_id = arduino.arduino_id
 
-            # Use lamp.last_updated which is now updated on every Arduino data pull
-            if lamp.last_updated:
-                last_seen = lamp.last_updated
+            # Use arduino.last_poll_time which is updated on every Arduino data pull
+            if arduino.last_poll_time:
+                last_seen = arduino.last_poll_time
 
                 # Handle timezone-aware timestamps
                 if last_seen.tzinfo is not None:
@@ -217,7 +217,7 @@ def arduino_status_api():
 
             devices.append({
                 'arduino_id': arduino_id,
-                'lamp_id': lamp.lamp_id,
+                'location': arduino.location,
                 'username': user.username,
                 'status': status,
                 'status_text': status_text,

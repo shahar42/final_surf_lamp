@@ -17,14 +17,14 @@ def dashboard():
     Displays the user's personalized dashboard.
     """
     user_email = session.get('user_email')
-    
-    # Get user, lamp, and conditions data
-    user, lamp, conditions = get_user_lamp_data(user_email)
-    
-    if not user or not lamp:
-        flash('Error loading your lamp data. Please contact support.', 'error')
+
+    # Get user, arduinos, and location data
+    user, arduinos, location = get_user_lamp_data(user_email)
+
+    if not user:
+        flash('Error loading your data. Please contact support.', 'error')
         return redirect(url_for('auth.login'))
-    
+
     # Prepare data for template
     dashboard_data = {
         'user': {
@@ -41,22 +41,25 @@ def dashboard():
             'off_time_start': getattr(user, 'off_time_start', None),
             'off_time_end': getattr(user, 'off_time_end', None)
         },
-        'lamp': {
-            'lamp_id': lamp.lamp_id,
-            'arduino_id': lamp.arduino_id,
-            'last_updated': lamp.last_updated
-        },
+        'arduinos': [
+            {
+                'arduino_id': arduino.arduino_id,
+                'location': arduino.location,
+                'last_poll_time': arduino.last_poll_time
+            }
+            for arduino in arduinos
+        ],
         'conditions': None
     }
 
-    # Add surf conditions if available
-    if conditions:
+    # Add surf conditions for user's default location if available
+    if location:
         dashboard_data['conditions'] = {
-            'wave_height_m': conditions.wave_height_m,
-            'wave_period_s': conditions.wave_period_s,
-            'wind_speed_mps': conditions.wind_speed_mps,
-            'wind_direction_deg': conditions.wind_direction_deg,
-            'last_updated': conditions.last_updated
+            'wave_height_m': location.wave_height_m,
+            'wave_period_s': location.wave_period_s,
+            'wind_speed_mps': location.wind_speed_mps,
+            'wind_direction_deg': location.wind_direction_deg,
+            'last_updated': location.last_updated
         }
 
     # Check if off hours feature is enabled via env var
@@ -71,13 +74,13 @@ def dashboard_view(view_type):
     Displays the user's personalized dashboard with a specific view.
     """
     user_email = session.get('user_email')
-    
-    user, lamp, conditions = get_user_lamp_data(user_email)
-    
-    if not user or not lamp:
-        flash('Error loading your lamp data. Please contact support.', 'error')
+
+    user, arduinos, location = get_user_lamp_data(user_email)
+
+    if not user:
+        flash('Error loading your data. Please contact support.', 'error')
         return redirect(url_for('auth.login'))
-    
+
     dashboard_data = {
         'user': {
             'username': user.username,
@@ -89,21 +92,24 @@ def dashboard_view(view_type):
             'wind_threshold_knots': user.wind_threshold_knots or 22.0,
             'is_admin': getattr(user, 'is_admin', False)
         },
-        'lamp': {
-            'lamp_id': lamp.lamp_id,
-            'arduino_id': lamp.arduino_id,
-            'last_updated': lamp.last_updated
-        },
+        'arduinos': [
+            {
+                'arduino_id': arduino.arduino_id,
+                'location': arduino.location,
+                'last_poll_time': arduino.last_poll_time
+            }
+            for arduino in arduinos
+        ],
         'conditions': None
     }
-    
-    if conditions:
+
+    if location:
         dashboard_data['conditions'] = {
-            'wave_height_m': conditions.wave_height_m,
-            'wave_period_s': conditions.wave_period_s,
-            'wind_speed_mps': conditions.wind_speed_mps,
-            'wind_direction_deg': conditions.wind_direction_deg,
-            'last_updated': conditions.last_updated
+            'wave_height_m': location.wave_height_m,
+            'wave_period_s': location.wave_period_s,
+            'wind_speed_mps': location.wind_speed_mps,
+            'wind_direction_deg': location.wind_direction_deg,
+            'last_updated': location.last_updated
         }
     
     if view_type == 'experimental':
