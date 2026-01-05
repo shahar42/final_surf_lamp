@@ -1,8 +1,6 @@
 import logging
 import os
 import sys
-import re
-import requests
 from datetime import datetime, timedelta
 from flask import Blueprint, render_template, request, flash, redirect, url_for, session, jsonify
 from config import limiter, SURF_LOCATIONS
@@ -15,69 +13,6 @@ from sqlalchemy.orm import joinedload
 logger = logging.getLogger(__name__)
 
 bp = Blueprint('admin', __name__)
-
-# Render API configuration
-RENDER_API_KEY = os.getenv('RENDER_API_KEY')
-RENDER_SERVICE_ID = 'srv-d3bddhogjchc73feqi8g'  # final-surf-lamp-web
-
-def get_arduino_activity_from_logs():
-    """
-    Fetch Render logs and extract Arduino polling activity with timestamps.
-    Returns dict mapping arduino_id -> last_seen_timestamp
-    """
-    if not RENDER_API_KEY:
-        logger.error("RENDER_API_KEY not configured")
-        return {}
-
-    try:
-        # Fetch recent logs from Render API
-        headers = {'Authorization': f'Bearer {RENDER_API_KEY}'}
-        response = requests.get(
-            f'https://api.render.com/v1/services/{RENDER_SERVICE_ID}/logs',
-            headers=headers,
-            params={'limit': 1000},  # Get more logs to capture all devices
-            timeout=10
-        )
-
-        if response.status_code != 200:
-            logger.error(f"Render API error: {response.status_code}")
-            return {}
-
-        logs = response.text
-        arduino_activity = {}
-
-        # Regex to match Arduino API requests: /api/arduino/{id}/data
-        arduino_pattern = re.compile(r'/api/arduino/(?:v2/)?(\d+)/data')
-        # Regex to extract timestamp from log line (Render format: "YYYY-MM-DD HH:MM:SS")
-        timestamp_pattern = re.compile(r'(\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}:\d{2})')
-
-        for line in logs.split('\n'):
-            # Only count actual Arduino devices (ESP32HTTPClient), not browser requests
-            if '/api/arduino/' in line and '200' in line and 'ESP32HTTPClient' in line:
-                arduino_match = arduino_pattern.search(line)
-                timestamp_match = timestamp_pattern.search(line)
-
-                if arduino_match and timestamp_match:
-                    arduino_id = int(arduino_match.group(1))
-                    timestamp_str = timestamp_match.group(1).replace(' ', 'T')
-
-                    try:
-                        # Parse timestamp (assume UTC)
-                        log_time = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
-
-                        # Keep the most recent timestamp for each Arduino
-                        if arduino_id not in arduino_activity or log_time > arduino_activity[arduino_id]:
-                            arduino_activity[arduino_id] = log_time
-                    except ValueError as e:
-                        logger.warning(f"Failed to parse timestamp: {timestamp_str} - {e}")
-                        continue
-
-        logger.info(f"Found activity for {len(arduino_activity)} Arduino devices in logs")
-        return arduino_activity
-
-    except Exception as e:
-        logger.error(f"Failed to fetch Arduino activity from logs: {e}")
-        return {}
 
 @bp.route("/admin/waitlist")
 @login_required
@@ -219,14 +154,11 @@ def arduino_monitor():
 @bp.route('/api/admin/arduino-status')
 @login_required
 def arduino_status_api():
-    """API endpoint returning Arduino device status based on actual polling activity from logs"""
+    """API endpoint returning Arduino device status based on lamp.last_updated timestamps"""
     db = SessionLocal()
     try:
-        # Get registered Arduino IDs from database
+        # Get all lamps with Arduino IDs
         lamps = db.query(Lamp).filter(Lamp.arduino_id.isnot(None)).all()
-
-        # Get actual Arduino polling activity from Render logs
-        arduino_activity = get_arduino_activity_from_logs()
 
         now = datetime.utcnow()
         devices = []
@@ -234,18 +166,18 @@ def arduino_status_api():
         for lamp in lamps:
             arduino_id = lamp.arduino_id
 
-            # Check if this Arduino has recent polling activity
-            if arduino_id in arduino_activity:
-                last_seen = arduino_activity[arduino_id]
+            # Use lamp.last_updated which is now updated on every Arduino data pull
+            if lamp.last_updated:
+                last_seen = lamp.last_updated
 
-                # Make last_seen timezone-aware if needed
-                if last_seen.tzinfo is None:
+                # Handle timezone-aware timestamps
+                if last_seen.tzinfo is not None:
                     last_seen = last_seen.replace(tzinfo=None)
 
                 time_diff = (now - last_seen).total_seconds()
                 minutes_ago = int(time_diff / 60)
 
-                # Classify status based on actual polling time
+                # Classify status based on last pull time
                 if minutes_ago < 15:
                     status = 'active'
                     status_text = f'{minutes_ago} min ago' if minutes_ago > 0 else 'Just now'
@@ -264,9 +196,9 @@ def arduino_status_api():
 
                 last_updated = last_seen.isoformat()
             else:
-                # No polling activity found in logs
+                # No timestamp recorded yet
                 status = 'never'
-                status_text = 'No recent activity'
+                status_text = 'Never connected'
                 last_updated = None
 
             devices.append({
