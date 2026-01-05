@@ -169,9 +169,13 @@ def get_arduino_surf_data(arduino_id):
                     'data_available': True
                 }
             
+            # Update lamp timestamp to track when Arduino last pulled data
+            lamp.last_updated = datetime.now(timezone.utc)
+            db.commit()
+
             logger.info(f"✅ Returning surf data for Arduino {arduino_id}: wave={surf_data['wave_height_cm']}cm")
             return surf_data, 200
-            
+
         finally:
             db.close()
             
@@ -268,6 +272,10 @@ def get_arduino_surf_data_v2(arduino_id):
                     'last_updated': conditions.last_updated.isoformat() if conditions.last_updated else '1970-01-01T00:00:00Z',
                     'data_available': True
                 }
+
+            # Update lamp timestamp to track when Arduino last pulled data
+            lamp.last_updated = datetime.now(timezone.utc)
+            db.commit()
 
             logger.info(f"✅ V2 data for Arduino {arduino_id}: lat={surf_data['latitude']}, lon={surf_data['longitude']}, tz_offset={tz_offset}")
             return surf_data, 200
