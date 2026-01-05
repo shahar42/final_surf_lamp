@@ -226,6 +226,10 @@ def get_arduino_surf_data_v2(arduino_id):
             elif quiet_hours_active:
                 logger.info(f"🌙 Quiet hours active for {user.location} - threshold alerts disabled")
 
+            # Quiet hours uses fixed safe brightness to avoid power supply minimum load issues
+            # During normal hours, respect user's brightness preference
+            brightness_value = BRIGHTNESS_LEVELS['MID'] if quiet_hours_active else getattr(user, 'brightness_level', BRIGHTNESS_LEVELS['MID'])
+
             # Build response (NO sunset_animation or day_of_year - Arduino calculates locally)
             if not conditions:
                 logger.info(f"ℹ️ No surf conditions yet for Arduino {arduino_id}, returning defaults")
@@ -242,7 +246,7 @@ def get_arduino_surf_data_v2(arduino_id):
                     'led_theme': user.theme or 'day',
                     'quiet_hours_active': quiet_hours_active,
                     'off_hours_active': off_hours_active,
-                    'brightness_multiplier': getattr(user, 'brightness_level', BRIGHTNESS_LEVELS['MID']),
+                    'brightness_multiplier': brightness_value,
                     'last_updated': '1970-01-01T00:00:00Z',
                     'data_available': False
                 }
@@ -260,7 +264,7 @@ def get_arduino_surf_data_v2(arduino_id):
                     'led_theme': user.theme or 'day',
                     'quiet_hours_active': quiet_hours_active,
                     'off_hours_active': off_hours_active,
-                    'brightness_multiplier': getattr(user, 'brightness_level', BRIGHTNESS_LEVELS['MID']),
+                    'brightness_multiplier': brightness_value,
                     'last_updated': conditions.last_updated.isoformat() if conditions.last_updated else '1970-01-01T00:00:00Z',
                     'data_available': True
                 }
