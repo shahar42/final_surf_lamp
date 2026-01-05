@@ -35,6 +35,7 @@ def dashboard():
             'preferred_output': user.preferred_output,
             'wave_threshold_m': user.wave_threshold_m or 1.0,
             'wind_threshold_knots': user.wind_threshold_knots or 22.0,
+            'is_admin': getattr(user, 'is_admin', False),
             'brightness_level': getattr(user, 'brightness_level', 0.4),
             'off_times_enabled': getattr(user, 'off_times_enabled', False),
             'off_time_start': getattr(user, 'off_time_start', None),
@@ -85,7 +86,8 @@ def dashboard_view(view_type):
             'theme': user.theme,
             'preferred_output': user.preferred_output,
             'wave_threshold_m': user.wave_threshold_m or 1.0,
-            'wind_threshold_knots': user.wind_threshold_knots or 22.0
+            'wind_threshold_knots': user.wind_threshold_knots or 22.0,
+            'is_admin': getattr(user, 'is_admin', False)
         },
         'lamp': {
             'lamp_id': lamp.lamp_id,
