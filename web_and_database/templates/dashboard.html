@@ -268,36 +268,36 @@
                     <div class="space-y-2">
                         <div class="grid grid-cols-3 gap-2">
                             <button data-preset="typical" data-start="23:00" data-end="07:00"
-                                    class="preset-btn text-xs py-2 px-2 rounded transition-all border
+                                    class="preset-btn text-sm py-3 px-3 rounded transition-all border
                                     {% if data.user.off_times_enabled and data.user.off_time_start == '23:00' %}
                                         bg-orange-600/80 border-orange-500 text-white font-semibold shadow-[0_0_15px_rgba(234,88,12,0.3)]
                                     {% else %}
                                         bg-white/10 hover:bg-white/20 text-white/80 border-white/20
                                     {% endif %}">
-                                Typical<br><span class="opacity-60">11pm-7am</span>
+                                Typical<br><span class="opacity-60 text-base">11pm-7am</span>
                             </button>
                             <button data-preset="early" data-start="22:00" data-end="06:00"
-                                    class="preset-btn text-xs py-2 px-2 rounded transition-all border
+                                    class="preset-btn text-sm py-3 px-3 rounded transition-all border
                                     {% if data.user.off_times_enabled and data.user.off_time_start == '22:00' %}
                                         bg-orange-600/80 border-orange-500 text-white font-semibold shadow-[0_0_15px_rgba(234,88,12,0.3)]
                                     {% else %}
                                         bg-white/10 hover:bg-white/20 text-white/80 border-white/20
                                     {% endif %}">
-                                Early<br><span class="opacity-60">10pm-6am</span>
+                                Early<br><span class="opacity-60 text-base">10pm-6am</span>
                             </button>
                             <button data-preset="night-owl" data-start="01:00" data-end="09:00"
-                                    class="preset-btn text-xs py-2 px-2 rounded transition-all border
+                                    class="preset-btn text-sm py-3 px-3 rounded transition-all border
                                     {% if data.user.off_times_enabled and data.user.off_time_start == '01:00' %}
                                         bg-orange-600/80 border-orange-500 text-white font-semibold shadow-[0_0_15px_rgba(234,88,12,0.3)]
                                     {% else %}
                                         bg-white/10 hover:bg-white/20 text-white/80 border-white/20
                                     {% endif %}">
-                                Night Owl<br><span class="opacity-60">1am-9am</span>
+                                Night Owl<br><span class="opacity-60 text-base">1am-9am</span>
                             </button>
                         </div>
-                        
-                        <button id="customPresetBtn" 
-                                class="w-full text-xs py-2 rounded transition-all border
+
+                        <button id="customPresetBtn"
+                                class="w-full text-sm py-2 rounded transition-all border
                                 {% if data.user.off_times_enabled and data.user.off_time_start not in ['23:00', '22:00', '01:00'] %}
                                     bg-orange-600/80 border-orange-500 text-white font-semibold shadow-[0_0_15px_rgba(234,88,12,0.3)]
                                 {% else %}
