@@ -147,6 +147,7 @@ def get_active_broadcasts():
 
 @bp.route('/admin/arduino-monitor')
 @login_required
+@admin_required
 def arduino_monitor():
     """Arduino monitoring dashboard showing device connectivity status"""
     return render_template('arduino_monitor.html')
