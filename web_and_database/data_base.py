@@ -512,6 +512,56 @@ def add_user_and_lamp(name, email, password_hash, arduino_id, location, theme, u
         db.close()
 
 
+def add_arduino_to_user(user_id, arduino_id, location):
+    """
+    Links a new Arduino device to an existing user.
+    """
+    logger.info(f"Linking arduino {arduino_id} to user_id: {user_id} at location: {location}")
+
+    db = SessionLocal()
+    try:
+        # 1. Ensure Location record exists
+        active_config = get_active_location_config()
+        if location not in active_config and location not in SINGLE_SOURCE_LOCATIONS:
+            return False, f"Location '{location}' is not supported"
+
+        location_record = db.query(Location).filter(Location.location == location).first()
+        if not location_record:
+            api_sources = active_config.get(location) or SINGLE_SOURCE_LOCATIONS[location]
+            wave_source = next((s for s in api_sources if s.get('type') == 'wave'), api_sources[0])
+            wind_source = next((s for s in api_sources if s.get('type') == 'wind'), api_sources[-1])
+
+            location_record = Location(
+                location=location,
+                wave_api_url=wave_source['url'],
+                wind_api_url=wind_source['url']
+            )
+            db.add(location_record)
+            db.flush()
+
+        # 2. Create Arduino record
+        new_arduino = Arduino(
+            arduino_id=arduino_id,
+            user_id=user_id,
+            location=location
+        )
+        db.add(new_arduino)
+        db.commit()
+        
+        logger.info(f"Successfully linked arduino {arduino_id} to user {user_id}")
+        return True, "Arduino linked successfully"
+
+    except IntegrityError:
+        db.rollback()
+        return False, "This Arduino ID is already registered to another user"
+    except Exception as e:
+        logger.error(f"Error linking arduino: {e}")
+        db.rollback()
+        return False, f"Database error: {str(e)}"
+    finally:
+        db.close()
+
+
 def get_user_lamp_data(email):
     """
     Retrieves all relevant data for the user dashboard.

@@ -4,11 +4,36 @@ import markdown
 from flask import Blueprint, render_template, request, flash, redirect, url_for, session
 from config import SURF_LOCATIONS, BRIGHTNESS_LEVELS
 from utils.decorators import login_required
-from data_base import get_user_lamp_data
+from data_base import get_user_lamp_data, add_arduino_to_user
 
 logger = logging.getLogger(__name__)
 
 bp = Blueprint('dashboard', __name__)
+
+@bp.route("/add-arduino", methods=['POST'])
+@login_required
+def add_arduino():
+    """Endpoint to link a new Arduino to the user's account"""
+    user_id = session.get('user_id')
+    data = request.get_json()
+    
+    arduino_id = data.get('arduino_id')
+    location = data.get('location')
+
+    if not arduino_id or not location:
+        return jsonify({'success': False, 'message': 'Missing Arduino ID or Location'}), 400
+
+    try:
+        arduino_id = int(arduino_id)
+    except ValueError:
+        return jsonify({'success': False, 'message': 'Invalid Arduino ID format'}), 400
+
+    success, message = add_arduino_to_user(user_id, arduino_id, location)
+    
+    if success:
+        return jsonify({'success': True, 'message': message}), 200
+    else:
+        return jsonify({'success': False, 'message': message}), 400
 
 @bp.route("/dashboard")
 @login_required
