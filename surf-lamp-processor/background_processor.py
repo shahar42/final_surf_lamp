@@ -56,12 +56,10 @@ from dotenv import load_dotenv
 # Import from refactored modules
 from lamp_repository import (
     test_database_connection,
-    get_location_based_configs,
-    get_lamps_for_location,
-    update_lamp_timestamp,
-    update_current_conditions,
-    batch_update_lamp_timestamps,
-    batch_update_current_conditions
+    get_location_api_configs,
+    get_arduinos_for_location,
+    update_location_conditions,
+    batch_update_arduino_timestamps
 )
 from weather_api_client import fetch_surf_data
 
@@ -116,50 +114,45 @@ def process_all_lamps():
             logger.error("❌ Database connection failed, aborting cycle")
             return False
 
-        # Step 2: Get location-based API configurations
-        location_configs = get_location_based_configs(engine)
+        # Step 2: Get location API configurations from database
+        location_configs = get_location_api_configs(engine)
         if not location_configs:
             logger.error("❌ No location configurations found, aborting cycle")
             return False
 
-        logger.info(f"📊 Processing {len(location_configs)} locations with multi-source APIs...")
+        logger.info(f"📊 Processing {len(location_configs)} locations...")
 
-        # Step 3: Process each location with multi-source priority
-        total_lamps_updated = 0
+        # Step 3: Process each location (one API call per location updates all arduinos)
+        total_arduinos_updated = 0
         total_api_calls = 0
 
         for location, config in location_configs.items():
             logger.info(f"\n--- Processing Location: {location} ---")
-            logger.info(f"Available API sources: {len(config['endpoints'])}")
 
-            # Get all lamps in this location
-            lamps = get_lamps_for_location(engine, location)
-            if not lamps:
-                logger.warning(f"⚠️  No lamps found for location: {location}")
+            # Get all arduinos in this location
+            arduinos = get_arduinos_for_location(engine, location)
+            if not arduinos:
+                logger.warning(f"⚠️  No arduinos found for location: {location}")
                 continue
 
-            # Try each API source in priority order until we get complete data
+            # Fetch data from wave API
+            logger.info(f"  Fetching wave data: {config['wave_api_url'][:80]}...")
+            total_api_calls += 1
+            wave_data = fetch_surf_data(None, config['wave_api_url'])
+
+            # Fetch data from wind API
+            logger.info(f"  Fetching wind data: {config['wind_api_url'][:80]}...")
+            total_api_calls += 1
+            wind_data = fetch_surf_data(None, config['wind_api_url'])
+
+            # Combine data from both sources
             combined_surf_data = {}
-
-            for endpoint in config['endpoints']:
-                logger.info(f"  Trying API: {endpoint['website_url']} (Priority: {endpoint['priority']})")
-                total_api_calls += 1
-
-                # Fetch data from this API source
-                surf_data = fetch_surf_data(
-                    endpoint['api_key'],
-                    endpoint['http_endpoint']
-                )
-
-                if surf_data:
-                    # Merge data, prioritizing fields from higher priority sources
-                    for field, value in surf_data.items():
-                        if field not in combined_surf_data or value is not None:
-                            combined_surf_data[field] = value
-
-                    logger.info(f"✅ Got data: {list(surf_data.keys())}")
-                else:
-                    logger.warning(f"⚠️  Failed to get data from {endpoint['website_url']}")
+            if wave_data:
+                combined_surf_data.update(wave_data)
+                logger.info(f"✅ Got wave data: {list(wave_data.keys())}")
+            if wind_data:
+                combined_surf_data.update(wind_data)
+                logger.info(f"✅ Got wind data: {list(wind_data.keys())}")
 
             # Check if we have sufficient data
             if not combined_surf_data:
@@ -168,49 +161,33 @@ def process_all_lamps():
 
             logger.info(f"📊 Combined data for {location}: {list(combined_surf_data.keys())}")
 
-            # Batch update all lamps in this location
-            logger.info(f"📦 Batch updating {len(lamps)} lamps in {location}")
+            # Update location table ONCE (all arduinos inherit)
+            logger.info(f"📦 Updating location table for {location}")
+            location_updated = update_location_conditions(engine, location, combined_surf_data)
 
-            # Extract all lamp IDs for this location (dynamic - adapts to any number of lamps)
-            lamp_ids = [lamp['lamp_id'] for lamp in lamps]
+            if location_updated:
+                # Update arduino timestamps to track polling activity
+                arduino_ids = [arduino['arduino_id'] for arduino in arduinos]
+                batch_update_arduino_timestamps(engine, arduino_ids)
 
-            # Batch update timestamps and conditions
-            timestamp_updated = batch_update_lamp_timestamps(engine, lamp_ids)
-            conditions_updated = batch_update_current_conditions(engine, lamp_ids, combined_surf_data)
+                total_arduinos_updated += len(arduinos)
+                logger.info(f"✅ Location updated successfully - {len(arduinos)} arduinos inherit this data")
 
-            if timestamp_updated and conditions_updated:
-                total_lamps_updated += len(lamps)
-                logger.info(f"✅ Batch updated {len(lamps)} lamps successfully")
-
-                # Log individual lamp details for monitoring
-                for lamp in lamps:
-                    logger.info(f"   ✓ Lamp {lamp['lamp_id']} (Arduino {lamp['arduino_id']})")
+                # Log individual arduino details for monitoring
+                for arduino in arduinos:
+                    logger.info(f"   ✓ Arduino {arduino['arduino_id']} (User {arduino['user_id']})")
             else:
-                # Fallback to individual updates if batch fails
-                logger.error(f"❌ Batch update failed for {location}")
-                logger.warning("⚠️  Attempting individual fallback updates...")
-                lamps_updated_for_location = 0
-                for lamp in lamps:
-                    logger.info(f"  Fallback: Updating lamp {lamp['lamp_id']} (Arduino {lamp['arduino_id']})")
-                    timestamp_ok = update_lamp_timestamp(engine, lamp['lamp_id'])
-                    conditions_ok = update_current_conditions(engine, lamp['lamp_id'], combined_surf_data)
-                    if timestamp_ok and conditions_ok:
-                        lamps_updated_for_location += 1
-                        total_lamps_updated += 1
-                        logger.info(f"   ✓ Lamp {lamp['lamp_id']} updated via fallback")
-                    else:
-                        logger.error(f"   ✗ Fallback failed for lamp {lamp['lamp_id']}")
-                logger.info(f"📊 Fallback updated {lamps_updated_for_location}/{len(lamps)} lamps in {location}")
+                logger.error(f"❌ Failed to update location {location}")
 
         # Final summary
         end_time = time.time()
         duration = round(end_time - start_time, 2)
 
-        logger.info("\n🎉 ======= LOCATION-BASED PROCESSING CYCLE COMPLETED =======")
+        logger.info("\n🎉 ======= LOCATION-CENTRIC PROCESSING CYCLE COMPLETED =======")
         logger.info("📊 Summary:")
         logger.info(f"   - Locations processed: {len(location_configs)}")
         logger.info(f"   - Total API calls made: {total_api_calls}")
-        logger.info(f"   - Lamps updated: {total_lamps_updated}")
+        logger.info(f"   - Arduinos updated: {total_arduinos_updated}")
         logger.info(f"   - Duration: {duration} seconds")
         logger.info("   - Status: SUCCESS")
 

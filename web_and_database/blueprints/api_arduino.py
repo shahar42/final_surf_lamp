@@ -4,7 +4,7 @@ import sys
 import os
 from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify
-from data_base import SessionLocal, Lamp, CurrentConditions, User, ErrorReport
+from data_base import SessionLocal, Arduino, Location, User, ErrorReport
 from utils.helpers import is_quiet_hours, is_off_hours, get_current_tz_offset
 from config import BRIGHTNESS_LEVELS
 
@@ -46,28 +46,27 @@ def handle_arduino_callback():
         # Update database with confirmed delivery
         db = SessionLocal()
         try:
-            # Find the lamp by arduino_id
-            lamp = db.query(Lamp).filter(Lamp.arduino_id == arduino_id).first()
-            
-            if not lamp:
+            # Find the arduino
+            arduino = db.query(Arduino).filter(Arduino.arduino_id == arduino_id).first()
+
+            if not arduino:
                 logger.warning(f"⚠️  Arduino {arduino_id} not found in database")
                 return {'success': False, 'message': f'Arduino {arduino_id} not found'}, 404
 
-            # Update lamp timestamp (confirms delivery)
-            lamp.last_updated = datetime.now(timezone.utc)
-            logger.info(f"✅ Updated lamp {lamp.lamp_id} timestamp")
-            
+            # Update arduino timestamp (confirms delivery)
+            arduino.last_poll_time = datetime.now(timezone.utc)
+            logger.info(f"✅ Updated arduino {arduino.arduino_id} timestamp")
+
             # Commit all changes
             db.commit()
-            
+
             logger.info(f"✅ Database updated successfully for Arduino {arduino_id}")
-            logger.info(f"   Lamp ID: {lamp.lamp_id}, Timestamp updated: {lamp.last_updated}")
-            
+            logger.info(f"   Timestamp updated: {arduino.last_poll_time}")
+
             # Return success response to Arduino
             response_data = {
                 'success': True,
                 'message': 'Callback processed successfully',
-                'lamp_id': lamp.lamp_id,
                 'arduino_id': arduino_id,
                 'timestamp': datetime.now(timezone.utc).isoformat()
             }
@@ -95,21 +94,21 @@ def get_arduino_surf_data(arduino_id):
     logger.info(f"📥 Arduino {arduino_id} requesting surf data (PULL mode)")
     
     try:
-        # Get lamp data for this Arduino
+        # Get arduino data
         db = SessionLocal()
         try:
-            # Join to get current conditions for this Arduino
-            result = db.query(Lamp, CurrentConditions, User).select_from(Lamp) \
-                .outerjoin(CurrentConditions, Lamp.lamp_id == CurrentConditions.lamp_id) \
-                .join(User, Lamp.user_id == User.user_id) \
-                .filter(Lamp.arduino_id == arduino_id) \
+            # Join to get location conditions for this Arduino
+            result = db.query(Arduino, Location, User).select_from(Arduino) \
+                .join(User, Arduino.user_id == User.user_id) \
+                .join(Location, Arduino.location == Location.location) \
+                .filter(Arduino.arduino_id == arduino_id) \
                 .first()
-            
+
             if not result:
                 logger.warning(f"⚠️ Arduino {arduino_id} not found in database")
                 return {'error': 'Arduino not found'}, 404
-            
-            lamp, conditions, user = result
+
+            arduino, location, user = result
 
             # Check if current time is within quiet hours for this user's location
             quiet_hours_active = is_quiet_hours(user.location)
@@ -131,46 +130,26 @@ def get_arduino_surf_data(arduino_id):
             sunset_info = get_sunset_info(user.location, trigger_window_minutes=15)
             logger.info(f"🌅 Sunset info: trigger={sunset_info['sunset_trigger']}, day={sunset_info['day_of_year']}")
 
-            # If no conditions yet, return zeros (safe defaults)
-            if not conditions:
-                logger.info(f"ℹ️ No surf conditions yet for Arduino {arduino_id}, returning defaults")
-                surf_data = {
-                    'wave_height_cm': 0,
-                    'wave_period_s': 0.0,
-                    'wind_speed_mps': 0,
-                    'wind_direction_deg': 0,
-                    'wave_threshold_cm': int((user.wave_threshold_m or 1.0) * 100),
-                    'wind_speed_threshold_knots': int(round(user.wind_threshold_knots or 22.0)),
-                    'led_theme': user.theme or 'day',
-                    'quiet_hours_active': quiet_hours_active,
-                    'off_hours_active': off_hours_active,
-                    'sunset_animation': sunset_info['sunset_trigger'],
-                    'day_of_year': sunset_info['day_of_year'],
-                    'brightness_multiplier': getattr(user, 'brightness_level', BRIGHTNESS_LEVELS['MID']),
-                    'last_updated': '1970-01-01T00:00:00Z',
-                    'data_available': False
-                }
-            else:
-                # Format data exactly like current POST format
-                surf_data = {
-                    'wave_height_cm': int(round((conditions.wave_height_m or 0) * 100)),
-                    'wave_period_s': conditions.wave_period_s or 0.0,
-                    'wind_speed_mps': int(round(conditions.wind_speed_mps or 0)),
-                    'wind_direction_deg': conditions.wind_direction_deg or 0,
-                    'wave_threshold_cm': int((user.wave_threshold_m or 1.0) * 100),
-                    'wind_speed_threshold_knots': int(round(user.wind_threshold_knots or 22.0)),
-                    'led_theme': user.theme or 'day',
-                    'quiet_hours_active': quiet_hours_active,
-                    'off_hours_active': off_hours_active,
-                    'sunset_animation': sunset_info['sunset_trigger'],
-                    'day_of_year': sunset_info['day_of_year'],
-                    'brightness_multiplier': getattr(user, 'brightness_level', BRIGHTNESS_LEVELS['MID']),
-                    'last_updated': conditions.last_updated.isoformat() if conditions.last_updated else '1970-01-01T00:00:00Z',
-                    'data_available': True
-                }
-            
-            # Update lamp timestamp to track when Arduino last pulled data
-            lamp.last_updated = datetime.now(timezone.utc)
+            # Return location conditions data
+            surf_data = {
+                'wave_height_cm': int(round((location.wave_height_m or 0) * 100)),
+                'wave_period_s': location.wave_period_s or 0.0,
+                'wind_speed_mps': int(round(location.wind_speed_mps or 0)),
+                'wind_direction_deg': location.wind_direction_deg or 0,
+                'wave_threshold_cm': int((user.wave_threshold_m or 1.0) * 100),
+                'wind_speed_threshold_knots': int(round(user.wind_threshold_knots or 22.0)),
+                'led_theme': user.theme or 'day',
+                'quiet_hours_active': quiet_hours_active,
+                'off_hours_active': off_hours_active,
+                'sunset_animation': sunset_info['sunset_trigger'],
+                'day_of_year': sunset_info['day_of_year'],
+                'brightness_multiplier': getattr(user, 'brightness_level', BRIGHTNESS_LEVELS['MID']),
+                'last_updated': location.last_updated.isoformat() if location.last_updated else '1970-01-01T00:00:00Z',
+                'data_available': bool(location.wave_height_m or location.wind_speed_mps)
+            }
+
+            # Update arduino timestamp to track when Arduino last pulled data
+            arduino.last_poll_time = datetime.now(timezone.utc)
             db.commit()
 
             logger.info(f"✅ Returning surf data for Arduino {arduino_id}: wave={surf_data['wave_height_cm']}cm")
@@ -194,18 +173,18 @@ def get_arduino_surf_data_v2(arduino_id):
     try:
         db = SessionLocal()
         try:
-            # Join to get current conditions for this Arduino
-            result = db.query(Lamp, CurrentConditions, User).select_from(Lamp) \
-                .outerjoin(CurrentConditions, Lamp.lamp_id == CurrentConditions.lamp_id) \
-                .join(User, Lamp.user_id == User.user_id) \
-                .filter(Lamp.arduino_id == arduino_id) \
+            # Join to get location conditions for this Arduino
+            result = db.query(Arduino, Location, User).select_from(Arduino) \
+                .join(User, Arduino.user_id == User.user_id) \
+                .join(Location, Arduino.location == Location.location) \
+                .filter(Arduino.arduino_id == arduino_id) \
                 .first()
 
             if not result:
                 logger.warning(f"⚠️ Arduino {arduino_id} not found in database")
                 return {'error': 'Arduino not found'}, 404
 
-            lamp, conditions, user = result
+            arduino, location, user = result
 
             # Get coordinates for user's location
             location_data = LOCATION_COORDS.get(user.location)
@@ -235,46 +214,26 @@ def get_arduino_surf_data_v2(arduino_id):
             brightness_value = BRIGHTNESS_LEVELS['MID'] if quiet_hours_active else getattr(user, 'brightness_level', BRIGHTNESS_LEVELS['MID'])
 
             # Build response (NO sunset_animation or day_of_year - Arduino calculates locally)
-            if not conditions:
-                logger.info(f"ℹ️ No surf conditions yet for Arduino {arduino_id}, returning defaults")
-                surf_data = {
-                    'latitude': location_data['latitude'],
-                    'longitude': location_data['longitude'],
-                    'tz_offset': tz_offset,
-                    'wave_height_cm': 0,
-                    'wave_period_s': 0.0,
-                    'wind_speed_mps': 0,
-                    'wind_direction_deg': 0,
-                    'wave_threshold_cm': int((user.wave_threshold_m or 1.0) * 100),
-                    'wind_speed_threshold_knots': int(round(user.wind_threshold_knots or 22.0)),
-                    'led_theme': user.theme or 'day',
-                    'quiet_hours_active': quiet_hours_active,
-                    'off_hours_active': off_hours_active,
-                    'brightness_multiplier': brightness_value,
-                    'last_updated': '1970-01-01T00:00:00Z',
-                    'data_available': False
-                }
-            else:
-                surf_data = {
-                    'latitude': location_data['latitude'],
-                    'longitude': location_data['longitude'],
-                    'tz_offset': tz_offset,
-                    'wave_height_cm': int(round((conditions.wave_height_m or 0) * 100)),
-                    'wave_period_s': conditions.wave_period_s or 0.0,
-                    'wind_speed_mps': int(round(conditions.wind_speed_mps or 0)),
-                    'wind_direction_deg': conditions.wind_direction_deg or 0,
-                    'wave_threshold_cm': int((user.wave_threshold_m or 1.0) * 100),
-                    'wind_speed_threshold_knots': int(round(user.wind_threshold_knots or 22.0)),
-                    'led_theme': user.theme or 'day',
-                    'quiet_hours_active': quiet_hours_active,
-                    'off_hours_active': off_hours_active,
-                    'brightness_multiplier': brightness_value,
-                    'last_updated': conditions.last_updated.isoformat() if conditions.last_updated else '1970-01-01T00:00:00Z',
-                    'data_available': True
-                }
+            surf_data = {
+                'latitude': location_data['latitude'],
+                'longitude': location_data['longitude'],
+                'tz_offset': tz_offset,
+                'wave_height_cm': int(round((location.wave_height_m or 0) * 100)),
+                'wave_period_s': location.wave_period_s or 0.0,
+                'wind_speed_mps': int(round(location.wind_speed_mps or 0)),
+                'wind_direction_deg': location.wind_direction_deg or 0,
+                'wave_threshold_cm': int((user.wave_threshold_m or 1.0) * 100),
+                'wind_speed_threshold_knots': int(round(user.wind_threshold_knots or 22.0)),
+                'led_theme': user.theme or 'day',
+                'quiet_hours_active': quiet_hours_active,
+                'off_hours_active': off_hours_active,
+                'brightness_multiplier': brightness_value,
+                'last_updated': location.last_updated.isoformat() if location.last_updated else '1970-01-01T00:00:00Z',
+                'data_available': bool(location.wave_height_m or location.wind_speed_mps)
+            }
 
-            # Update lamp timestamp to track when Arduino last pulled data
-            lamp.last_updated = datetime.now(timezone.utc)
+            # Update arduino timestamp to track when Arduino last pulled data
+            arduino.last_poll_time = datetime.now(timezone.utc)
             db.commit()
 
             logger.info(f"✅ V2 data for Arduino {arduino_id}: lat={surf_data['latitude']}, lon={surf_data['longitude']}, tz_offset={tz_offset}")
@@ -320,28 +279,23 @@ def arduino_status_overview():
     try:
         db = SessionLocal()
         try:
-            # Query all lamps with their current conditions
-            results = db.query(Lamp, CurrentConditions).outerjoin(
-                CurrentConditions, Lamp.lamp_id == CurrentConditions.lamp_id
+            # Query all arduinos with their location conditions
+            results = db.query(Arduino, Location).join(
+                Location, Arduino.location == Location.location
             ).all()
 
             arduino_status = []
-            for lamp, conditions in results:
+            for arduino, location in results:
                 status_info = {
-                    'arduino_id': lamp.arduino_id,
-                    'lamp_id': lamp.lamp_id,
-                    'last_updated': lamp.last_updated.isoformat() if lamp.last_updated else None,
-                    'has_conditions': conditions is not None,
-                    'conditions_updated': conditions.last_updated.isoformat() if conditions and conditions.last_updated else None
+                    'arduino_id': arduino.arduino_id,
+                    'location': arduino.location,
+                    'last_poll_time': arduino.last_poll_time.isoformat() if arduino.last_poll_time else None,
+                    'location_updated': location.last_updated.isoformat() if location.last_updated else None,
+                    'wave_height_m': location.wave_height_m,
+                    'wave_period_s': location.wave_period_s,
+                    'wind_speed_mps': location.wind_speed_mps,
+                    'wind_direction_deg': location.wind_direction_deg
                 }
-
-                if conditions:
-                    status_info.update({
-                        'wave_height_m': conditions.wave_height_m,
-                        'wave_period_s': conditions.wave_period_s,
-                        'wind_speed_mps': conditions.wind_speed_mps,
-                        'wind_direction_deg': conditions.wind_direction_deg
-                    })
 
                 arduino_status.append(status_info)
 
