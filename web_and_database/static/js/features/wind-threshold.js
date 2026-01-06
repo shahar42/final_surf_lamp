@@ -5,18 +5,18 @@
 
 const WindThreshold = {
     slider: null,
+    updateTimeout: null,
 
     /**
      * Initialize wind threshold range slider
      */
     init: function() {
         const sliderElement = document.getElementById('windSlider');
-        const updateBtn = document.getElementById('updateWindThreshold');
         const statusDiv = document.getElementById('wind-threshold-status');
         const minInput = document.getElementById('windThresholdMin');
         const maxInput = document.getElementById('windThresholdMax');
 
-        if (!sliderElement || !updateBtn || !statusDiv || !minInput) {
+        if (!sliderElement || !statusDiv || !minInput) {
             console.error('WindThreshold: Required elements not found');
             return;
         }
@@ -57,28 +57,34 @@ const WindThreshold = {
             maxInput.value = values[1];
         });
 
-        // Handle "Set" button click
-        updateBtn.addEventListener('click', async () => {
-            const values = this.slider.get();
+        // Auto-update on slider change (when user releases handle)
+        this.slider.on('change', async (values, handle) => {
             const thresholdMin = parseInt(values[0]);
             const thresholdMax = parseInt(values[1]);
 
-            StatusMessage.loading(statusDiv);
-
-            // Make API request
-            const result = await ApiClient.post(
-                DashboardConfig.API.UPDATE_WIND_THRESHOLD,
-                {
-                    threshold_min: thresholdMin,
-                    threshold_max: thresholdMax
-                }
-            );
-
-            if (result.ok) {
-                StatusMessage.success(statusDiv, result.data.message);
-            } else {
-                StatusMessage.error(statusDiv, 'Error: ' + result.data.message);
+            // Debounce: clear previous timeout
+            if (this.updateTimeout) {
+                clearTimeout(this.updateTimeout);
             }
+
+            // Wait 300ms before sending API request
+            this.updateTimeout = setTimeout(async () => {
+                StatusMessage.loading(statusDiv);
+
+                const result = await ApiClient.post(
+                    DashboardConfig.API.UPDATE_WIND_THRESHOLD,
+                    {
+                        threshold_min: thresholdMin,
+                        threshold_max: thresholdMax
+                    }
+                );
+
+                if (result.ok) {
+                    StatusMessage.success(statusDiv, result.data.message);
+                } else {
+                    StatusMessage.error(statusDiv, 'Error: ' + result.data.message);
+                }
+            }, 300);
         });
     }
 };
