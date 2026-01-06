@@ -137,10 +137,7 @@ def dashboard_view(view_type):
             'last_updated': location.last_updated
         }
     
-    if view_type == 'experimental':
-        return render_template('experimental_dashboard.html', data=dashboard_data, locations=SURF_LOCATIONS, brightness_levels=BRIGHTNESS_LEVELS)
-    else:
-        return render_template('dashboard.html', data=dashboard_data, locations=SURF_LOCATIONS, brightness_levels=BRIGHTNESS_LEVELS)
+    return render_template('dashboard.html', data=dashboard_data, locations=SURF_LOCATIONS, brightness_levels=BRIGHTNESS_LEVELS)
 
 @bp.route("/themes")
 @login_required
