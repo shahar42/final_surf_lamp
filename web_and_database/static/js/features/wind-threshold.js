@@ -15,8 +15,6 @@ const WindThreshold = {
         const statusDiv = document.getElementById('wind-threshold-status');
         const minInput = document.getElementById('windThresholdMin');
         const maxInput = document.getElementById('windThresholdMax');
-        const minLabel = document.getElementById('windMinLabel');
-        const maxLabel = document.getElementById('windMaxLabel');
 
         if (!sliderElement || !updateBtn || !statusDiv || !minInput) {
             console.error('WindThreshold: Required elements not found');
@@ -40,7 +38,7 @@ const WindThreshold = {
                 'max': sliderMax
             },
             step: 1,
-            tooltips: false,
+            tooltips: [true, true],  // Show tooltips above both handles
             format: {
                 to: function(value) {
                     return Math.round(value);
@@ -53,17 +51,10 @@ const WindThreshold = {
 
         this.slider = sliderElement.noUiSlider;
 
-        // Update labels when slider changes
+        // Store values in hidden inputs when slider changes
         this.slider.on('update', function(values, handle) {
-            const min = values[0];
-            const max = values[1];
-
-            minLabel.textContent = `${min} knots`;
-            maxLabel.textContent = `${max} knots`;
-
-            // Store values in hidden inputs
-            minInput.value = min;
-            maxInput.value = max;
+            minInput.value = values[0];
+            maxInput.value = values[1];
         });
 
         // Handle "Set" button click
