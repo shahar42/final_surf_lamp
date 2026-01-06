@@ -197,7 +197,12 @@
                 <div class="flex justify-between items-center pt-2 border-t border-white/20">
                     <span class="text-white/80">Status:</span>
                     {% if data.conditions %}
-                        <span class="status-online font-semibold">● Online</span>
+                        <span class="status-online font-semibold">
+                            ● Online
+                            {% if data.conditions.last_updated %}
+                                <span class="text-white/60 text-xs ml-1">(Updated <span id="statusUpdateTime" data-timestamp="{{ data.conditions.last_updated }}">--</span>)</span>
+                            {% endif %}
+                        </span>
                     {% else %}
                         <span class="status-offline font-semibold">● No Data</span>
                     {% endif %}
@@ -573,6 +578,32 @@
 
     // Arduino Management (Link New Lamp)
     ArduinoManagement.init();
+
+    // Status Update Time Display
+    function formatTimeAgo(isoTimestamp) {
+        const now = new Date();
+        const updated = new Date(isoTimestamp);
+        const diffMs = now - updated;
+        const diffMins = Math.floor(diffMs / 60000);
+
+        if (diffMins < 1) return "just now";
+        if (diffMins < 60) return `${diffMins}m ago`;
+        const diffHours = Math.floor(diffMins / 60);
+        if (diffHours < 24) return `${diffHours}h ago`;
+        return `${Math.floor(diffHours / 24)}d ago`;
+    }
+
+    function updateStatusTime() {
+        const elem = document.getElementById('statusUpdateTime');
+        const timestamp = elem?.dataset.timestamp;
+        if (timestamp) {
+            elem.textContent = formatTimeAgo(timestamp);
+        }
+    }
+
+    // Update status time on page load and every minute
+    updateStatusTime();
+    setInterval(updateStatusTime, 60000);
 
     </script>
 
