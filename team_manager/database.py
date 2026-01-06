@@ -1,24 +1,17 @@
-import psycopg2
-import psycopg2.extras
+import sqlite3
 
-def get_connection(db_url):
+def dict_factory(cursor, row):
+    """Convert SQLite rows to dictionaries (like psycopg2.extras.DictCursor)"""
+    fields = [column[0] for column in cursor.description]
+    return dict(zip(fields, row))
+
+def get_connection(db_path):
     """
-    Creates and returns a new database connection.
-    Handles Render-specific SSL requirements.
+    Creates and returns a new SQLite database connection.
     """
-    if not db_url:
-        # In a real app, use logging instead of print
-        print("DEBUG: DATABASE_URL is MISSING or Empty!")
-        raise ValueError("DATABASE_URL is not set")
+    if not db_path:
+        db_path = 'staff_command.db'  # Default SQLite database
 
-    # Auto-append SSL mode for Render
-    if 'sslmode' not in db_url:
-        if '?' in db_url:
-            db_url += "&sslmode=require"
-        else:
-            db_url += "?sslmode=require"
-
-    return psycopg2.connect(
-        db_url,
-        cursor_factory=psycopg2.extras.DictCursor
-    )
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = dict_factory  # Return rows as dictionaries
+    return conn

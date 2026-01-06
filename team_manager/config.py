@@ -4,8 +4,8 @@ class Config:
     """Base configuration class."""
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
     
-    # Database
-    DATABASE_URL = os.environ.get('DATABASE_URL')
+    # Database (SQLite)
+    DATABASE_URL = os.environ.get('DATABASE_URL', 'staff_command.db')
     
     # File Uploads
     UPLOAD_FOLDER_CONTRACTS = os.environ.get('UPLOAD_FOLDER_CONTRACTS', 'static/uploads/contracts')
