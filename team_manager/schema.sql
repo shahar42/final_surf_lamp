@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS tm_workers (
-    id SERIAL PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     role TEXT NOT NULL,
     tags TEXT,
@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS tm_workers (
 );
 
 CREATE TABLE IF NOT EXISTS tm_contracts (
-    id SERIAL PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     worker_id INTEGER NOT NULL,
     title TEXT NOT NULL,
     rate TEXT NOT NULL,
@@ -21,8 +21,7 @@ CREATE TABLE IF NOT EXISTS tm_contracts (
     terms TEXT,
     status TEXT DEFAULT 'Active',
     pdf_filename TEXT,
-    CONSTRAINT fk_worker
-        FOREIGN KEY (worker_id)
+    FOREIGN KEY (worker_id)
         REFERENCES tm_workers (id)
         ON DELETE CASCADE
 );
