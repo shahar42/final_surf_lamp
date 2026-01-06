@@ -1,6 +1,6 @@
 import logging
 from flask import Blueprint, request, session, jsonify
-from config import limiter, SURF_LOCATIONS
+from config import limiter, SURF_LOCATIONS, THRESHOLD_LIMITS
 from utils.decorators import login_required
 from utils.rate_limit import check_location_change_limit, record_location_change
 from utils.threshold_logic import validate_threshold_range
@@ -59,12 +59,12 @@ def update_threshold():
             threshold_max = float(threshold_max)
 
         # Validate min threshold bounds
-        if threshold_min < 0.1 or threshold_min > 10.0:
-            return {'success': False, 'message': 'Minimum threshold must be between 0.1 and 10.0 meters'}, 400
+        if threshold_min < THRESHOLD_LIMITS['WAVE_MIN'] or threshold_min > THRESHOLD_LIMITS['WAVE_MAX']:
+            return {'success': False, 'message': f"Minimum threshold must be between {THRESHOLD_LIMITS['WAVE_MIN']} and {THRESHOLD_LIMITS['WAVE_MAX']} meters"}, 400
 
         # Validate max threshold bounds if provided
-        if threshold_max is not None and (threshold_max < 0.1 or threshold_max > 10.0):
-            return {'success': False, 'message': 'Maximum threshold must be between 0.1 and 10.0 meters'}, 400
+        if threshold_max is not None and (threshold_max < THRESHOLD_LIMITS['WAVE_MIN'] or threshold_max > THRESHOLD_LIMITS['WAVE_MAX']):
+            return {'success': False, 'message': f"Maximum threshold must be between {THRESHOLD_LIMITS['WAVE_MIN']} and {THRESHOLD_LIMITS['WAVE_MAX']} meters"}, 400
 
         # Validate range relationship
         is_valid, error_msg = validate_threshold_range(threshold_min, threshold_max)
@@ -108,12 +108,12 @@ def update_wind_threshold():
             threshold_max = float(threshold_max)
 
         # Validate min threshold bounds
-        if threshold_min < 1 or threshold_min > 50:
-            return {'success': False, 'message': 'Minimum wind threshold must be between 1 and 50 knots'}, 400
+        if threshold_min < THRESHOLD_LIMITS['WIND_MIN'] or threshold_min > THRESHOLD_LIMITS['WIND_MAX']:
+            return {'success': False, 'message': f"Minimum wind threshold must be between {THRESHOLD_LIMITS['WIND_MIN']} and {THRESHOLD_LIMITS['WIND_MAX']} knots"}, 400
 
         # Validate max threshold bounds if provided
-        if threshold_max is not None and (threshold_max < 1 or threshold_max > 50):
-            return {'success': False, 'message': 'Maximum wind threshold must be between 1 and 50 knots'}, 400
+        if threshold_max is not None and (threshold_max < THRESHOLD_LIMITS['WIND_MIN'] or threshold_max > THRESHOLD_LIMITS['WIND_MAX']):
+            return {'success': False, 'message': f"Maximum wind threshold must be between {THRESHOLD_LIMITS['WIND_MIN']} and {THRESHOLD_LIMITS['WIND_MAX']} knots"}, 400
 
         # Validate range relationship
         is_valid, error_msg = validate_threshold_range(threshold_min, threshold_max)

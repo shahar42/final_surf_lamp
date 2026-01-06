@@ -22,12 +22,12 @@ const WindThreshold = {
         }
 
         // Get current values
-        const currentMin = parseFloat(minInput.value) || 22;
-        const currentMax = maxInput.value ? parseFloat(maxInput.value) : 50;
+        const currentMin = parseFloat(minInput.value) || DashboardConfig.LIMITS.WIND_THRESHOLD_MIN_KNOTS;
+        const currentMax = maxInput.value ? parseFloat(maxInput.value) : DashboardConfig.LIMITS.WIND_THRESHOLD_MAX_KNOTS;
 
         // Slider range bounds (knots)
-        const sliderMin = 1;
-        const sliderMax = 50;
+        const sliderMin = DashboardConfig.LIMITS.WIND_THRESHOLD_MIN_KNOTS;
+        const sliderMax = DashboardConfig.LIMITS.WIND_THRESHOLD_MAX_KNOTS;
 
         // Create dual-handle range slider
         noUiSlider.create(sliderElement, {
