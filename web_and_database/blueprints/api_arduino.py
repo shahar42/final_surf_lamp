@@ -53,9 +53,13 @@ def handle_arduino_callback():
                 logger.warning(f"⚠️  Arduino {arduino_id} not found in database")
                 return {'success': False, 'message': f'Arduino {arduino_id} not found'}, 404
 
-            # Update arduino timestamp (confirms delivery)
-            arduino.last_poll_time = datetime.now(timezone.utc)
-            logger.info(f"✅ Updated arduino {arduino.arduino_id} timestamp")
+            # Update arduino timestamp only for physical devices (not dashboard views)
+            user_agent = request.headers.get('User-Agent', '')
+            if 'ESP32' in user_agent:
+                arduino.last_poll_time = datetime.now(timezone.utc)
+                logger.info(f"✅ Updated arduino {arduino.arduino_id} timestamp (physical device)")
+            else:
+                logger.info(f"📊 Dashboard callback for arduino {arduino.arduino_id} (no timestamp update)")
 
             # Commit all changes
             db.commit()
@@ -148,8 +152,14 @@ def get_arduino_surf_data(arduino_id):
                 'data_available': bool(location.wave_height_m or location.wind_speed_mps)
             }
 
-            # Update arduino timestamp to track when Arduino last pulled data
-            arduino.last_poll_time = datetime.now(timezone.utc)
+            # Update arduino timestamp only for physical devices (not dashboard views)
+            user_agent = request.headers.get('User-Agent', '')
+            if 'ESP32' in user_agent:
+                arduino.last_poll_time = datetime.now(timezone.utc)
+                logger.info(f"✅ Physical Arduino {arduino_id} pulled data (timestamp updated)")
+            else:
+                logger.info(f"📊 Dashboard view for Arduino {arduino_id} (no timestamp update)")
+
             db.commit()
 
             logger.info(f"✅ Returning surf data for Arduino {arduino_id}: wave={surf_data['wave_height_cm']}cm")
@@ -232,8 +242,14 @@ def get_arduino_surf_data_v2(arduino_id):
                 'data_available': bool(location.wave_height_m or location.wind_speed_mps)
             }
 
-            # Update arduino timestamp to track when Arduino last pulled data
-            arduino.last_poll_time = datetime.now(timezone.utc)
+            # Update arduino timestamp only for physical devices (not dashboard views)
+            user_agent = request.headers.get('User-Agent', '')
+            if 'ESP32' in user_agent:
+                arduino.last_poll_time = datetime.now(timezone.utc)
+                logger.info(f"✅ Physical Arduino {arduino_id} pulled V2 data (timestamp updated)")
+            else:
+                logger.info(f"📊 Dashboard view for Arduino {arduino_id} V2 endpoint (no timestamp update)")
+
             db.commit()
 
             logger.info(f"✅ V2 data for Arduino {arduino_id}: lat={surf_data['latitude']}, lon={surf_data['longitude']}, tz_offset={tz_offset}")

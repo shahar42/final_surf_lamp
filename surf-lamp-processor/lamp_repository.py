@@ -165,40 +165,6 @@ def update_location_conditions(engine, location, surf_data):
         return False
 
 
-def batch_update_arduino_timestamps(engine, arduino_ids):
-    """
-    Update last_poll_time for multiple arduinos in a single transaction.
-
-    Args:
-        arduino_ids: List of arduino IDs to update
-
-    Returns:
-        bool: True if successful
-    """
-    if not arduino_ids:
-        return True
-
-    logger.info(f"⏰ Batch updating timestamps for {len(arduino_ids)} arduinos")
-
-    query = text("""
-        UPDATE arduinos
-        SET last_poll_time = CURRENT_TIMESTAMP
-        WHERE arduino_id = ANY(:arduino_ids)
-    """)
-
-    try:
-        with engine.connect() as conn:
-            conn.execute(query, {"arduino_ids": arduino_ids})
-            conn.commit()
-
-        logger.info(f"✅ Timestamps batch updated for {len(arduino_ids)} arduinos")
-        return True
-
-    except Exception as e:
-        logger.error(f"❌ Failed to batch update arduino timestamps: {e}")
-        return False
-
-
 def get_user_threshold_for_arduino(engine, arduino_id):
     """
     Get user's wave threshold for this Arduino.
