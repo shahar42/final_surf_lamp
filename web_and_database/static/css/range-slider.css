@@ -55,3 +55,19 @@
     right: -9px;
     top: -6px;
 }
+
+/* Tooltips (values above handles) */
+.noUi-tooltip {
+    display: block;
+    position: absolute;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    padding: 2px 4px;
+    bottom: 140%;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+}

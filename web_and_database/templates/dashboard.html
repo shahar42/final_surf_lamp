@@ -109,17 +109,13 @@
 
 
                 <!-- Wave Alert Range Slider -->
-                <div class="space-y-2">
+                <div class="space-y-2 pt-2 border-t border-white/20">
                     <div class="flex justify-between items-center">
-                        <span class="text-white/80">Wave Alert Range:</span>
+                        <span class="text-white/80">Wave Alert</span>
                         <button id="updateThreshold" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-xs text-white">Set</button>
                     </div>
-                    <div class="px-2">
-                        <div id="waveSlider" class="mb-3"></div>
-                        <div class="flex justify-between text-xs text-white/60">
-                            <span id="waveMinLabel">{{ data.user.wave_threshold_m or 1.0 }}{% if data.user.preferred_output == 'feet' %}ft{% else %}m{% endif %}</span>
-                            <span id="waveMaxLabel">{% if data.user.wave_threshold_max_m %}{{ data.user.wave_threshold_max_m }}{% if data.user.preferred_output == 'feet' %}ft{% else %}m{% endif %}{% else %}No max{% endif %}</span>
-                        </div>
+                    <div class="px-2 py-2">
+                        <div id="waveSlider" class="my-4"></div>
                     </div>
                     <div id="threshold-status" class="text-sm text-white/80"></div>
                     <!-- Hidden inputs for data storage -->
@@ -131,17 +127,13 @@
                 </div>
 
                 <!-- Wind Alert Range Slider -->
-                <div class="space-y-2">
+                <div class="space-y-2 pt-2 border-t border-white/20">
                     <div class="flex justify-between items-center">
-                        <span class="text-white/80">Wind Alert Range:</span>
+                        <span class="text-white/80">Wind Alert</span>
                         <button id="updateWindThreshold" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-xs text-white">Set</button>
                     </div>
-                    <div class="px-2">
-                        <div id="windSlider" class="mb-3"></div>
-                        <div class="flex justify-between text-xs text-white/60">
-                            <span id="windMinLabel">{{ data.user.wind_threshold_knots or 22 }} knots</span>
-                            <span id="windMaxLabel">{% if data.user.wind_threshold_max_knots %}{{ data.user.wind_threshold_max_knots }} knots{% else %}No max{% endif %}</span>
-                        </div>
+                    <div class="px-2 py-2">
+                        <div id="windSlider" class="my-4"></div>
                     </div>
                     <div id="wind-threshold-status" class="text-sm text-white/80"></div>
                     <!-- Hidden inputs for data storage -->

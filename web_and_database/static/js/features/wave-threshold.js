@@ -15,8 +15,6 @@ const WaveThreshold = {
         const statusDiv = document.getElementById('threshold-status');
         const minInput = document.getElementById('waveThresholdMin');
         const maxInput = document.getElementById('waveThresholdMax');
-        const minLabel = document.getElementById('waveMinLabel');
-        const maxLabel = document.getElementById('waveMaxLabel');
 
         if (!sliderElement || !updateBtn || !statusDiv || !minInput) {
             console.error('WaveThreshold: Required elements not found');
@@ -44,7 +42,7 @@ const WaveThreshold = {
                 'max': sliderMax
             },
             step: isFeet ? 0.3 : 0.1,
-            tooltips: false,
+            tooltips: [true, true],  // Show tooltips above both handles
             format: {
                 to: function(value) {
                     return parseFloat(value.toFixed(1));
@@ -57,17 +55,10 @@ const WaveThreshold = {
 
         this.slider = sliderElement.noUiSlider;
 
-        // Update labels when slider changes
+        // Store values in hidden inputs when slider changes
         this.slider.on('update', function(values, handle) {
-            const min = values[0];
-            const max = values[1];
-
-            minLabel.textContent = `${min}${unitLabel}`;
-            maxLabel.textContent = `${max}${unitLabel}`;
-
-            // Store values in hidden inputs
-            minInput.value = min;
-            maxInput.value = max;
+            minInput.value = values[0];
+            maxInput.value = values[1];
         });
 
         // Handle "Set" button click
