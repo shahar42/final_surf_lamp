@@ -201,7 +201,7 @@
                         <span class="status-online font-semibold">
                             ● Online
                                         {% if data.conditions.last_updated %}
-                                            <span class="text-white/60 text-xs ml-1">(Data updated <span id="statusUpdateTime" data-timestamp="{{ data.conditions.last_updated }}">--</span>)</span>
+                                            <span class="text-white/60 text-xs ml-1">(Data updated <span id="statusUpdateTime" data-timestamp="{{ data.conditions.last_updated.isoformat() }}Z">--</span>)</span>
                                         {% endif %}                        </span>
                     {% else %}
                         <span class="status-offline font-semibold">● No Data</span>
