@@ -117,7 +117,7 @@
                     <div id="threshold-status" class="text-sm text-white/80"></div>
                     <!-- Hidden inputs for data storage -->
                     <input type="hidden" id="waveThresholdMin"
-                           value="{% if data.user.preferred_output == 'feet' %}{{ '%.1f'|format((data.user.wave_threshold_m or 1.0) * 3.28084) }}{% else %}{{ data.user.wave_threshold_m or 1.0 }}{% endif %}"
+                           value="{% if data.user.preferred_output == 'feet' %}{{ '%.1f'|format((data.user.wave_threshold_m if data.user.wave_threshold_m is not none else 0.0) * 3.28084) }}{% else %}{{ data.user.wave_threshold_m if data.user.wave_threshold_m is not none else 0.0 }}{% endif %}"
                            data-unit="{{ data.user.preferred_output or 'meters' }}">
                     <input type="hidden" id="waveThresholdMax"
                            value="{% if data.user.wave_threshold_max_m %}{% if data.user.preferred_output == 'feet' %}{{ '%.1f'|format(data.user.wave_threshold_max_m * 3.28084) }}{% else %}{{ data.user.wave_threshold_max_m }}{% endif %}{% endif %}">

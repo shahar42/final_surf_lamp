@@ -104,9 +104,9 @@ const DashboardConfig = {
 
     // Form Validation Limits
     LIMITS: {
-        WAVE_THRESHOLD_MIN_METERS: 1.0,
+        WAVE_THRESHOLD_MIN_METERS: 0.0,
         WAVE_THRESHOLD_MAX_METERS: 3.0,
-        WAVE_THRESHOLD_MIN_FEET: 3.0,
+        WAVE_THRESHOLD_MIN_FEET: 0.0,
         WAVE_THRESHOLD_MAX_FEET: 10.0,
 
         WIND_THRESHOLD_MIN_KNOTS: 1,

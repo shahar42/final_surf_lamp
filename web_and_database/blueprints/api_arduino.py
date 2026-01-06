@@ -141,7 +141,7 @@ def get_arduino_surf_data(arduino_id):
 
             effective_wave_threshold_m = calculate_effective_threshold(
                 current_value=location.wave_height_m,
-                user_min=user.wave_threshold_m or 1.0,
+                user_min=user.wave_threshold_m if user.wave_threshold_m is not None else 0.0,
                 user_max=getattr(user, 'wave_threshold_max_m', None)
             )
 
@@ -246,7 +246,7 @@ def get_arduino_surf_data_v2(arduino_id):
 
             effective_wave_threshold_m = calculate_effective_threshold(
                 current_value=location.wave_height_m,
-                user_min=user.wave_threshold_m or 1.0,
+                user_min=user.wave_threshold_m if user.wave_threshold_m is not None else 0.0,
                 user_max=getattr(user, 'wave_threshold_max_m', None)
             )
 
