@@ -58,8 +58,7 @@ from lamp_repository import (
     test_database_connection,
     get_location_api_configs,
     get_arduinos_for_location,
-    update_location_conditions,
-    batch_update_arduino_timestamps
+    update_location_conditions
 )
 from weather_api_client import fetch_surf_data
 
@@ -166,9 +165,8 @@ def process_all_lamps():
             location_updated = update_location_conditions(engine, location, combined_surf_data)
 
             if location_updated:
-                # Update arduino timestamps to track polling activity
-                arduino_ids = [arduino['arduino_id'] for arduino in arduinos]
-                batch_update_arduino_timestamps(engine, arduino_ids)
+                # Note: arduino timestamps are updated only when physical devices poll the API endpoint
+                # The background processor does NOT update last_poll_time to avoid monitoring pollution
 
                 total_arduinos_updated += len(arduinos)
                 logger.info(f"✅ Location updated successfully - {len(arduinos)} arduinos inherit this data")
