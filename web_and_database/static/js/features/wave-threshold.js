@@ -5,18 +5,18 @@
 
 const WaveThreshold = {
     slider: null,
+    updateTimeout: null,
 
     /**
      * Initialize wave threshold range slider
      */
     init: function() {
         const sliderElement = document.getElementById('waveSlider');
-        const updateBtn = document.getElementById('updateThreshold');
         const statusDiv = document.getElementById('threshold-status');
         const minInput = document.getElementById('waveThresholdMin');
         const maxInput = document.getElementById('waveThresholdMax');
 
-        if (!sliderElement || !updateBtn || !statusDiv || !minInput) {
+        if (!sliderElement || !statusDiv || !minInput) {
             console.error('WaveThreshold: Required elements not found');
             return;
         }
@@ -61,9 +61,8 @@ const WaveThreshold = {
             maxInput.value = values[1];
         });
 
-        // Handle "Set" button click
-        updateBtn.addEventListener('click', async () => {
-            const values = this.slider.get();
+        // Auto-update on slider change (when user releases handle)
+        this.slider.on('change', async (values, handle) => {
             const thresholdMin = parseFloat(values[0]);
             const thresholdMax = parseFloat(values[1]);
 
@@ -71,22 +70,29 @@ const WaveThreshold = {
             const thresholdMinMeters = isFeet ? thresholdMin / DashboardConfig.CONVERSIONS.METERS_TO_FEET : thresholdMin;
             const thresholdMaxMeters = isFeet ? thresholdMax / DashboardConfig.CONVERSIONS.METERS_TO_FEET : thresholdMax;
 
-            StatusMessage.loading(statusDiv);
-
-            // Make API request
-            const result = await ApiClient.post(
-                DashboardConfig.API.UPDATE_THRESHOLD,
-                {
-                    threshold_min: thresholdMinMeters,
-                    threshold_max: thresholdMaxMeters
-                }
-            );
-
-            if (result.ok) {
-                StatusMessage.success(statusDiv, result.data.message);
-            } else {
-                StatusMessage.error(statusDiv, 'Error: ' + result.data.message);
+            // Debounce: clear previous timeout
+            if (this.updateTimeout) {
+                clearTimeout(this.updateTimeout);
             }
+
+            // Wait 300ms before sending API request
+            this.updateTimeout = setTimeout(async () => {
+                StatusMessage.loading(statusDiv);
+
+                const result = await ApiClient.post(
+                    DashboardConfig.API.UPDATE_THRESHOLD,
+                    {
+                        threshold_min: thresholdMinMeters,
+                        threshold_max: thresholdMaxMeters
+                    }
+                );
+
+                if (result.ok) {
+                    StatusMessage.success(statusDiv, result.data.message);
+                } else {
+                    StatusMessage.error(statusDiv, 'Error: ' + result.data.message);
+                }
+            }, 300);
         });
     }
 };
