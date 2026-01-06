@@ -1,37 +1,94 @@
 /**
- * Wave Threshold Feature
- * Handles wave height threshold update events
+ * Wave Threshold Range Feature
+ * Handles wave height threshold range slider with dual handles
  */
 
 const WaveThreshold = {
+    slider: null,
+
     /**
-     * Initialize wave threshold update handler
+     * Initialize wave threshold range slider
      */
     init: function() {
+        const sliderElement = document.getElementById('waveSlider');
         const updateBtn = document.getElementById('updateThreshold');
-        const thresholdInput = document.getElementById('waveThreshold');
         const statusDiv = document.getElementById('threshold-status');
+        const minInput = document.getElementById('waveThresholdMin');
+        const maxInput = document.getElementById('waveThresholdMax');
+        const minLabel = document.getElementById('waveMinLabel');
+        const maxLabel = document.getElementById('waveMaxLabel');
 
-        if (!updateBtn || !thresholdInput || !statusDiv) {
+        if (!sliderElement || !updateBtn || !statusDiv || !minInput) {
             console.error('WaveThreshold: Required elements not found');
             return;
         }
 
-        updateBtn.addEventListener('click', async function() {
-            const threshold = parseFloat(thresholdInput.value);
-            const unit = thresholdInput.dataset.unit;
+        const unit = minInput.dataset.unit;
+        const isFeet = unit === 'feet';
+        const unitLabel = isFeet ? 'ft' : 'm';
+
+        // Get current values
+        const currentMin = parseFloat(minInput.value) || (isFeet ? 3.28 : 1.0);
+        const currentMax = maxInput.value ? parseFloat(maxInput.value) : (isFeet ? 32.8 : 10.0);
+
+        // Slider range bounds
+        const sliderMin = isFeet ? 0.3 : 0.1;
+        const sliderMax = isFeet ? 33 : 10.0;
+
+        // Create dual-handle range slider
+        noUiSlider.create(sliderElement, {
+            start: [currentMin, currentMax],
+            connect: true,
+            range: {
+                'min': sliderMin,
+                'max': sliderMax
+            },
+            step: isFeet ? 0.3 : 0.1,
+            tooltips: false,
+            format: {
+                to: function(value) {
+                    return parseFloat(value.toFixed(1));
+                },
+                from: function(value) {
+                    return parseFloat(value);
+                }
+            }
+        });
+
+        this.slider = sliderElement.noUiSlider;
+
+        // Update labels when slider changes
+        this.slider.on('update', function(values, handle) {
+            const min = values[0];
+            const max = values[1];
+
+            minLabel.textContent = `${min}${unitLabel}`;
+            maxLabel.textContent = `${max}${unitLabel}`;
+
+            // Store values in hidden inputs
+            minInput.value = min;
+            maxInput.value = max;
+        });
+
+        // Handle "Set" button click
+        updateBtn.addEventListener('click', async () => {
+            const values = this.slider.get();
+            const thresholdMin = parseFloat(values[0]);
+            const thresholdMax = parseFloat(values[1]);
 
             // Convert to meters if user prefers feet
-            const thresholdMeters = (unit === 'feet')
-                ? threshold / DashboardConfig.CONVERSIONS.METERS_TO_FEET
-                : threshold;
+            const thresholdMinMeters = isFeet ? thresholdMin / DashboardConfig.CONVERSIONS.METERS_TO_FEET : thresholdMin;
+            const thresholdMaxMeters = isFeet ? thresholdMax / DashboardConfig.CONVERSIONS.METERS_TO_FEET : thresholdMax;
 
             StatusMessage.loading(statusDiv);
 
             // Make API request
             const result = await ApiClient.post(
                 DashboardConfig.API.UPDATE_THRESHOLD,
-                { threshold: thresholdMeters }
+                {
+                    threshold_min: thresholdMinMeters,
+                    threshold_max: thresholdMaxMeters
+                }
             );
 
             if (result.ok) {

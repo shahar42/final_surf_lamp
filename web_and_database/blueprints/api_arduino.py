@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify
 from data_base import SessionLocal, Arduino, Location, User, ErrorReport
 from utils.helpers import is_quiet_hours, is_off_hours, get_current_tz_offset
+from utils.threshold_logic import calculate_effective_threshold
 from config import BRIGHTNESS_LEVELS
 
 # Add processor path to import sunset calculator
@@ -134,14 +135,30 @@ def get_arduino_surf_data(arduino_id):
             sunset_info = get_sunset_info(user.location, trigger_window_minutes=15)
             logger.info(f"🌅 Sunset info: trigger={sunset_info['sunset_trigger']}, day={sunset_info['day_of_year']}")
 
+            # Calculate effective thresholds using range logic (server-side shim for range alerts)
+            # Convert wind speed from m/s to knots for threshold comparison (1 m/s = 1.944 knots)
+            current_wind_knots = (location.wind_speed_mps * 1.944) if location.wind_speed_mps else None
+
+            effective_wave_threshold_m = calculate_effective_threshold(
+                current_value=location.wave_height_m,
+                user_min=user.wave_threshold_m or 1.0,
+                user_max=getattr(user, 'wave_threshold_max_m', None)
+            )
+
+            effective_wind_threshold_knots = calculate_effective_threshold(
+                current_value=current_wind_knots,
+                user_min=user.wind_threshold_knots or 22.0,
+                user_max=getattr(user, 'wind_threshold_max_knots', None)
+            )
+
             # Return location conditions data
             surf_data = {
                 'wave_height_cm': int(round((location.wave_height_m or 0) * 100)),
                 'wave_period_s': location.wave_period_s or 0.0,
                 'wind_speed_mps': int(round(location.wind_speed_mps or 0)),
                 'wind_direction_deg': location.wind_direction_deg or 0,
-                'wave_threshold_cm': int((user.wave_threshold_m or 1.0) * 100),
-                'wind_speed_threshold_knots': int(round(user.wind_threshold_knots or 22.0)),
+                'wave_threshold_cm': int(effective_wave_threshold_m * 100),
+                'wind_speed_threshold_knots': int(round(effective_wind_threshold_knots)),
                 'led_theme': user.theme or 'day',
                 'quiet_hours_active': quiet_hours_active,
                 'off_hours_active': off_hours_active,
@@ -223,6 +240,22 @@ def get_arduino_surf_data_v2(arduino_id):
             # During normal hours, respect user's brightness preference
             brightness_value = BRIGHTNESS_LEVELS['MID'] if quiet_hours_active else getattr(user, 'brightness_level', BRIGHTNESS_LEVELS['MID'])
 
+            # Calculate effective thresholds using range logic (server-side shim for range alerts)
+            # Convert wind speed from m/s to knots for threshold comparison (1 m/s = 1.944 knots)
+            current_wind_knots = (location.wind_speed_mps * 1.944) if location.wind_speed_mps else None
+
+            effective_wave_threshold_m = calculate_effective_threshold(
+                current_value=location.wave_height_m,
+                user_min=user.wave_threshold_m or 1.0,
+                user_max=getattr(user, 'wave_threshold_max_m', None)
+            )
+
+            effective_wind_threshold_knots = calculate_effective_threshold(
+                current_value=current_wind_knots,
+                user_min=user.wind_threshold_knots or 22.0,
+                user_max=getattr(user, 'wind_threshold_max_knots', None)
+            )
+
             # Build response (NO sunset_animation or day_of_year - Arduino calculates locally)
             surf_data = {
                 'latitude': location_data['latitude'],
@@ -232,8 +265,8 @@ def get_arduino_surf_data_v2(arduino_id):
                 'wave_period_s': location.wave_period_s or 0.0,
                 'wind_speed_mps': int(round(location.wind_speed_mps or 0)),
                 'wind_direction_deg': location.wind_direction_deg or 0,
-                'wave_threshold_cm': int((user.wave_threshold_m or 1.0) * 100),
-                'wind_speed_threshold_knots': int(round(user.wind_threshold_knots or 22.0)),
+                'wave_threshold_cm': int(effective_wave_threshold_m * 100),
+                'wind_speed_threshold_knots': int(round(effective_wind_threshold_knots)),
                 'led_theme': user.theme or 'day',
                 'quiet_hours_active': quiet_hours_active,
                 'off_hours_active': off_hours_active,

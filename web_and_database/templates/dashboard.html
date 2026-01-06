@@ -24,6 +24,9 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
     <!-- Dashboard specific styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <!-- noUiSlider for range sliders -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/range-slider.css') }}">
 </head>
 <body class="min-h-screen p-4">
 
@@ -105,34 +108,46 @@
                 
 
 
-                <!-- Add this div after the Units row -->
-                <div class="flex justify-between items-center">
-                    <span class="text-white/80">Wave Alert:</span>
-                    <div class="flex items-center space-x-2 w-32 justify-end">
-                        <input type="number" id="waveThreshold" aria-label="Wave height alert threshold"
-                               value="{% if data.user.preferred_output == 'feet' %}{{ '%.1f'|format((data.user.wave_threshold_m or 1.0) * 3.28084) }}{% else %}{{ data.user.wave_threshold_m or 1.0 }}{% endif %}"
-                               min="0.1" max="{% if data.user.preferred_output == 'feet' %}33{% else %}10.0{% endif %}" step="0.1"
-                               data-unit="{{ data.user.preferred_output or 'meters' }}"
-                               class="bg-white/20 text-white rounded px-2 py-1 w-16 text-sm border border-white/30">
-                        <span class="text-white/80 text-sm">{% if data.user.preferred_output == 'feet' %}feet{% else %}meters{% endif %}</span>
-                        <button id="updateThreshold" class="bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded text-xs text-white">Set</button>
+                <!-- Wave Alert Range Slider -->
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-white/80">Wave Alert Range:</span>
+                        <button id="updateThreshold" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-xs text-white">Set</button>
                     </div>
+                    <div class="px-2">
+                        <div id="waveSlider" class="mb-3"></div>
+                        <div class="flex justify-between text-xs text-white/60">
+                            <span id="waveMinLabel">{{ data.user.wave_threshold_m or 1.0 }}{% if data.user.preferred_output == 'feet' %}ft{% else %}m{% endif %}</span>
+                            <span id="waveMaxLabel">{% if data.user.wave_threshold_max_m %}{{ data.user.wave_threshold_max_m }}{% if data.user.preferred_output == 'feet' %}ft{% else %}m{% endif %}{% else %}No max{% endif %}</span>
+                        </div>
+                    </div>
+                    <div id="threshold-status" class="text-sm text-white/80"></div>
+                    <!-- Hidden inputs for data storage -->
+                    <input type="hidden" id="waveThresholdMin"
+                           value="{% if data.user.preferred_output == 'feet' %}{{ '%.1f'|format((data.user.wave_threshold_m or 1.0) * 3.28084) }}{% else %}{{ data.user.wave_threshold_m or 1.0 }}{% endif %}"
+                           data-unit="{{ data.user.preferred_output or 'meters' }}">
+                    <input type="hidden" id="waveThresholdMax"
+                           value="{% if data.user.wave_threshold_max_m %}{% if data.user.preferred_output == 'feet' %}{{ '%.1f'|format(data.user.wave_threshold_max_m * 3.28084) }}{% else %}{{ data.user.wave_threshold_max_m }}{% endif %}{% endif %}">
                 </div>
-                <div id="threshold-status" class="text-sm text-white/80 mt-2"></div>
 
-                <div class="flex justify-between items-center">
-                    <span class="text-white/80">Wind Alert:</span>
-                    <div class="flex items-center space-x-2 w-32 justify-end">
-                        <input type="number" id="windThreshold" aria-label="Wind speed alert threshold"
-                               value="{{ data.user.wind_threshold_knots or 22 }}"
-                               min="1" max="25" step="1"
-                               data-unit="knots"
-                               class="bg-white/20 text-white rounded px-2 py-1 w-16 text-sm border border-white/30">
-                        <span class="text-white/80 text-sm">knots</span>
-                        <button id="updateWindThreshold" class="bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded text-xs text-white">Set</button>
+                <!-- Wind Alert Range Slider -->
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-white/80">Wind Alert Range:</span>
+                        <button id="updateWindThreshold" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-xs text-white">Set</button>
                     </div>
+                    <div class="px-2">
+                        <div id="windSlider" class="mb-3"></div>
+                        <div class="flex justify-between text-xs text-white/60">
+                            <span id="windMinLabel">{{ data.user.wind_threshold_knots or 22 }} knots</span>
+                            <span id="windMaxLabel">{% if data.user.wind_threshold_max_knots %}{{ data.user.wind_threshold_max_knots }} knots{% else %}No max{% endif %}</span>
+                        </div>
+                    </div>
+                    <div id="wind-threshold-status" class="text-sm text-white/80"></div>
+                    <!-- Hidden inputs for data storage -->
+                    <input type="hidden" id="windThresholdMin" value="{{ data.user.wind_threshold_knots or 22 }}">
+                    <input type="hidden" id="windThresholdMax" value="{% if data.user.wind_threshold_max_knots %}{{ data.user.wind_threshold_max_knots }}{% endif %}">
                 </div>
-                <div id="wind-threshold-status" class="text-sm text-white/80 mt-2"></div>
 
                 <div class="flex justify-between items-center pt-2 border-t border-white/20">
                     <span class="text-white/80">LED Colors:</span>
@@ -492,6 +507,7 @@
     <script src="{{ url_for('static', filename='js/theme-manager.js') }}"></script>
 
     <!-- Features -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.js"></script>
     <script src="{{ url_for('static', filename='js/features/location-update.js') }}"></script>
     <script src="{{ url_for('static', filename='js/features/wave-threshold.js') }}"></script>
     <script src="{{ url_for('static', filename='js/features/wind-threshold.js') }}"></script>
