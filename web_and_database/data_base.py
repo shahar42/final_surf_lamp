@@ -101,7 +101,7 @@ class User(Base):
     theme = Column(String(50), nullable=False)
     preferred_output = Column(String(50), nullable=False)
     sport_type = Column(String(20), nullable=False, default='surfing')
-    wave_threshold_m = Column(Float, nullable=True, default=1.0)
+    wave_threshold_m = Column(Float, nullable=True, default=0.0)
     wave_threshold_max_m = Column(Float, nullable=True, default=None)
     wind_threshold_knots = Column(Float, nullable=True, default=22.0)
     wind_threshold_max_knots = Column(Float, nullable=True, default=None)

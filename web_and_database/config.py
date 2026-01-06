@@ -38,7 +38,7 @@ BRIGHTNESS_LEVELS = {
 
 # Threshold limits
 THRESHOLD_LIMITS = {
-    'WAVE_MIN': 1.0,
+    'WAVE_MIN': 0.0,
     'WAVE_MAX': 3.0,
     'WIND_MIN': 1.0,
     'WIND_MAX': 40.0
