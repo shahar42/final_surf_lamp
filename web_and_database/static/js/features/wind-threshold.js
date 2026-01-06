@@ -25,6 +25,9 @@ const WindThreshold = {
         const currentMin = parseFloat(minInput.value) || DashboardConfig.LIMITS.WIND_THRESHOLD_MIN_KNOTS;
         const currentMax = maxInput.value ? parseFloat(maxInput.value) : DashboardConfig.LIMITS.WIND_THRESHOLD_MAX_KNOTS;
 
+        console.log('[WIND SLIDER DEBUG] minInput.value:', minInput.value, 'maxInput.value:', maxInput.value);
+        console.log('[WIND SLIDER DEBUG] Parsed - currentMin:', currentMin, 'currentMax:', currentMax);
+
         // Slider range bounds (knots)
         const sliderMin = DashboardConfig.LIMITS.WIND_THRESHOLD_MIN_KNOTS;
         const sliderMax = DashboardConfig.LIMITS.WIND_THRESHOLD_MAX_KNOTS;

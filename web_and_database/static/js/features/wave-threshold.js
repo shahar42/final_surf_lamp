@@ -29,6 +29,9 @@ const WaveThreshold = {
         const currentMin = parseFloat(minInput.value) || (isFeet ? DashboardConfig.LIMITS.WAVE_THRESHOLD_MIN_FEET : DashboardConfig.LIMITS.WAVE_THRESHOLD_MIN_METERS);
         const currentMax = maxInput.value ? parseFloat(maxInput.value) : (isFeet ? DashboardConfig.LIMITS.WAVE_THRESHOLD_MAX_FEET : DashboardConfig.LIMITS.WAVE_THRESHOLD_MAX_METERS);
 
+        console.log('[WAVE SLIDER DEBUG] minInput.value:', minInput.value, 'maxInput.value:', maxInput.value);
+        console.log('[WAVE SLIDER DEBUG] Parsed - currentMin:', currentMin, 'currentMax:', currentMax);
+
         // Slider range bounds
         const sliderMin = isFeet ? DashboardConfig.LIMITS.WAVE_THRESHOLD_MIN_FEET : DashboardConfig.LIMITS.WAVE_THRESHOLD_MIN_METERS;
         const sliderMax = isFeet ? DashboardConfig.LIMITS.WAVE_THRESHOLD_MAX_FEET : DashboardConfig.LIMITS.WAVE_THRESHOLD_MAX_METERS;
