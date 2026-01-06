@@ -50,9 +50,11 @@ def update_location():
 def update_threshold():
     try:
         data = request.get_json()
+        print(f"[DEBUG] Wave threshold update payload: {data}")  # DEBUG LOG
         threshold_min = float(data.get('threshold_min', data.get('threshold', 1.0)))  # Backwards compatible
         threshold_max = data.get('threshold_max')
         user_id = session.get('user_id')
+        print(f"[DEBUG] Parsed - min: {threshold_min}, max: {threshold_max}, user_id: {user_id}")  # DEBUG LOG
 
         # Convert max to float if provided
         if threshold_max is not None:
@@ -78,6 +80,7 @@ def update_threshold():
                 user.wave_threshold_m = threshold_min
                 user.wave_threshold_max_m = threshold_max
                 db.commit()
+                print(f"[DEBUG] Saved to DB - user_id: {user_id}, wave_threshold_m: {user.wave_threshold_m}, wave_threshold_max_m: {user.wave_threshold_max_m}")  # DEBUG LOG
 
                 if threshold_max is not None:
                     return {'success': True, 'message': f'Wave threshold range updated: {threshold_min}m - {threshold_max}m'}
@@ -99,9 +102,11 @@ def update_threshold():
 def update_wind_threshold():
     try:
         data = request.get_json()
+        print(f"[DEBUG] Wind threshold update payload: {data}")  # DEBUG LOG
         threshold_min = float(data.get('threshold_min', data.get('threshold', 22)))  # Backwards compatible
         threshold_max = data.get('threshold_max')
         user_id = session.get('user_id')
+        print(f"[DEBUG] Parsed - min: {threshold_min}, max: {threshold_max}, user_id: {user_id}")  # DEBUG LOG
 
         # Convert max to float if provided
         if threshold_max is not None:
@@ -127,6 +132,7 @@ def update_wind_threshold():
                 user.wind_threshold_knots = threshold_min
                 user.wind_threshold_max_knots = threshold_max
                 db.commit()
+                print(f"[DEBUG] Saved to DB - user_id: {user_id}, wind_threshold_knots: {user.wind_threshold_knots}, wind_threshold_max_knots: {user.wind_threshold_max_knots}")  # DEBUG LOG
 
                 if threshold_max is not None:
                     return {'success': True, 'message': f'Wind threshold range updated: {threshold_min} - {threshold_max} knots'}
