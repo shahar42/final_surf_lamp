@@ -26,12 +26,12 @@ const WaveThreshold = {
         const unitLabel = isFeet ? 'ft' : 'm';
 
         // Get current values
-        const currentMin = parseFloat(minInput.value) || (isFeet ? 3.28 : 1.0);
-        const currentMax = maxInput.value ? parseFloat(maxInput.value) : (isFeet ? 32.8 : 10.0);
+        const currentMin = parseFloat(minInput.value) || (isFeet ? DashboardConfig.LIMITS.WAVE_THRESHOLD_MIN_FEET : DashboardConfig.LIMITS.WAVE_THRESHOLD_MIN_METERS);
+        const currentMax = maxInput.value ? parseFloat(maxInput.value) : (isFeet ? DashboardConfig.LIMITS.WAVE_THRESHOLD_MAX_FEET : DashboardConfig.LIMITS.WAVE_THRESHOLD_MAX_METERS);
 
         // Slider range bounds
-        const sliderMin = isFeet ? 0.3 : 0.1;
-        const sliderMax = isFeet ? 33 : 10.0;
+        const sliderMin = isFeet ? DashboardConfig.LIMITS.WAVE_THRESHOLD_MIN_FEET : DashboardConfig.LIMITS.WAVE_THRESHOLD_MIN_METERS;
+        const sliderMax = isFeet ? DashboardConfig.LIMITS.WAVE_THRESHOLD_MAX_FEET : DashboardConfig.LIMITS.WAVE_THRESHOLD_MAX_METERS;
 
         // Create dual-handle range slider
         noUiSlider.create(sliderElement, {

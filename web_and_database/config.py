@@ -36,6 +36,14 @@ BRIGHTNESS_LEVELS = {
     'HIGH': 1.0
 }
 
+# Threshold limits
+THRESHOLD_LIMITS = {
+    'WAVE_MIN': 1.0,
+    'WAVE_MAX': 3.0,
+    'WIND_MIN': 1.0,
+    'WIND_MAX': 40.0
+}
+
 def configure_app(app):
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
     if not app.config['SECRET_KEY']:
