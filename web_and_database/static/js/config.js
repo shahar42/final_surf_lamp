@@ -153,12 +153,12 @@ const DashboardConfig = {
             LEGEND_MARGIN_TOP: 30, // px
             LEGEND_SPREAD: 22    // px (padding left/right)
         },
-        STRIP_LABELS: {
-            FONT_SIZE: 12,       // px
-            TOP_Y: 448,          // px from top
-            LEFT_LABEL_X: 140,   // px from left (P - Period)
-            CENTER_LABEL_X: 140, // px from left (W - Wind)
-            RIGHT_LABEL_X: 201   // px from left (H - Height)
+        STYLE: {
+            GLOW_OPACITY: 0.6,      // 0.0 to 1.0
+            GLOW_BLUR: 15,          // px
+            INNER_SHINE_ALPHA: 0.4, // 0.0 to 1.0
+            STRIP_OPACITY: 0.9,     // 0.0 to 1.0
+            GROOVE_SHADOW_OPACITY: 0.4 // 0.0 to 1.0 (Darkness of the wood cut)
         }
     }
 };

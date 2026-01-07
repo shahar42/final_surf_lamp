@@ -18,72 +18,75 @@ const LEDVisualizationCore = {
     drawLiquidStrip: function(ctx, x, yBottom, yTopMax, width, fillPercentage, color, time) {
         if (fillPercentage <= 0.01) return;
 
-        // Calculate current height based on fill percentage
+        // Get Style Config
+        // Check if window.styleCalibration exists (live tuning), otherwise use Config
+        const style = (typeof window !== 'undefined' && window.styleCalibration) ? window.styleCalibration : DashboardConfig.CALIBRATION.STYLE;
+
+        // Calculate current height
         const totalHeight = yBottom - yTopMax;
         const currentHeight = totalHeight * fillPercentage;
         const ySurface = yBottom - currentHeight;
 
-        // Set styles
         const rgbString = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
-        const rgbaGlow = `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.6)`;
+        const rgbaGlow = `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${style.GLOW_OPACITY})`;
         
-        ctx.fillStyle = rgbString;
-        ctx.strokeStyle = rgbString;
-        
-        // Save context for clipping/effects
         ctx.save();
 
-        // 1. Draw Glow (Behind)
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = rgbaGlow;
+        // 1. Draw "Groove" Shadow (The hole in the wood) - Behind the light
+        // We use 'multiply' to darken the wood texture
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.fillStyle = `rgba(0,0,0,${style.GROOVE_SHADOW_OPACITY})`;
+        ctx.shadowBlur = 5;
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
         
-        // 2. Draw the Main Liquid Shape
-        ctx.beginPath();
-        ctx.moveTo(x - width/2, yBottom); // Start bottom-left
-
-        // Draw up the left side
-        ctx.lineTo(x - width/2, ySurface);
-
-        // Draw the wavy top surface
-        // We use small segments to create the sine wave
-        const segments = 10;
-        const step = width / segments;
-        
-        for (let i = 0; i <= segments; i++) {
-            const currentX = (x - width/2) + (i * step);
-            
-            // Wave Physics parameters
-            // Amplitude decreases as fill gets very low (so empty strips don't wave crazily)
-            const amplitude = 2.5 * Math.min(1.0, fillPercentage * 5); 
-            const frequency = 0.5;
-            const phase = time + (x * 0.1); // Offset phase by x position so strips don't wave in unison
-
-            // Calculate Y offset (sine wave)
-            const waveY = Math.sin((i + phase) * frequency) * amplitude;
-            
-            ctx.lineTo(currentX, ySurface + waveY);
-        }
-
-        // Draw down the right side
-        ctx.lineTo(x + width/2, yBottom);
-        
-        // Close shape at bottom
-        ctx.closePath();
-        
-        // Fill the shape
+        // Draw the full strip length as a groove (optional: or just the filled part? 
+        // Realistically the groove exists even if empty, but for this visual we stick to the fill)
+        this.drawStripPath(ctx, x, yBottom, ySurface, width, time);
         ctx.fill();
 
-        // 3. Add internal "shine" (highlight) to make it look like a glass tube
-        // Gradient from left to right: transparent -> whiteish -> transparent
+        // 2. Draw the Light (Screen/Overlay blend for glow)
+        ctx.globalCompositeOperation = 'screen'; 
+        ctx.shadowBlur = style.GLOW_BLUR;
+        ctx.shadowColor = rgbaGlow;
+        ctx.fillStyle = `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${style.STRIP_OPACITY})`;
+        
+        this.drawStripPath(ctx, x, yBottom, ySurface, width, time);
+        ctx.fill();
+
+        // 3. Inner Shine (Glass/Acrylic highlight)
+        ctx.globalCompositeOperation = 'source-over'; // Reset blend for white shine
+        ctx.shadowBlur = 0;
         const shineGradient = ctx.createLinearGradient(x - width/2, ySurface, x + width/2, ySurface);
         shineGradient.addColorStop(0, 'rgba(255,255,255,0)');
-        shineGradient.addColorStop(0.5, 'rgba(255,255,255,0.4)');
+        shineGradient.addColorStop(0.5, `rgba(255,255,255,${style.INNER_SHINE_ALPHA})`);
         shineGradient.addColorStop(1, 'rgba(255,255,255,0)');
         
         ctx.fillStyle = shineGradient;
-        ctx.fill(); // Fill over the existing shape
+        this.drawStripPath(ctx, x, yBottom, ySurface, width, time);
+        ctx.fill();
 
         ctx.restore();
+    },
+
+    // Helper to draw the wavy path
+    drawStripPath: function(ctx, x, yBottom, ySurface, width, time) {
+        ctx.beginPath();
+        ctx.moveTo(x - width/2, yBottom);
+        ctx.lineTo(x - width/2, ySurface);
+
+        const segments = 10;
+        const step = width / segments;
+        for (let i = 0; i <= segments; i++) {
+            const currentX = (x - width/2) + (i * step);
+            const amplitude = 2.5 * Math.min(1.0, (yBottom - ySurface) / 50); 
+            const frequency = 0.5;
+            const phase = time + (x * 0.1);
+            const waveY = Math.sin((i + phase) * frequency) * amplitude;
+            ctx.lineTo(currentX, ySurface + waveY);
+        }
+
+        ctx.lineTo(x + width/2, yBottom);
+        ctx.closePath();
     },
 
     /**
