@@ -9,10 +9,12 @@ const LEDDataFetcher = {
     ctx: null,
     arduinoId: null,
     currentTheme: 'ocean_breeze',
-    isBlinking: false,
-    blinkState: true,
     fetchInterval: null,
-    blinkInterval: null,
+    lampImage: null,
+    imageLoaded: false,
+    animationFrameId: null,
+    time: 0,
+    cachedData: null, // Store data for animation loop
 
     /**
      * Initialize LED data fetcher
@@ -35,6 +37,17 @@ const LEDDataFetcher = {
         // Apply canvas styling
         this.canvas.classList.add('led-strip-canvas');
 
+        // Load the surfboard image
+        this.lampImage = new Image();
+        this.lampImage.src = '/static/annimaiton_lamp.png'; // Note: User provided filename typo
+        this.lampImage.onload = () => {
+            this.imageLoaded = true;
+            // Force a redraw once loaded if we have data
+            if (this.cachedData) {
+                this.updateLEDVisualization(this.cachedData);
+            }
+        };
+
         // Initial fetch
         this.fetchLampData();
 
@@ -44,11 +57,31 @@ const LEDDataFetcher = {
             DashboardConfig.INTERVALS.LAMP_DATA_UPDATE
         );
 
-        // Start blink animation (0.8s intervals)
-        this.blinkInterval = setInterval(
-            () => this.blinkLoop(),
-            DashboardConfig.INTERVALS.BLINK_ANIMATION
-        );
+        // Start Animation Loop (for liquid effects)
+        this.animate();
+    },
+
+    /**
+     * Animation Loop
+     */
+    animate: function() {
+        this.time += 0.05; // Increment time for wave physics
+        
+        if (this.cachedData) {
+            this.updateLEDVisualization(this.cachedData);
+        } else if (this.imageLoaded) {
+            // If no data yet but image loaded, just draw the board
+            LEDVisualizationCore.drawSurfboard(
+                this.ctx, this.canvas, 
+                0, 0, 0, 
+                ThemeManager.getTheme(this.currentTheme), 
+                null, 
+                this.lampImage, 
+                this.time
+            );
+        }
+
+        this.animationFrameId = requestAnimationFrame(() => this.animate());
     },
 
     /**
@@ -56,64 +89,53 @@ const LEDDataFetcher = {
      * @param {object} data - Lamp data object with wave/wind conditions
      */
     updateLEDVisualization: function(data) {
+        this.cachedData = data; // Cache for animation loop
         const theme = ThemeManager.getTheme(this.currentTheme);
 
-        // Calculate LED counts matching Arduino formulas EXACTLY
-        // Wave height: waveHeight_cm / 25 + 1 (Arduino line 829, max 15 LEDs)
-        const waveLEDCount = Math.max(0, Math.min(
-            DashboardConfig.LED.NUM_LEDS_RIGHT,
-            Math.floor(data.wave_height_cm / DashboardConfig.FORMULAS.WAVE_HEIGHT_DIVISOR) +
-            DashboardConfig.FORMULAS.WAVE_HEIGHT_OFFSET
-        ));
+        // Calculate Fill Percentages (0.0 to 1.0)
+        // We use the same formulas but normalize them to a 0-1 range for the liquid fill
 
-        // Wave period: Direct value (Arduino line 830, max 15 LEDs)
-        const periodLEDCount = Math.max(0, Math.min(
-            DashboardConfig.LED.NUM_LEDS_LEFT,
-            Math.floor(data.wave_period_s)
-        ));
+        // Wave height (Right Strip)
+        // Max 15 LEDs roughly corresponds to max reasonable wave height (~3m)
+        // Formula: height_cm / 25 + 1. Max is 15.
+        // We calculate raw "led count" then divide by max to get percentage.
+        const rawWaveLeds = Math.max(0, (data.wave_height_cm / DashboardConfig.FORMULAS.WAVE_HEIGHT_DIVISOR) + DashboardConfig.FORMULAS.WAVE_HEIGHT_OFFSET);
+        const waveFill = Math.min(1.0, rawWaveLeds / DashboardConfig.LED.NUM_LEDS_RIGHT);
 
-        // Wind speed: windSpeed * 18.0 / 13.0 (Arduino line 828, max 18 LEDs, constrain 1 to NUM_LEDS_CENTER-2)
-        // Note: Wind speed LEDs are 1-18, so we return the count that includes LED 1
-        const windLEDCount = Math.max(1, Math.min(
-            DashboardConfig.LED.NUM_LEDS_CENTER - 2,
-            Math.floor(
-                data.wind_speed_mps *
-                DashboardConfig.FORMULAS.WIND_SPEED_MULTIPLIER /
-                DashboardConfig.FORMULAS.WIND_SPEED_DIVISOR
-            )
-        ));
+        // Wave period (Left Strip)
+        // Max 15 seconds typically covers most swells.
+        const rawPeriodLeds = Math.max(0, data.wave_period_s);
+        const periodFill = Math.min(1.0, rawPeriodLeds / DashboardConfig.LED.NUM_LEDS_LEFT);
+
+        // Wind speed (Center Strip)
+        // Max 18 LEDs. Formula: speed * 18 / 13.
+        const rawWindLeds = Math.max(0, (data.wind_speed_mps * DashboardConfig.FORMULAS.WIND_SPEED_MULTIPLIER / DashboardConfig.FORMULAS.WIND_SPEED_DIVISOR));
+        // Center strip effectively has 18 usable LEDs for speed (indices 1-18)
+        const windFill = Math.min(1.0, rawWindLeds / (DashboardConfig.LED.NUM_LEDS_CENTER - 2));
 
         // Get wind direction color for nose LED
         const windDirColor = ThemeManager.getWindDirectionColor(data.wind_direction_deg);
 
-        // Check threshold alerts
-        const waveThresholdExceeded = data.wave_height_cm > data.wave_threshold_cm;
-        const windThresholdExceeded = data.wind_speed_mps > (data.wind_speed_threshold_knots * DashboardConfig.CONVERSIONS.KNOTS_TO_MPS);
-
-        this.isBlinking = waveThresholdExceeded || windThresholdExceeded;
-
-        // Draw surfboard with LED data
-        // Left rail = period, Center = WIND speed, Right rail = wave height
+        // Draw surfboard with Liquid Data
         LEDVisualizationCore.drawSurfboard(
             this.ctx,
             this.canvas,
-            periodLEDCount,
-            windLEDCount,
-            waveLEDCount,
+            periodFill,
+            windFill,
+            waveFill,
             theme,
             windDirColor,
-            this.isBlinking,
-            this.blinkState
+            this.imageLoaded ? this.lampImage : null,
+            this.time
         );
 
-        // Update wind direction arrow
+        // Update wind direction arrow (HTML overlay)
         const windArrow = document.getElementById('windArrow');
         if (windArrow && data.wind_direction_deg !== null) {
             windArrow.style.transform = `rotate(${data.wind_direction_deg}deg)`;
         }
 
-        // Update last update time
-        // Database returns UTC timestamps - ensure proper parsing by appending 'Z' if not present
+        // Update last update time text
         const timestamp = data.last_updated.endsWith('Z') ? data.last_updated : data.last_updated + 'Z';
         const lastUpdate = new Date(timestamp);
         const now = new Date();
@@ -134,7 +156,8 @@ const LEDDataFetcher = {
             .then(response => response.json())
             .then(data => {
                 if (data.data_available) {
-                    this.updateLEDVisualization(data);
+                    // Update cache, the animate loop will handle the drawing
+                    this.cachedData = data;
                 } else {
                     console.log('No lamp data available yet');
                 }
@@ -145,19 +168,6 @@ const LEDDataFetcher = {
     },
 
     /**
-     * Blink animation loop
-     */
-    blinkLoop: function() {
-        if (this.isBlinking) {
-            this.blinkState = !this.blinkState;
-        } else {
-            this.blinkState = true;
-        }
-        // Note: The next fetchLampData() will redraw with current blink state
-        // We don't redraw immediately to avoid excessive redraws
-    },
-
-    /**
      * Stop all intervals (cleanup)
      */
     destroy: function() {
@@ -165,9 +175,9 @@ const LEDDataFetcher = {
             clearInterval(this.fetchInterval);
             this.fetchInterval = null;
         }
-        if (this.blinkInterval) {
-            clearInterval(this.blinkInterval);
-            this.blinkInterval = null;
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
         }
     }
 };
