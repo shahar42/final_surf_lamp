@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SelectField, RadioField, IntegerField, BooleanField, SubmitField
+from wtforms import StringField, PasswordField, SelectField, RadioField, IntegerField, BooleanField, SubmitField, HiddenField
 from wtforms.validators import DataRequired, Email, Length, NumberRange, Regexp, ValidationError, EqualTo
 import re
 import bleach
@@ -51,8 +51,8 @@ class RegistrationForm(FlaskForm):
         Length(min=8, max=128, message="Password must be between 8 and 128 characters")
     ])
 
-    # Arduino ID - positive integer only (this is the device serial number)
-    arduino_id = IntegerField('Arduino ID', validators=[
+    # Arduino ID - hidden field populated from QR code URL parameter
+    arduino_id = HiddenField('Arduino ID', validators=[
         DataRequired(message="Arduino ID is required"),
         NumberRange(min=1, max=999999, message="Arduino ID must be between 1 and 999999")
     ])
