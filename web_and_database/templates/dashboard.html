@@ -49,7 +49,7 @@
                 <!-- Surfboard LED Visualization -->
                 <div class="flex flex-col items-center w-full overflow-hidden">
                     <!-- Surfboard Canvas with Wind Direction Compass -->
-                    <div class="relative inline-block scale-[0.85] sm:scale-100 origin-top">
+                    <div id="lampScaleContainer" class="relative inline-block origin-top" style="transform: scale(1.15);">
                         <canvas id="surfboardCanvas" width="350" height="550" role="img" aria-label="Surfboard LED visualization showing current surf conditions with three LED strips for wave period, wind speed, and wave height">
                             Your browser does not support the canvas element. Current surf conditions: Wave height {{ data.conditions.wave_height_m }}m, Wind speed {{ data.conditions.wind_speed_mps }} m/s, Wave period {{ data.conditions.wave_period_s }}s.
                         </canvas>
@@ -92,30 +92,69 @@
                         </div>
                     </div>
 
-                    <!-- TEMPORARY SCALE CALIBRATION PANEL -->
-                    <div class="mt-8 p-4 bg-black/80 rounded-xl border border-blue-500 w-full max-w-lg relative z-50">
-                        <h3 class="text-blue-400 font-bold mb-4 text-center">🔍 Size Calibration</h3>
-                        <div class="space-y-4 text-white text-xs">
-                            <label class="block">Scale Factor: <span id="val_scale">1.0</span>x</label>
-                            <input type="range" min="0.5" max="2.0" step="0.05" value="1.0" class="w-full" oninput="updateScale(this.value)">
+                    <!-- TEMPORARY FULL CALIBRATION PANEL -->
+                    <div class="mt-12 p-4 bg-black/80 rounded-xl border border-purple-500 w-full max-w-lg relative z-50">
+                        <h3 class="text-purple-400 font-bold mb-4 text-center">📏 Final Layout Calibration</h3>
+                        <div class="grid grid-cols-2 gap-4 text-white text-xs">
                             
-                            <div class="mt-4 p-2 bg-gray-900 rounded font-mono text-xs select-all text-green-400 break-all" id="scaleOutput">
-                                lampScale: 1.0
+                            <!-- Scale Control -->
+                            <div class="col-span-2 pb-2 border-b border-white/20">
+                                <label class="font-bold text-blue-400">Lamp Scale: <span id="val_scale">1.15</span>x</label>
+                                <input type="range" min="0.5" max="2.0" step="0.05" value="1.15" class="w-full" oninput="updateLayout('scale', this.value)">
                             </div>
+
+                            <!-- Arrow Controls -->
+                            <div class="col-span-2 space-y-2 border-b border-white/20 pb-2 pt-2">
+                                <h4 class="font-bold text-yellow-400">Arrow</h4>
+                                <label>Top Y: <span id="val_arrowY">82</span>px</label>
+                                <input type="range" min="0" max="200" value="82" class="w-full" oninput="updateLayout('arrowY', this.value)">
+                                
+                                <label>Size: <span id="val_arrowSize">69</span>px</label>
+                                <input type="range" min="10" max="100" value="69" class="w-full" oninput="updateLayout('arrowSize', this.value)">
+                            </div>
+
+                            <!-- Legend Controls -->
+                            <div class="col-span-2 space-y-2 pt-2">
+                                <h4 class="font-bold text-teal-400">Data Row</h4>
+                                <label>Margin Top: <span id="val_legendY">-50</span>px</label>
+                                <input type="range" min="-100" max="100" value="-50" class="w-full" oninput="updateLayout('legendY', this.value)">
+                                
+                                <label>Side Padding (Spread): <span id="val_legendSpread">22</span>px</label>
+                                <input type="range" min="0" max="100" value="22" class="w-full" oninput="updateLayout('legendSpread', this.value)">
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 p-2 bg-gray-900 rounded font-mono text-xs select-all text-green-400 break-all" id="layoutOutput">
+                            Values will appear here...
                         </div>
                     </div>
                     <script>
-                        function updateScale(value) {
-                            document.getElementById('val_scale').innerText = value;
-                            document.getElementById('scaleOutput').innerText = 'lampScale: ' + value;
+                        function updateLayout(key, value) {
+                            if (key !== 'scale') value = parseInt(value);
+                            document.getElementById('val_' + key).innerText = value;
                             
-                            // Target the container that holds both canvas and arrow
-                            // We need to find the parent div of the canvas
-                            const canvas = document.getElementById('surfboardCanvas');
-                            const container = canvas.parentElement;
-                            
-                            container.style.transform = `scale(${value})`;
-                            container.style.transformOrigin = 'top center';
+                            const arrowContainer = document.getElementById('arrowContainer');
+                            const windArrow = document.getElementById('windArrow');
+                            const legendContainer = document.getElementById('legendContainer');
+                            const legendRow = document.getElementById('legendRow');
+                            const lampContainer = document.getElementById('lampScaleContainer');
+
+                            // Apply changes
+                            if (key === 'scale') lampContainer.style.transform = `scale(${value})`;
+                            if (key === 'arrowY') arrowContainer.style.top = value + 'px';
+                            if (key === 'arrowSize') windArrow.style.fontSize = value + 'px';
+                            if (key === 'legendY') legendContainer.style.marginTop = value + 'px';
+                            if (key === 'legendSpread') legendRow.style.paddingLeft = value + 'px', legendRow.style.paddingRight = value + 'px';
+
+                            // Gather all current values
+                            const s = document.getElementById('val_scale').innerText;
+                            const ay = document.getElementById('val_arrowY').innerText;
+                            const as = document.getElementById('val_arrowSize').innerText;
+                            const ly = document.getElementById('val_legendY').innerText;
+                            const ls = document.getElementById('val_legendSpread').innerText;
+
+                            const output = `scale: ${s}, arrowY: ${ay}, arrowSize: ${as}, legendY: ${ly}, legendSpread: ${ls}`;
+                            document.getElementById('layoutOutput').innerText = output;
                         }
                     </script>
                     <!-- END CALIBRATION PANEL -->
