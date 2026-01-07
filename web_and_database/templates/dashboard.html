@@ -62,8 +62,8 @@
                     </div>
 
                     <!-- Legend & Data Values -->
-                    <div id="legendContainer" class="relative w-[350px] mx-auto text-white/90 text-sm font-semibold pointer-events-none" style="margin-top: -50px;">
-                        <div class="flex justify-between items-start" id="legendRow" style="padding-left: 22px; padding-right: 22px;">
+                    <div id="legendContainer" class="relative w-[350px] mx-auto text-white/90 text-sm font-semibold pointer-events-none transition-all duration-300">
+                        <div class="flex justify-between items-start transition-all duration-300" id="legendRow">
                             <!-- Left: Period -->
                             <div class="flex flex-col items-center gap-1 w-24 text-center">
                                 <span class="text-white/70 text-xs uppercase tracking-wider">Period</span>
@@ -92,72 +92,33 @@
                         </div>
                     </div>
 
-                    <!-- TEMPORARY FULL CALIBRATION PANEL -->
-                    <div class="mt-12 p-4 bg-black/80 rounded-xl border border-purple-500 w-full max-w-lg relative z-50">
-                        <h3 class="text-purple-400 font-bold mb-4 text-center">📏 Final Layout Calibration</h3>
-                        <div class="grid grid-cols-2 gap-4 text-white text-xs">
-                            
-                            <!-- Scale Control -->
-                            <div class="col-span-2 pb-2 border-b border-white/20">
-                                <label class="font-bold text-blue-400">Lamp Scale: <span id="val_scale">1.15</span>x</label>
-                                <input type="range" min="0.5" max="2.0" step="0.05" value="1.15" class="w-full" oninput="updateLayout('scale', this.value)">
-                            </div>
-
-                            <!-- Arrow Controls -->
-                            <div class="col-span-2 space-y-2 border-b border-white/20 pb-2 pt-2">
-                                <h4 class="font-bold text-yellow-400">Arrow</h4>
-                                <label>Top Y: <span id="val_arrowY">82</span>px</label>
-                                <input type="range" min="0" max="200" value="82" class="w-full" oninput="updateLayout('arrowY', this.value)">
-                                
-                                <label>Size: <span id="val_arrowSize">69</span>px</label>
-                                <input type="range" min="10" max="100" value="69" class="w-full" oninput="updateLayout('arrowSize', this.value)">
-                            </div>
-
-                            <!-- Legend Controls -->
-                            <div class="col-span-2 space-y-2 pt-2">
-                                <h4 class="font-bold text-teal-400">Data Row</h4>
-                                <label>Margin Top: <span id="val_legendY">-50</span>px</label>
-                                <input type="range" min="-100" max="100" value="-50" class="w-full" oninput="updateLayout('legendY', this.value)">
-                                
-                                <label>Side Padding (Spread): <span id="val_legendSpread">22</span>px</label>
-                                <input type="range" min="0" max="100" value="22" class="w-full" oninput="updateLayout('legendSpread', this.value)">
-                            </div>
-                        </div>
-                        
-                        <div class="mt-4 p-2 bg-gray-900 rounded font-mono text-xs select-all text-green-400 break-all" id="layoutOutput">
-                            Values will appear here...
-                        </div>
-                    </div>
                     <script>
-                        function updateLayout(key, value) {
-                            if (key !== 'scale') value = parseInt(value);
-                            document.getElementById('val_' + key).innerText = value;
+                        // Apply Visual Calibration from Config
+                        document.addEventListener('DOMContentLoaded', () => {
+                            const cal = DashboardConfig.CALIBRATION.LAYOUT;
                             
+                            // Lamp Scale
+                            const lampContainer = document.getElementById('lampScaleContainer');
+                            if (lampContainer) {
+                                lampContainer.style.transform = `scale(${cal.LAMP_SCALE})`;
+                            }
+
+                            // Arrow Position & Size
                             const arrowContainer = document.getElementById('arrowContainer');
                             const windArrow = document.getElementById('windArrow');
+                            if (arrowContainer) arrowContainer.style.top = `${cal.ARROW_TOP_Y}px`;
+                            if (windArrow) windArrow.style.fontSize = `${cal.ARROW_SIZE}px`;
+
+                            // Legend Position & Spread
                             const legendContainer = document.getElementById('legendContainer');
                             const legendRow = document.getElementById('legendRow');
-                            const lampContainer = document.getElementById('lampScaleContainer');
-
-                            // Apply changes
-                            if (key === 'scale') lampContainer.style.transform = `scale(${value})`;
-                            if (key === 'arrowY') arrowContainer.style.top = value + 'px';
-                            if (key === 'arrowSize') windArrow.style.fontSize = value + 'px';
-                            if (key === 'legendY') legendContainer.style.marginTop = value + 'px';
-                            if (key === 'legendSpread') legendRow.style.paddingLeft = value + 'px', legendRow.style.paddingRight = value + 'px';
-
-                            // Gather all current values
-                            const s = document.getElementById('val_scale').innerText;
-                            const ay = document.getElementById('val_arrowY').innerText;
-                            const as = document.getElementById('val_arrowSize').innerText;
-                            const ly = document.getElementById('val_legendY').innerText;
-                            const ls = document.getElementById('val_legendSpread').innerText;
-
-                            const output = `scale: ${s}, arrowY: ${ay}, arrowSize: ${as}, legendY: ${ly}, legendSpread: ${ls}`;
-                            document.getElementById('layoutOutput').innerText = output;
-                        }
+                            if (legendContainer) legendContainer.style.marginTop = `${cal.LEGEND_MARGIN_TOP}px`;
+                            if (legendRow) {
+                                legendRow.style.paddingLeft = `${cal.LEGEND_SPREAD}px`;
+                                legendRow.style.paddingRight = `${cal.LEGEND_SPREAD}px`;
+                            }
+                        });
                     </script>
-                    <!-- END CALIBRATION PANEL -->
                 </div>
             </div>
         </div>

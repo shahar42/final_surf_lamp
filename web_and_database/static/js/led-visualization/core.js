@@ -144,15 +144,16 @@ const LEDVisualizationCore = {
         }
 
         // 2. Define Strip Positions
-        // Hardcoded values from user calibration
+        // Using centralized calibration from config.js
         const centerX = canvas.width / 2;
+        const cal = DashboardConfig.CALIBRATION.STRIPS;
         
-        const bottomY = 440;
-        const topY = 146;
-        const stripWidth = 6;
+        const bottomY = cal.BOTTOM_Y;
+        const topY = cal.TOP_Y;
+        const stripWidth = cal.WIDTH;
         
-        const leftOffset = 31;
-        const rightOffset = 30;
+        const leftOffset = cal.LEFT_OFFSET_X;
+        const rightOffset = cal.RIGHT_OFFSET_X;
 
         // LEFT RAIL: Wave Period
         if (theme && theme.period) {
