@@ -88,6 +88,69 @@
                         </div>
                     </div>
 
+                    <!-- TEMPORARY ARROW CALIBRATION PANEL -->
+                    <div class="mt-12 p-4 bg-black/80 rounded-xl border border-cyan-500 w-full max-w-lg relative z-50 mx-auto">
+                        <h3 class="text-cyan-400 font-bold mb-4 text-center">🧭 Arrow Calibration</h3>
+                        <div class="grid grid-cols-2 gap-4 text-white text-xs">
+                            
+                            <!-- Top Y -->
+                            <div class="space-y-2">
+                                <label>Top Y (Position): <span id="val_arrowY">82</span>px</label>
+                                <input type="range" min="0" max="200" value="82" class="w-full" oninput="updateArrow('y', this.value)">
+                            </div>
+
+                            <!-- Size -->
+                            <div class="space-y-2">
+                                <label>Size: <span id="val_arrowSize">69</span>px</label>
+                                <input type="range" min="20" max="150" value="69" class="w-full" oninput="updateArrow('size', this.value)">
+                            </div>
+
+                            <!-- Opacity -->
+                            <div class="space-y-2">
+                                <label>Opacity: <span id="val_arrowOp">1.0</span></label>
+                                <input type="range" min="0" max="1" step="0.1" value="1.0" class="w-full" oninput="updateArrow('opacity', this.value)">
+                            </div>
+
+                            <!-- Shadow Blur -->
+                            <div class="space-y-2">
+                                <label>Shadow: <span id="val_arrowShadow">4</span>px</label>
+                                <input type="range" min="0" max="20" value="4" class="w-full" oninput="updateArrow('shadow', this.value)">
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 p-2 bg-gray-900 rounded font-mono text-xs select-all text-green-400 break-all" id="arrowOutput">
+                            Values will appear here...
+                        </div>
+                    </div>
+                    <script>
+                        function updateArrow(key, value) {
+                            if (key === 'opacity') value = parseFloat(value);
+                            else value = parseInt(value);
+                            
+                            document.getElementById('val_arrow' + (key === 'y' ? 'Y' : key.charAt(0).toUpperCase() + key.slice(1))).innerText = value;
+                            
+                            const arrowContainer = document.getElementById('arrowContainer');
+                            const windArrow = document.getElementById('windArrow');
+                            const svg = windArrow.querySelector('svg');
+
+                            if (key === 'y') arrowContainer.style.top = value + 'px';
+                            if (key === 'size') {
+                                windArrow.style.width = value + 'px';
+                                windArrow.style.height = value + 'px';
+                            }
+                            if (key === 'opacity') windArrow.style.opacity = value;
+                            if (key === 'shadow') svg.style.filter = `drop-shadow(0 ${value/2}px ${value}px rgba(0,0,0,0.5))`;
+
+                            // Output
+                            const y = document.getElementById('val_arrowY').innerText;
+                            const size = document.getElementById('val_arrowSize').innerText;
+                            const op = document.getElementById('val_arrowOp').innerText;
+                            const shadow = document.getElementById('val_arrowShadow').innerText;
+                            
+                            document.getElementById('arrowOutput').innerText = `arrowY: ${y}, arrowSize: ${size}, arrowOpacity: ${op}, arrowShadow: ${shadow}`;
+                        }
+                    </script>
+
                     <script>
                         // Apply Visual Calibration from Config
                         document.addEventListener('DOMContentLoaded', () => {
