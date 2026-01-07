@@ -80,6 +80,72 @@
                             <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(0, 255, 255);"></span><span>NW</span></div>
                         </div>
                     </div>
+
+                    <!-- TEMPORARY CALIBRATION PANEL -->
+                    <div class="mt-8 p-4 bg-black/80 rounded-xl border border-yellow-500 w-full max-w-lg">
+                        <h3 class="text-yellow-400 font-bold mb-4 text-center">🔧 Calibration Mode</h3>
+                        <div class="grid grid-cols-2 gap-4 text-white text-xs">
+                            
+                            <!-- Global Y Adjustments -->
+                            <div class="col-span-2 space-y-2 border-b border-white/20 pb-2">
+                                <label class="block">Top Y (Start): <span id="val_topY">140</span></label>
+                                <input type="range" min="0" max="300" value="140" class="w-full" oninput="updateCal('topY', this.value)">
+                                
+                                <label class="block">Bottom Y (End): <span id="val_bottomY">440</span></label>
+                                <input type="range" min="200" max="550" value="440" class="w-full" oninput="updateCal('bottomY', this.value)">
+                            </div>
+
+                            <!-- Left Strip -->
+                            <div class="space-y-2">
+                                <h4 class="font-bold text-teal-400">Left (Period)</h4>
+                                <label>Offset X: <span id="val_leftX">34</span></label>
+                                <input type="range" min="0" max="100" value="34" class="w-full" oninput="updateCal('leftX', this.value)">
+                            </div>
+
+                            <!-- Right Strip -->
+                            <div class="space-y-2">
+                                <h4 class="font-bold text-blue-400">Right (Wave)</h4>
+                                <label>Offset X: <span id="val_rightX">34</span></label>
+                                <input type="range" min="0" max="100" value="34" class="w-full" oninput="updateCal('rightX', this.value)">
+                            </div>
+
+                            <!-- Strip Width -->
+                            <div class="col-span-2 pt-2 border-t border-white/20">
+                                <label>Strip Width: <span id="val_width">10</span>px</label>
+                                <input type="range" min="1" max="30" value="10" class="w-full" oninput="updateCal('width', this.value)">
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 p-2 bg-gray-900 rounded font-mono text-xs select-all text-green-400 break-all" id="calOutput">
+                            Values will appear here...
+                        </div>
+                    </div>
+                    <script>
+                        // Global calibration object
+                        window.calibration = {
+                            topY: 140,
+                            bottomY: 440,
+                            leftX: 34,
+                            rightX: 34,
+                            width: 10
+                        };
+
+                        function updateCal(key, value) {
+                            value = parseInt(value);
+                            window.calibration[key] = value;
+                            document.getElementById('val_' + key).innerText = value;
+                            
+                            // Update output string for easy copying
+                            const output = `topY: ${window.calibration.topY}, bottomY: ${window.calibration.bottomY}, leftX: ${window.calibration.leftX}, rightX: ${window.calibration.rightX}, width: ${window.calibration.width}`;
+                            document.getElementById('calOutput').innerText = output;
+                            
+                            // Trigger redraw immediately
+                            if (window.LEDDataFetcher && window.LEDDataFetcher.cachedData) {
+                                window.LEDDataFetcher.updateLEDVisualization(window.LEDDataFetcher.cachedData);
+                            }
+                        }
+                    </script>
+                    <!-- END CALIBRATION PANEL -->
                 </div>
             </div>
         </div>

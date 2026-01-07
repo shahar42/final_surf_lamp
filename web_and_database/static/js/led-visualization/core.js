@@ -128,10 +128,6 @@ const LEDVisualizationCore = {
 
         // 1. Draw Background Image
         if (image) {
-            // Draw image centered and covering most of the canvas
-            // Canvas is 350x550.
-            // We want to preserve aspect ratio. 
-            // Assume image is vertical.
             const padding = 20;
             const targetHeight = canvas.height - (padding * 2);
             const scale = targetHeight / image.height;
@@ -141,31 +137,33 @@ const LEDVisualizationCore = {
 
             ctx.drawImage(image, x, y, targetWidth, targetHeight);
         } else {
-            // Fallback if image not loaded yet (simple grey shape)
             ctx.fillStyle = '#333';
             ctx.beginPath();
             ctx.ellipse(canvas.width/2, canvas.height/2, 60, 240, 0, 0, Math.PI*2);
             ctx.fill();
         }
 
-        // 2. Define Strip Positions (Calibrated for standard surf lamp shape)
-        // These are approximations since we can't see the new image.
-        // Center of canvas is 175.
+        // 2. Define Strip Positions
+        // Check for calibration overrides
+        const cal = (typeof window !== 'undefined' && window.calibration) ? window.calibration : {};
+
         const centerX = canvas.width / 2;
-        // Adjusted vertical bounds based on visual inspection of annimation_lampv1.png
-        const bottomY = canvas.height - 110; // Moved up significantly (was -60) to match bottom of grooves
-        const topY = 140; // Moved down (was 80) to match top of grooves
         
-        const stripWidth = 10; // Slightly thinner to fit inside grooves
-        const sideOffset = 34; // Much narrower spacing (was 55) to bring side strips onto the board
+        // Use calibrated values or defaults
+        const bottomY = cal.bottomY !== undefined ? cal.bottomY : (canvas.height - 110);
+        const topY = cal.topY !== undefined ? cal.topY : 140;
+        const stripWidth = cal.width !== undefined ? cal.width : 10;
+        
+        const leftOffset = cal.leftX !== undefined ? cal.leftX : 34;
+        const rightOffset = cal.rightX !== undefined ? cal.rightX : 34;
 
         // LEFT RAIL: Wave Period
         if (theme && theme.period) {
             this.drawLiquidStrip(
                 ctx, 
-                centerX - sideOffset, // x
-                bottomY, // yBottom
-                topY + 30, // yTop (side strips are shorter)
+                centerX - leftOffset, 
+                bottomY, 
+                topY + 30, 
                 stripWidth,
                 leftFill || 0,
                 theme.period,
@@ -175,12 +173,11 @@ const LEDVisualizationCore = {
 
         // CENTER STRIP: Wind Speed
         if (theme && theme.wind) {
-            // Center strip starts a bit higher (above the tail block)
             this.drawLiquidStrip(
                 ctx,
                 centerX,
                 bottomY - 15, 
-                topY + 20, // Leaves room for wind direction LED at top
+                topY + 20, 
                 stripWidth,
                 centerFill || 0,
                 theme.wind,
@@ -192,7 +189,7 @@ const LEDVisualizationCore = {
         if (theme && theme.wave) {
             this.drawLiquidStrip(
                 ctx,
-                centerX + sideOffset,
+                centerX + rightOffset,
                 bottomY,
                 topY + 30,
                 stripWidth,
@@ -203,12 +200,11 @@ const LEDVisualizationCore = {
         }
 
         // 3. Draw Wind Direction LED (Nose)
-        // This is a single dot at the very top of the center strip
         if (windDirColor) {
             this.drawWindDirectionIndicator(
                 ctx, 
                 centerX, 
-                topY + 5, // Just above the wind speed strip
+                topY + 5, 
                 windDirColor
             );
         }
