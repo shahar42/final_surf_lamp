@@ -89,123 +89,248 @@
     <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
 
         <!-- Lamp Information Card -->
-        <div class="card rounded-2xl p-6 shadow-2xl order-2 lg:order-1">
-            <h2 class="text-2xl font-bold text-white mb-4">Your Surf Lamp</h2>
+        <div class="card rounded-2xl shadow-2xl order-2 lg:order-1 overflow-hidden">
             
-            <div class="space-y-3 text-white">
-                
-                <div class="flex justify-between items-center">
-                    <span class="text-white/80">Location:</span>
-                    <select id="locationSelect" aria-label="Select your location" class="bg-white/20 text-white rounded px-2 py-1 border border-white/30 text-sm font-semibold">
-                        {% for location in locations %}
-                            <option value="{{ location }}" {% if location == data.user.location %}selected{% endif %}>
-                                {{ location.replace(', Israel', '') }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div id="location-status" class="text-sm text-white/80 mt-2"></div>
-                
+            <!-- Mobile View: Drawer/Accordion -->
+            <div class="block lg:hidden">
+                <button onclick="document.getElementById('surf-lamp-content').classList.toggle('hidden'); document.getElementById('surf-lamp-chevron').classList.toggle('rotate-180');" 
+                        class="w-full text-left p-6 flex justify-between items-center bg-white/5 hover:bg-white/10 transition-colors">
+                    <h2 class="text-xl font-bold text-white">Surf data Configuration</h2>
+                    <svg id="surf-lamp-chevron" class="w-6 h-6 text-white transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
 
-
-                <!-- Wave Alert Range Slider -->
-                <div class="space-y-2 pt-2 border-t border-white/20">
-                    <span class="text-white/80">Wave Alert</span>
-                    <div class="px-2 py-2">
-                        <div id="waveSlider" class="my-4"></div>
-                    </div>
-                    <div id="threshold-status" class="text-sm text-white/80"></div>
-                    <!-- Hidden inputs for data storage -->
-                    <input type="hidden" id="waveThresholdMin"
-                           value="{% if data.user.preferred_output == 'feet' %}{{ '%.1f'|format((data.user.wave_threshold_m if data.user.wave_threshold_m is not none else 0.0) * 3.28084) }}{% else %}{{ data.user.wave_threshold_m if data.user.wave_threshold_m is not none else 0.0 }}{% endif %}"
-                           data-unit="{{ data.user.preferred_output or 'meters' }}">
-                    <input type="hidden" id="waveThresholdMax"
-                           value="{% if data.user.wave_threshold_max_m %}{% if data.user.preferred_output == 'feet' %}{{ '%.1f'|format(data.user.wave_threshold_max_m * 3.28084) }}{% else %}{{ data.user.wave_threshold_max_m }}{% endif %}{% endif %}">
-                </div>
-
-                <!-- Wind Alert Range Slider -->
-                <div class="space-y-2 pt-2 border-t border-white/20">
-                    <span class="text-white/80">Wind Alert</span>
-                    <div class="px-2 py-2">
-                        <div id="windSlider" class="my-4"></div>
-                    </div>
-                    <div id="wind-threshold-status" class="text-sm text-white/80"></div>
-                    <!-- Hidden inputs for data storage -->
-                    <input type="hidden" id="windThresholdMin" value="{{ data.user.wind_threshold_knots or 22 }}">
-                    <input type="hidden" id="windThresholdMax" value="{% if data.user.wind_threshold_max_knots %}{{ data.user.wind_threshold_max_knots }}{% endif %}">
-                </div>
-
-                <div class="flex justify-between items-center pt-2 border-t border-white/20">
-                    <span class="text-white/80">LED Colors:</span>
-                    <div class="flex items-center space-x-2 w-32 justify-end">
-                        <a href="{{ url_for('dashboard.themes_page') }}" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm text-white font-semibold transition-colors">
-                            Configure
-                        </a>
-                    </div>
-                </div>
-                <div class="text-sm text-white/80 mt-2">
-                    Current: {{ data.user.theme.replace('_', ' ').title() if data.user.theme else 'Ocean Breeze' }}
-                </div>
-
-                <div class="flex justify-between items-center pt-2 border-t border-white/20">
-                    <span class="text-white/80">Units:</span>
-                    <div class="flex items-center space-x-2 justify-end">
-                        <button id="unitToggle" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm text-white font-semibold transition-colors whitespace-nowrap">
-                            {% if data.user.preferred_output == 'feet' %}Switch to Meters{% else %}Switch to Feet{% endif %}
-                        </button>
-                    </div>
-                </div>
-                <div id="unit-status" class="text-sm text-white/80 mt-2"></div>
-
-                <div class="flex justify-between items-center pt-2 border-t border-white/20">
-                    <span class="text-white/80">My Lamps:</span>
-                    <button id="showAddArduinoBtn" class="text-xs bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded text-white font-semibold transition-colors">
-                        + Link New Lamp
-                    </button>
-                </div>
-                <div id="arduinoList" class="space-y-2 mt-1">
-                    {% for arduino in data.arduinos %}
-                        <div class="flex justify-between items-center bg-white/10 rounded px-2 py-1 text-sm">
-                            <span class="text-white/60">#{{ arduino.arduino_id }}</span>
-                            <span class="font-medium">{{ arduino.location.replace(', Israel', '') }}</span>
-                        </div>
-                    {% endfor %}
-                </div>
-
-                <!-- Hidden Add Arduino Form -->
-                <div id="addArduinoForm" class="hidden mt-3 p-3 bg-black/20 rounded-lg border border-white/10">
-                    <div class="space-y-3">
-                        <div>
-                            <label class="text-white/60 text-xs block mb-1">Arduino ID:</label>
-                            <input type="number" id="newArduinoId" placeholder="e.g. 123456" 
-                                   class="bg-white/10 text-white rounded px-3 py-1 text-sm border border-white/20 w-full">
-                        </div>
-                        <div>
-                            <label class="text-white/60 text-xs block mb-1">Location:</label>
-                            <select id="newArduinoLocation" class="bg-gray-800 text-white rounded px-3 py-1 text-sm border border-white/20 w-full">
+                <div id="surf-lamp-content" class="hidden border-t border-white/10 p-6">
+                    <div class="space-y-3 text-white">
+                        <div class="flex justify-between items-center">
+                            <span class="text-white/80">Location:</span>
+                            <select id="locationSelectMobile" aria-label="Select your location" class="bg-white/20 text-white rounded px-2 py-1 border border-white/30 text-sm font-semibold">
                                 {% for location in locations %}
-                                    <option value="{{ location }}">{{ location }}</option>
+                                    <option value="{{ location }}" {% if location == data.user.location %}selected{% endif %}>
+                                        {{ location.replace(', Israel', '') }}
+                                    </option>
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="flex gap-2">
-                            <button id="cancelAddArduino" class="flex-1 bg-white/10 hover:bg-white/20 py-1 rounded text-xs text-white">Cancel</button>
-                            <button id="submitAddArduino" class="flex-1 bg-blue-500 hover:bg-blue-600 py-1 rounded text-xs text-white font-bold">Link Lamp</button>
+                        <div id="location-status-mobile" class="text-sm text-white/80 mt-2"></div>
+
+                        <!-- Wave Alert Range Slider Mobile -->
+                        <div class="space-y-2 pt-2 border-t border-white/20">
+                            <span class="text-white/80">Wave Alert</span>
+                            <div class="px-2 py-2">
+                                <div id="waveSliderMobile" class="my-4"></div>
+                            </div>
+                            <div id="threshold-status-mobile" class="text-sm text-white/80"></div>
+                            <input type="hidden" id="waveThresholdMinMobile"
+                                   value="{% if data.user.preferred_output == 'feet' %}{{ '%.1f'|format((data.user.wave_threshold_m if data.user.wave_threshold_m is not none else 0.0) * 3.28084) }}{% else %}{{ data.user.wave_threshold_m if data.user.wave_threshold_m is not none else 0.0 }}{% endif %}"
+                                   data-unit="{{ data.user.preferred_output or 'meters' }}">
+                            <input type="hidden" id="waveThresholdMaxMobile"
+                                   value="{% if data.user.wave_threshold_max_m %}{% if data.user.preferred_output == 'feet' %}{{ '%.1f'|format(data.user.wave_threshold_max_m * 3.28084) }}{% else %}{{ data.user.wave_threshold_max_m }}{% endif %}{% endif %}">
+                        </div>
+
+                        <!-- Wind Alert Range Slider Mobile -->
+                        <div class="space-y-2 pt-2 border-t border-white/20">
+                            <span class="text-white/80">Wind Alert</span>
+                            <div class="px-2 py-2">
+                                <div id="windSliderMobile" class="my-4"></div>
+                            </div>
+                            <div id="wind-threshold-status-mobile" class="text-sm text-white/80"></div>
+                            <input type="hidden" id="windThresholdMinMobile" value="{{ data.user.wind_threshold_knots or 22 }}">
+                            <input type="hidden" id="windThresholdMaxMobile" value="{% if data.user.wind_threshold_max_knots %}{{ data.user.wind_threshold_max_knots }}{% endif %}">
+                        </div>
+
+                        <div class="flex justify-between items-center pt-2 border-t border-white/20">
+                            <span class="text-white/80">LED Colors:</span>
+                            <div class="flex items-center space-x-2 w-32 justify-end">
+                                <a href="{{ url_for('dashboard.themes_page') }}" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm text-white font-semibold transition-colors">
+                                    Configure
+                                </a>
+                            </div>
+                        </div>
+                        <div class="text-sm text-white/80 mt-2">
+                            Current: {{ data.user.theme.replace('_', ' ').title() if data.user.theme else 'Ocean Breeze' }}
+                        </div>
+
+                        <div class="flex justify-between items-center pt-2 border-t border-white/20">
+                            <span class="text-white/80">Units:</span>
+                            <div class="flex items-center space-x-2 justify-end">
+                                <button id="unitToggleMobile" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm text-white font-semibold transition-colors whitespace-nowrap">
+                                    {% if data.user.preferred_output == 'feet' %}Switch to Meters{% else %}Switch to Feet{% endif %}
+                                </button>
+                            </div>
+                        </div>
+                        <div id="unit-status-mobile" class="text-sm text-white/80 mt-2"></div>
+
+                        <div class="flex justify-between items-center pt-2 border-t border-white/20">
+                            <span class="text-white/80">My Lamps:</span>
+                            <button id="showAddArduinoBtnMobile" class="text-xs bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded text-white font-semibold transition-colors">
+                                + Link New Lamp
+                            </button>
+                        </div>
+                        <div id="arduinoListMobile" class="space-y-2 mt-1">
+                            {% for arduino in data.arduinos %}
+                                <div class="flex justify-between items-center bg-white/10 rounded px-2 py-1 text-sm">
+                                    <span class="text-white/60">#{{ arduino.arduino_id }}</span>
+                                    <span class="font-medium">{{ arduino.location.replace(', Israel', '') }}</span>
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        <div id="addArduinoFormMobile" class="hidden mt-3 p-3 bg-black/20 rounded-lg border border-white/10">
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="text-white/60 text-xs block mb-1">Arduino ID:</label>
+                                    <input type="number" id="newArduinoIdMobile" placeholder="e.g. 123456" 
+                                           class="bg-white/10 text-white rounded px-3 py-1 text-sm border border-white/20 w-full">
+                                </div>
+                                <div>
+                                    <label class="text-white/60 text-xs block mb-1">Location:</label>
+                                    <select id="newArduinoLocationMobile" class="bg-gray-800 text-white rounded px-3 py-1 text-sm border border-white/20 w-full">
+                                        {% for location in locations %}
+                                            <option value="{{ location }}">{{ location }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button id="cancelAddArduinoMobile" class="flex-1 bg-white/10 hover:bg-white/20 py-1 rounded text-xs text-white">Cancel</button>
+                                    <button id="submitAddArduinoMobile" class="flex-1 bg-blue-500 hover:bg-blue-600 py-1 rounded text-xs text-white font-bold">Link Lamp</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-center pt-2 border-t border-white/20">
+                            <span class="text-white/80">Status:</span>
+                            {% if data.conditions %}
+                                <span class="status-online font-semibold">
+                                    ● Online
+                                    {% if data.conditions.last_updated %}
+                                        <span class="text-white/60 text-xs ml-1">(Data updated <span id="statusUpdateTimeMobile" data-timestamp="{{ data.conditions.last_updated.isoformat() }}Z">--</span>)</span>
+                                    {% endif %}
+                                </span>
+                            {% else %}
+                                <span class="status-offline font-semibold">● No Data</span>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="flex justify-between items-center pt-2 border-t border-white/20">
-                    <span class="text-white/80">Status:</span>
-                    {% if data.conditions %}
-                        <span class="status-online font-semibold">
-                            ● Online
-                                        {% if data.conditions.last_updated %}
-                                            <span class="text-white/60 text-xs ml-1">(Data updated <span id="statusUpdateTime" data-timestamp="{{ data.conditions.last_updated.isoformat() }}Z">--</span>)</span>
-                                        {% endif %}                        </span>
-                    {% else %}
-                        <span class="status-offline font-semibold">● No Data</span>
-                    {% endif %}
+            <!-- Desktop View: Original Layout -->
+            <div class="hidden lg:block p-6">
+                <h2 class="text-2xl font-bold text-white mb-4">Your Surf Lamp</h2>
+                
+                <div class="space-y-3 text-white">
+                    <div class="flex justify-between items-center">
+                        <span class="text-white/80">Location:</span>
+                        <select id="locationSelect" aria-label="Select your location" class="bg-white/20 text-white rounded px-2 py-1 border border-white/30 text-sm font-semibold">
+                            {% for location in locations %}
+                                <option value="{{ location }}" {% if location == data.user.location %}selected{% endif %}>
+                                    {{ location.replace(', Israel', '') }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div id="location-status" class="text-sm text-white/80 mt-2"></div>
+
+                    <!-- Wave Alert Range Slider -->
+                    <div class="space-y-2 pt-2 border-t border-white/20">
+                        <span class="text-white/80">Wave Alert</span>
+                        <div class="px-2 py-2">
+                            <div id="waveSlider" class="my-4"></div>
+                        </div>
+                        <div id="threshold-status" class="text-sm text-white/80"></div>
+                        <input type="hidden" id="waveThresholdMin"
+                               value="{% if data.user.preferred_output == 'feet' %}{{ '%.1f'|format((data.user.wave_threshold_m if data.user.wave_threshold_m is not none else 0.0) * 3.28084) }}{% else %}{{ data.user.wave_threshold_m if data.user.wave_threshold_m is not none else 0.0 }}{% endif %}"
+                               data-unit="{{ data.user.preferred_output or 'meters' }}">
+                        <input type="hidden" id="waveThresholdMax"
+                               value="{% if data.user.wave_threshold_max_m %}{% if data.user.preferred_output == 'feet' %}{{ '%.1f'|format(data.user.wave_threshold_max_m * 3.28084) }}{% else %}{{ data.user.wave_threshold_max_m }}{% endif %}{% endif %}">
+                    </div>
+
+                    <!-- Wind Alert Range Slider -->
+                    <div class="space-y-2 pt-2 border-t border-white/20">
+                        <span class="text-white/80">Wind Alert</span>
+                        <div class="px-2 py-2">
+                            <div id="windSlider" class="my-4"></div>
+                        </div>
+                        <div id="wind-threshold-status" class="text-sm text-white/80"></div>
+                        <input type="hidden" id="windThresholdMin" value="{{ data.user.wind_threshold_knots or 22 }}">
+                        <input type="hidden" id="windThresholdMax" value="{% if data.user.wind_threshold_max_knots %}{{ data.user.wind_threshold_max_knots }}{% endif %}">
+                    </div>
+
+                    <div class="flex justify-between items-center pt-2 border-t border-white/20">
+                        <span class="text-white/80">LED Colors:</span>
+                        <div class="flex items-center space-x-2 w-32 justify-end">
+                            <a href="{{ url_for('dashboard.themes_page') }}" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm text-white font-semibold transition-colors">
+                                Configure
+                            </a>
+                        </div>
+                    </div>
+                    <div class="text-sm text-white/80 mt-2">
+                        Current: {{ data.user.theme.replace('_', ' ').title() if data.user.theme else 'Ocean Breeze' }}
+                    </div>
+
+                    <div class="flex justify-between items-center pt-2 border-t border-white/20">
+                        <span class="text-white/80">Units:</span>
+                        <div class="flex items-center space-x-2 justify-end">
+                            <button id="unitToggle" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm text-white font-semibold transition-colors whitespace-nowrap">
+                                {% if data.user.preferred_output == 'feet' %}Switch to Meters{% else %}Switch to Feet{% endif %}
+                            </button>
+                        </div>
+                    </div>
+                    <div id="unit-status" class="text-sm text-white/80 mt-2"></div>
+
+                    <div class="flex justify-between items-center pt-2 border-t border-white/20">
+                        <span class="text-white/80">My Lamps:</span>
+                        <button id="showAddArduinoBtn" class="text-xs bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded text-white font-semibold transition-colors">
+                            + Link New Lamp
+                        </button>
+                    </div>
+                    <div id="arduinoList" class="space-y-2 mt-1">
+                        {% for arduino in data.arduinos %}
+                            <div class="flex justify-between items-center bg-white/10 rounded px-2 py-1 text-sm">
+                                <span class="text-white/60">#{{ arduino.arduino_id }}</span>
+                                <span class="font-medium">{{ arduino.location.replace(', Israel', '') }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Hidden Add Arduino Form -->
+                    <div id="addArduinoForm" class="hidden mt-3 p-3 bg-black/20 rounded-lg border border-white/10">
+                        <div class="space-y-3">
+                            <div>
+                                <label class="text-white/60 text-xs block mb-1">Arduino ID:</label>
+                                <input type="number" id="newArduinoId" placeholder="e.g. 123456" 
+                                       class="bg-white/10 text-white rounded px-3 py-1 text-sm border border-white/20 w-full">
+                            </div>
+                            <div>
+                                <label class="text-white/60 text-xs block mb-1">Location:</label>
+                                <select id="newArduinoLocation" class="bg-gray-800 text-white rounded px-3 py-1 text-sm border border-white/20 w-full">
+                                    {% for location in locations %}
+                                        <option value="{{ location }}">{{ location }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="flex gap-2">
+                                <button id="cancelAddArduino" class="flex-1 bg-white/10 hover:bg-white/20 py-1 rounded text-xs text-white">Cancel</button>
+                                <button id="submitAddArduino" class="flex-1 bg-blue-500 hover:bg-blue-600 py-1 rounded text-xs text-white font-bold">Link Lamp</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center pt-2 border-t border-white/20">
+                        <span class="text-white/80">Status:</span>
+                        {% if data.conditions %}
+                            <span class="status-online font-semibold">
+                                ● Online
+                                {% if data.conditions.last_updated %}
+                                    <span class="text-white/60 text-xs ml-1">(Data updated <span id="statusUpdateTime" data-timestamp="{{ data.conditions.last_updated.isoformat() }}Z">--</span>)</span>
+                                {% endif %}
+                            </span>
+                        {% else %}
+                            <span class="status-offline font-semibold">● No Data</span>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>

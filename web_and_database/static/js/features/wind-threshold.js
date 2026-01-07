@@ -4,36 +4,55 @@
  */
 
 const WindThreshold = {
-    slider: null,
     updateTimeout: null,
 
     /**
-     * Initialize wind threshold range slider
+     * Initialize wind threshold range sliders
      */
     init: function() {
+        // Desktop elements
         const sliderElement = document.getElementById('windSlider');
         const statusDiv = document.getElementById('wind-threshold-status');
         const minInput = document.getElementById('windThresholdMin');
         const maxInput = document.getElementById('windThresholdMax');
 
-        if (!sliderElement || !statusDiv || !minInput) {
-            console.error('WindThreshold: Required elements not found');
-            return;
+        // Mobile elements
+        const sliderElementMobile = document.getElementById('windSliderMobile');
+        const statusDivMobile = document.getElementById('wind-threshold-status-mobile');
+        const minInputMobile = document.getElementById('windThresholdMinMobile');
+        const maxInputMobile = document.getElementById('windThresholdMaxMobile');
+
+        // Setup desktop slider
+        if (sliderElement && statusDiv && minInput) {
+            this.setupSlider(sliderElement, statusDiv, minInput, maxInput, [statusDivMobile], [minInputMobile, maxInputMobile]);
         }
 
-        // Get current values
-        const currentMin = parseFloat(minInput.value) || DashboardConfig.LIMITS.WIND_THRESHOLD_MIN_KNOTS;
-        const currentMax = maxInput.value ? parseFloat(maxInput.value) : DashboardConfig.LIMITS.WIND_THRESHOLD_MAX_KNOTS;
+        // Setup mobile slider
+        if (sliderElementMobile && statusDivMobile && minInputMobile) {
+            this.setupSlider(sliderElementMobile, statusDivMobile, minInputMobile, maxInputMobile, [statusDiv], [minInput, maxInput]);
+        }
+    },
 
-        console.log('[WIND SLIDER DEBUG] minInput.value:', minInput.value, 'maxInput.value:', maxInput.value);
-        console.log('[WIND SLIDER DEBUG] Parsed - currentMin:', currentMin, 'currentMax:', currentMax);
+    /**
+     * Shared slider setup logic
+     * @param {HTMLElement} element - The main slider container
+     * @param {HTMLElement} status - Primary status message div
+     * @param {HTMLElement} minIn - Primary min value input
+     * @param {HTMLElement} maxIn - Primary max value input
+     * @param {Array} peerStatuses - Array of status divs in other views to sync
+     * @param {Array} peerInputs - Array of hidden inputs [min, max] in other views to sync
+     */
+    setupSlider: function(element, status, minIn, maxIn, peerStatuses, peerInputs) {
+        // Get current values
+        const currentMin = parseFloat(minIn.value) || DashboardConfig.LIMITS.WIND_THRESHOLD_MIN_KNOTS;
+        const currentMax = maxIn.value ? parseFloat(maxIn.value) : DashboardConfig.LIMITS.WIND_THRESHOLD_MAX_KNOTS;
 
         // Slider range bounds (knots)
         const sliderMin = DashboardConfig.LIMITS.WIND_THRESHOLD_MIN_KNOTS;
         const sliderMax = DashboardConfig.LIMITS.WIND_THRESHOLD_MAX_KNOTS;
 
         // Create dual-handle range slider
-        noUiSlider.create(sliderElement, {
+        noUiSlider.create(element, {
             start: [currentMin, currentMax],
             connect: true,
             range: {
@@ -41,38 +60,41 @@ const WindThreshold = {
                 'max': sliderMax
             },
             step: 1,
-            tooltips: [true, true],  // Show tooltips above both handles
+            tooltips: [true, true],
             format: {
-                to: function(value) {
-                    return Math.round(value);
-                },
-                from: function(value) {
-                    return parseInt(value);
-                }
+                to: function(value) { return Math.round(value); },
+                from: function(value) { return parseInt(value); }
             }
         });
 
-        this.slider = sliderElement.noUiSlider;
+        const slider = element.noUiSlider;
 
-        // Store values in hidden inputs when slider changes
-        this.slider.on('update', function(values, handle) {
-            minInput.value = values[0];
-            maxInput.value = values[1];
+        // Store values in hidden inputs when slider updates
+        slider.on('update', (values) => {
+            // Update primary inputs
+            minIn.value = values[0];
+            if (maxIn) maxIn.value = values[1];
+            
+            // Sync peer inputs
+            if (peerInputs && peerInputs.length >= 2) {
+                if (peerInputs[0]) peerInputs[0].value = values[0];
+                if (peerInputs[1]) peerInputs[1].value = values[1];
+            }
         });
 
-        // Auto-update on slider change (when user releases handle)
-        this.slider.on('change', async (values, handle) => {
+        // Auto-update on slider change (release)
+        slider.on('change', async (values) => {
             const thresholdMin = parseInt(values[0]);
             const thresholdMax = parseInt(values[1]);
 
-            // Debounce: clear previous timeout
             if (this.updateTimeout) {
                 clearTimeout(this.updateTimeout);
             }
 
-            // Wait 300ms before sending API request
             this.updateTimeout = setTimeout(async () => {
-                StatusMessage.loading(statusDiv);
+                const statusDivs = [status, ...peerStatuses].filter(d => d !== null);
+                
+                statusDivs.forEach(d => StatusMessage.loading(d));
 
                 const result = await ApiClient.post(
                     DashboardConfig.API.UPDATE_WIND_THRESHOLD,
@@ -82,11 +104,13 @@ const WindThreshold = {
                     }
                 );
 
-                if (result.ok) {
-                    StatusMessage.success(statusDiv, result.data.message);
-                } else {
-                    StatusMessage.error(statusDiv, 'Error: ' + result.data.message);
-                }
+                statusDivs.forEach(d => {
+                    if (result.ok) {
+                        StatusMessage.success(d, result.data.message);
+                    } else {
+                        StatusMessage.error(d, 'Error: ' + result.data.message);
+                    }
+                });
             }, 300);
         });
     }

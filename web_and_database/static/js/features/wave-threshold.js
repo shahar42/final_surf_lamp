@@ -4,40 +4,58 @@
  */
 
 const WaveThreshold = {
-    slider: null,
     updateTimeout: null,
 
     /**
-     * Initialize wave threshold range slider
+     * Initialize wave threshold range sliders
      */
     init: function() {
+        // Desktop elements
         const sliderElement = document.getElementById('waveSlider');
         const statusDiv = document.getElementById('threshold-status');
         const minInput = document.getElementById('waveThresholdMin');
         const maxInput = document.getElementById('waveThresholdMax');
 
-        if (!sliderElement || !statusDiv || !minInput) {
-            console.error('WaveThreshold: Required elements not found');
-            return;
+        // Mobile elements
+        const sliderElementMobile = document.getElementById('waveSliderMobile');
+        const statusDivMobile = document.getElementById('threshold-status-mobile');
+        const minInputMobile = document.getElementById('waveThresholdMinMobile');
+        const maxInputMobile = document.getElementById('waveThresholdMaxMobile');
+
+        // Setup desktop slider if exists
+        if (sliderElement && statusDiv && minInput) {
+            this.setupSlider(sliderElement, statusDiv, minInput, maxInput, [statusDivMobile], [minInputMobile, maxInputMobile]);
         }
 
-        const unit = minInput.dataset.unit;
+        // Setup mobile slider if exists
+        if (sliderElementMobile && statusDivMobile && minInputMobile) {
+            this.setupSlider(sliderElementMobile, statusDivMobile, minInputMobile, maxInputMobile, [statusDiv], [minInput, maxInput]);
+        }
+    },
+
+    /**
+     * Shared slider setup logic
+     * @param {HTMLElement} element - The main slider container
+     * @param {HTMLElement} status - Primary status message div
+     * @param {HTMLElement} minIn - Primary min value input
+     * @param {HTMLElement} maxIn - Primary max value input
+     * @param {Array} peerStatuses - Array of status divs in other views to sync
+     * @param {Array} peerInputs - Array of hidden inputs [min, max] in other views to sync
+     */
+    setupSlider: function(element, status, minIn, maxIn, peerStatuses, peerInputs) {
+        const unit = minIn.dataset.unit;
         const isFeet = unit === 'feet';
-        const unitLabel = isFeet ? 'ft' : 'm';
 
         // Get current values
-        const currentMin = parseFloat(minInput.value) || (isFeet ? DashboardConfig.LIMITS.WAVE_THRESHOLD_MIN_FEET : DashboardConfig.LIMITS.WAVE_THRESHOLD_MIN_METERS);
-        const currentMax = maxInput.value ? parseFloat(maxInput.value) : (isFeet ? DashboardConfig.LIMITS.WAVE_THRESHOLD_MAX_FEET : DashboardConfig.LIMITS.WAVE_THRESHOLD_MAX_METERS);
-
-        console.log('[WAVE SLIDER DEBUG] minInput.value:', minInput.value, 'maxInput.value:', maxInput.value);
-        console.log('[WAVE SLIDER DEBUG] Parsed - currentMin:', currentMin, 'currentMax:', currentMax);
+        const currentMin = parseFloat(minIn.value) || (isFeet ? DashboardConfig.LIMITS.WAVE_THRESHOLD_MIN_FEET : DashboardConfig.LIMITS.WAVE_THRESHOLD_MIN_METERS);
+        const currentMax = maxIn.value ? parseFloat(maxIn.value) : (isFeet ? DashboardConfig.LIMITS.WAVE_THRESHOLD_MAX_FEET : DashboardConfig.LIMITS.WAVE_THRESHOLD_MAX_METERS);
 
         // Slider range bounds
         const sliderMin = isFeet ? DashboardConfig.LIMITS.WAVE_THRESHOLD_MIN_FEET : DashboardConfig.LIMITS.WAVE_THRESHOLD_MIN_METERS;
         const sliderMax = isFeet ? DashboardConfig.LIMITS.WAVE_THRESHOLD_MAX_FEET : DashboardConfig.LIMITS.WAVE_THRESHOLD_MAX_METERS;
 
         // Create dual-handle range slider
-        noUiSlider.create(sliderElement, {
+        noUiSlider.create(element, {
             start: [currentMin, currentMax],
             connect: true,
             range: {
@@ -45,42 +63,45 @@ const WaveThreshold = {
                 'max': sliderMax
             },
             step: isFeet ? 0.3 : 0.1,
-            tooltips: [true, true],  // Show tooltips above both handles
+            tooltips: [true, true],
             format: {
-                to: function(value) {
-                    return parseFloat(value.toFixed(1));
-                },
-                from: function(value) {
-                    return parseFloat(value);
-                }
+                to: function(value) { return parseFloat(value.toFixed(1)); },
+                from: function(value) { return parseFloat(value); }
             }
         });
 
-        this.slider = sliderElement.noUiSlider;
+        const slider = element.noUiSlider;
 
-        // Store values in hidden inputs when slider changes
-        this.slider.on('update', function(values, handle) {
-            minInput.value = values[0];
-            maxInput.value = values[1];
+        // Store values in hidden inputs when slider updates
+        slider.on('update', (values) => {
+            // Update primary inputs
+            minIn.value = values[0];
+            if (maxIn) maxIn.value = values[1];
+            
+            // Sync peer inputs
+            if (peerInputs && peerInputs.length >= 2) {
+                if (peerInputs[0]) peerInputs[0].value = values[0];
+                if (peerInputs[1]) peerInputs[1].value = values[1];
+            }
         });
 
-        // Auto-update on slider change (when user releases handle)
-        this.slider.on('change', async (values, handle) => {
+        // Auto-update on slider change (release)
+        slider.on('change', async (values) => {
             const thresholdMin = parseFloat(values[0]);
             const thresholdMax = parseFloat(values[1]);
 
-            // Convert to meters if user prefers feet
+            // Convert to meters if needed
             const thresholdMinMeters = isFeet ? thresholdMin / DashboardConfig.CONVERSIONS.METERS_TO_FEET : thresholdMin;
             const thresholdMaxMeters = isFeet ? thresholdMax / DashboardConfig.CONVERSIONS.METERS_TO_FEET : thresholdMax;
 
-            // Debounce: clear previous timeout
             if (this.updateTimeout) {
                 clearTimeout(this.updateTimeout);
             }
 
-            // Wait 300ms before sending API request
             this.updateTimeout = setTimeout(async () => {
-                StatusMessage.loading(statusDiv);
+                const statusDivs = [status, ...peerStatuses].filter(d => d !== null);
+                
+                statusDivs.forEach(d => StatusMessage.loading(d));
 
                 const result = await ApiClient.post(
                     DashboardConfig.API.UPDATE_THRESHOLD,
@@ -90,11 +111,13 @@ const WaveThreshold = {
                     }
                 );
 
-                if (result.ok) {
-                    StatusMessage.success(statusDiv, result.data.message);
-                } else {
-                    StatusMessage.error(statusDiv, 'Error: ' + result.data.message);
-                }
+                statusDivs.forEach(d => {
+                    if (result.ok) {
+                        StatusMessage.success(d, result.data.message);
+                    } else {
+                        StatusMessage.error(d, 'Error: ' + result.data.message);
+                    }
+                });
             }, 300);
         });
     }
