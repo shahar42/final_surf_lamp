@@ -42,13 +42,13 @@
     {% endwith %}
 
     <!-- LED Strip Visualization -->
-    <div class="max-w-6xl mx-auto mb-[-80px] lg:mb-2">
-        <div class="card rounded-2xl p-6 shadow-2xl" style="transform: scale(0.8); transform-origin: top center;">
-            <div class="flex flex-col items-center">
+    <div class="max-w-6xl mx-auto mb-6 lg:mb-2">
+        <div class="card rounded-2xl p-4 lg:p-6 shadow-2xl w-full flex justify-center">
+            <div class="flex flex-col items-center w-full">
                 <!-- Surfboard LED Visualization -->
-                <div class="flex flex-col items-center">
+                <div class="flex flex-col items-center w-full overflow-hidden">
                     <!-- Surfboard Canvas with Wind Direction Compass -->
-                    <div class="relative inline-block">
+                    <div class="relative inline-block scale-[0.85] sm:scale-100 origin-top">
                         <canvas id="surfboardCanvas" width="350" height="550" role="img" aria-label="Surfboard LED visualization showing current surf conditions with three LED strips for wave period, wind speed, and wave height">
                             Your browser does not support the canvas element. Current surf conditions: Wave height {{ data.conditions.wave_height_m }}m, Wind speed {{ data.conditions.wind_speed_mps }} m/s, Wave period {{ data.conditions.wave_period_s }}s.
                         </canvas>
