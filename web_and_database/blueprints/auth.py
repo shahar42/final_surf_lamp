@@ -16,10 +16,11 @@ logger = logging.getLogger(__name__)
 bp = Blueprint('auth', __name__)
 
 @bp.route("/register", methods=['GET', 'POST'])
-@limiter.limit("10/minute") 
+@limiter.limit("10/minute")
 def register():
     """
     Handles user registration.
+    QR code with Arduino ID in URL parameter is REQUIRED.
     """
     if 'user_email' in session:
         return redirect(url_for('dashboard.dashboard'))
@@ -27,17 +28,25 @@ def register():
     form = RegistrationForm()
     form.location.choices = [(loc, loc) for loc in SURF_LOCATIONS]
 
-    # Pre-fill Arduino ID from QR code URL parameter
+    # Arduino ID from QR code URL parameter is REQUIRED
     if request.method == 'GET':
         arduino_id_param = request.args.get('id', '')
-        if arduino_id_param:
-            try:
-                arduino_id_int = int(arduino_id_param)
-                if 1 <= arduino_id_int <= 999999:
-                    form.arduino_id.data = arduino_id_int
-                    logger.info(f"Pre-filled Arduino ID from QR code: {arduino_id_int}")
-            except (ValueError, TypeError):
-                logger.warning(f"Invalid Arduino ID in URL parameter: {arduino_id_param}")
+        if not arduino_id_param:
+            flash('QR code required to register. Please scan the QR code on the card in your Surf Lamp box.', 'error')
+            return render_template('register.html', form=form, locations=SURF_LOCATIONS, qr_required=True)
+
+        try:
+            arduino_id_int = int(arduino_id_param)
+            if 1 <= arduino_id_int <= 999999:
+                form.arduino_id.data = arduino_id_int
+                logger.info(f"Pre-filled Arduino ID from QR code: {arduino_id_int}")
+            else:
+                flash('Invalid QR code. Please scan the QR code from your Surf Lamp box.', 'error')
+                return render_template('register.html', form=form, locations=SURF_LOCATIONS, qr_required=True)
+        except (ValueError, TypeError):
+            logger.warning(f"Invalid Arduino ID in URL parameter: {arduino_id_param}")
+            flash('Invalid QR code. Please scan the QR code from your Surf Lamp box.', 'error')
+            return render_template('register.html', form=form, locations=SURF_LOCATIONS, qr_required=True)
 
     if form.validate_on_submit():
         name = form.name.data
@@ -70,6 +79,11 @@ def register():
             return render_template('register.html', form=form, locations=SURF_LOCATIONS)
     else:
         if request.method == 'POST':
+            # Check if Arduino ID is missing (shouldn't happen with QR code flow)
+            if not form.arduino_id.data:
+                flash('QR code required to register. Please scan the QR code on the card in your Surf Lamp box.', 'error')
+                return render_template('register.html', form=form, locations=SURF_LOCATIONS, qr_required=True)
+
             for field_name, errors in form.errors.items():
                 for error in errors:
                     flash(f"{field_name.replace('_', ' ').title()}: {error}", 'error')
