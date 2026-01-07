@@ -196,13 +196,9 @@ const LEDVisualizationCore = {
             );
         }
 
-        // Note: Wind direction is handled by the HTML arrow overlay in dashboard.html    }
+        // Note: Wind direction is handled by the HTML arrow overlay in dashboard.html
+    }
 };
-
-// Make globally available
-if (typeof window !== 'undefined') {
-    window.LEDVisualizationCore = LEDVisualizationCore;
-}
 
 // Make globally available
 if (typeof window !== 'undefined') {
