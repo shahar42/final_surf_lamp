@@ -98,17 +98,6 @@
 </head>
 <body class="min-h-screen flex flex-col">
 
-    <!-- Flash Messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="flash-message px-6 py-3 rounded-lg text-white font-semibold {{ 'bg-green-500' if category == 'success' else 'bg-red-500' }} shadow-lg">
-            {{ message }}
-          </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
-
     <!-- Main content wrapper -->
     <div class="flex-grow flex items-center justify-center p-4">
         <div class="form-container w-full max-w-md p-8 rounded-2xl shadow-2xl">
@@ -125,7 +114,7 @@
                 </svg>
                 <div>
                     <p class="font-semibold mb-1">QR Code Required</p>
-                    <p class="text-sm text-white/90">Please scan the QR code on the card in your Surf Lamp box to register your device.</p>
+                    <p class="text-sm text-white/90">Please scan the QR code on the card in your ocean-pulse to register your device.</p>
                 </div>
             </div>
         </div>
