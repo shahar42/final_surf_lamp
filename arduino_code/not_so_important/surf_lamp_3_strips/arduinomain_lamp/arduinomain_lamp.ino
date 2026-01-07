@@ -21,9 +21,9 @@ WiFiManager wifiManager;
 #define LED_PIN_SIDE 2
 #define LED_PIN_SIDE_LEFT 5
 
-#define NUM_LEDS_RIGHT 15
-#define NUM_LEDS_LEFT 15
-#define NUM_LEDS_CENTER 20
+#define NUM_LEDS_RIGHT 14
+#define NUM_LEDS_LEFT 14
+#define NUM_LEDS_CENTER 15
 #define BRIGHTNESS 30  // Ultra-low for weak USB sources (60→30, was originally 100)
 #define LED_TYPE WS2812B
 #define COLOR_ORDER GRB
@@ -105,7 +105,7 @@ WaveConfig waveConfig;
 
 struct LEDMappingConfig {
     // User-adjustable parameters
-    float wind_scale_numerator = 18.0;      // Wind speed scaling: maps 0-30 knots (15.43 m/s) to 0-18 LEDs
+    float wind_scale_numerator = 13.0;      // Wind speed scaling: maps 0-38 knots (19.55 m/s) to 0-13 LEDs
     float wind_scale_denominator = 15.433;
     float mps_to_knots_factor = 1.94384;    // Conversion constant: m/s to knots
     uint8_t wave_height_divisor = 25;       // Wave height scaling: cm per LED (25cm = 1 LED)
