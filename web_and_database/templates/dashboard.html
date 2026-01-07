@@ -405,7 +405,7 @@
                         <!-- Wave Height -->
                         <div class="text-center">
                             <div class="mb-1 flex items-center justify-center h-16">
-                                <img src="{{ url_for('static', filename='icons/wave_height_new.png') }}" alt="Wave Height" class="max-h-full w-auto object-contain png-icon">
+                                <img src="{{ url_for('static', filename='icons/wave_height_new.png') }}" alt="Wave Height" class="max-h-full w-auto object-contain png-icon" style="transform: scale(1.15);">
                             </div>
                             <div class="text-white font-bold text-lg sm:text-xl">
                                 {% if data.conditions.wave_height_m %}
@@ -423,7 +423,7 @@
                         <!-- Wave Period -->
                         <div class="text-center">
                             <div class="mb-1 flex items-center justify-center h-16">
-                                <img src="{{ url_for('static', filename='icons/wave_period_new.png') }}" alt="Wave Period" class="max-h-full w-auto object-contain png-icon">
+                                <img src="{{ url_for('static', filename='icons/wave_period_new.png') }}" alt="Wave Period" class="max-h-full w-auto object-contain png-icon" style="transform: scale(1.15);">
                             </div>
                             <div class="text-white font-bold text-lg sm:text-xl">
                                 {% if data.conditions.wave_period_s %}
@@ -454,7 +454,7 @@
                                 <img src="{{ url_for('static', filename='icons/wind_direction_new.png') }}" alt="Wind Direction" class="max-h-full w-auto object-contain png-icon">
                             </div>
                             <div class="text-white font-bold text-lg sm:text-xl">
-                                {{ data.conditions.wind_direction_deg | wind_direction }}
+                                {{ data.conditions.wind_direction_deg }}°
                             </div>
                         </div>
                     </div>
@@ -476,7 +476,7 @@
                         <!-- Wave Data -->
                         <div class="grid grid-cols-2 gap-4">
                             <div class="text-center">
-                                <div class="wave-icon mb-2 h-32 flex items-center justify-center"><img src="{{ url_for('static', filename='icons/wave_height_new.png') }}" alt="Wave Height" class="mx-auto png-icon" style="width: 183px; height: 183px;"></div>
+                                <div class="wave-icon mb-2 h-32 flex items-center justify-center"><img src="{{ url_for('static', filename='icons/wave_height_new.png') }}" alt="Wave Height" class="mx-auto png-icon" style="width: 183px; height: 183px; transform: scale(1.15);"></div>
                                 <div class="text-white font-bold text-xl">
                                     {% if data.conditions.wave_height_m %}
                                         {% if data.user.preferred_output == 'feet' %}
@@ -491,7 +491,7 @@
                             </div>
 
                             <div class="text-center">
-                                <div class="wave-icon mb-2 h-32 flex items-center justify-center"><img src="{{ url_for('static', filename='icons/wave_period_new.png') }}" alt="Wave Period" class="mx-auto png-icon" style="width: 106px; height: 106px;"></div>
+                                <div class="wave-icon mb-2 h-32 flex items-center justify-center"><img src="{{ url_for('static', filename='icons/wave_period_new.png') }}" alt="Wave Period" class="mx-auto png-icon" style="width: 106px; height: 106px; transform: scale(1.15);"></div>
                                 <div class="text-white font-bold text-xl">
                                     {% if data.conditions.wave_period_s %}
                                         {{ "%.1f"|format(data.conditions.wave_period_s) }}s
@@ -518,7 +518,7 @@
                             <div class="text-center">
                                 <div class="wind-icon mb-2 h-32 flex items-center justify-center"><img src="{{ url_for('static', filename='icons/wind_direction_new.png') }}" alt="Wind Direction" class="mx-auto png-icon" style="width: 141px; height: 141px;"></div>
                                 <div class="text-white font-bold text-xl">
-                                    {{ data.conditions.wind_direction_deg | wind_direction }}
+                                    {{ data.conditions.wind_direction_deg }}°
                                 </div>
                             </div>
                         </div>
