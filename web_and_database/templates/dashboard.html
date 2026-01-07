@@ -53,22 +53,101 @@
                             Your browser does not support the canvas element. Current surf conditions: Wave height {{ data.conditions.wave_height_m }}m, Wind speed {{ data.conditions.wind_speed_mps }} m/s, Wave period {{ data.conditions.wave_period_s }}s.
                         </canvas>
                         <!-- Wind Direction Compass Overlay -->
-                        <div class="absolute top-[10px] left-1/2 -translate-x-1/2 w-12 h-12 flex items-center justify-center">
-                            <span class="absolute -top-2 left-1/2 -translate-x-1/2 text-white font-bold text-xs">N</span>
+                        <div id="arrowContainer" class="absolute top-[10px] left-1/2 -translate-x-1/2 flex items-center justify-center pointer-events-none" style="width: 50px; height: 50px;">
                             <div class="text-3xl text-white transition-transform duration-500" id="windArrow" style="transform: rotate({{ data.conditions.wind_direction_deg if data.conditions.wind_direction_deg else 0 }}deg)">
                                 ↑
                             </div>
                         </div>
                     </div>
 
-                    <!-- Legend below surfboard -->
-                    <div class="flex flex-col items-center justify-center gap-3 mt-4 text-white/90 text-sm font-semibold">
-                        <div class="flex items-center justify-center gap-6">
-                            <span>Wave Period</span>
-                            <span>Wind Speed</span>
-                            <span>Wave Height</span>
+                    <!-- Legend & Data Values -->
+                    <div id="legendContainer" class="relative mt-2 w-[350px] mx-auto text-white/90 text-sm font-semibold pointer-events-none">
+                        <div class="flex justify-between items-start px-8" id="legendRow">
+                            <!-- Left: Period -->
+                            <div class="flex flex-col items-center gap-1 w-24 text-center">
+                                <span class="text-white/70 text-xs uppercase tracking-wider">Period</span>
+                                <span class="text-xl font-bold">{{ data.conditions.wave_period_s | int }}s</span>
+                            </div>
+                            
+                            <!-- Center: Wind -->
+                            <div class="flex flex-col items-center gap-1 w-24 text-center">
+                                <span class="text-white/70 text-xs uppercase tracking-wider">Wind</span>
+                                <span class="text-xl font-bold">
+                                    {% if data.conditions.wind_speed_mps %}
+                                        {{ (data.conditions.wind_speed_mps * 1.94384) | int }}knts
+                                    {% else %}--{% endif %}
+                                </span>
+                            </div>
+
+                            <!-- Right: Height -->
+                            <div class="flex flex-col items-center gap-1 w-24 text-center">
+                                <span class="text-white/70 text-xs uppercase tracking-wider">Height</span>
+                                <span class="text-xl font-bold">
+                                    {% if data.conditions.wave_height_m %}
+                                        {{ "%.1f"|format(data.conditions.wave_height_m) }}m
+                                    {% else %}--{% endif %}
+                                </span>
+                            </div>
                         </div>
                     </div>
+
+                    <!-- TEMPORARY LAYOUT CALIBRATION PANEL -->
+                    <div class="mt-8 p-4 bg-black/80 rounded-xl border border-purple-500 w-full max-w-lg relative z-50">
+                        <h3 class="text-purple-400 font-bold mb-4 text-center">📏 Layout Calibration</h3>
+                        <div class="grid grid-cols-2 gap-4 text-white text-xs">
+                            
+                            <!-- Arrow Controls -->
+                            <div class="col-span-2 space-y-2 border-b border-white/20 pb-2">
+                                <h4 class="font-bold text-yellow-400">Arrow</h4>
+                                <label>Top Y: <span id="val_arrowY">10</span>px</label>
+                                <input type="range" min="0" max="200" value="10" class="w-full" oninput="updateLayout('arrowY', this.value)">
+                                
+                                <label>Size: <span id="val_arrowSize">30</span>px</label>
+                                <input type="range" min="10" max="100" value="30" class="w-full" oninput="updateLayout('arrowSize', this.value)">
+                            </div>
+
+                            <!-- Legend Controls -->
+                            <div class="col-span-2 space-y-2 pt-2">
+                                <h4 class="font-bold text-teal-400">Data Row</h4>
+                                <label>Margin Top: <span id="val_legendY">8</span>px</label>
+                                <input type="range" min="-50" max="100" value="8" class="w-full" oninput="updateLayout('legendY', this.value)">
+                                
+                                <label>Side Padding (Spread): <span id="val_legendSpread">32</span>px</label>
+                                <input type="range" min="0" max="100" value="32" class="w-full" oninput="updateLayout('legendSpread', this.value)">
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 p-2 bg-gray-900 rounded font-mono text-xs select-all text-green-400 break-all" id="layoutOutput">
+                            Values will appear here...
+                        </div>
+                    </div>
+                    <script>
+                        function updateLayout(key, value) {
+                            value = parseInt(value);
+                            document.getElementById('val_' + key).innerText = value;
+                            
+                            const arrowContainer = document.getElementById('arrowContainer');
+                            const windArrow = document.getElementById('windArrow');
+                            const legendContainer = document.getElementById('legendContainer');
+                            const legendRow = document.getElementById('legendRow');
+
+                            // Apply changes
+                            if (key === 'arrowY') arrowContainer.style.top = value + 'px';
+                            if (key === 'arrowSize') windArrow.style.fontSize = value + 'px';
+                            if (key === 'legendY') legendContainer.style.marginTop = value + 'px';
+                            if (key === 'legendSpread') legendRow.style.paddingLeft = value + 'px', legendRow.style.paddingRight = value + 'px';
+
+                            // Gather all current values
+                            const currentArrowY = document.getElementById('val_arrowY').innerText;
+                            const currentArrowSize = document.getElementById('val_arrowSize').innerText;
+                            const currentLegendY = document.getElementById('val_legendY').innerText;
+                            const currentLegendSpread = document.getElementById('val_legendSpread').innerText;
+
+                            const output = `arrowY: ${currentArrowY}, arrowSize: ${currentArrowSize}, legendY: ${currentLegendY}, legendSpread: ${currentLegendSpread}`;
+                            document.getElementById('layoutOutput').innerText = output;
+                        }
+                    </script>
+                    <!-- END CALIBRATION PANEL -->
                 </div>
             </div>
         </div>
