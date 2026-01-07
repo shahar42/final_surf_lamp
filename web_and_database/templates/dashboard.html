@@ -84,27 +84,16 @@
                             <!-- Left: Period -->
                             <div class="flex flex-col items-center gap-1 w-24 text-center">
                                 <span class="text-white/70 text-xs uppercase tracking-wider">Period</span>
-                                <span class="text-xl font-bold">{{ data.conditions.wave_period_s | int }}s</span>
                             </div>
                             
                             <!-- Center: Wind -->
                             <div class="flex flex-col items-center gap-1 w-24 text-center">
                                 <span class="text-white/70 text-xs uppercase tracking-wider">Wind</span>
-                                <span class="text-xl font-bold">
-                                    {% if data.conditions.wind_speed_mps %}
-                                        {{ (data.conditions.wind_speed_mps * 1.94384) | int }}knts
-                                    {% else %}--{% endif %}
-                                </span>
                             </div>
 
                             <!-- Right: Height -->
                             <div class="flex flex-col items-center gap-1 w-24 text-center">
                                 <span class="text-white/70 text-xs uppercase tracking-wider">Height</span>
-                                <span class="text-xl font-bold">
-                                    {% if data.conditions.wave_height_m %}
-                                        {{ "%.1f"|format(data.conditions.wave_height_m) }}m
-                                    {% else %}--{% endif %}
-                                </span>
                             </div>
                         </div>
                     </div>
