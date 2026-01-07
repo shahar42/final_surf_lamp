@@ -135,6 +135,24 @@ const DashboardConfig = {
         // Wind speed: windSpeed * 18.0 / 13.0
         WIND_SPEED_MULTIPLIER: 18.0,
         WIND_SPEED_DIVISOR: 13.0
+    },
+
+    // Visual Calibration Values (The "Enum")
+    CALIBRATION: {
+        STRIPS: {
+            TOP_Y: 146,
+            BOTTOM_Y: 440,
+            LEFT_OFFSET_X: 31,
+            RIGHT_OFFSET_X: 30,
+            WIDTH: 6
+        },
+        LAYOUT: {
+            LAMP_SCALE: 1.15,
+            ARROW_TOP_Y: 82,     // px
+            ARROW_SIZE: 69,      // px
+            LEGEND_MARGIN_TOP: 30, // px
+            LEGEND_SPREAD: 22    // px (padding left/right)
+        }
     }
 };
 
