@@ -55,10 +55,10 @@
                         </canvas>
                         <!-- Wind Direction Compass Overlay -->
                         <div id="arrowContainer" class="absolute left-1/2 -translate-x-1/2 flex items-center justify-center pointer-events-none" style="width: 50px; height: 50px; top: 82px;">
-                            <div class="transition-transform duration-500 origin-center" id="windArrow" style="transform: rotate({{ data.conditions.wind_direction_deg if data.conditions.wind_direction_deg else 0 }}deg); width: 69px; height: 69px;">
-                                <!-- Elegant Curved Arrow SVG -->
-                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full drop-shadow-md filter">
-                                    <path d="M12 3 Q11.5 11 12 21 M12 3 Q8 4.5 5 10 M12 3 Q16 4.5 19 10" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <div class="transition-transform duration-500 origin-center" id="windArrow" style="transform: rotate({{ data.conditions.wind_direction_deg if data.conditions.wind_direction_deg else 0 }}deg); width: 63px; height: 63px;">
+                                <!-- Elegant Classic Arrow SVG -->
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full filter" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">
+                                    <path d="M12 3L12 21M12 3L5 10M12 3L19 10" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                 </svg>
                             </div>
                         </div>
@@ -87,69 +87,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- TEMPORARY ARROW CALIBRATION PANEL -->
-                    <div class="mt-12 p-4 bg-black/80 rounded-xl border border-cyan-500 w-full max-w-lg relative z-50 mx-auto">
-                        <h3 class="text-cyan-400 font-bold mb-4 text-center">🧭 Arrow Calibration</h3>
-                        <div class="grid grid-cols-2 gap-4 text-white text-xs">
-                            
-                            <!-- Top Y -->
-                            <div class="space-y-2">
-                                <label>Top Y (Position): <span id="val_arrowY">82</span>px</label>
-                                <input type="range" min="0" max="200" value="82" class="w-full" oninput="updateArrow('y', this.value)">
-                            </div>
-
-                            <!-- Size -->
-                            <div class="space-y-2">
-                                <label>Size: <span id="val_arrowSize">69</span>px</label>
-                                <input type="range" min="20" max="150" value="69" class="w-full" oninput="updateArrow('size', this.value)">
-                            </div>
-
-                            <!-- Opacity -->
-                            <div class="space-y-2">
-                                <label>Opacity: <span id="val_arrowOp">1.0</span></label>
-                                <input type="range" min="0" max="1" step="0.1" value="1.0" class="w-full" oninput="updateArrow('opacity', this.value)">
-                            </div>
-
-                            <!-- Shadow Blur -->
-                            <div class="space-y-2">
-                                <label>Shadow: <span id="val_arrowShadow">4</span>px</label>
-                                <input type="range" min="0" max="20" value="4" class="w-full" oninput="updateArrow('shadow', this.value)">
-                            </div>
-                        </div>
-                        
-                        <div class="mt-4 p-2 bg-gray-900 rounded font-mono text-xs select-all text-green-400 break-all" id="arrowOutput">
-                            Values will appear here...
-                        </div>
-                    </div>
-                    <script>
-                        function updateArrow(key, value) {
-                            if (key === 'opacity') value = parseFloat(value);
-                            else value = parseInt(value);
-                            
-                            document.getElementById('val_arrow' + (key === 'y' ? 'Y' : key.charAt(0).toUpperCase() + key.slice(1))).innerText = value;
-                            
-                            const arrowContainer = document.getElementById('arrowContainer');
-                            const windArrow = document.getElementById('windArrow');
-                            const svg = windArrow.querySelector('svg');
-
-                            if (key === 'y') arrowContainer.style.top = value + 'px';
-                            if (key === 'size') {
-                                windArrow.style.width = value + 'px';
-                                windArrow.style.height = value + 'px';
-                            }
-                            if (key === 'opacity') windArrow.style.opacity = value;
-                            if (key === 'shadow') svg.style.filter = `drop-shadow(0 ${value/2}px ${value}px rgba(0,0,0,0.5))`;
-
-                            // Output
-                            const y = document.getElementById('val_arrowY').innerText;
-                            const size = document.getElementById('val_arrowSize').innerText;
-                            const op = document.getElementById('val_arrowOp').innerText;
-                            const shadow = document.getElementById('val_arrowShadow').innerText;
-                            
-                            document.getElementById('arrowOutput').innerText = `arrowY: ${y}, arrowSize: ${size}, arrowOpacity: ${op}, arrowShadow: ${shadow}`;
-                        }
-                    </script>
 
                     <script>
                         // Apply Visual Calibration from Config
