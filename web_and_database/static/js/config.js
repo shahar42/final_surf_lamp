@@ -83,7 +83,7 @@ const DashboardConfig = {
         ocean_breeze: {
             wave: [0, 150, 255],
             period: [0, 255, 200],
-            wind: [100, 200, 255]
+            wind: [255, 215, 0]  // Yellow
         },
         sunset_glow: {
             wave: [255, 100, 50],
@@ -98,7 +98,7 @@ const DashboardConfig = {
         day: { // Default theme
             wave: [0, 150, 255],
             period: [0, 255, 200],
-            wind: [100, 200, 255]
+            wind: [255, 215, 0] // Yellow
         }
     },
 
