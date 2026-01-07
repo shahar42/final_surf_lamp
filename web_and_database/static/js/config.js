@@ -159,6 +159,13 @@ const DashboardConfig = {
             INNER_SHINE_ALPHA: 0.4, // 0.0 to 1.0
             STRIP_OPACITY: 0.75,     // 0.0 to 1.0
             GROOVE_SHADOW_OPACITY: 0.75 // 0.0 to 1.0 (Darkness of the wood cut)
+        },
+        STRIP_LABELS: {
+            FONT_SIZE: 12,       // px
+            TOP_Y: 448,          // px from top
+            LEFT_LABEL_X: 140,   // px from left (P - Period)
+            CENTER_LABEL_X: 169, // px from left (W - Wind)
+            RIGHT_LABEL_X: 201   // px from left (H - Height)
         }
     }
 };
