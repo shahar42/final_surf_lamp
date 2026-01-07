@@ -152,11 +152,12 @@ const LEDVisualizationCore = {
         // These are approximations since we can't see the new image.
         // Center of canvas is 175.
         const centerX = canvas.width / 2;
-        const bottomY = canvas.height - 60; // Start slightly above bottom
-        const topY = 80; // End below top
+        // Adjusted vertical bounds based on visual inspection of annimation_lampv1.png
+        const bottomY = canvas.height - 110; // Moved up significantly (was -60) to match bottom of grooves
+        const topY = 140; // Moved down (was 80) to match top of grooves
         
-        const stripWidth = 12; 
-        const sideOffset = 55; // Distance of side strips from center
+        const stripWidth = 10; // Slightly thinner to fit inside grooves
+        const sideOffset = 34; // Much narrower spacing (was 55) to bring side strips onto the board
 
         // LEFT RAIL: Wave Period
         if (theme && theme.period) {
@@ -164,7 +165,7 @@ const LEDVisualizationCore = {
                 ctx, 
                 centerX - sideOffset, // x
                 bottomY, // yBottom
-                topY + 40, // yTop (side strips are shorter)
+                topY + 30, // yTop (side strips are shorter)
                 stripWidth,
                 leftFill || 0,
                 theme.period,
@@ -178,8 +179,8 @@ const LEDVisualizationCore = {
             this.drawLiquidStrip(
                 ctx,
                 centerX,
-                bottomY - 20, 
-                topY + 30, // Leaves room for wind direction LED at top
+                bottomY - 15, 
+                topY + 20, // Leaves room for wind direction LED at top
                 stripWidth,
                 centerFill || 0,
                 theme.wind,
@@ -193,7 +194,7 @@ const LEDVisualizationCore = {
                 ctx,
                 centerX + sideOffset,
                 bottomY,
-                topY + 40,
+                topY + 30,
                 stripWidth,
                 rightFill || 0,
                 theme.wave,
@@ -207,7 +208,7 @@ const LEDVisualizationCore = {
             this.drawWindDirectionIndicator(
                 ctx, 
                 centerX, 
-                topY + 15, // Just above the wind speed strip
+                topY + 5, // Just above the wind speed strip
                 windDirColor
             );
         }
