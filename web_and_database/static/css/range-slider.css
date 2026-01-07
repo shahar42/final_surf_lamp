@@ -1,0 +1,73 @@
+/**
+ * Range Slider Custom Styles
+ * White slider bar with blue connect and white dot handles
+ */
+
+/* White slider bar */
+.noUi-target {
+    background: rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: none;
+    height: 6px;
+    border-radius: 3px;
+}
+
+/* Blue connect bar (range between handles) */
+.noUi-connect {
+    background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+}
+
+/* White handles (dots) */
+.noUi-handle {
+    background: white;
+    border: 2px solid rgba(0, 114, 255, 0.8);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    right: -9px;
+    top: -6px;
+    cursor: pointer;
+}
+
+.noUi-handle:before,
+.noUi-handle:after {
+    display: none;
+}
+
+.noUi-handle:hover {
+    border-color: #0072ff;
+}
+
+.noUi-handle:active {
+    transform: scale(1.2);
+    transition: transform 0.1s ease;
+}
+
+/* Horizontal slider */
+.noUi-horizontal {
+    height: 6px;
+}
+
+.noUi-horizontal .noUi-handle {
+    width: 18px;
+    height: 18px;
+    right: -9px;
+    top: -6px;
+}
+
+/* Tooltips (values above handles) */
+.noUi-tooltip {
+    display: block;
+    position: absolute;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    padding: 2px 4px;
+    bottom: 140%;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+}
