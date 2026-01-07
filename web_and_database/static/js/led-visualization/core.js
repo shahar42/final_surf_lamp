@@ -143,20 +143,26 @@ const LEDVisualizationCore = {
             ctx.fill();
         }
 
-        // 2. Define Strip Positions
-        // Check for calibration overrides
-        const cal = (typeof window !== 'undefined' && window.calibration) ? window.calibration : {};
-
-        const centerX = canvas.width / 2;
+                // 2. Define Strip Positions
+                // Check for calibration overrides
+                const cal = (typeof window !== 'undefined' && window.calibration) ? window.calibration : {};
+                const isCalibrating = (typeof window !== 'undefined' && window.calibration);
         
-        // Use calibrated values or defaults
-        const bottomY = cal.bottomY !== undefined ? cal.bottomY : (canvas.height - 110);
-        const topY = cal.topY !== undefined ? cal.topY : 140;
-        const stripWidth = cal.width !== undefined ? cal.width : 10;
+                const centerX = canvas.width / 2;
+                
+                // Use calibrated values or defaults
+                const bottomY = cal.bottomY !== undefined ? cal.bottomY : (canvas.height - 110);
+                const topY = cal.topY !== undefined ? cal.topY : 140;
+                const stripWidth = cal.width !== undefined ? cal.width : 10;
+                
+                const leftOffset = cal.leftX !== undefined ? cal.leftX : 34;
+                const rightOffset = cal.rightX !== undefined ? cal.rightX : 34;
         
-        const leftOffset = cal.leftX !== undefined ? cal.leftX : 34;
-        const rightOffset = cal.rightX !== undefined ? cal.rightX : 34;
-
+                // Force full fill during calibration so user can see bounds
+                const effectiveLeftFill = isCalibrating ? 1.0 : (leftFill || 0);
+                const effectiveCenterFill = isCalibrating ? 1.0 : (centerFill || 0);
+                const effectiveRightFill = isCalibrating ? 1.0 : (rightFill || 0);
+        
                 // LEFT RAIL: Wave Period
                 if (theme && theme.period) {
                     this.drawLiquidStrip(
@@ -165,7 +171,7 @@ const LEDVisualizationCore = {
                         bottomY, 
                         topY, // Uniform top
                         stripWidth,
-                        leftFill || 0,
+                        effectiveLeftFill,
                         theme.period,
                         time
                     );
@@ -179,7 +185,7 @@ const LEDVisualizationCore = {
                         bottomY, // Uniform bottom
                         topY, // Uniform top
                         stripWidth,
-                        centerFill || 0,
+                        effectiveCenterFill,
                         theme.wind,
                         time
                     );
@@ -193,12 +199,11 @@ const LEDVisualizationCore = {
                         bottomY,
                         topY, // Uniform top
                         stripWidth,
-                        rightFill || 0,
+                        effectiveRightFill,
                         theme.wave,
                         time
                     );
-                }
-        
+                }        
                 // 3. Draw Wind Direction LED (Nose)
                 if (windDirColor) {
                     this.drawWindDirectionIndicator(
