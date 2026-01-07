@@ -152,6 +152,13 @@ const DashboardConfig = {
             ARROW_SIZE: 69,      // px
             LEGEND_MARGIN_TOP: 30, // px
             LEGEND_SPREAD: 22    // px (padding left/right)
+        },
+        STRIP_LABELS: {
+            FONT_SIZE: 16,       // px
+            TOP_Y: 460,          // px from top
+            LEFT_LABEL_X: 70,    // px from left (P - Period)
+            CENTER_LABEL_X: 175, // px from left (W - Wind)
+            RIGHT_LABEL_X: 280   // px from left (H - Height)
         }
     }
 };

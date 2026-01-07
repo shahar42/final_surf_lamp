@@ -62,6 +62,10 @@
                                 </svg>
                             </div>
                         </div>
+                        <!-- Strip Labels (P, W, H) -->
+                        <div id="stripLabelP" class="absolute text-white font-bold pointer-events-none" style="left: 70px; top: 460px; font-size: 16px;">P</div>
+                        <div id="stripLabelW" class="absolute text-white font-bold pointer-events-none" style="left: 175px; top: 460px; font-size: 16px;">W</div>
+                        <div id="stripLabelH" class="absolute text-white font-bold pointer-events-none" style="left: 280px; top: 460px; font-size: 16px;">H</div>
                     </div>
 
                     <!-- Legend & Data Values -->
@@ -111,6 +115,28 @@
                             if (legendRow) {
                                 legendRow.style.paddingLeft = `${cal.LEGEND_SPREAD}px`;
                                 legendRow.style.paddingRight = `${cal.LEGEND_SPREAD}px`;
+                            }
+
+                            // Strip Labels (P, W, H)
+                            const labels = DashboardConfig.CALIBRATION.STRIP_LABELS;
+                            const labelP = document.getElementById('stripLabelP');
+                            const labelW = document.getElementById('stripLabelW');
+                            const labelH = document.getElementById('stripLabelH');
+
+                            if (labelP) {
+                                labelP.style.fontSize = `${labels.FONT_SIZE}px`;
+                                labelP.style.top = `${labels.TOP_Y}px`;
+                                labelP.style.left = `${labels.LEFT_LABEL_X}px`;
+                            }
+                            if (labelW) {
+                                labelW.style.fontSize = `${labels.FONT_SIZE}px`;
+                                labelW.style.top = `${labels.TOP_Y}px`;
+                                labelW.style.left = `${labels.CENTER_LABEL_X}px`;
+                            }
+                            if (labelH) {
+                                labelH.style.fontSize = `${labels.FONT_SIZE}px`;
+                                labelH.style.top = `${labels.TOP_Y}px`;
+                                labelH.style.left = `${labels.RIGHT_LABEL_X}px`;
                             }
                         });
                     </script>
