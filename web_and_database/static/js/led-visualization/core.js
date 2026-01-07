@@ -157,58 +157,57 @@ const LEDVisualizationCore = {
         const leftOffset = cal.leftX !== undefined ? cal.leftX : 34;
         const rightOffset = cal.rightX !== undefined ? cal.rightX : 34;
 
-        // LEFT RAIL: Wave Period
-        if (theme && theme.period) {
-            this.drawLiquidStrip(
-                ctx, 
-                centerX - leftOffset, 
-                bottomY, 
-                topY + 30, 
-                stripWidth,
-                leftFill || 0,
-                theme.period,
-                time
-            );
-        }
-
-        // CENTER STRIP: Wind Speed
-        if (theme && theme.wind) {
-            this.drawLiquidStrip(
-                ctx,
-                centerX,
-                bottomY - 15, 
-                topY + 20, 
-                stripWidth,
-                centerFill || 0,
-                theme.wind,
-                time
-            );
-        }
-
-        // RIGHT RAIL: Wave Height
-        if (theme && theme.wave) {
-            this.drawLiquidStrip(
-                ctx,
-                centerX + rightOffset,
-                bottomY,
-                topY + 30,
-                stripWidth,
-                rightFill || 0,
-                theme.wave,
-                time
-            );
-        }
-
-        // 3. Draw Wind Direction LED (Nose)
-        if (windDirColor) {
-            this.drawWindDirectionIndicator(
-                ctx, 
-                centerX, 
-                topY + 5, 
-                windDirColor
-            );
-        }
-    }
+                // LEFT RAIL: Wave Period
+                if (theme && theme.period) {
+                    this.drawLiquidStrip(
+                        ctx, 
+                        centerX - leftOffset, 
+                        bottomY, 
+                        topY, // Uniform top
+                        stripWidth,
+                        leftFill || 0,
+                        theme.period,
+                        time
+                    );
+                }
+        
+                // CENTER STRIP: Wind Speed
+                if (theme && theme.wind) {
+                    this.drawLiquidStrip(
+                        ctx,
+                        centerX,
+                        bottomY, // Uniform bottom
+                        topY, // Uniform top
+                        stripWidth,
+                        centerFill || 0,
+                        theme.wind,
+                        time
+                    );
+                }
+        
+                // RIGHT RAIL: Wave Height
+                if (theme && theme.wave) {
+                    this.drawLiquidStrip(
+                        ctx,
+                        centerX + rightOffset,
+                        bottomY,
+                        topY, // Uniform top
+                        stripWidth,
+                        rightFill || 0,
+                        theme.wave,
+                        time
+                    );
+                }
+        
+                // 3. Draw Wind Direction LED (Nose)
+                if (windDirColor) {
+                    this.drawWindDirectionIndicator(
+                        ctx, 
+                        centerX, 
+                        topY - 15, // Slightly above the uniform top
+                        windDirColor
+                    );
+                }    }
 };
 
 // Make globally available
