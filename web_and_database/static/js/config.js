@@ -149,7 +149,7 @@ const DashboardConfig = {
         LAYOUT: {
             LAMP_SCALE: 1.15,
             ARROW_TOP_Y: 82,     // px
-            ARROW_SIZE: 69,      // px
+            ARROW_SIZE: 63,      // px
             LEGEND_MARGIN_TOP: 30, // px
             LEGEND_SPREAD: 22    // px (padding left/right)
         },
