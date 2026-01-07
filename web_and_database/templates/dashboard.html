@@ -91,6 +91,34 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- TEMPORARY SCALE CALIBRATION PANEL -->
+                    <div class="mt-8 p-4 bg-black/80 rounded-xl border border-blue-500 w-full max-w-lg relative z-50">
+                        <h3 class="text-blue-400 font-bold mb-4 text-center">🔍 Size Calibration</h3>
+                        <div class="space-y-4 text-white text-xs">
+                            <label class="block">Scale Factor: <span id="val_scale">1.0</span>x</label>
+                            <input type="range" min="0.5" max="2.0" step="0.05" value="1.0" class="w-full" oninput="updateScale(this.value)">
+                            
+                            <div class="mt-4 p-2 bg-gray-900 rounded font-mono text-xs select-all text-green-400 break-all" id="scaleOutput">
+                                lampScale: 1.0
+                            </div>
+                        </div>
+                    </div>
+                    <script>
+                        function updateScale(value) {
+                            document.getElementById('val_scale').innerText = value;
+                            document.getElementById('scaleOutput').innerText = 'lampScale: ' + value;
+                            
+                            // Target the container that holds both canvas and arrow
+                            // We need to find the parent div of the canvas
+                            const canvas = document.getElementById('surfboardCanvas');
+                            const container = canvas.parentElement;
+                            
+                            container.style.transform = `scale(${value})`;
+                            container.style.transformOrigin = 'top center';
+                        }
+                    </script>
+                    <!-- END CALIBRATION PANEL -->
                 </div>
             </div>
         </div>
