@@ -55,8 +55,12 @@
                         </canvas>
                         <!-- Wind Direction Compass Overlay -->
                         <div id="arrowContainer" class="absolute left-1/2 -translate-x-1/2 flex items-center justify-center pointer-events-none" style="width: 50px; height: 50px; top: 82px;">
-                            <div class="text-white transition-transform duration-500" id="windArrow" style="transform: rotate({{ data.conditions.wind_direction_deg if data.conditions.wind_direction_deg else 0 }}deg); font-size: 69px;">
-                                ↑
+                            <div class="transition-transform duration-500 origin-center" id="windArrow" style="transform: rotate({{ data.conditions.wind_direction_deg if data.conditions.wind_direction_deg else 0 }}deg); width: 69px; height: 69px;">
+                                <!-- Sleek Compass Needle SVG -->
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full drop-shadow-md filter">
+                                    <path d="M12 2L14.5 12L12 22L9.5 12L12 2Z" fill="white" stroke="white" stroke-width="1" stroke-linejoin="round"/>
+                                    <path d="M12 2L12 22" stroke="#e0f2fe" stroke-width="0.5" stroke-opacity="0.5"/>
+                                </svg>
                             </div>
                         </div>
                     </div>
@@ -107,7 +111,10 @@
                             const arrowContainer = document.getElementById('arrowContainer');
                             const windArrow = document.getElementById('windArrow');
                             if (arrowContainer) arrowContainer.style.top = `${cal.ARROW_TOP_Y}px`;
-                            if (windArrow) windArrow.style.fontSize = `${cal.ARROW_SIZE}px`;
+                            if (windArrow) {
+                                windArrow.style.width = `${cal.ARROW_SIZE}px`;
+                                windArrow.style.height = `${cal.ARROW_SIZE}px`;
+                            }
 
                             // Legend Position & Spread
                             const legendContainer = document.getElementById('legendContainer');
