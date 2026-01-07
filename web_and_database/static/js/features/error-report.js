@@ -6,7 +6,7 @@
 const ErrorReport = {
     // DOM elements
     modal: null,
-    reportBtn: null,
+    reportBtns: [],
     cancelBtn: null,
     form: null,
     textarea: null,
@@ -20,7 +20,13 @@ const ErrorReport = {
     init: function() {
         // Get DOM elements
         this.modal = document.getElementById('errorReportModal');
-        this.reportBtn = document.getElementById('reportErrorBtn');
+        
+        // Find both desktop and mobile buttons
+        this.reportBtns = [
+            document.getElementById('reportErrorBtn'),
+            document.getElementById('reportErrorBtnMobile')
+        ].filter(el => el !== null);
+
         this.cancelBtn = document.getElementById('cancelErrorReport');
         this.form = document.getElementById('errorReportForm');
         this.textarea = document.getElementById('errorDescription');
@@ -28,7 +34,7 @@ const ErrorReport = {
         this.statusDiv = document.getElementById('errorReportStatus');
         this.submitBtn = document.getElementById('submitErrorReport');
 
-        if (!this.modal || !this.reportBtn) {
+        if (!this.modal || this.reportBtns.length === 0) {
             console.warn('Error report modal elements not found');
             return;
         }
@@ -41,8 +47,10 @@ const ErrorReport = {
      * Setup all event listeners
      */
     setupEventListeners: function() {
-        // Open modal button
-        this.reportBtn.addEventListener('click', () => this.openModal());
+        // Open modal buttons
+        this.reportBtns.forEach(btn => {
+            btn.addEventListener('click', () => this.openModal());
+        });
 
         // Cancel button
         this.cancelBtn.addEventListener('click', () => this.closeModal());
@@ -84,7 +92,9 @@ const ErrorReport = {
     resetForm: function() {
         this.textarea.value = '';
         this.charCount.textContent = '0';
-        this.statusDiv.classList.add('hidden');
+        if (this.statusDiv) {
+            this.statusDiv.classList.add('hidden');
+        }
         this.submitBtn.disabled = false;
         this.submitBtn.textContent = 'Submit Report';
     },
@@ -132,6 +142,8 @@ const ErrorReport = {
      * @param {string} type - Message type (loading, success, error)
      */
     showStatus: function(message, type) {
+        if (!this.statusDiv) return;
+        
         this.statusDiv.textContent = message;
         this.statusDiv.classList.remove('hidden');
 
