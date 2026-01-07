@@ -154,11 +154,11 @@ const DashboardConfig = {
             LEGEND_SPREAD: 22    // px (padding left/right)
         },
         STYLE: {
-            GLOW_OPACITY: 0.6,      // 0.0 to 1.0
-            GLOW_BLUR: 15,          // px
+            GLOW_OPACITY: 0.65,      // 0.0 to 1.0
+            GLOW_BLUR: 6,           // px
             INNER_SHINE_ALPHA: 0.4, // 0.0 to 1.0
-            STRIP_OPACITY: 0.9,     // 0.0 to 1.0
-            GROOVE_SHADOW_OPACITY: 0.4 // 0.0 to 1.0 (Darkness of the wood cut)
+            STRIP_OPACITY: 0.75,     // 0.0 to 1.0
+            GROOVE_SHADOW_OPACITY: 0.75 // 0.0 to 1.0 (Darkness of the wood cut)
         }
     }
 };
