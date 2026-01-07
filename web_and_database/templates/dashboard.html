@@ -727,7 +727,46 @@
 
     <!-- Quick Actions -->
     <div class="max-w-6xl mx-auto mt-6">
-        <div class="card rounded-2xl p-6 shadow-2xl">
+        
+        <!-- Mobile View: Drawer + External Logout -->
+        <div class="lg:hidden space-y-4">
+            <div class="card rounded-2xl shadow-2xl overflow-hidden">
+                <button onclick="document.getElementById('quick-actions-content').classList.toggle('hidden'); document.getElementById('quick-actions-chevron').classList.toggle('rotate-180');" 
+                        class="w-full text-left p-6 flex justify-between items-center bg-white/5 hover:bg-white/10 transition-colors">
+                    <h2 class="text-xl font-bold text-white">Quick Actions</h2>
+                    <svg id="quick-actions-chevron" class="w-6 h-6 text-white transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+                
+                <div id="quick-actions-content" class="hidden border-t border-white/10 p-6">
+                    <div class="flex flex-col gap-3">
+                        {% if data.user.is_admin %}
+                        <a href="{{ url_for('admin.arduino_monitor') }}" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors text-center">
+                            Arduino Monitor
+                        </a>
+                        <a href="{{ url_for('admin.admin_broadcast') }}" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors text-center">
+                            Broadcast Message
+                        </a>
+                        {% endif %}
+                        <a href="{{ url_for('dashboard.wifi_setup_guide') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors text-center">
+                            WiFi Setup
+                        </a>
+                        <button id="reportErrorBtnMobile" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors">
+                            Report Error
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- External Logout Button -->
+            <a href="{{ url_for('auth.logout') }}" class="block w-full card rounded-2xl p-4 shadow-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-center transition-colors">
+                Logout
+            </a>
+        </div>
+
+        <!-- Desktop View: Original Layout -->
+        <div class="card rounded-2xl p-6 shadow-2xl hidden lg:block">
             <div class="flex flex-col sm:flex-row gap-3 sm:gap-2 justify-center">
                 {% if data.user.is_admin %}
                 <a href="{{ url_for('admin.arduino_monitor') }}" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors text-center">
