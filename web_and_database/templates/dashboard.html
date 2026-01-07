@@ -88,6 +88,77 @@
                         </div>
                     </div>
 
+                    <!-- TEMPORARY STYLE CALIBRATION PANEL -->
+                    <div class="mt-12 p-4 bg-black/80 rounded-xl border border-pink-500 w-full max-w-lg relative z-50 mx-auto">
+                        <h3 class="text-pink-400 font-bold mb-4 text-center">✨ Style Calibration</h3>
+                        <div class="grid grid-cols-2 gap-4 text-white text-xs">
+                            
+                            <!-- Groove Shadow -->
+                            <div class="space-y-2">
+                                <label>Groove Shadow (Depth): <span id="val_groove">0.4</span></label>
+                                <input type="range" min="0" max="1" step="0.05" value="0.4" class="w-full" oninput="updateStyle('GROOVE_SHADOW_OPACITY', this.value)">
+                            </div>
+
+                            <!-- Glow Opacity -->
+                            <div class="space-y-2">
+                                <label>Glow Opacity: <span id="val_glowOp">0.6</span></label>
+                                <input type="range" min="0" max="1" step="0.05" value="0.6" class="w-full" oninput="updateStyle('GLOW_OPACITY', this.value)">
+                            </div>
+
+                            <!-- Glow Blur -->
+                            <div class="space-y-2">
+                                <label>Glow Blur (px): <span id="val_blur">15</span></label>
+                                <input type="range" min="0" max="50" value="15" class="w-full" oninput="updateStyle('GLOW_BLUR', this.value)">
+                            </div>
+
+                            <!-- Strip Opacity -->
+                            <div class="space-y-2">
+                                <label>Strip Opacity: <span id="val_stripOp">0.9</span></label>
+                                <input type="range" min="0" max="1" step="0.05" value="0.9" class="w-full" oninput="updateStyle('STRIP_OPACITY', this.value)">
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 p-2 bg-gray-900 rounded font-mono text-xs select-all text-green-400 break-all" id="styleOutput">
+                            Values will appear here...
+                        </div>
+                    </div>
+                    <script>
+                        // Initialize global style calibration object
+                        window.styleCalibration = {
+                            GLOW_OPACITY: 0.6,
+                            GLOW_BLUR: 15,
+                            INNER_SHINE_ALPHA: 0.4,
+                            STRIP_OPACITY: 0.9,
+                            GROOVE_SHADOW_OPACITY: 0.4
+                        };
+
+                        function updateStyle(key, value) {
+                            if (key !== 'GLOW_BLUR') value = parseFloat(value);
+                            else value = parseInt(value);
+                            
+                            window.styleCalibration[key] = value;
+                            
+                            // Update display
+                            const displayId = {
+                                'GROOVE_SHADOW_OPACITY': 'val_groove',
+                                'GLOW_OPACITY': 'val_glowOp',
+                                'GLOW_BLUR': 'val_blur',
+                                'STRIP_OPACITY': 'val_stripOp'
+                            }[key];
+                            if (displayId) document.getElementById(displayId).innerText = value;
+
+                            // Update Output String
+                            const s = window.styleCalibration;
+                            const output = `GLOW_OPACITY: ${s.GLOW_OPACITY}, GLOW_BLUR: ${s.GLOW_BLUR}, STRIP_OPACITY: ${s.STRIP_OPACITY}, GROOVE_SHADOW_OPACITY: ${s.GROOVE_SHADOW_OPACITY}`;
+                            document.getElementById('styleOutput').innerText = output;
+
+                            // Force Redraw
+                            if (window.LEDDataFetcher && window.LEDDataFetcher.cachedData) {
+                                window.LEDDataFetcher.updateLEDVisualization(window.LEDDataFetcher.cachedData);
+                            }
+                        }
+                    </script>
+
                     <script>
                         // Apply Visual Calibration from Config
                         document.addEventListener('DOMContentLoaded', () => {
