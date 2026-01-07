@@ -143,76 +143,60 @@ const LEDVisualizationCore = {
             ctx.fill();
         }
 
-                // 2. Define Strip Positions
-                // Check for calibration overrides
-                const cal = (typeof window !== 'undefined' && window.calibration) ? window.calibration : {};
-                const isCalibrating = (typeof window !== 'undefined' && window.calibration);
+        // 2. Define Strip Positions
+        // Hardcoded values from user calibration
+        const centerX = canvas.width / 2;
         
-                const centerX = canvas.width / 2;
-                
-                // Use calibrated values or defaults
-                const bottomY = cal.bottomY !== undefined ? cal.bottomY : (canvas.height - 110);
-                const topY = cal.topY !== undefined ? cal.topY : 140;
-                const stripWidth = cal.width !== undefined ? cal.width : 10;
-                
-                const leftOffset = cal.leftX !== undefined ? cal.leftX : 34;
-                const rightOffset = cal.rightX !== undefined ? cal.rightX : 34;
+        const bottomY = 440;
+        const topY = 146;
+        const stripWidth = 6;
         
-                // Force full fill during calibration so user can see bounds
-                const effectiveLeftFill = isCalibrating ? 1.0 : (leftFill || 0);
-                const effectiveCenterFill = isCalibrating ? 1.0 : (centerFill || 0);
-                const effectiveRightFill = isCalibrating ? 1.0 : (rightFill || 0);
-        
-                // LEFT RAIL: Wave Period
-                if (theme && theme.period) {
-                    this.drawLiquidStrip(
-                        ctx, 
-                        centerX - leftOffset, 
-                        bottomY, 
-                        topY, // Uniform top
-                        stripWidth,
-                        effectiveLeftFill,
-                        theme.period,
-                        time
-                    );
-                }
-        
-                // CENTER STRIP: Wind Speed
-                if (theme && theme.wind) {
-                    this.drawLiquidStrip(
-                        ctx,
-                        centerX,
-                        bottomY, // Uniform bottom
-                        topY, // Uniform top
-                        stripWidth,
-                        effectiveCenterFill,
-                        theme.wind,
-                        time
-                    );
-                }
-        
-                // RIGHT RAIL: Wave Height
-                if (theme && theme.wave) {
-                    this.drawLiquidStrip(
-                        ctx,
-                        centerX + rightOffset,
-                        bottomY,
-                        topY, // Uniform top
-                        stripWidth,
-                        effectiveRightFill,
-                        theme.wave,
-                        time
-                    );
-                }        
-                // 3. Draw Wind Direction LED (Nose)
-                if (windDirColor) {
-                    this.drawWindDirectionIndicator(
-                        ctx, 
-                        centerX, 
-                        topY - 15, // Slightly above the uniform top
-                        windDirColor
-                    );
-                }    }
+        const leftOffset = 31;
+        const rightOffset = 30;
+
+        // LEFT RAIL: Wave Period
+        if (theme && theme.period) {
+            this.drawLiquidStrip(
+                ctx, 
+                centerX - leftOffset, 
+                bottomY, 
+                topY, // Uniform top
+                stripWidth,
+                leftFill || 0,
+                theme.period,
+                time
+            );
+        }
+
+        // CENTER STRIP: Wind Speed
+        if (theme && theme.wind) {
+            this.drawLiquidStrip(
+                ctx,
+                centerX,
+                bottomY, // Uniform bottom
+                topY, // Uniform top
+                stripWidth,
+                centerFill || 0,
+                theme.wind,
+                time
+            );
+        }
+
+        // RIGHT RAIL: Wave Height
+        if (theme && theme.wave) {
+            this.drawLiquidStrip(
+                ctx,
+                centerX + rightOffset,
+                bottomY,
+                topY, // Uniform top
+                stripWidth,
+                rightFill || 0,
+                theme.wave,
+                time
+            );
+        }
+
+        // Note: Wind direction is handled by the HTML arrow overlay in dashboard.html    }
 };
 
 // Make globally available
