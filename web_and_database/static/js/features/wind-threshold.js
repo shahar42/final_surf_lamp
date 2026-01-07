@@ -1,39 +1,93 @@
 /**
- * Wind Threshold Feature
- * Handles wind speed threshold update events
+ * Wind Threshold Range Feature
+ * Handles wind speed threshold range slider with dual handles
  */
 
 const WindThreshold = {
+    slider: null,
+    updateTimeout: null,
+
     /**
-     * Initialize wind threshold update handler
+     * Initialize wind threshold range slider
      */
     init: function() {
-        const updateBtn = document.getElementById('updateWindThreshold');
-        const thresholdInput = document.getElementById('windThreshold');
+        const sliderElement = document.getElementById('windSlider');
         const statusDiv = document.getElementById('wind-threshold-status');
+        const minInput = document.getElementById('windThresholdMin');
+        const maxInput = document.getElementById('windThresholdMax');
 
-        if (!updateBtn || !thresholdInput || !statusDiv) {
+        if (!sliderElement || !statusDiv || !minInput) {
             console.error('WindThreshold: Required elements not found');
             return;
         }
 
-        updateBtn.addEventListener('click', async function() {
-            const threshold = parseInt(thresholdInput.value);
+        // Get current values
+        const currentMin = parseFloat(minInput.value) || DashboardConfig.LIMITS.WIND_THRESHOLD_MIN_KNOTS;
+        const currentMax = maxInput.value ? parseFloat(maxInput.value) : DashboardConfig.LIMITS.WIND_THRESHOLD_MAX_KNOTS;
 
-            // Wind threshold is always in knots (no conversion needed)
-            StatusMessage.loading(statusDiv);
+        console.log('[WIND SLIDER DEBUG] minInput.value:', minInput.value, 'maxInput.value:', maxInput.value);
+        console.log('[WIND SLIDER DEBUG] Parsed - currentMin:', currentMin, 'currentMax:', currentMax);
 
-            // Make API request
-            const result = await ApiClient.post(
-                DashboardConfig.API.UPDATE_WIND_THRESHOLD,
-                { threshold: threshold }
-            );
+        // Slider range bounds (knots)
+        const sliderMin = DashboardConfig.LIMITS.WIND_THRESHOLD_MIN_KNOTS;
+        const sliderMax = DashboardConfig.LIMITS.WIND_THRESHOLD_MAX_KNOTS;
 
-            if (result.ok) {
-                StatusMessage.success(statusDiv, result.data.message);
-            } else {
-                StatusMessage.error(statusDiv, 'Error: ' + result.data.message);
+        // Create dual-handle range slider
+        noUiSlider.create(sliderElement, {
+            start: [currentMin, currentMax],
+            connect: true,
+            range: {
+                'min': sliderMin,
+                'max': sliderMax
+            },
+            step: 1,
+            tooltips: [true, true],  // Show tooltips above both handles
+            format: {
+                to: function(value) {
+                    return Math.round(value);
+                },
+                from: function(value) {
+                    return parseInt(value);
+                }
             }
+        });
+
+        this.slider = sliderElement.noUiSlider;
+
+        // Store values in hidden inputs when slider changes
+        this.slider.on('update', function(values, handle) {
+            minInput.value = values[0];
+            maxInput.value = values[1];
+        });
+
+        // Auto-update on slider change (when user releases handle)
+        this.slider.on('change', async (values, handle) => {
+            const thresholdMin = parseInt(values[0]);
+            const thresholdMax = parseInt(values[1]);
+
+            // Debounce: clear previous timeout
+            if (this.updateTimeout) {
+                clearTimeout(this.updateTimeout);
+            }
+
+            // Wait 300ms before sending API request
+            this.updateTimeout = setTimeout(async () => {
+                StatusMessage.loading(statusDiv);
+
+                const result = await ApiClient.post(
+                    DashboardConfig.API.UPDATE_WIND_THRESHOLD,
+                    {
+                        threshold_min: thresholdMin,
+                        threshold_max: thresholdMax
+                    }
+                );
+
+                if (result.ok) {
+                    StatusMessage.success(statusDiv, result.data.message);
+                } else {
+                    StatusMessage.error(statusDiv, 'Error: ' + result.data.message);
+                }
+            }, 300);
         });
     }
 };

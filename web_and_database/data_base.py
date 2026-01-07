@@ -87,7 +87,7 @@ class User(Base):
         username (str): User's chosen username.
         password_hash (str): Hashed password for security.
         email (str): User's email address, used for login.
-        location (str): User's selected surf location.
+        location (str): User's dashboard default view location (arduinos can override).
         theme (str): Preferred visual theme (e.g., 'dark', 'light').
         preferred_output (str): Preferred unit system (e.g., 'metric', 'imperial').
         sport_type (str): User's chosen water sport type.
@@ -97,19 +97,21 @@ class User(Base):
     username = Column(String(255), unique=True, nullable=False)
     password_hash = Column(Text, nullable=False)
     email = Column(String(255), unique=True, nullable=False)
-    location = Column(String(255), nullable=False)
+    location = Column(String(255), nullable=False)  # Dashboard default view
     theme = Column(String(50), nullable=False)
     preferred_output = Column(String(50), nullable=False)
     sport_type = Column(String(20), nullable=False, default='surfing')
-    wave_threshold_m = Column(Float, nullable=True, default=1.0)
+    wave_threshold_m = Column(Float, nullable=True, default=0.0)
+    wave_threshold_max_m = Column(Float, nullable=True, default=None)
     wind_threshold_knots = Column(Float, nullable=True, default=22.0)
+    wind_threshold_max_knots = Column(Float, nullable=True, default=None)
     is_admin = Column(Boolean, default=False, nullable=False)
     off_time_start = Column(Time, nullable=True)
     off_time_end = Column(Time, nullable=True)
     off_times_enabled = Column(Boolean, default=False, nullable=False)
     brightness_level = Column(Float, default=BRIGHTNESS_LEVELS['MID'], nullable=False)
 
-    lamp = relationship("Lamp", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    arduinos = relationship("Arduino", back_populates="user", cascade="all, delete-orphan")
 
 class PasswordResetToken(Base):
     """Stores password reset tokens"""
@@ -140,13 +142,13 @@ class ErrorReport(Base):
     username = Column(String(255), nullable=False)
     email = Column(String(255), nullable=False)
     location = Column(String(255), nullable=True)
-    lamp_id = Column(Integer, nullable=True)
-    arduino_id = Column(Integer, nullable=True)
+    arduino_id = Column(Integer, ForeignKey('arduinos.arduino_id'), nullable=True)
     error_description = Column(Text, nullable=False)
     user_agent = Column(Text, nullable=True)
     timestamp = Column(TIMESTAMP, server_default=func.now(), nullable=False)
 
     user = relationship("User", backref="error_reports")
+    arduino = relationship("Arduino", backref="error_reports")
 
 class Broadcast(Base):
     """Stores admin broadcast messages for dashboard notifications"""
@@ -162,107 +164,53 @@ class Broadcast(Base):
 
     admin = relationship("User", backref="broadcasts")
 
-class Lamp(Base):
+class Arduino(Base):
     """
-    Represents a physical Surf Lamp device.
+    Represents a physical Surf Lamp Arduino device.
 
     Attributes:
-        lamp_id (int): Primary key, auto-generated unique ID.
-        user_id (int): Foreign key linking to the User who owns the lamp.
-        arduino_id (int): The unique ID of the Arduino microcontroller (device serial number).
-        last_updated (datetime): Timestamp of the last successful data sync.
+        arduino_id (int): Primary key - the unique ID of the ESP32 microcontroller.
+        user_id (int): Foreign key linking to the User who owns the device.
+        location (str): Foreign key to Location - where this specific arduino fetches data.
+        last_poll_time (datetime): Timestamp of the last time Arduino polled for data.
     """
-    __tablename__ = 'lamps'
-    lamp_id = Column(Integer, primary_key=True, autoincrement=True)
+    __tablename__ = 'arduinos'
+    arduino_id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
-    arduino_id = Column(Integer, unique=True, nullable=True)
-    last_updated = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+    location = Column(String(255), ForeignKey('locations.location'), nullable=False)
+    last_poll_time = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
-    user = relationship("User", back_populates="lamp")
-    usage_configs = relationship("UsageLamps", back_populates="lamp", cascade="all, delete-orphan")
-    current_conditions = relationship("CurrentConditions", back_populates="lamp", uselist=False, cascade="all, delete-orphan")
+    user = relationship("User", back_populates="arduinos")
+    location_data = relationship("Location", back_populates="arduinos")
 
-class CurrentConditions(Base):
+class Location(Base):
     """
-    Stores the latest surf conditions fetched for a specific lamp.
+    Stores surf conditions and API endpoints for a geographic location.
 
-    This table is updated by the background processor.
+    Location-centric architecture: One API call per location updates this table,
+    then all arduinos at that location inherit the data.
 
     Attributes:
-        lamp_id (int): Foreign key linking to the Lamp.
-        wave_height_m (float): Wave height in meters.
-        wave_period_s (float): Wave period in seconds.
-        wind_speed_mps (float): Wind speed in meters per second.
-        wind_direction_deg (int): Wind direction in degrees.
-        last_updated (datetime): Timestamp of when this data was fetched.
+        location (str): Primary key - location name (e.g., "Hadera, Israel").
+        wave_api_url (str): API endpoint for wave data.
+        wind_api_url (str): API endpoint for wind data.
+        wave_height_m (float): Current wave height in meters.
+        wave_period_s (float): Current wave period in seconds.
+        wind_speed_mps (float): Current wind speed in meters per second.
+        wind_direction_deg (int): Current wind direction in degrees.
+        last_updated (datetime): Timestamp of when conditions were last fetched.
     """
-    __tablename__ = 'current_conditions'
-    lamp_id = Column(Integer, ForeignKey('lamps.lamp_id'), primary_key=True)
+    __tablename__ = 'locations'
+    location = Column(String(255), primary_key=True)
+    wave_api_url = Column(Text, nullable=False)
+    wind_api_url = Column(Text, nullable=False)
     wave_height_m = Column(Float, nullable=True)
     wave_period_s = Column(Float, nullable=True)
     wind_speed_mps = Column(Float, nullable=True)
     wind_direction_deg = Column(Integer, nullable=True)
     last_updated = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
-    
-    lamp = relationship("Lamp", back_populates="current_conditions")
 
-class DailyUsage(Base):
-    """
-    Represents a unique data source API endpoint.
-
-    This table helps deduplicate API calls. If multiple lamps use the same
-    API endpoint, the background processor will only fetch the data once.
-
-    Attributes:
-        usage_id (int): Primary key.
-        website_url (str): The base URL of the data source API.
-        last_updated (datetime): Timestamp of the last fetch from this source.
-    """
-    __tablename__ = 'daily_usage'
-    usage_id = Column(Integer, primary_key=True, autoincrement=True)
-    website_url = Column(String(255), unique=True, nullable=False)
-    last_updated = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
-    
-    locations = relationship("LocationWebsites", back_populates="website")
-    lamp_configs = relationship("UsageLamps", back_populates="website")
-
-class LocationWebsites(Base):
-    """
-    Maps a surf location to a specific data source (DailyUsage).
-
-    Attributes:
-        location (str): The name of the surf location (e.g., "Hadera, Israel").
-        usage_id (int): Foreign key linking to the DailyUsage record.
-    """
-    __tablename__ = 'location_websites'
-    location = Column(String(255), primary_key=True)
-    usage_id = Column(Integer, ForeignKey('daily_usage.usage_id'), unique=True, nullable=False)
-    
-    website = relationship("DailyUsage", back_populates="locations")
-
-class UsageLamps(Base):
-    """
-    Links a Lamp to a data source (DailyUsage), creating a specific API configuration.
-
-    This is a many-to-many join table between lamps and data sources.
-
-    Attributes:
-        usage_id (int): Foreign key to DailyUsage.
-        lamp_id (int): Foreign key to Lamp.
-        api_key (str): The API key for the data source, if required.
-        http_endpoint (str): The full, specific URL for the API call.
-        arduino_ip (str): The IP address of the Arduino (denormalized for the background processor).
-        endpoint_priority (int): Priority order for multiple endpoints (1 = highest priority).
-    """
-    __tablename__ = 'usage_lamps'
-    usage_id = Column(Integer, ForeignKey('daily_usage.usage_id'), primary_key=True)
-    lamp_id = Column(Integer, ForeignKey('lamps.lamp_id'), primary_key=True)
-    api_key = Column(Text, nullable=True)
-    http_endpoint = Column(Text, nullable=False)
-    endpoint_priority = Column(Integer, nullable=False, default=1)
-    
-    lamp = relationship("Lamp", back_populates="usage_configs")
-    website = relationship("DailyUsage", back_populates="lamp_configs")
+    arduinos = relationship("Arduino", back_populates="location_data")
 
 
 
@@ -471,12 +419,11 @@ def get_active_location_config():
 
 def add_user_and_lamp(name, email, password_hash, arduino_id, location, theme, units, sport_type='surfing'):
     """
-    Creates a new user and registers their lamp with appropriate API sources.
-    lamp_id is auto-generated by the database.
-    Supports both single-source and multi-source locations.
+    Creates a new user and registers their arduino device.
+    Uses location-centric architecture: Location record must exist first.
     """
     logger.info(f"Starting user registration for email: {email}, arduino_id: {arduino_id}")
-    
+
     db = SessionLocal()
     logger.info("Database session created")
 
@@ -484,7 +431,7 @@ def add_user_and_lamp(name, email, password_hash, arduino_id, location, theme, u
         # Get active location configuration (stormglass or multi-source)
         active_config = get_active_location_config()
 
-        # Determine if location is single-source or multi-source
+        # Determine API sources for this location
         if location in active_config:
             api_sources = active_config[location]
             logger.info(f"Location '{location}' uses {len(api_sources)} API sources")
@@ -495,13 +442,29 @@ def add_user_and_lamp(name, email, password_hash, arduino_id, location, theme, u
             logger.error(f"Unsupported location for registration: {location}")
             return False, f"Location '{location}' is not supported yet."
 
-        # 1. Create the new User
+        # 1. Ensure Location record exists
+        location_record = db.query(Location).filter(Location.location == location).first()
+        if not location_record:
+            # Create location with API endpoints
+            wave_source = next((s for s in api_sources if s.get('type') == 'wave'), api_sources[0])
+            wind_source = next((s for s in api_sources if s.get('type') == 'wind'), api_sources[-1])
+
+            location_record = Location(
+                location=location,
+                wave_api_url=wave_source['url'],
+                wind_api_url=wind_source['url']
+            )
+            db.add(location_record)
+            db.flush()
+            logger.info(f"Created Location record: {location}")
+
+        # 2. Create the new User
         logger.info("Creating new User record")
         new_user = User(
             username=name,
             email=email,
             password_hash=password_hash,
-            location=location,
+            location=location,  # Dashboard default view
             theme=theme,
             preferred_output=units,
             sport_type=sport_type
@@ -510,61 +473,21 @@ def add_user_and_lamp(name, email, password_hash, arduino_id, location, theme, u
         db.flush()
         logger.info(f"Created User record with user_id: {new_user.user_id}")
 
-        # 2. Create the new Lamp (lamp_id auto-generated by database)
-        logger.info("Creating new Lamp record")
-        new_lamp = Lamp(
+        # 3. Create the new Arduino
+        logger.info("Creating new Arduino record")
+        new_arduino = Arduino(
+            arduino_id=arduino_id,
             user_id=new_user.user_id,
-            arduino_id=arduino_id
+            location=location
         )
-        db.add(new_lamp)
-        db.flush()  # Flush to get auto-generated lamp_id
-        logger.info(f"Created Lamp record with auto-generated lamp_id: {new_lamp.lamp_id}")
-        
-        # 3. Create API sources for this location
-        for source in api_sources:
-            logger.info(f"Processing {source['type']} API source")
-            
-            # Get or create DailyUsage record for this API URL
-            website = db.query(DailyUsage).filter(DailyUsage.website_url == source['url']).first()
-            if not website:
-                logger.info(f"Creating new DailyUsage record for {source['type']}")
-                website = DailyUsage(website_url=source['url'])
-                db.add(website)
-                db.flush()
-                logger.info(f"Created DailyUsage record with usage_id: {website.usage_id}")
-            else:
-                logger.info(f"Found existing DailyUsage record with usage_id: {website.usage_id}")
+        db.add(new_arduino)
+        logger.info(f"Created Arduino record with arduino_id: {arduino_id}")
 
-            # Create UsageLamps link with priority
-            usage_lamp_link = UsageLamps(
-                usage_id=website.usage_id,
-                lamp_id=new_lamp.lamp_id,
-                api_key=None,
-                http_endpoint=source['url'],
-                endpoint_priority=source['priority']
-            )
-            db.add(usage_lamp_link)
-            logger.info(f"Created UsageLamps link: {source['type']} (priority {source['priority']})")
-
-        # 4. Create LocationWebsites mapping (use first source for mapping)
-        first_source = api_sources[0]
-        first_website = db.query(DailyUsage).filter(DailyUsage.website_url == first_source['url']).first()
-        
-        location_website = db.query(LocationWebsites).filter(LocationWebsites.location == location).first()
-        if not location_website:
-            logger.info("Creating LocationWebsites mapping")
-            location_website = LocationWebsites(
-                location=location,
-                usage_id=first_website.usage_id
-            )
-            db.add(location_website)
-            logger.info(f"Created LocationWebsites mapping: {location} -> usage_id={first_website.usage_id}")
-
-        # 5. Commit the entire transaction
+        # 4. Commit the entire transaction
         logger.info("Committing transaction")
         db.commit()
-        logger.info("User and lamp registered successfully")
-        return True, "User and lamp registered successfully."
+        logger.info("User and arduino registered successfully")
+        return True, "User and arduino registered successfully."
 
     except IntegrityError as e:
         logger.error(f"IntegrityError during registration: {e}")
@@ -577,7 +500,7 @@ def add_user_and_lamp(name, email, password_hash, arduino_id, location, theme, u
             return False, "This email address is already registered. Please use a different email or login."
         elif 'users_username_key' in error_msg:
             return False, "This username is already taken. Please choose a different username."
-        elif 'lamps_arduino_id_key' in error_msg:
+        elif 'arduinos_pkey' in error_msg or 'arduino' in error_msg.lower():
             return False, "This Device ID is already registered to another user. Please check your Device ID."
         else:
             # Fallback for unexpected constraint violations
@@ -591,55 +514,107 @@ def add_user_and_lamp(name, email, password_hash, arduino_id, location, theme, u
         db.close()
 
 
+def add_arduino_to_user(user_id, arduino_id, location):
+    """
+    Links a new Arduino device to an existing user.
+    """
+    logger.info(f"Linking arduino {arduino_id} to user_id: {user_id} at location: {location}")
+
+    db = SessionLocal()
+    try:
+        # 1. Ensure Location record exists
+        active_config = get_active_location_config()
+        if location not in active_config and location not in SINGLE_SOURCE_LOCATIONS:
+            return False, f"Location '{location}' is not supported"
+
+        location_record = db.query(Location).filter(Location.location == location).first()
+        if not location_record:
+            api_sources = active_config.get(location) or SINGLE_SOURCE_LOCATIONS[location]
+            wave_source = next((s for s in api_sources if s.get('type') == 'wave'), api_sources[0])
+            wind_source = next((s for s in api_sources if s.get('type') == 'wind'), api_sources[-1])
+
+            location_record = Location(
+                location=location,
+                wave_api_url=wave_source['url'],
+                wind_api_url=wind_source['url']
+            )
+            db.add(location_record)
+            db.flush()
+
+        # 2. Create Arduino record
+        new_arduino = Arduino(
+            arduino_id=arduino_id,
+            user_id=user_id,
+            location=location
+        )
+        db.add(new_arduino)
+        db.commit()
+        
+        logger.info(f"Successfully linked arduino {arduino_id} to user {user_id}")
+        return True, "Arduino linked successfully"
+
+    except IntegrityError:
+        db.rollback()
+        return False, "This Arduino ID is already registered to another user"
+    except Exception as e:
+        logger.error(f"Error linking arduino: {e}")
+        db.rollback()
+        return False, f"Database error: {str(e)}"
+    finally:
+        db.close()
+
+
 def get_user_lamp_data(email):
     """
     Retrieves all relevant data for the user dashboard.
 
-    This function fetches the user's profile, their lamp's details, and the
-    most recent surf conditions recorded for that lamp. It uses a LEFT JOIN
-    to ensure that user and lamp data are returned even if no surf conditions
-    have been recorded yet.
+    This function fetches the user's profile, their arduinos, and the
+    surf conditions for the user's default location.
 
     Args:
         email (str): The email address of the logged-in user.
 
     Returns:
-        tuple: A tuple containing (User, Lamp, CurrentConditions) objects.
+        tuple: A tuple containing (User, list[Arduino], Location) objects.
                If the user is not found, returns (None, None, None).
     """
-    logger.info(f"Fetching lamp data for user: {email}")
-    
+    logger.info(f"Fetching arduino data for user: {email}")
+
     db = SessionLocal()
     try:
-        # Query user -> lamp -> current_conditions with LEFT JOIN
-        result = db.query(User, Lamp, CurrentConditions).select_from(User)\
-            .join(Lamp, User.user_id == Lamp.user_id)\
-            .outerjoin(CurrentConditions, Lamp.lamp_id == CurrentConditions.lamp_id)\
-            .filter(User.email == email)\
-            .first()
-        
-        if not result:
+        # Query user and their default location conditions
+        user = db.query(User).filter(User.email == email).first()
+
+        if not user:
             logger.warning(f"No user found with email: {email}")
             return None, None, None
-        
-        user, lamp, conditions = result
-        logger.info(f"Found user {user.username} with lamp {lamp.lamp_id}")
-        
-        return user, lamp, conditions
-        
+
+        # Get all arduinos for this user
+        arduinos = db.query(Arduino).filter(Arduino.user_id == user.user_id).all()
+
+        # Get location data for user's default dashboard view
+        location = db.query(Location).filter(Location.location == user.location).first()
+
+        logger.info(f"Found user {user.username} with {len(arduinos)} arduino(s)")
+
+        return user, arduinos, location
+
     except Exception as e:
-        logger.error(f"Error fetching user lamp data: {e}")
+        logger.error(f"Error fetching user arduino data: {e}")
         return None, None, None
     finally:
         db.close()
 
 def update_user_location(user_id, new_location):
-    """Update user's location and reconfigure their lamp's API endpoints."""
-    logger.info(f"Updating location for user_id: {user_id} to: {new_location}")
+    """
+    Update user's dashboard default location.
+    Note: Arduino locations are independent and not modified by this function.
+    """
+    logger.info(f"Updating dashboard location for user_id: {user_id} to: {new_location}")
 
     db = SessionLocal()
 
-    # Get active location configuration (stormglass or multi-source)
+    # Get active location configuration to validate location exists
     active_config = get_active_location_config()
 
     # Determine API sources for new location
@@ -650,60 +625,36 @@ def update_user_location(user_id, new_location):
     else:
         logger.error(f"No API mapping found for location: {new_location}")
         return False, f"Location '{new_location}' is not supported"
-    
+
     try:
-        # 1. Update user's location
+        # 1. Ensure Location record exists
+        location_record = db.query(Location).filter(Location.location == new_location).first()
+        if not location_record:
+            # Create location with API endpoints
+            wave_source = next((s for s in api_sources if s.get('type') == 'wave'), api_sources[0])
+            wind_source = next((s for s in api_sources if s.get('type') == 'wind'), api_sources[-1])
+
+            location_record = Location(
+                location=new_location,
+                wave_api_url=wave_source['url'],
+                wind_api_url=wind_source['url']
+            )
+            db.add(location_record)
+            logger.info(f"Created Location record: {new_location}")
+
+        # 2. Update user's dashboard location
         user = db.query(User).filter(User.user_id == user_id).first()
         if not user:
             return False, "User not found"
-        
+
         old_location = user.location
         user.location = new_location
-        
-        # 2. Get user's lamp
-        lamp = db.query(Lamp).filter(Lamp.user_id == user_id).first()
-        if not lamp:
-            return False, "No lamp found for user"
-        
-        # 3. Delete existing UsageLamps records for this lamp
-        db.query(UsageLamps).filter(UsageLamps.lamp_id == lamp.lamp_id).delete()
-        logger.info(f"Deleted old UsageLamps records for lamp {lamp.lamp_id}")
-        
-        # 4. Create new UsageLamps records for new location
-        for source in api_sources:
-            # Get or create DailyUsage record
-            website = db.query(DailyUsage).filter(DailyUsage.website_url == source['url']).first()
-            if not website:
-                website = DailyUsage(website_url=source['url'])
-                db.add(website)
-                db.flush()
-            
-            # Create new UsageLamps record
-            usage_lamp = UsageLamps(
-                usage_id=website.usage_id,
-                lamp_id=lamp.lamp_id,
-                api_key=None,
-                http_endpoint=source['url'],
-                endpoint_priority=source['priority']
-            )
-            db.add(usage_lamp)
-            logger.info(f"Added {source['type']} API source (priority {source['priority']})")
-        
-        # 5. Update LocationWebsites mapping
-        first_website = db.query(DailyUsage).filter(DailyUsage.website_url == api_sources[0]['url']).first()
-        location_website = db.query(LocationWebsites).filter(LocationWebsites.location == new_location).first()
-        if not location_website:
-            location_website = LocationWebsites(
-                location=new_location,
-                usage_id=first_website.usage_id
-            )
-            db.add(location_website)
-        
-        # 6. Commit changes
+
+        # 3. Commit changes
         db.commit()
-        logger.info(f"Successfully updated location from '{old_location}' to '{new_location}'")
-        return True, "Location updated successfully"
-        
+        logger.info(f"Successfully updated dashboard location from '{old_location}' to '{new_location}'")
+        return True, "Dashboard location updated successfully"
+
     except Exception as e:
         logger.error(f"Error updating location: {e}")
         db.rollback()

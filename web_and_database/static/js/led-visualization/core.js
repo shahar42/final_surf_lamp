@@ -154,8 +154,8 @@ const LEDVisualizationCore = {
                 const isLED0 = (i === 0); // Bottom LED unused
 
                 if (isWindDirection) {
-                    // LED 19: Always show wind direction color
-                    this.drawLED(ctx, row.center.x, row.center.y, windDirColor, true);
+                    // LED 19: Skip - replaced by arrow compass
+                    continue;
                 } else if (isLED0) {
                     // LED 0: Always off
                     this.drawLED(ctx, row.center.x, row.center.y, theme.wind, false);

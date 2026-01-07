@@ -1,8 +1,9 @@
 import logging
 from flask import Blueprint, request, session, jsonify
-from config import limiter, SURF_LOCATIONS
+from config import limiter, SURF_LOCATIONS, THRESHOLD_LIMITS
 from utils.decorators import login_required
 from utils.rate_limit import check_location_change_limit, record_location_change
+from utils.threshold_logic import validate_threshold_range
 from data_base import SessionLocal, User, update_user_location
 
 logger = logging.getLogger(__name__)
@@ -49,24 +50,49 @@ def update_location():
 def update_threshold():
     try:
         data = request.get_json()
-        threshold = float(data.get('threshold', 1.0))
+        print(f"[DEBUG] Wave threshold update payload: {data}")  # DEBUG LOG
+        threshold_min = float(data.get('threshold_min', data.get('threshold', 1.0)))  # Backwards compatible
+        threshold_max = data.get('threshold_max')
         user_id = session.get('user_id')
-        
-        if threshold < 0.1 or threshold > 10.0:
-            return {'success': False, 'message': 'Threshold must be between 0.1 and 10.0 meters'}, 400
-        
+        print(f"[DEBUG] Parsed - min: {threshold_min}, max: {threshold_max}, user_id: {user_id}")  # DEBUG LOG
+
+        # Convert max to float if provided
+        if threshold_max is not None:
+            threshold_max = float(threshold_max)
+
+        # Validate min threshold bounds
+        if threshold_min < THRESHOLD_LIMITS['WAVE_MIN'] or threshold_min > THRESHOLD_LIMITS['WAVE_MAX']:
+            return {'success': False, 'message': f"Minimum threshold must be between {THRESHOLD_LIMITS['WAVE_MIN']} and {THRESHOLD_LIMITS['WAVE_MAX']} meters"}, 400
+
+        # Validate max threshold bounds if provided
+        if threshold_max is not None and (threshold_max < THRESHOLD_LIMITS['WAVE_MIN'] or threshold_max > THRESHOLD_LIMITS['WAVE_MAX']):
+            return {'success': False, 'message': f"Maximum threshold must be between {THRESHOLD_LIMITS['WAVE_MIN']} and {THRESHOLD_LIMITS['WAVE_MAX']} meters"}, 400
+
+        # Validate range relationship
+        is_valid, error_msg = validate_threshold_range(threshold_min, threshold_max)
+        if not is_valid:
+            return {'success': False, 'message': error_msg}, 400
+
         db = SessionLocal()
         try:
             user = db.query(User).filter(User.user_id == user_id).first()
             if user:
-                user.wave_threshold_m = threshold
+                user.wave_threshold_m = threshold_min
+                user.wave_threshold_max_m = threshold_max
                 db.commit()
-                return {'success': True, 'message': 'Wave threshold updated successfully'}
+                print(f"[DEBUG] Saved to DB - user_id: {user_id}, wave_threshold_m: {user.wave_threshold_m}, wave_threshold_max_m: {user.wave_threshold_max_m}")  # DEBUG LOG
+
+                if threshold_max is not None:
+                    return {'success': True, 'message': f'Wave threshold range updated: {threshold_min}m - {threshold_max}m'}
+                else:
+                    return {'success': True, 'message': f'Wave threshold updated: {threshold_min}m'}
             else:
                 return {'success': False, 'message': 'User not found'}, 404
         finally:
             db.close()
-            
+
+    except ValueError as e:
+        return {'success': False, 'message': 'Invalid threshold value format'}, 400
     except Exception as e:
         return {'success': False, 'message': f'Server error: {str(e)}'}, 500
 
@@ -76,24 +102,49 @@ def update_threshold():
 def update_wind_threshold():
     try:
         data = request.get_json()
-        threshold = int(data.get('threshold', 22))
+        print(f"[DEBUG] Wind threshold update payload: {data}")  # DEBUG LOG
+        threshold_min = float(data.get('threshold_min', data.get('threshold', 22)))  # Backwards compatible
+        threshold_max = data.get('threshold_max')
         user_id = session.get('user_id')
-        
-        if threshold < 1 or threshold > 25:
-            return {'success': False, 'message': 'Wind threshold must be between 1 and 25 knots'}, 400
-        
+        print(f"[DEBUG] Parsed - min: {threshold_min}, max: {threshold_max}, user_id: {user_id}")  # DEBUG LOG
+
+        # Convert max to float if provided
+        if threshold_max is not None:
+            threshold_max = float(threshold_max)
+
+        # Validate min threshold bounds
+        if threshold_min < THRESHOLD_LIMITS['WIND_MIN'] or threshold_min > THRESHOLD_LIMITS['WIND_MAX']:
+            return {'success': False, 'message': f"Minimum wind threshold must be between {THRESHOLD_LIMITS['WIND_MIN']} and {THRESHOLD_LIMITS['WIND_MAX']} knots"}, 400
+
+        # Validate max threshold bounds if provided
+        if threshold_max is not None and (threshold_max < THRESHOLD_LIMITS['WIND_MIN'] or threshold_max > THRESHOLD_LIMITS['WIND_MAX']):
+            return {'success': False, 'message': f"Maximum wind threshold must be between {THRESHOLD_LIMITS['WIND_MIN']} and {THRESHOLD_LIMITS['WIND_MAX']} knots"}, 400
+
+        # Validate range relationship
+        is_valid, error_msg = validate_threshold_range(threshold_min, threshold_max)
+        if not is_valid:
+            return {'success': False, 'message': error_msg}, 400
+
         db = SessionLocal()
         try:
             user = db.query(User).filter(User.user_id == user_id).first()
             if user:
-                user.wind_threshold_knots = threshold
+                user.wind_threshold_knots = threshold_min
+                user.wind_threshold_max_knots = threshold_max
                 db.commit()
-                return {'success': True, 'message': 'Wind threshold updated successfully'}
+                print(f"[DEBUG] Saved to DB - user_id: {user_id}, wind_threshold_knots: {user.wind_threshold_knots}, wind_threshold_max_knots: {user.wind_threshold_max_knots}")  # DEBUG LOG
+
+                if threshold_max is not None:
+                    return {'success': True, 'message': f'Wind threshold range updated: {threshold_min} - {threshold_max} knots'}
+                else:
+                    return {'success': True, 'message': f'Wind threshold updated: {threshold_min} knots'}
             else:
                 return {'success': False, 'message': 'User not found'}, 404
         finally:
             db.close()
-            
+
+    except ValueError as e:
+        return {'success': False, 'message': 'Invalid threshold value format'}, 400
     except Exception as e:
         return {'success': False, 'message': f'Server error: {str(e)}'}, 500
 

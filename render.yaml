@@ -39,3 +39,16 @@ services:
         value: 2000
       - key: ALERT_DOWNTIME_MINUTES
         value: 5
+
+  - type: worker
+    name: surf-lamp-processor
+    env: python
+    plan: starter
+    rootDir: surf-lamp-processor
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python background_processor.py"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: DATABASE_URL
+        sync: false
