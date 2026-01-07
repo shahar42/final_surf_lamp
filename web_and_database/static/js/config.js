@@ -154,11 +154,11 @@ const DashboardConfig = {
             LEGEND_SPREAD: 22    // px (padding left/right)
         },
         STRIP_LABELS: {
-            FONT_SIZE: 16,       // px
-            TOP_Y: 460,          // px from top
-            LEFT_LABEL_X: 70,    // px from left (P - Period)
-            CENTER_LABEL_X: 175, // px from left (W - Wind)
-            RIGHT_LABEL_X: 280   // px from left (H - Height)
+            FONT_SIZE: 12,       // px
+            TOP_Y: 448,          // px from top
+            LEFT_LABEL_X: 140,   // px from left (P - Period)
+            CENTER_LABEL_X: 140, // px from left (W - Wind)
+            RIGHT_LABEL_X: 201   // px from left (H - Height)
         }
     }
 };
