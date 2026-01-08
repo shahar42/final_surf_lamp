@@ -77,7 +77,7 @@ def register():
             session['user_id'] = user_data['user_id']
             session['username'] = user_data['username']
             logger.info(f"✅ Auto-login after registration: {user_data['username']} ({user_data['email']})")
-            flash(message, 'success')
+            flash(message, 'success_short')
             return redirect(url_for('dashboard.dashboard'))
         else:
             flash(message, 'error')
