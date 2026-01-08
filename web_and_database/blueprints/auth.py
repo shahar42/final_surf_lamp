@@ -60,7 +60,7 @@ def register():
 
         hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
 
-        success, message = add_user_and_lamp(
+        success, message, user_data = add_user_and_lamp(
             name=name,
             email=email,
             password_hash=hashed_password,
@@ -71,9 +71,14 @@ def register():
             sport_type=sport_type
         )
 
-        if success:
+        if success and user_data:
+            # Auto-login: set session variables
+            session['user_email'] = user_data['email']
+            session['user_id'] = user_data['user_id']
+            session['username'] = user_data['username']
+            logger.info(f"✅ Auto-login after registration: {user_data['username']} ({user_data['email']})")
             flash(message, 'success')
-            return redirect(url_for('auth.login'))
+            return redirect(url_for('dashboard.dashboard'))
         else:
             flash(message, 'error')
             return render_template('register.html', form=form, locations=SURF_LOCATIONS)

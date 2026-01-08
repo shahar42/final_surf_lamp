@@ -440,7 +440,7 @@ def add_user_and_lamp(name, email, password_hash, arduino_id, location, theme, u
             logger.info(f"Location '{location}' uses 1 API source")
         else:
             logger.error(f"Unsupported location for registration: {location}")
-            return False, f"Location '{location}' is not supported yet."
+            return False, f"Location '{location}' is not supported yet.", None
 
         # 1. Ensure Location record exists
         location_record = db.query(Location).filter(Location.location == location).first()
@@ -487,7 +487,14 @@ def add_user_and_lamp(name, email, password_hash, arduino_id, location, theme, u
         logger.info("Committing transaction")
         db.commit()
         logger.info("User and arduino registered successfully")
-        return True, "User and arduino registered successfully."
+
+        # Return user data for auto-login
+        user_data = {
+            'user_id': new_user.user_id,
+            'username': new_user.username,
+            'email': new_user.email
+        }
+        return True, "User and arduino registered successfully.", user_data
 
     except IntegrityError as e:
         logger.error(f"IntegrityError during registration: {e}")
@@ -497,18 +504,18 @@ def add_user_and_lamp(name, email, password_hash, arduino_id, location, theme, u
         error_msg = str(e.orig)
 
         if 'users_email_key' in error_msg:
-            return False, "This email address is already registered. Please use a different email or login."
+            return False, "This email address is already registered. Please use a different email or login.", None
         elif 'users_username_key' in error_msg:
-            return False, "This username is already taken. Please choose a different username."
+            return False, "This username is already taken. Please choose a different username.", None
         elif 'arduinos_pkey' in error_msg or 'arduino' in error_msg.lower():
-            return False, "This Device ID is already registered to another user. Please check your Device ID."
+            return False, "This Device ID is already registered to another user. Please check your Device ID.", None
         else:
             # Fallback for unexpected constraint violations
-            return False, "Registration failed due to duplicate data. Please check your information."
+            return False, "Registration failed due to duplicate data. Please check your information.", None
     except Exception as e:
         logger.error(f"Unexpected error during registration: {e}")
         db.rollback()
-        return False, f"Database error: {str(e)}"
+        return False, f"Database error: {str(e)}", None
     finally:
         logger.info("Closing database session")
         db.close()
