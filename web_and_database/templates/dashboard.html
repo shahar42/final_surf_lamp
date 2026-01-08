@@ -34,7 +34,10 @@
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
-          <div class="flash-message px-6 py-3 rounded-lg text-white font-semibold {{ 'bg-green-500' if category == 'success' else 'bg-red-500' }} shadow-lg">
+          {% set parts = category.split('_') %}
+          {% set base_category = parts[0] %}
+          {% set timing = parts[1] if parts|length > 1 else 'default' %}
+          <div class="flash-message px-6 py-3 rounded-lg text-white font-semibold {{ 'bg-green-500' if base_category == 'success' else 'bg-red-500' }} shadow-lg" data-timing="{{ timing }}">
             {{ message }}
           </div>
         {% endfor %}
@@ -1027,6 +1030,7 @@
     setInterval(updateStatusTime, 60000);
 
     </script>
+    <script src="{{ url_for('static', filename='js/flash-messages.js') }}"></script>
 
     {% include 'partials/legal_footer.html' %}
 </body>
