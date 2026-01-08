@@ -1007,10 +1007,18 @@
     }
 
     function updateStatusTime() {
+        // Update desktop element
         const elem = document.getElementById('statusUpdateTime');
         const timestamp = elem?.dataset.timestamp;
         if (timestamp) {
             elem.textContent = formatTimeAgo(timestamp);
+        }
+
+        // Update mobile element
+        const elemMobile = document.getElementById('statusUpdateTimeMobile');
+        const timestampMobile = elemMobile?.dataset.timestamp;
+        if (timestampMobile) {
+            elemMobile.textContent = formatTimeAgo(timestampMobile);
         }
     }
 
