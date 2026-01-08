@@ -1,6 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SelectField, RadioField, IntegerField, BooleanField, SubmitField, HiddenField
 from wtforms.validators import DataRequired, Email, Length, NumberRange, Regexp, ValidationError, EqualTo
+from wtforms.widgets import HiddenInput
 import re
 import bleach
 
@@ -52,7 +53,7 @@ class RegistrationForm(FlaskForm):
     ])
 
     # Arduino ID - hidden field populated from QR code URL parameter
-    arduino_id = HiddenField('Arduino ID', validators=[
+    arduino_id = IntegerField('Arduino ID', widget=HiddenInput(), validators=[
         DataRequired(message="Arduino ID is required"),
         NumberRange(min=1, max=999999, message="Arduino ID must be between 1 and 999999")
     ])
