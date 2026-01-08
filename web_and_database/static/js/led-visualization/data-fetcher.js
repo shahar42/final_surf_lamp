@@ -130,9 +130,10 @@ const LEDDataFetcher = {
         );
 
         // Update wind direction arrow (HTML overlay)
+        // Add 180° to show where wind is GOING, not where it's coming from
         const windArrow = document.getElementById('windArrow');
         if (windArrow && data.wind_direction_deg !== null) {
-            windArrow.style.transform = `rotate(${data.wind_direction_deg}deg)`;
+            windArrow.style.transform = `rotate(${data.wind_direction_deg + 180}deg)`;
         }
 
         // Update last update time text
