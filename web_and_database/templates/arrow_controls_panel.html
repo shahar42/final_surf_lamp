@@ -80,6 +80,44 @@
         <input type="range" id="ctrl_headWidth" min="3" max="12" step="1" value="7" style="width: 100%;">
     </div>
 
+    <hr style="border: none; border-top: 1px solid rgba(59, 130, 246, 0.3); margin: 20px 0;">
+    <h4 style="margin: 0 0 15px 0; font-size: 14px; text-align: center; color: #60a5fa;">🔤 P, W, H Labels</h4>
+
+    <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Label Color</label>
+        <input type="color" id="ctrl_labelColor" value="#ffffff" style="width: 100%; height: 35px; border: none; border-radius: 8px; cursor: pointer;">
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Label Font Size <span id="val_labelSize" style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px;">12</span></label>
+        <input type="range" id="ctrl_labelSize" min="8" max="24" step="1" value="12" style="width: 100%;">
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Label Opacity <span id="val_labelOpacity" style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px;">1.0</span></label>
+        <input type="range" id="ctrl_labelOpacity" min="0.1" max="1" step="0.1" value="1" style="width: 100%;">
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Text Shadow Blur <span id="val_textShadowBlur" style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px;">0</span></label>
+        <input type="range" id="ctrl_textShadowBlur" min="0" max="10" step="0.5" value="0" style="width: 100%;">
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Text Shadow Offset X <span id="val_textShadowX" style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px;">0</span></label>
+        <input type="range" id="ctrl_textShadowX" min="-5" max="5" step="0.5" value="0" style="width: 100%;">
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Text Shadow Offset Y <span id="val_textShadowY" style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px;">0</span></label>
+        <input type="range" id="ctrl_textShadowY" min="-5" max="5" step="0.5" value="0" style="width: 100%;">
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Text Shadow Opacity <span id="val_textShadowOpacity" style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px;">0</span></label>
+        <input type="range" id="ctrl_textShadowOpacity" min="0" max="1" step="0.1" value="0" style="width: 100%;">
+    </div>
+
     <button onclick="copyArrowConfig()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; margin-top: 10px;">📋 Copy Config</button>
 
     <div id="configOutput" style="background: #0f172a; padding: 12px; border-radius: 8px; margin-top: 15px; font-family: monospace; font-size: 11px; word-wrap: break-word; max-height: 150px; overflow-y: auto;"></div>
@@ -92,8 +130,18 @@
     const arrowSVG = windArrow ? windArrow.querySelector('svg') : null;
     const arrowPath = arrowSVG ? arrowSVG.querySelector('path') : null;
 
+    // Get label elements
+    const labelP = document.getElementById('stripLabelP');
+    const labelW = document.getElementById('stripLabelW');
+    const labelH = document.getElementById('stripLabelH');
+
     if (!windArrow || !arrowSVG || !arrowPath) {
         console.error('Arrow elements not found on dashboard');
+        return;
+    }
+
+    if (!labelP || !labelW || !labelH) {
+        console.error('Label elements not found on dashboard');
         return;
     }
 
@@ -113,7 +161,14 @@
         shaftCurve: document.getElementById('ctrl_shaftCurve'),
         headSpread: document.getElementById('ctrl_headSpread'),
         headLength: document.getElementById('ctrl_headLength'),
-        headWidth: document.getElementById('ctrl_headWidth')
+        headWidth: document.getElementById('ctrl_headWidth'),
+        labelColor: document.getElementById('ctrl_labelColor'),
+        labelSize: document.getElementById('ctrl_labelSize'),
+        labelOpacity: document.getElementById('ctrl_labelOpacity'),
+        textShadowBlur: document.getElementById('ctrl_textShadowBlur'),
+        textShadowX: document.getElementById('ctrl_textShadowX'),
+        textShadowY: document.getElementById('ctrl_textShadowY'),
+        textShadowOpacity: document.getElementById('ctrl_textShadowOpacity')
     };
 
     // Create SVG filter for carved effect
@@ -222,8 +277,43 @@
         document.getElementById('val_headLength').textContent = length;
         document.getElementById('val_headWidth').textContent = width;
 
+        // Update labels
+        updateLabels();
+
         // Update config output
         updateConfigOutput();
+    }
+
+    function updateLabels() {
+        const labels = [labelP, labelW, labelH];
+        const color = controls.labelColor.value;
+        const size = controls.labelSize.value;
+        const opacity = controls.labelOpacity.value;
+        const shadowBlur = controls.textShadowBlur.value;
+        const shadowX = controls.textShadowX.value;
+        const shadowY = controls.textShadowY.value;
+        const shadowOpacity = controls.textShadowOpacity.value;
+
+        // Build text shadow string
+        let textShadow = 'none';
+        if (shadowBlur > 0 || shadowX != 0 || shadowY != 0) {
+            textShadow = `${shadowX}px ${shadowY}px ${shadowBlur}px rgba(0, 0, 0, ${shadowOpacity})`;
+        }
+
+        labels.forEach(label => {
+            label.style.color = color;
+            label.style.fontSize = size + 'px';
+            label.style.opacity = opacity;
+            label.style.textShadow = textShadow;
+        });
+
+        // Update value displays
+        document.getElementById('val_labelSize').textContent = size;
+        document.getElementById('val_labelOpacity').textContent = opacity;
+        document.getElementById('val_textShadowBlur').textContent = shadowBlur;
+        document.getElementById('val_textShadowX').textContent = shadowX;
+        document.getElementById('val_textShadowY').textContent = shadowY;
+        document.getElementById('val_textShadowOpacity').textContent = shadowOpacity;
     }
 
     function updateConfigOutput() {
@@ -234,21 +324,34 @@
         const pathD = `M12 3 Q11.5 ${shaft} 12 21 M12 3 Q${12 - spread} ${spread} ${12 - width} ${length} M12 3 Q${12 + spread} ${spread} ${12 + width} ${length}`;
 
         const config = {
-            pathD: pathD,
-            stroke: controls.strokeColor.value,
-            strokeWidth: controls.strokeWidth.value,
-            opacity: controls.opacity.value,
-            size: controls.arrowSize.value + 'px',
-            dropShadow: {
-                blur: controls.shadowBlur.value,
-                offsetY: controls.shadowY.value,
-                opacity: controls.shadowOpacity.value
+            arrow: {
+                pathD: pathD,
+                stroke: controls.strokeColor.value,
+                strokeWidth: controls.strokeWidth.value,
+                opacity: controls.opacity.value,
+                size: controls.arrowSize.value + 'px',
+                dropShadow: {
+                    blur: controls.shadowBlur.value,
+                    offsetY: controls.shadowY.value,
+                    opacity: controls.shadowOpacity.value
+                },
+                carvedEffect: {
+                    innerBlur: controls.innerBlur.value,
+                    innerOffset: controls.innerOffset.value,
+                    innerOpacity: controls.innerOpacity.value,
+                    highlight: controls.highlight.value
+                }
             },
-            carvedEffect: {
-                innerBlur: controls.innerBlur.value,
-                innerOffset: controls.innerOffset.value,
-                innerOpacity: controls.innerOpacity.value,
-                highlight: controls.highlight.value
+            labels: {
+                color: controls.labelColor.value,
+                fontSize: controls.labelSize.value + 'px',
+                opacity: controls.labelOpacity.value,
+                textShadow: {
+                    blur: controls.textShadowBlur.value,
+                    offsetX: controls.textShadowX.value,
+                    offsetY: controls.textShadowY.value,
+                    opacity: controls.textShadowOpacity.value
+                }
             }
         };
 
