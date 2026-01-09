@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arrow Style Playground</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+        }
+
+        .preview-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .preview-canvas {
+            background: #1e293b;
+            border-radius: 15px;
+            width: 600px;
+            height: 600px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        #arrowPreview {
+            transition: none;
+        }
+
+        .controls-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            overflow-y: auto;
+            max-height: 90vh;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
+            grid-column: 1 / -1;
+        }
+
+        .control-group {
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .control-group:last-child {
+            border-bottom: none;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            cursor: pointer;
+            border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        input[type="color"] {
+            width: 100%;
+            height: 40px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .value-display {
+            display: inline-block;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 13px;
+            margin-left: 10px;
+        }
+
+        .code-output {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            word-wrap: break-word;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .rotation-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Wind Arrow Style Playground</h1>
+
+        <div class="preview-section">
+            <div class="preview-canvas">
+                <div id="arrowPreview" style="width: 100px; height: 100px; transform: rotate(0deg);">
+                    <svg id="arrowSVG" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
+                        <path id="arrowPath" d="M12 3 Q11.5 11 12 21 M12 3 Q8 4.5 5 10 M12 3 Q16 4.5 19 10"
+                              stroke="#F1F5F9"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              opacity="1"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="rotation-control">
+                <label style="margin: 0;">Test Rotation:</label>
+                <input type="range" id="testRotation" min="0" max="360" value="0" style="width: 200px;">
+                <span class="value-display" id="rotationValue">0°</span>
+            </div>
+        </div>
+
+        <div class="controls-section">
+            <div class="control-group">
+                <label>Stroke Color</label>
+                <input type="color" id="strokeColor" value="#F1F5F9">
+            </div>
+
+            <div class="control-group">
+                <label>Stroke Width <span class="value-display" id="strokeWidthValue">2</span></label>
+                <input type="range" id="strokeWidth" min="0.5" max="6" step="0.5" value="2">
+            </div>
+
+            <div class="control-group">
+                <label>Opacity <span class="value-display" id="opacityValue">1.0</span></label>
+                <input type="range" id="opacity" min="0.1" max="1" step="0.1" value="1">
+            </div>
+
+            <div class="control-group">
+                <label>Arrow Size (px) <span class="value-display" id="sizeValue">100</span></label>
+                <input type="range" id="arrowSize" min="40" max="200" step="5" value="100">
+            </div>
+
+            <div class="control-group">
+                <label>Shadow Blur <span class="value-display" id="shadowBlurValue">4</span></label>
+                <input type="range" id="shadowBlur" min="0" max="20" step="1" value="4">
+            </div>
+
+            <div class="control-group">
+                <label>Shadow Offset X <span class="value-display" id="shadowXValue">0</span></label>
+                <input type="range" id="shadowX" min="-10" max="10" step="1" value="0">
+            </div>
+
+            <div class="control-group">
+                <label>Shadow Offset Y <span class="value-display" id="shadowYValue">2</span></label>
+                <input type="range" id="shadowY" min="-10" max="10" step="1" value="2">
+            </div>
+
+            <div class="control-group">
+                <label>Shadow Opacity <span class="value-display" id="shadowOpacityValue">0.5</span></label>
+                <input type="range" id="shadowOpacity" min="0" max="1" step="0.1" value="0.5">
+            </div>
+
+            <div class="control-group">
+                <label>Main Shaft Curve <span class="value-display" id="shaftCurveValue">11.5</span></label>
+                <input type="range" id="shaftCurve" min="3" max="21" step="0.5" value="11.5">
+            </div>
+
+            <div class="control-group">
+                <label>Arrow Head Spread <span class="value-display" id="headSpreadValue">4.5</span></label>
+                <input type="range" id="headSpread" min="2" max="10" step="0.5" value="4.5">
+            </div>
+
+            <div class="control-group">
+                <label>Arrow Head Length <span class="value-display" id="headLengthValue">10</span></label>
+                <input type="range" id="headLength" min="5" max="18" step="1" value="10">
+            </div>
+
+            <div class="control-group">
+                <label>Arrow Head Width <span class="value-display" id="headWidthValue">7</span></label>
+                <input type="range" id="headWidth" min="3" max="12" step="1" value="7">
+            </div>
+
+            <button onclick="copyCode()">📋 Copy SVG Code</button>
+
+            <div class="code-output" id="codeOutput">
+                <div id="svgCode"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get all controls
+        const strokeColor = document.getElementById('strokeColor');
+        const strokeWidth = document.getElementById('strokeWidth');
+        const opacity = document.getElementById('opacity');
+        const arrowSize = document.getElementById('arrowSize');
+        const shadowBlur = document.getElementById('shadowBlur');
+        const shadowX = document.getElementById('shadowX');
+        const shadowY = document.getElementById('shadowY');
+        const shadowOpacity = document.getElementById('shadowOpacity');
+        const shaftCurve = document.getElementById('shaftCurve');
+        const headSpread = document.getElementById('headSpread');
+        const headLength = document.getElementById('headLength');
+        const headWidth = document.getElementById('headWidth');
+        const testRotation = document.getElementById('testRotation');
+
+        // Get elements to modify
+        const arrowPreview = document.getElementById('arrowPreview');
+        const arrowPath = document.getElementById('arrowPath');
+        const arrowSVG = document.getElementById('arrowSVG');
+
+        function updateArrow() {
+            // Update path
+            const shaft = shaftCurve.value;
+            const spread = headSpread.value;
+            const length = headLength.value;
+            const width = headWidth.value;
+
+            const pathD = `M12 3 Q${11.5} ${shaft} 12 21 M12 3 Q${12 - spread} ${spread} ${12 - width} ${length} M12 3 Q${12 + Number(spread)} ${spread} ${12 + Number(width)} ${length}`;
+            arrowPath.setAttribute('d', pathD);
+
+            // Update stroke
+            arrowPath.setAttribute('stroke', strokeColor.value);
+            arrowPath.setAttribute('stroke-width', strokeWidth.value);
+            arrowPath.setAttribute('opacity', opacity.value);
+
+            // Update size
+            arrowPreview.style.width = arrowSize.value + 'px';
+            arrowPreview.style.height = arrowSize.value + 'px';
+
+            // Update shadow
+            const shadowStr = `drop-shadow(${shadowX.value}px ${shadowY.value}px ${shadowBlur.value}px rgba(0,0,0,${shadowOpacity.value}))`;
+            arrowSVG.style.filter = shadowStr;
+
+            // Update test rotation
+            const currentRotation = testRotation.value;
+            arrowPreview.style.transform = `rotate(${currentRotation}deg)`;
+
+            // Update value displays
+            document.getElementById('strokeWidthValue').textContent = strokeWidth.value;
+            document.getElementById('opacityValue').textContent = opacity.value;
+            document.getElementById('sizeValue').textContent = arrowSize.value;
+            document.getElementById('shadowBlurValue').textContent = shadowBlur.value;
+            document.getElementById('shadowXValue').textContent = shadowX.value;
+            document.getElementById('shadowYValue').textContent = shadowY.value;
+            document.getElementById('shadowOpacityValue').textContent = shadowOpacity.value;
+            document.getElementById('shaftCurveValue').textContent = shaft;
+            document.getElementById('headSpreadValue').textContent = spread;
+            document.getElementById('headLengthValue').textContent = length;
+            document.getElementById('headWidthValue').textContent = width;
+            document.getElementById('rotationValue').textContent = currentRotation + '°';
+
+            // Update code output
+            updateCodeOutput();
+        }
+
+        function updateCodeOutput() {
+            const shaft = shaftCurve.value;
+            const spread = headSpread.value;
+            const length = headLength.value;
+            const width = headWidth.value;
+            const pathD = `M12 3 Q${11.5} ${shaft} 12 21 M12 3 Q${12 - spread} ${spread} ${12 - width} ${length} M12 3 Q${12 + Number(spread)} ${spread} ${12 + Number(width)} ${length}`;
+
+            const code = `<!-- SVG Arrow Configuration -->
+<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+     class="w-full h-full"
+     style="filter: drop-shadow(${shadowX.value}px ${shadowY.value}px ${shadowBlur.value}px rgba(0,0,0,${shadowOpacity.value}));">
+    <path d="${pathD}"
+          stroke="${strokeColor.value}"
+          stroke-width="${strokeWidth.value}"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          opacity="${opacity.value}"/>
+</svg>
+
+<!-- Container Size: ${arrowSize.value}px x ${arrowSize.value}px -->`;
+
+            document.getElementById('svgCode').textContent = code;
+        }
+
+        function copyCode() {
+            const code = document.getElementById('svgCode').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                alert('✅ Code copied to clipboard!');
+            });
+        }
+
+        // Add event listeners
+        strokeColor.addEventListener('input', updateArrow);
+        strokeWidth.addEventListener('input', updateArrow);
+        opacity.addEventListener('input', updateArrow);
+        arrowSize.addEventListener('input', updateArrow);
+        shadowBlur.addEventListener('input', updateArrow);
+        shadowX.addEventListener('input', updateArrow);
+        shadowY.addEventListener('input', updateArrow);
+        shadowOpacity.addEventListener('input', updateArrow);
+        shaftCurve.addEventListener('input', updateArrow);
+        headSpread.addEventListener('input', updateArrow);
+        headLength.addEventListener('input', updateArrow);
+        headWidth.addEventListener('input', updateArrow);
+        testRotation.addEventListener('input', updateArrow);
+
+        // Initialize
+        updateArrow();
+    </script>
+</body>
+</html>
