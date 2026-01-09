@@ -60,6 +60,11 @@ def create_app():
     def accessibility_statement():
         return render_template('accessibility_statement.html')
 
+    # Developer tools
+    @app.route('/arrow-playground')
+    def arrow_playground():
+        return render_template('arrow_playground.html')
+
     return app
 
 app = create_app()
