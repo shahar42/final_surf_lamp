@@ -1,0 +1,167 @@
+<!-- TEMPORARY ARROW STYLING CONTROL PANEL - DELETE AFTER STYLING IS FINALIZED -->
+<div id="arrowControlPanel" style="position: fixed; right: 20px; top: 20px; width: 320px; background: rgba(30, 41, 59, 0.95); backdrop-filter: blur(10px); border-radius: 15px; padding: 20px; color: white; z-index: 9999; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);">
+    <h3 style="margin: 0 0 20px 0; font-size: 18px; text-align: center; border-bottom: 2px solid rgba(59, 130, 246, 0.5); padding-bottom: 10px;">🎨 Arrow Style Controls</h3>
+
+    <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Stroke Color</label>
+        <input type="color" id="ctrl_strokeColor" value="#F1F5F9" style="width: 100%; height: 35px; border: none; border-radius: 8px; cursor: pointer;">
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Stroke Width <span id="val_strokeWidth" style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px;">2</span></label>
+        <input type="range" id="ctrl_strokeWidth" min="0.5" max="6" step="0.5" value="2" style="width: 100%;">
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Opacity <span id="val_opacity" style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px;">1.0</span></label>
+        <input type="range" id="ctrl_opacity" min="0.1" max="1" step="0.1" value="1" style="width: 100%;">
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Arrow Size <span id="val_arrowSize" style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px;">63</span></label>
+        <input type="range" id="ctrl_arrowSize" min="40" max="120" step="1" value="63" style="width: 100%;">
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Shadow Blur <span id="val_shadowBlur" style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px;">4</span></label>
+        <input type="range" id="ctrl_shadowBlur" min="0" max="20" step="1" value="4" style="width: 100%;">
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Shadow Offset Y <span id="val_shadowY" style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px;">2</span></label>
+        <input type="range" id="ctrl_shadowY" min="-10" max="10" step="1" value="2" style="width: 100%;">
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Shadow Opacity <span id="val_shadowOpacity" style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px;">0.5</span></label>
+        <input type="range" id="ctrl_shadowOpacity" min="0" max="1" step="0.1" value="0.5" style="width: 100%;">
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Shaft Curve <span id="val_shaftCurve" style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px;">11.5</span></label>
+        <input type="range" id="ctrl_shaftCurve" min="3" max="21" step="0.5" value="11.5" style="width: 100%;">
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Head Spread <span id="val_headSpread" style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px;">4.5</span></label>
+        <input type="range" id="ctrl_headSpread" min="2" max="10" step="0.5" value="4.5" style="width: 100%;">
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Head Length <span id="val_headLength" style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px;">10</span></label>
+        <input type="range" id="ctrl_headLength" min="5" max="18" step="1" value="10" style="width: 100%;">
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Head Width <span id="val_headWidth" style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px;">7</span></label>
+        <input type="range" id="ctrl_headWidth" min="3" max="12" step="1" value="7" style="width: 100%;">
+    </div>
+
+    <button onclick="copyArrowConfig()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; margin-top: 10px;">📋 Copy Config</button>
+
+    <div id="configOutput" style="background: #0f172a; padding: 12px; border-radius: 8px; margin-top: 15px; font-family: monospace; font-size: 11px; word-wrap: break-word; max-height: 150px; overflow-y: auto;"></div>
+</div>
+
+<script>
+(function() {
+    // Get dashboard arrow elements
+    const windArrow = document.getElementById('windArrow');
+    const arrowSVG = windArrow ? windArrow.querySelector('svg') : null;
+    const arrowPath = arrowSVG ? arrowSVG.querySelector('path') : null;
+
+    if (!windArrow || !arrowSVG || !arrowPath) {
+        console.error('Arrow elements not found on dashboard');
+        return;
+    }
+
+    // Get all controls
+    const controls = {
+        strokeColor: document.getElementById('ctrl_strokeColor'),
+        strokeWidth: document.getElementById('ctrl_strokeWidth'),
+        opacity: document.getElementById('ctrl_opacity'),
+        arrowSize: document.getElementById('ctrl_arrowSize'),
+        shadowBlur: document.getElementById('ctrl_shadowBlur'),
+        shadowY: document.getElementById('ctrl_shadowY'),
+        shadowOpacity: document.getElementById('ctrl_shadowOpacity'),
+        shaftCurve: document.getElementById('ctrl_shaftCurve'),
+        headSpread: document.getElementById('ctrl_headSpread'),
+        headLength: document.getElementById('ctrl_headLength'),
+        headWidth: document.getElementById('ctrl_headWidth')
+    };
+
+    function updateArrow() {
+        const shaft = controls.shaftCurve.value;
+        const spread = parseFloat(controls.headSpread.value);
+        const length = parseFloat(controls.headLength.value);
+        const width = parseFloat(controls.headWidth.value);
+
+        // Update path
+        const pathD = `M12 3 Q11.5 ${shaft} 12 21 M12 3 Q${12 - spread} ${spread} ${12 - width} ${length} M12 3 Q${12 + spread} ${spread} ${12 + width} ${length}`;
+        arrowPath.setAttribute('d', pathD);
+
+        // Update stroke
+        arrowPath.setAttribute('stroke', controls.strokeColor.value);
+        arrowPath.setAttribute('stroke-width', controls.strokeWidth.value);
+        arrowPath.setAttribute('opacity', controls.opacity.value);
+
+        // Update size
+        windArrow.style.width = controls.arrowSize.value + 'px';
+        windArrow.style.height = controls.arrowSize.value + 'px';
+
+        // Update shadow
+        const shadowStr = `drop-shadow(0px ${controls.shadowY.value}px ${controls.shadowBlur.value}px rgba(0,0,0,${controls.shadowOpacity.value}))`;
+        arrowSVG.style.filter = shadowStr;
+
+        // Update value displays
+        document.getElementById('val_strokeWidth').textContent = controls.strokeWidth.value;
+        document.getElementById('val_opacity').textContent = controls.opacity.value;
+        document.getElementById('val_arrowSize').textContent = controls.arrowSize.value;
+        document.getElementById('val_shadowBlur').textContent = controls.shadowBlur.value;
+        document.getElementById('val_shadowY').textContent = controls.shadowY.value;
+        document.getElementById('val_shadowOpacity').textContent = controls.shadowOpacity.value;
+        document.getElementById('val_shaftCurve').textContent = shaft;
+        document.getElementById('val_headSpread').textContent = spread;
+        document.getElementById('val_headLength').textContent = length;
+        document.getElementById('val_headWidth').textContent = width;
+
+        // Update config output
+        updateConfigOutput();
+    }
+
+    function updateConfigOutput() {
+        const shaft = controls.shaftCurve.value;
+        const spread = parseFloat(controls.headSpread.value);
+        const length = parseFloat(controls.headLength.value);
+        const width = parseFloat(controls.headWidth.value);
+        const pathD = `M12 3 Q11.5 ${shaft} 12 21 M12 3 Q${12 - spread} ${spread} ${12 - width} ${length} M12 3 Q${12 + spread} ${spread} ${12 + width} ${length}`;
+
+        const config = {
+            pathD: pathD,
+            stroke: controls.strokeColor.value,
+            strokeWidth: controls.strokeWidth.value,
+            opacity: controls.opacity.value,
+            size: controls.arrowSize.value + 'px',
+            shadowBlur: controls.shadowBlur.value,
+            shadowY: controls.shadowY.value,
+            shadowOpacity: controls.shadowOpacity.value
+        };
+
+        document.getElementById('configOutput').textContent = JSON.stringify(config, null, 2);
+    }
+
+    window.copyArrowConfig = function() {
+        const config = document.getElementById('configOutput').textContent;
+        navigator.clipboard.writeText(config).then(() => {
+            alert('✅ Config copied to clipboard!');
+        });
+    };
+
+    // Add event listeners
+    Object.values(controls).forEach(control => {
+        control.addEventListener('input', updateArrow);
+    });
+
+    // Initialize
+    updateArrow();
+})();
+</script>
