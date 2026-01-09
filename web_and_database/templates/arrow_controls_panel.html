@@ -23,18 +23,41 @@
     </div>
 
     <div style="margin-bottom: 15px;">
-        <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Shadow Blur <span id="val_shadowBlur" style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px;">4</span></label>
+        <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Drop Shadow Blur <span id="val_shadowBlur" style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px;">4</span></label>
         <input type="range" id="ctrl_shadowBlur" min="0" max="20" step="1" value="4" style="width: 100%;">
     </div>
 
     <div style="margin-bottom: 15px;">
-        <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Shadow Offset Y <span id="val_shadowY" style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px;">2</span></label>
+        <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Drop Shadow Offset Y <span id="val_shadowY" style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px;">2</span></label>
         <input type="range" id="ctrl_shadowY" min="-10" max="10" step="1" value="2" style="width: 100%;">
     </div>
 
     <div style="margin-bottom: 15px;">
-        <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Shadow Opacity <span id="val_shadowOpacity" style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px;">0.5</span></label>
+        <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Drop Shadow Opacity <span id="val_shadowOpacity" style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px;">0.5</span></label>
         <input type="range" id="ctrl_shadowOpacity" min="0" max="1" step="0.1" value="0.5" style="width: 100%;">
+    </div>
+
+    <hr style="border: none; border-top: 1px solid rgba(59, 130, 246, 0.3); margin: 20px 0;">
+    <h4 style="margin: 0 0 15px 0; font-size: 14px; text-align: center; color: #60a5fa;">🪵 Carved Wood Effect</h4>
+
+    <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Inner Shadow Blur <span id="val_innerBlur" style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px;">0</span></label>
+        <input type="range" id="ctrl_innerBlur" min="0" max="10" step="0.5" value="0" style="width: 100%;">
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Inner Shadow Offset <span id="val_innerOffset" style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px;">0</span></label>
+        <input type="range" id="ctrl_innerOffset" min="-5" max="5" step="0.5" value="0" style="width: 100%;">
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Inner Shadow Opacity <span id="val_innerOpacity" style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px;">0</span></label>
+        <input type="range" id="ctrl_innerOpacity" min="0" max="1" step="0.1" value="0" style="width: 100%;">
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Highlight Brightness <span id="val_highlight" style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px;">0</span></label>
+        <input type="range" id="ctrl_highlight" min="0" max="10" step="0.5" value="0" style="width: 100%;">
     </div>
 
     <div style="margin-bottom: 15px;">
@@ -83,11 +106,26 @@
         shadowBlur: document.getElementById('ctrl_shadowBlur'),
         shadowY: document.getElementById('ctrl_shadowY'),
         shadowOpacity: document.getElementById('ctrl_shadowOpacity'),
+        innerBlur: document.getElementById('ctrl_innerBlur'),
+        innerOffset: document.getElementById('ctrl_innerOffset'),
+        innerOpacity: document.getElementById('ctrl_innerOpacity'),
+        highlight: document.getElementById('ctrl_highlight'),
         shaftCurve: document.getElementById('ctrl_shaftCurve'),
         headSpread: document.getElementById('ctrl_headSpread'),
         headLength: document.getElementById('ctrl_headLength'),
         headWidth: document.getElementById('ctrl_headWidth')
     };
+
+    // Create SVG filter for carved effect
+    const filterDefs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    const filter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+    filter.setAttribute('id', 'carvedEffect');
+    filter.setAttribute('x', '-50%');
+    filter.setAttribute('y', '-50%');
+    filter.setAttribute('width', '200%');
+    filter.setAttribute('height', '200%');
+    filterDefs.appendChild(filter);
+    arrowSVG.insertBefore(filterDefs, arrowSVG.firstChild);
 
     function updateArrow() {
         const shaft = controls.shaftCurve.value;
@@ -108,9 +146,65 @@
         windArrow.style.width = controls.arrowSize.value + 'px';
         windArrow.style.height = controls.arrowSize.value + 'px';
 
-        // Update shadow
-        const shadowStr = `drop-shadow(0px ${controls.shadowY.value}px ${controls.shadowBlur.value}px rgba(0,0,0,${controls.shadowOpacity.value}))`;
-        arrowSVG.style.filter = shadowStr;
+        // Build SVG filter for carved effect
+        const filter = arrowSVG.querySelector('#carvedEffect');
+        filter.innerHTML = ''; // Clear existing
+
+        const innerBlur = parseFloat(controls.innerBlur.value);
+        const innerOffset = parseFloat(controls.innerOffset.value);
+        const innerOpacity = parseFloat(controls.innerOpacity.value);
+        const highlight = parseFloat(controls.highlight.value);
+
+        if (innerBlur > 0 && innerOpacity > 0) {
+            // Inner shadow (carved inset effect)
+            const blur = document.createElementNS('http://www.w3.org/2000/svg', 'feGaussianBlur');
+            blur.setAttribute('in', 'SourceAlpha');
+            blur.setAttribute('stdDeviation', innerBlur);
+            blur.setAttribute('result', 'blur');
+            filter.appendChild(blur);
+
+            const offset = document.createElementNS('http://www.w3.org/2000/svg', 'feOffset');
+            offset.setAttribute('in', 'blur');
+            offset.setAttribute('dx', innerOffset);
+            offset.setAttribute('dy', innerOffset);
+            offset.setAttribute('result', 'offsetBlur');
+            filter.appendChild(offset);
+
+            const flood = document.createElementNS('http://www.w3.org/2000/svg', 'feFlood');
+            flood.setAttribute('flood-color', '#000000');
+            flood.setAttribute('flood-opacity', innerOpacity);
+            flood.setAttribute('result', 'floodColor');
+            filter.appendChild(flood);
+
+            const composite = document.createElementNS('http://www.w3.org/2000/svg', 'feComposite');
+            composite.setAttribute('in', 'floodColor');
+            composite.setAttribute('in2', 'offsetBlur');
+            composite.setAttribute('operator', 'in');
+            composite.setAttribute('result', 'innerShadow');
+            filter.appendChild(composite);
+
+            const merge = document.createElementNS('http://www.w3.org/2000/svg', 'feMerge');
+            const mergeNode1 = document.createElementNS('http://www.w3.org/2000/svg', 'feMergeNode');
+            mergeNode1.setAttribute('in', 'innerShadow');
+            const mergeNode2 = document.createElementNS('http://www.w3.org/2000/svg', 'feMergeNode');
+            mergeNode2.setAttribute('in', 'SourceGraphic');
+            merge.appendChild(mergeNode1);
+            merge.appendChild(mergeNode2);
+            filter.appendChild(merge);
+
+            arrowPath.setAttribute('filter', 'url(#carvedEffect)');
+        } else {
+            arrowPath.removeAttribute('filter');
+        }
+
+        // Update drop shadow and highlight
+        let filterStr = `drop-shadow(0px ${controls.shadowY.value}px ${controls.shadowBlur.value}px rgba(0,0,0,${controls.shadowOpacity.value}))`;
+
+        if (highlight > 0) {
+            filterStr += ` brightness(${1 + highlight / 10})`;
+        }
+
+        arrowSVG.style.filter = filterStr;
 
         // Update value displays
         document.getElementById('val_strokeWidth').textContent = controls.strokeWidth.value;
@@ -119,6 +213,10 @@
         document.getElementById('val_shadowBlur').textContent = controls.shadowBlur.value;
         document.getElementById('val_shadowY').textContent = controls.shadowY.value;
         document.getElementById('val_shadowOpacity').textContent = controls.shadowOpacity.value;
+        document.getElementById('val_innerBlur').textContent = innerBlur;
+        document.getElementById('val_innerOffset').textContent = innerOffset;
+        document.getElementById('val_innerOpacity').textContent = innerOpacity;
+        document.getElementById('val_highlight').textContent = highlight;
         document.getElementById('val_shaftCurve').textContent = shaft;
         document.getElementById('val_headSpread').textContent = spread;
         document.getElementById('val_headLength').textContent = length;
@@ -141,9 +239,17 @@
             strokeWidth: controls.strokeWidth.value,
             opacity: controls.opacity.value,
             size: controls.arrowSize.value + 'px',
-            shadowBlur: controls.shadowBlur.value,
-            shadowY: controls.shadowY.value,
-            shadowOpacity: controls.shadowOpacity.value
+            dropShadow: {
+                blur: controls.shadowBlur.value,
+                offsetY: controls.shadowY.value,
+                opacity: controls.shadowOpacity.value
+            },
+            carvedEffect: {
+                innerBlur: controls.innerBlur.value,
+                innerOffset: controls.innerOffset.value,
+                innerOpacity: controls.innerOpacity.value,
+                highlight: controls.highlight.value
+            }
         };
 
         document.getElementById('configOutput').textContent = JSON.stringify(config, null, 2);
