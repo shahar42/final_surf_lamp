@@ -78,9 +78,9 @@
                             </div>
                         </div>
                         <!-- Strip Labels (P, W, H) -->
-                        <div id="stripLabelP" class="absolute text-white font-bold pointer-events-none" style="left: 140px; top: 448px; font-size: 12px;">P</div>
-                        <div id="stripLabelW" class="absolute text-white font-bold pointer-events-none" style="left: 169px; top: 448px; font-size: 12px;">W</div>
-                        <div id="stripLabelH" class="absolute text-white font-bold pointer-events-none" style="left: 201px; top: 448px; font-size: 12px;">H</div>
+                        <div id="stripLabelP" class="absolute font-bold pointer-events-none" style="left: 140px; top: 448px; font-size: 12px; color: #000000; opacity: 0.3;">P</div>
+                        <div id="stripLabelW" class="absolute font-bold pointer-events-none" style="left: 169px; top: 448px; font-size: 12px; color: #000000; opacity: 0.3;">W</div>
+                        <div id="stripLabelH" class="absolute font-bold pointer-events-none" style="left: 201px; top: 448px; font-size: 12px; color: #000000; opacity: 0.3;">H</div>
                     </div>
 
                     <!-- Legend & Data Values -->
@@ -1043,9 +1043,6 @@
 
     </script>
     <script src="{{ url_for('static', filename='js/flash-messages.js') }}"></script>
-
-    <!-- TEMPORARY: Label styling control panel - remove after finalization -->
-    {% include 'label_controls_panel.html' %}
 
     {% include 'partials/legal_footer.html' %}
 </body>
