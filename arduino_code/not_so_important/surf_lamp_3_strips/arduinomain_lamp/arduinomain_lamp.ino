@@ -39,7 +39,7 @@ WiFiManager wifiManager;
 // are now in LEDMappingConfig struct (see lines 104-152)
 
 // Device Configuration
-const int ARDUINO_ID = 5;  // CHANGE THIS for each Arduino device
+const int ARDUINO_ID = 9;  // CHANGE THIS for each Arduino device
 
 // Global Variables
 WebServer server(80);
@@ -48,9 +48,15 @@ const unsigned long FETCH_INTERVAL = 780000; // 13 minutes
 bool shouldStartConfigPortal = false;
 
 // WiFi reconnection tracking
-const int MAX_WIFI_RETRIES = 5;
+const int MAX_WIFI_RETRIES = 3;  // Try 3 times before opening config portal
 int reconnectAttempts = 0;
 unsigned long lastReconnectAttempt = 0;
+
+// Config portal tracking
+bool inConfigPortalMode = false;
+bool setupComplete = false; // Track if HTTP endpoints are initialized
+unsigned long configPortalStartTime = 0;
+const unsigned long CONFIG_PORTAL_TIMEOUT = 1020000; // 17 minutes in milliseconds
 
 // Blinking state variables
 unsigned long lastBlinkUpdate = 0;
@@ -255,15 +261,25 @@ void configModeCallback(WiFiManager *myWiFiManager) {
     Serial.println("🔧 Config mode started");
     Serial.println("📱 AP: SurfLamp-Setup");
 
-    // Blue LEDs for configuration mode
-    for (int i = 0; i < NUM_LEDS_CENTER; i++) leds_center[i] = CRGB::Blue;
-    for (int i = 0; i < NUM_LEDS_RIGHT; i++) leds_side_right[i] = CRGB::Blue;
-    for (int i = 0; i < NUM_LEDS_LEFT; i++) leds_side_left[i] = CRGB::Blue;
+    // Set flag for config portal mode (enables blue/white alternating pattern)
+    inConfigPortalMode = true;
+
+    // Set initial alternating pattern: even index = white, odd index = blue
+    for (int i = 0; i < NUM_LEDS_CENTER; i++) {
+        leds_center[i] = (i % 2 == 0) ? CRGB::White : CRGB::Blue;
+    }
+    for (int i = 0; i < NUM_LEDS_RIGHT; i++) {
+        leds_side_right[i] = (i % 2 == 0) ? CRGB::White : CRGB::Blue;
+    }
+    for (int i = 0; i < NUM_LEDS_LEFT; i++) {
+        leds_side_left[i] = (i % 2 == 0) ? CRGB::White : CRGB::Blue;
+    }
     FastLED.show();
 }
 
 void saveConfigCallback() {
     Serial.println("✅ Config saved!");
+    inConfigPortalMode = false; // Exit config portal mode
 }
 
 // ---------------------------- LED Status Functions ----------------------------
@@ -883,53 +899,126 @@ void setup() {
     for (int i = 0; i < NUM_LEDS_LEFT; i++) leds_side_left[i] = CRGB::Blue;
     FastLED.show();
 
-    // Auto-connect with retry logic
+    // Auto-connect with retry logic: 3 attempts without portal, then open portal
     bool connected = false;
+
+    // PHASE 1: Try connecting 3 times WITHOUT opening config portal
+    Serial.println("🔄 Phase 1: Attempting to connect with saved credentials...");
     for (int attempt = 1; attempt <= MAX_WIFI_RETRIES && !connected; attempt++) {
-        Serial.printf("🔄 WiFi connection attempt %d of %d\n", attempt, MAX_WIFI_RETRIES);
+        Serial.printf("🔄 Connection attempt %d of %d (no portal)\n", attempt, MAX_WIFI_RETRIES);
 
-        // Set timeout: 30 seconds for retry attempts, indefinite for last attempt
-        if (attempt < MAX_WIFI_RETRIES) {
-            wifiManager.setConfigPortalTimeout(30); // 30 second timeout per attempt
+        // Try to connect using saved credentials only
+        WiFi.mode(WIFI_STA);
+        WiFi.begin();  // Uses saved credentials
+
+        // Wait up to 30 seconds for connection
+        unsigned long startAttempt = millis();
+        while (WiFi.status() != WL_CONNECTED && millis() - startAttempt < 30000) {
+            delay(500);
+            Serial.print(".");
+        }
+        Serial.println();
+
+        if (WiFi.status() == WL_CONNECTED) {
+            connected = true;
+            Serial.println("✅ Connected using saved credentials!");
         } else {
-            wifiManager.setConfigPortalTimeout(0); // Last attempt: wait indefinitely in config portal
-        }
-
-        connected = wifiManager.autoConnect("SurfLamp-Setup", "surf123456");
-
-        if (!connected && attempt < MAX_WIFI_RETRIES) {
-            Serial.println("⏳ Waiting 5 seconds before retry...");
-            delay(5000);
+            Serial.printf("❌ Attempt %d failed\n", attempt);
+            if (attempt < MAX_WIFI_RETRIES) {
+                Serial.println("⏳ Waiting 5 seconds before next attempt...");
+                delay(5000);
+            }
         }
     }
 
+    // PHASE 2: If all 3 attempts failed, open config portal for 17 minutes (non-blocking)
     if (!connected) {
-        Serial.println("❌ Failed to connect after 5 attempts - restarting");
-        delay(3000);
-        ESP.restart();
+        Serial.println("❌ All connection attempts failed");
+        Serial.println("🔧 Starting config portal for 17 minutes...");
+
+        wifiManager.setConfigPortalTimeout(0); // Disable internal timeout (we handle it manually)
+
+        // Start non-blocking config portal
+        if (!wifiManager.startConfigPortal("SurfLamp-Setup", "surf123456")) {
+            Serial.println("❌ Failed to start config portal - restarting...");
+            delay(3000);
+            ESP.restart();
+        }
+
+        // Set flag and start time for non-blocking portal handling in loop()
+        inConfigPortalMode = true;
+        configPortalStartTime = millis();
+        Serial.println("🔧 Config portal started - waiting for connection (17 min timeout)...");
     }
 
-    Serial.println("✅ WiFi Connected!");
-    Serial.printf("📍 IP Address: %s\n", WiFi.localIP().toString().c_str());
+    // Only execute this if we successfully connected (not in portal mode)
+    if (!inConfigPortalMode) {
+        Serial.println("✅ WiFi Connected!");
+        Serial.printf("📍 IP Address: %s\n", WiFi.localIP().toString().c_str());
 
-    setupHTTPEndpoints();
+        setupHTTPEndpoints();
 
-    Serial.println("🚀 Surf Lamp ready for operation!");
-    Serial.printf("📍 Device accessible at: http://%s\n", WiFi.localIP().toString().c_str());
+        Serial.println("🚀 Surf Lamp ready for operation!");
+        Serial.printf("📍 Device accessible at: http://%s\n", WiFi.localIP().toString().c_str());
 
-    // Try to fetch surf data immediately on startup
-    Serial.println("🔄 Attempting initial surf data fetch...");
-    if (fetchSurfDataFromServer()) {
-        Serial.println("✅ Initial surf data fetch successful");
-        lastDataFetch = millis();
-    } else {
-        Serial.println("⚠️ Initial surf data fetch failed, will retry later");
+        // Try to fetch surf data immediately on startup
+        Serial.println("🔄 Attempting initial surf data fetch...");
+        if (fetchSurfDataFromServer()) {
+            Serial.println("✅ Initial surf data fetch successful");
+            lastDataFetch = millis();
+        } else {
+            Serial.println("⚠️ Initial surf data fetch failed, will retry later");
+        }
+
+        setupComplete = true;
     }
 }
 
 // ---------------------------- Main Loop ----------------------------
 
 void loop() {
+    // Handle config portal mode (non-blocking)
+    if (inConfigPortalMode) {
+        // Process WiFiManager in non-blocking mode
+        wifiManager.process();
+
+        // Check if connected
+        if (WiFi.status() == WL_CONNECTED) {
+            Serial.println("✅ WiFi connected via config portal!");
+            Serial.printf("📍 IP Address: %s\n", WiFi.localIP().toString().c_str());
+            inConfigPortalMode = false;
+
+            // Complete setup if not done yet
+            if (!setupComplete) {
+                setupHTTPEndpoints();
+                Serial.println("🚀 Surf Lamp ready for operation!");
+                Serial.printf("📍 Device accessible at: http://%s\n", WiFi.localIP().toString().c_str());
+
+                // Try to fetch surf data immediately
+                Serial.println("🔄 Attempting initial surf data fetch...");
+                if (fetchSurfDataFromServer()) {
+                    Serial.println("✅ Initial surf data fetch successful");
+                    lastDataFetch = millis();
+                } else {
+                    Serial.println("⚠️ Initial surf data fetch failed, will retry later");
+                }
+
+                setupComplete = true;
+            }
+
+            return; // Exit to normal operation
+        }
+
+        // Check for 17-minute timeout
+        if (millis() - configPortalStartTime >= CONFIG_PORTAL_TIMEOUT) {
+            Serial.println("❌ Config portal timed out after 17 minutes - restarting...");
+            delay(3000);
+            ESP.restart(); // Restart will trigger 3 connection attempts again
+        }
+
+        return; // Stay in config portal mode
+    }
+
     // Check for button press to reset WiFi (check every 1 second)
     static unsigned long lastButtonCheck = 0;
     unsigned long now = millis();
@@ -961,9 +1050,9 @@ void loop() {
             WiFi.reconnect();
 
             if (reconnectAttempts >= MAX_WIFI_RETRIES) {
-                Serial.println("❌ Failed to reconnect after 5 attempts - restarting for config portal");
+                Serial.println("❌ Failed to reconnect after 3 attempts - restarting");
                 delay(1000);
-                ESP.restart(); // Will trigger config portal in setup
+                ESP.restart(); // Will trigger 3-retry + config portal sequence
             }
         }
     } else {
@@ -973,6 +1062,7 @@ void loop() {
         if (reconnectAttempts > 0) {
             Serial.println("✅ WiFi reconnected successfully");
             reconnectAttempts = 0;
+            inConfigPortalMode = false; // Ensure config portal mode is cleared
         }
 
         // Periodically fetch surf data from discovered server
