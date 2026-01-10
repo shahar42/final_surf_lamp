@@ -17,13 +17,13 @@
 // ============================================================================================
 
 // ---------------- DEVICE IDENTITY ----------------
-const int ARDUINO_ID = 8;  // Unique lamp ID from database (must match backend)
+const int ARDUINO_ID = 11;  // Unique lamp ID from database (must match backend)
 
 // ---------------- HARDWARE SETUP ----------------
 #define LED_PIN 2              // GPIO pin connected to LED strip data line
 // NOTE: TOTAL_LEDS should be set to the highest LED index used in your strips + 1.
 // In most cases this is WAVE_PERIOD_TOP + 1, but check all three strip TOP values to be sure.
-#define TOTAL_LEDS 88          // Total number of LEDs in the physical strip
+#define TOTAL_LEDS 71          // Total number of LEDs in the physical strip
 #define LED_TYPE WS2812B       // LED chipset type (WS2812B, SK6812, APA102, etc.)
 #define COLOR_ORDER GRB        // Color order for your LED strip (GRB, RGB, BRG, etc.)
 #define BRIGHTNESS 75          // Global brightness (0-255, recommend 50-100 for indoor use)
@@ -33,18 +33,18 @@ const int ARDUINO_ID = 8;  // Unique lamp ID from database (must match backend)
 // Direction is auto-detected: if bottom < top = FORWARD, if bottom > top = REVERSE
 
 // Wave Height Strip (Right Side in typical lamp orientation)
-#define WAVE_HEIGHT_BOTTOM 5   // First LED index of wave height strip
-#define WAVE_HEIGHT_TOP 27     // Last LED index of wave height strip
+#define WAVE_HEIGHT_BOTTOM 1   // First LED index of wave height strip
+#define WAVE_HEIGHT_TOP 22     // Last LED index of wave height strip
 
 // Wave Period Strip (Left Side in typical lamp orientation)
-#define WAVE_PERIOD_BOTTOM 64  // First LED index of wave period strip
-#define WAVE_PERIOD_TOP 87     // Last LED index of wave period strip
+#define WAVE_PERIOD_BOTTOM 57  // First LED index of wave period strip
+#define WAVE_PERIOD_TOP 70     // Last LED index of wave period strip
 
 // Wind Speed Strip (Center)
 // CRITICAL: Wind strip is ALWAYS REVERSED (BOTTOM > TOP) in hardware design
 // NOTE: Bottom LED serves as status indicator, Top LED shows wind direction
-#define WIND_SPEED_BOTTOM 59   // First LED index (also used for status LED)
-#define WIND_SPEED_TOP 34      // Last LED index (also used for wind direction LED)
+#define WIND_SPEED_BOTTOM 52   // First LED index (also used for status LED)
+#define WIND_SPEED_TOP 29      // Last LED index (also used for wind direction LED)
 
 // ---------------- SURF DATA SCALING ----------------
 // These values determine the maximum range displayed on each strip
