@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LED Underlayer Groove Playground</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+        }
+
+        .preview-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .preview-canvas {
+            background: #1e293b;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        #surfboardCanvas {
+            border-radius: 15px;
+        }
+
+        .controls-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            overflow-y: auto;
+            max-height: 90vh;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
+            grid-column: 1 / -1;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            color: #60a5fa;
+            border-bottom: 2px solid rgba(96, 165, 250, 0.3);
+            padding-bottom: 10px;
+        }
+
+        .control-group {
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .control-group:last-child {
+            border-bottom: none;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #60a5fa;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(96, 165, 250, 0.5);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #60a5fa;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 10px rgba(96, 165, 250, 0.5);
+        }
+
+        input[type="color"] {
+            width: 100%;
+            height: 40px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .value-display {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            margin-left: 10px;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .strip-section {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .strip-section h3 {
+            color: #fbbf24;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .export-btn {
+            width: 100%;
+            padding: 15px;
+            background: #10b981;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 20px;
+            transition: all 0.3s;
+        }
+
+        .export-btn:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(16, 185, 129, 0.4);
+        }
+
+        .code-output {
+            background: #1e293b;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin-top: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌊 LED Underlayer Groove Configuration</h1>
+
+        <div class="preview-section">
+            <div class="preview-canvas">
+                <canvas id="surfboardCanvas" width="350" height="550"></canvas>
+            </div>
+        </div>
+
+        <div class="controls-section">
+            <h2>Underlayer Configuration</h2>
+
+            <!-- LEFT STRIP (Wave Period) -->
+            <div class="strip-section">
+                <h3>Left Strip (Wave Period)</h3>
+
+                <div class="control-group">
+                    <label>X Offset <span class="value-display" id="leftXValue">0</span>px</label>
+                    <input type="range" id="leftX" min="-50" max="50" value="0" step="1">
+                </div>
+
+                <div class="control-group">
+                    <label>Y Offset <span class="value-display" id="leftYValue">0</span>px</label>
+                    <input type="range" id="leftY" min="-50" max="50" value="0" step="1">
+                </div>
+
+                <div class="control-group">
+                    <label>Opacity <span class="value-display" id="leftOpacityValue">0.3</span></label>
+                    <input type="range" id="leftOpacity" min="0" max="1" value="0.3" step="0.05">
+                </div>
+
+                <div class="control-group">
+                    <label>Color</label>
+                    <input type="color" id="leftColor" value="#4a5568">
+                </div>
+            </div>
+
+            <!-- CENTER STRIP (Wind Speed) -->
+            <div class="strip-section">
+                <h3>Center Strip (Wind Speed)</h3>
+
+                <div class="control-group">
+                    <label>X Offset <span class="value-display" id="centerXValue">0</span>px</label>
+                    <input type="range" id="centerX" min="-50" max="50" value="0" step="1">
+                </div>
+
+                <div class="control-group">
+                    <label>Y Offset <span class="value-display" id="centerYValue">0</span>px</label>
+                    <input type="range" id="centerY" min="-50" max="50" value="0" step="1">
+                </div>
+
+                <div class="control-group">
+                    <label>Opacity <span class="value-display" id="centerOpacityValue">0.3</span></label>
+                    <input type="range" id="centerOpacity" min="0" max="1" value="0.3" step="0.05">
+                </div>
+
+                <div class="control-group">
+                    <label>Color</label>
+                    <input type="color" id="centerColor" value="#4a5568">
+                </div>
+            </div>
+
+            <!-- RIGHT STRIP (Wave Height) -->
+            <div class="strip-section">
+                <h3>Right Strip (Wave Height)</h3>
+
+                <div class="control-group">
+                    <label>X Offset <span class="value-display" id="rightXValue">0</span>px</label>
+                    <input type="range" id="rightX" min="-50" max="50" value="0" step="1">
+                </div>
+
+                <div class="control-group">
+                    <label>Y Offset <span class="value-display" id="rightYValue">0</span>px</label>
+                    <input type="range" id="rightY" min="-50" max="50" value="0" step="1">
+                </div>
+
+                <div class="control-group">
+                    <label>Opacity <span class="value-display" id="rightOpacityValue">0.3</span></label>
+                    <input type="range" id="rightOpacity" min="0" max="1" value="0.3" step="0.05">
+                </div>
+
+                <div class="control-group">
+                    <label>Color</label>
+                    <input type="color" id="rightColor" value="#4a5568">
+                </div>
+            </div>
+
+            <button class="export-btn" onclick="exportConfig()">Export Configuration</button>
+            <div class="code-output" id="codeOutput"></div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/config.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/led-visualization/core.js') }}"></script>
+    <script>
+        // Underlayer configuration
+        const underlayerConfig = {
+            left: { xOffset: 0, yOffset: 0, opacity: 0.3, color: '#4a5568' },
+            center: { xOffset: 0, yOffset: 0, opacity: 0.3, color: '#4a5568' },
+            right: { xOffset: 0, yOffset: 0, opacity: 0.3, color: '#4a5568' }
+        };
+
+        // Load surfboard image
+        const surfboardImage = new Image();
+        surfboardImage.src = "{{ url_for('static', filename='images/surfboard_wood_texture.png') }}";
+
+        // Animation loop
+        let animationTime = 0;
+        const canvas = document.getElementById('surfboardCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Sample theme colors
+        const sampleTheme = {
+            wave: [255, 87, 51],    // Orange
+            wind: [96, 165, 250],   // Blue
+            period: [251, 191, 36]  // Yellow
+        };
+
+        function animate() {
+            animationTime += 0.05;
+
+            // Draw surfboard with underlayers
+            drawSurfboardWithUnderlayers(
+                ctx,
+                canvas,
+                0.7,  // Left fill (period)
+                0.5,  // Center fill (wind)
+                0.9,  // Right fill (wave)
+                sampleTheme,
+                [255, 255, 255],  // Wind direction color
+                surfboardImage,
+                animationTime
+            );
+
+            requestAnimationFrame(animate);
+        }
+
+        function drawSurfboardWithUnderlayers(ctx, canvas, leftFill, centerFill, rightFill, theme, windDirColor, image, time) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Draw Background Image
+            if (image.complete) {
+                const padding = 20;
+                const targetHeight = canvas.height - (padding * 2);
+                const scale = targetHeight / image.height;
+                const targetWidth = image.width * scale;
+                const x = (canvas.width - targetWidth) / 2;
+                const y = padding;
+                ctx.drawImage(image, x, y, targetWidth, targetHeight);
+            }
+
+            // 2. Get strip positions from config
+            const centerX = canvas.width / 2;
+            const cal = DashboardConfig.CALIBRATION.STRIPS;
+            const bottomY = cal.BOTTOM_Y;
+            const topY = cal.TOP_Y;
+            const stripWidth = cal.WIDTH;
+            const leftOffset = cal.LEFT_OFFSET_X;
+            const rightOffset = cal.RIGHT_OFFSET_X;
+
+            // 3. Draw underlayers (BEFORE LED strips)
+            drawUnderlayer(ctx, centerX - leftOffset, bottomY, topY, stripWidth, underlayerConfig.left);
+            drawUnderlayer(ctx, centerX, bottomY, topY, stripWidth, underlayerConfig.center);
+            drawUnderlayer(ctx, centerX + rightOffset, bottomY, topY, stripWidth, underlayerConfig.right);
+
+            // 4. Draw LED strips (on top of underlayers)
+            if (theme && theme.period) {
+                LEDVisualizationCore.drawLiquidStrip(ctx, centerX - leftOffset + underlayerConfig.left.xOffset, bottomY, topY, stripWidth, leftFill, theme.period, time);
+            }
+            if (theme && theme.wind) {
+                LEDVisualizationCore.drawLiquidStrip(ctx, centerX + underlayerConfig.center.xOffset, bottomY, topY, stripWidth, centerFill, theme.wind, time);
+            }
+            if (theme && theme.wave) {
+                LEDVisualizationCore.drawLiquidStrip(ctx, centerX + rightOffset + underlayerConfig.right.xOffset, bottomY, topY, stripWidth, rightFill, theme.wave, time);
+            }
+        }
+
+        function drawUnderlayer(ctx, x, yBottom, yTop, width, config) {
+            ctx.save();
+
+            // Apply offset
+            x += config.xOffset;
+            yTop += config.yOffset;
+            yBottom += config.yOffset;
+
+            // Convert hex to rgba
+            const hex = config.color;
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+
+            ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${config.opacity})`;
+            ctx.fillRect(x - width/2, yTop, width, yBottom - yTop);
+
+            ctx.restore();
+        }
+
+        // Control event listeners
+        function setupControls() {
+            const strips = ['left', 'center', 'right'];
+
+            strips.forEach(strip => {
+                // X Offset
+                const xInput = document.getElementById(`${strip}X`);
+                const xValue = document.getElementById(`${strip}XValue`);
+                xInput.addEventListener('input', (e) => {
+                    underlayerConfig[strip].xOffset = parseFloat(e.target.value);
+                    xValue.textContent = e.target.value;
+                });
+
+                // Y Offset
+                const yInput = document.getElementById(`${strip}Y`);
+                const yValue = document.getElementById(`${strip}YValue`);
+                yInput.addEventListener('input', (e) => {
+                    underlayerConfig[strip].yOffset = parseFloat(e.target.value);
+                    yValue.textContent = e.target.value;
+                });
+
+                // Opacity
+                const opacityInput = document.getElementById(`${strip}Opacity`);
+                const opacityValue = document.getElementById(`${strip}OpacityValue`);
+                opacityInput.addEventListener('input', (e) => {
+                    underlayerConfig[strip].opacity = parseFloat(e.target.value);
+                    opacityValue.textContent = parseFloat(e.target.value).toFixed(2);
+                });
+
+                // Color
+                const colorInput = document.getElementById(`${strip}Color`);
+                colorInput.addEventListener('input', (e) => {
+                    underlayerConfig[strip].color = e.target.value;
+                });
+            });
+        }
+
+        function exportConfig() {
+            const output = document.getElementById('codeOutput');
+            const config = JSON.stringify(underlayerConfig, null, 2);
+            output.textContent = `// Copy this configuration:\nconst UNDERLAYER_CONFIG = ${config};`;
+            output.style.display = 'block';
+        }
+
+        // Initialize
+        surfboardImage.onload = () => {
+            setupControls();
+            animate();
+        };
+    </script>
+</body>
+</html>
