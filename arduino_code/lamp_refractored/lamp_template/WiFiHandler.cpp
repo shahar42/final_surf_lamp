@@ -193,7 +193,7 @@ bool attemptWiFiConnection(
         return (WiFi.status() == WL_CONNECTED);
     } else {
         // FIRST_SETUP or other scenarios: Use autoConnect (opens AP portal)
-        return wifiManager.autoConnect("SurfLamp-Setup", "surf123456");
+        return wifiManager.autoConnect("SurfLamp-Setup");
     }
 }
 
@@ -469,7 +469,7 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
         // Visual feedback: AP Mode
         showAPMode();
 
-        if (!wifiManager.startConfigPortal("SurfLamp-Setup", "surf123456")) {
+        if (!wifiManager.startConfigPortal("SurfLamp-Setup")) {
              Serial.println("❌ Failed to connect in forced AP mode");
              // Only return false if even manual configuration failed/timed out (shouldn't happen with timeout 0)
              return false;

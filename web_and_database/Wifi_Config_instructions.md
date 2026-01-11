@@ -16,7 +16,7 @@ This indicates the lamp is broadcasting its setup network and ready to be config
 
 1. **Open WiFi Settings** on your phone
 2. **Search for and connect to:** `SurfLamp-Setup`
-3. **Enter password:** `surf123456`
+3. **Connect** (open network, no password required)
 4. **Wait for automatic redirect** - A configuration page will appear within 60 seconds
    - If no redirect occurs, open your browser and visit any website
 5. **Select your home WiFi network** from the displayed list
@@ -34,7 +34,7 @@ This indicates the lamp is broadcasting its setup network and ready to be config
 
 1. **Click WiFi icon** on your computer
 2. **Search for and connect to:** `SurfLamp-Setup`
-3. **Enter password:** `surf123456`
+3. **Connect** (open network, no password required)
 4. **Open web browser** (Chrome, Firefox, Edge, Safari)
 5. **Navigate to:** `http://192.168.4.1`
 6. **Configuration page will load** - displaying available WiFi networks
