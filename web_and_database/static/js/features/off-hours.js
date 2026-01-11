@@ -12,45 +12,51 @@ const OffHours = {
      * Initialize off hours feature
      */
     init: function() {
-        const statusDiv = document.getElementById('off-times-status');
-        const modeStatus = document.getElementById('sleepModeStatus');
+        // Desktop Elements
         const customInputs = document.getElementById('customTimeInputs');
         const customBtn = document.getElementById('customPresetBtn');
         const updateBtn = document.getElementById('updateOffTimes');
+        
+        // Mobile Elements
+        const customInputsMobile = document.getElementById('customTimeInputsMobile');
+        const customBtnMobile = document.getElementById('customPresetBtnMobile');
+        const updateBtnMobile = document.getElementById('updateOffTimesMobile');
 
-        if (!statusDiv || !modeStatus) {
-            console.error('OffHours: Required elements not found');
-            return;
-        }
+        // Setup preset button handlers (these share the class .preset-btn so we just need to pass both input containers to hide)
+        this.setupPresetButtons([customInputs, customInputsMobile]);
 
-        // Setup preset button handlers
-        this.setupPresetButtons(customInputs);
-
-        // Setup custom button handler
+        // Setup custom button handlers
         if (customBtn && customInputs) {
             this.setupCustomButton(customBtn, customInputs);
         }
+        if (customBtnMobile && customInputsMobile) {
+            this.setupCustomButton(customBtnMobile, customInputsMobile);
+        }
 
-        // Setup apply button handler
+        // Setup apply button handlers
         if (updateBtn) {
-            this.setupApplyButton(updateBtn);
+            this.setupApplyButton(updateBtn, customInputs, 'offTimeStart', 'offTimeEnd');
+        }
+        if (updateBtnMobile) {
+            this.setupApplyButton(updateBtnMobile, customInputsMobile, 'offTimeStartMobile', 'offTimeEndMobile');
         }
     },
 
     /**
      * Setup preset button click handlers
+     * @param {Array} inputContainers - Array of custom input divs to hide when preset is clicked
      */
-    setupPresetButtons: function(customInputs) {
+    setupPresetButtons: function(inputContainers) {
         document.querySelectorAll('.preset-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const startTime = btn.getAttribute('data-start');
                 const endTime = btn.getAttribute('data-end');
                 const isActive = btn.classList.contains('bg-orange-600/80');
 
-                // Hide custom inputs if open
-                if (customInputs) {
-                    customInputs.classList.add('hidden');
-                }
+                // Hide all custom input containers
+                inputContainers.forEach(container => {
+                    if (container) container.classList.add('hidden');
+                });
 
                 // Toggle: if active → disable, if inactive → enable
                 this.updateOffHours(startTime, endTime, !isActive);
@@ -61,17 +67,17 @@ const OffHours = {
     /**
      * Setup custom button click handler
      */
-    setupCustomButton: function(customBtn, customInputs) {
-        customBtn.addEventListener('click', () => {
-            const isActive = customBtn.classList.contains('bg-orange-600/80');
+    setupCustomButton: function(btn, inputs) {
+        btn.addEventListener('click', () => {
+            const isActive = btn.classList.contains('bg-orange-600/80');
 
             if (isActive) {
                 // Already active → Disable
                 this.updateOffHours(null, null, false);
-                customInputs.classList.add('hidden');
+                inputs.classList.add('hidden');
             } else {
                 // Inactive → Open drawer for custom times
-                customInputs.classList.remove('hidden');
+                inputs.classList.remove('hidden');
             }
         });
     },
@@ -79,18 +85,17 @@ const OffHours = {
     /**
      * Setup apply button in custom drawer
      */
-    setupApplyButton: function(updateBtn) {
-        updateBtn.addEventListener('click', () => {
-            const startTime = document.getElementById('offTimeStart').value;
-            const endTime = document.getElementById('offTimeEnd').value;
-            const customInputs = document.getElementById('customTimeInputs');
+    setupApplyButton: function(btn, inputs, startId, endId) {
+        btn.addEventListener('click', () => {
+            const startTime = document.getElementById(startId).value;
+            const endTime = document.getElementById(endId).value;
 
             // Apply the custom times
             this.updateOffHours(startTime, endTime, true);
 
             // Close the drawer
-            if (customInputs) {
-                customInputs.classList.add('hidden');
+            if (inputs) {
+                inputs.classList.add('hidden');
             }
         });
     },
@@ -102,24 +107,36 @@ const OffHours = {
      * @param {boolean} enabled - Enable or disable off hours
      */
     updateOffHours: async function(startTime, endTime, enabled) {
-        const statusDiv = document.getElementById('off-times-status');
-        const modeStatus = document.getElementById('sleepModeStatus');
+        // Update both Desktop and Mobile status indicators
+        const elements = [
+            { status: document.getElementById('sleepModeStatus'), msg: document.getElementById('off-times-status') },
+            { status: document.getElementById('sleepModeStatusMobile'), msg: document.getElementById('off-times-status-mobile') }
+        ];
 
         // Optimistic UI update
         this.resetButtonStyles();
 
-        if (!enabled) {
-            modeStatus.textContent = 'DISABLED';
-            modeStatus.className = 'text-xs font-bold uppercase tracking-wider text-white/50';
-        } else {
-            modeStatus.textContent = 'ACTIVE';
-            modeStatus.className = 'text-xs font-bold uppercase tracking-wider text-orange-500';
+        elements.forEach(({ status }) => {
+            if (status) {
+                if (!enabled) {
+                    status.textContent = 'DISABLED';
+                    status.className = 'text-xs font-bold uppercase tracking-wider text-white/50';
+                } else {
+                    status.textContent = 'ACTIVE';
+                    status.className = 'text-xs font-bold uppercase tracking-wider text-orange-500';
+                }
+            }
+        });
 
-            // Highlight matching preset button or custom button
+        if (enabled) {
+             // Highlight matching preset button or custom button
             this.highlightActiveButton(startTime);
         }
 
-        StatusMessage.loading(statusDiv);
+        // Show loading in all message areas
+        elements.forEach(({ msg }) => {
+            if (msg) StatusMessage.loading(msg);
+        });
 
         // Make API request
         const result = await ApiClient.post(
@@ -131,11 +148,16 @@ const OffHours = {
             }
         );
 
-        if (result.ok) {
-            StatusMessage.warning(statusDiv, '✓ ' + result.data.message, true);
-        } else {
-            StatusMessage.error(statusDiv, 'Error: ' + result.data.message);
-        }
+        // Show result in all message areas
+        elements.forEach(({ msg }) => {
+            if (msg) {
+                if (result.ok) {
+                    StatusMessage.warning(msg, '✓ ' + result.data.message, true);
+                } else {
+                    StatusMessage.error(msg, 'Error: ' + result.data.message);
+                }
+            }
+        });
     },
 
     /**
@@ -148,12 +170,14 @@ const OffHours = {
             btn.classList.add(...this.INACTIVE_CLASSES);
         });
 
-        // Reset custom button
-        const customBtn = document.getElementById('customPresetBtn');
-        if (customBtn) {
-            customBtn.classList.remove(...this.ACTIVE_CLASSES);
-            customBtn.classList.add(...this.INACTIVE_CLASSES);
-        }
+        // Reset custom buttons (both desktop and mobile)
+        ['customPresetBtn', 'customPresetBtnMobile'].forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) {
+                btn.classList.remove(...this.ACTIVE_CLASSES);
+                btn.classList.add(...this.INACTIVE_CLASSES);
+            }
+        });
     },
 
     /**
@@ -172,13 +196,15 @@ const OffHours = {
             }
         });
 
-        // If no preset matched, highlight custom button
+        // If no preset matched, highlight custom buttons
         if (!matched) {
-            const customBtn = document.getElementById('customPresetBtn');
-            if (customBtn) {
-                customBtn.classList.remove(...this.INACTIVE_CLASSES);
-                customBtn.classList.add(...this.ACTIVE_CLASSES);
-            }
+            ['customPresetBtn', 'customPresetBtnMobile'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.classList.remove(...this.INACTIVE_CLASSES);
+                    btn.classList.add(...this.ACTIVE_CLASSES);
+                }
+            });
         }
     }
 };

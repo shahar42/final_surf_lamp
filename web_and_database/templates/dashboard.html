@@ -24,6 +24,9 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
     <!-- Dashboard specific styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <!-- noUiSlider for range sliders -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/range-slider.css') }}">
 </head>
 <body class="min-h-screen p-4">
 
@@ -31,7 +34,10 @@
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
-          <div class="flash-message px-6 py-3 rounded-lg text-white font-semibold {{ 'bg-green-500' if category == 'success' else 'bg-red-500' }} shadow-lg">
+          {% set parts = category.split('_') %}
+          {% set base_category = parts[0] %}
+          {% set timing = parts[1] if parts|length > 1 else 'default' %}
+          <div class="flash-message px-6 py-3 rounded-lg text-white font-semibold {{ 'bg-green-500' if base_category == 'success' else 'bg-red-500' }} shadow-lg" data-timing="{{ timing }}">
             {{ message }}
           </div>
         {% endfor %}
@@ -39,36 +45,116 @@
     {% endwith %}
 
     <!-- LED Strip Visualization -->
-    <div class="max-w-6xl mx-auto mb-2">
-        <div class="card rounded-2xl p-6 shadow-2xl" style="transform: scale(0.8); transform-origin: top center;">
-            <div class="flex flex-col items-center">
-                <h2 class="text-xl font-bold text-white mb-2">Your Lamp - Live Status <span class="lamp-indicator"></span></h2>
-                <p class="text-white/60 text-sm mb-4">Updated <span id="lastUpdateTime">--</span></p>
-
+    <div class="max-w-6xl mx-auto mb-6 lg:mb-2">
+        <!-- Removed 'card', 'shadow-2xl', 'bg-...' classes to make it float -->
+        <div class="w-full flex justify-center">
+            <div class="flex flex-col items-center w-full">
                 <!-- Surfboard LED Visualization -->
-                <div class="flex flex-col items-center">
-                    <!-- Surfboard Canvas -->
-                    <canvas id="surfboardCanvas" width="350" height="550"></canvas>
-
-                    <!-- Legend below surfboard -->
-                    <div class="flex flex-col items-center justify-center gap-3 mt-4 text-white/90 text-sm font-semibold">
-                        <div class="flex items-center justify-center gap-6">
-                            <span>Wave Period</span>
-                            <span>Wind Speed</span>
-                            <span>Wave Height</span>
+                <div class="flex flex-col items-center w-full overflow-hidden">
+                    <!-- Surfboard Canvas with Wind Direction Compass -->
+                    <div id="lampScaleContainer" class="relative inline-block origin-top" style="transform: scale(1.15);">
+                        <canvas id="surfboardCanvas" width="350" height="550" role="img" aria-label="Surfboard LED visualization showing current surf conditions with three LED strips for wave period, wind speed, and wave height">
+                            Your browser does not support the canvas element. Current surf conditions: Wave height {{ data.conditions.wave_height_m }}m, Wind speed {{ data.conditions.wind_speed_mps }} m/s, Wave period {{ data.conditions.wave_period_s }}s.
+                        </canvas>
+                        <!-- Wind Direction Compass Overlay -->
+                        <div id="arrowContainer" class="absolute left-1/2 -translate-x-1/2 flex items-center justify-center pointer-events-none" style="width: 50px; height: 50px; top: 82px;">
+                            <div class="transition-transform duration-500 origin-center" id="windArrow" style="transform: rotate({{ (data.conditions.wind_direction_deg + 180) if data.conditions.wind_direction_deg else 0 }}deg); width: 105px; height: 105px;">
+                                <!-- Carved Arrow SVG (points where wind is GOING) -->
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full" style="filter: brightness(1.45);">
+                                    <defs>
+                                        <filter id="carvedArrow" x="-50%" y="-50%" width="200%" height="200%">
+                                            <feGaussianBlur in="SourceAlpha" stdDeviation="3" result="blur"/>
+                                            <feOffset in="blur" dx="0" dy="0" result="offsetBlur"/>
+                                            <feFlood flood-color="#000000" flood-opacity="0.3" result="floodColor"/>
+                                            <feComposite in="floodColor" in2="offsetBlur" operator="in" result="innerShadow"/>
+                                            <feMerge>
+                                                <feMergeNode in="innerShadow"/>
+                                                <feMergeNode in="SourceGraphic"/>
+                                            </feMerge>
+                                        </filter>
+                                    </defs>
+                                    <path d="M12 3 Q11.5 21 12 21 M12 3 Q9 3 6 10 M12 3 Q15 3 18 10" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.2" filter="url(#carvedArrow)"/>
+                                </svg>
+                            </div>
                         </div>
-                        <div class="flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-sm mt-2 text-white/80">
-                            <span class="font-semibold mr-2">Wind Dir:</span>
-                            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(0, 255, 0);"></span><span>N</span></div>
-                            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(128, 255, 0);"></span><span>NE</span></div>
-                            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(255, 255, 0);"></span><span>E</span></div>
-                            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(255, 128, 0);"></span><span>SE</span></div>
-                            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(255, 0, 0);"></span><span>S</span></div>
-                            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(128, 0, 255);"></span><span>SW</span></div>
-                            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(0, 0, 255);"></span><span>W</span></div>
-                            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: rgb(0, 255, 255);"></span><span>NW</span></div>
+                        <!-- Strip Labels (P, W, H) -->
+                        <div id="stripLabelP" class="absolute font-bold pointer-events-none" style="left: 140px; top: 448px; font-size: 12px; color: #000000; opacity: 0.3;">P</div>
+                        <div id="stripLabelW" class="absolute font-bold pointer-events-none" style="left: 169px; top: 448px; font-size: 12px; color: #000000; opacity: 0.3;">W</div>
+                        <div id="stripLabelH" class="absolute font-bold pointer-events-none" style="left: 201px; top: 448px; font-size: 12px; color: #000000; opacity: 0.3;">H</div>
+                    </div>
+
+                    <!-- Legend & Data Values -->
+                    <div id="legendContainer" class="relative w-[350px] mx-auto text-white/90 text-sm font-semibold pointer-events-none transition-all duration-300">
+                        <div class="flex justify-between items-start transition-all duration-300" id="legendRow">
+                            <!-- Left: Period -->
+                            <div class="flex flex-col items-center gap-1 w-24 text-center">
+                                <span class="text-white/70 text-xs uppercase tracking-wider">Period</span>
+                            </div>
+                            
+                            <!-- Center: Wind -->
+                            <div class="flex flex-col items-center gap-1 w-24 text-center">
+                                <span class="text-white/70 text-xs uppercase tracking-wider">Wind</span>
+                            </div>
+
+                            <!-- Right: Height -->
+                            <div class="flex flex-col items-center gap-1 w-24 text-center">
+                                <span class="text-white/70 text-xs uppercase tracking-wider">Height</span>
+                            </div>
                         </div>
                     </div>
+
+                    <script>
+                        // Apply Visual Calibration from Config
+                        document.addEventListener('DOMContentLoaded', () => {
+                            const cal = DashboardConfig.CALIBRATION.LAYOUT;
+                            
+                            // Lamp Scale
+                            const lampContainer = document.getElementById('lampScaleContainer');
+                            if (lampContainer) {
+                                lampContainer.style.transform = `scale(${cal.LAMP_SCALE})`;
+                            }
+
+                            // Arrow Position & Size
+                            const arrowContainer = document.getElementById('arrowContainer');
+                            const windArrow = document.getElementById('windArrow');
+                            if (arrowContainer) arrowContainer.style.top = `${cal.ARROW_TOP_Y}px`;
+                            if (windArrow) {
+                                windArrow.style.width = `${cal.ARROW_SIZE}px`;
+                                windArrow.style.height = `${cal.ARROW_SIZE}px`;
+                            }
+
+                            // Legend Position & Spread
+                            const legendContainer = document.getElementById('legendContainer');
+                            const legendRow = document.getElementById('legendRow');
+                            if (legendContainer) legendContainer.style.marginTop = `${cal.LEGEND_MARGIN_TOP}px`;
+                            if (legendRow) {
+                                legendRow.style.paddingLeft = `${cal.LEGEND_SPREAD}px`;
+                                legendRow.style.paddingRight = `${cal.LEGEND_SPREAD}px`;
+                            }
+
+                            // Strip Labels (P, W, H)
+                            const labels = DashboardConfig.CALIBRATION.STRIP_LABELS;
+                            const labelP = document.getElementById('stripLabelP');
+                            const labelW = document.getElementById('stripLabelW');
+                            const labelH = document.getElementById('stripLabelH');
+
+                            if (labelP) {
+                                labelP.style.fontSize = `${labels.FONT_SIZE}px`;
+                                labelP.style.top = `${labels.TOP_Y}px`;
+                                labelP.style.left = `${labels.LEFT_LABEL_X}px`;
+                            }
+                            if (labelW) {
+                                labelW.style.fontSize = `${labels.FONT_SIZE}px`;
+                                labelW.style.top = `${labels.TOP_Y}px`;
+                                labelW.style.left = `${labels.CENTER_LABEL_X}px`;
+                            }
+                            if (labelH) {
+                                labelH.style.fontSize = `${labels.FONT_SIZE}px`;
+                                labelH.style.top = `${labels.TOP_Y}px`;
+                                labelH.style.left = `${labels.RIGHT_LABEL_X}px`;
+                            }
+                        });
+                    </script>
                 </div>
             </div>
         </div>
@@ -76,101 +162,267 @@
 
     <!-- Main Dashboard Content -->
     <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
+
         <!-- Lamp Information Card -->
-        <div class="card rounded-2xl p-6 shadow-2xl">
-            <h2 class="text-2xl font-bold text-white mb-4">Your Surf Lamp</h2>
+        <div class="card rounded-2xl shadow-2xl order-2 lg:order-1 overflow-hidden">
             
-            <div class="space-y-3 text-white">
+            <!-- Mobile View: Drawer/Accordion -->
+            <div class="block lg:hidden">
+                <button onclick="document.getElementById('surf-lamp-content').classList.toggle('hidden'); document.getElementById('surf-lamp-chevron').classList.toggle('rotate-180');" 
+                        class="w-full text-left p-6 flex justify-between items-center bg-white/5 hover:bg-white/10 transition-colors">
+                    <h2 class="text-xl font-bold text-white">Surf data Configuration</h2>
+                    <svg id="surf-lamp-chevron" class="w-6 h-6 text-white transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+
+                <div id="surf-lamp-content" class="hidden border-t border-white/10 p-6">
+                    <div class="space-y-3 text-white">
+                        <div class="flex justify-between items-center">
+                            <span class="text-white/80">Location:</span>
+                            <select id="locationSelectMobile" aria-label="Select your location" class="bg-white/20 text-white rounded px-2 py-1 border border-white/30 text-sm font-semibold">
+                                {% for location in locations %}
+                                    <option value="{{ location }}" {% if location == data.user.location %}selected{% endif %}>
+                                        {{ location.replace(', Israel', '') }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div id="location-status-mobile" class="text-sm text-white/80 mt-2"></div>
+
+                        <!-- Wave Alert Range Slider Mobile -->
+                        <div class="space-y-2 pt-2 border-t border-white/20">
+                            <span class="text-white/80">Wave Alert</span>
+                            <div class="px-2 py-2">
+                                <div id="waveSliderMobile" class="my-4"></div>
+                            </div>
+                            <div id="threshold-status-mobile" class="text-sm text-white/80"></div>
+                            <input type="hidden" id="waveThresholdMinMobile"
+                                   value="{% if data.user.preferred_output == 'feet' %}{{ '%.1f'|format((data.user.wave_threshold_m if data.user.wave_threshold_m is not none else 0.0) * 3.28084) }}{% else %}{{ data.user.wave_threshold_m if data.user.wave_threshold_m is not none else 0.0 }}{% endif %}"
+                                   data-unit="{{ data.user.preferred_output or 'meters' }}">
+                            <input type="hidden" id="waveThresholdMaxMobile"
+                                   value="{% if data.user.wave_threshold_max_m %}{% if data.user.preferred_output == 'feet' %}{{ '%.1f'|format(data.user.wave_threshold_max_m * 3.28084) }}{% else %}{{ data.user.wave_threshold_max_m }}{% endif %}{% endif %}">
+                        </div>
+
+                        <!-- Wind Alert Range Slider Mobile -->
+                        <div class="space-y-2 pt-2 border-t border-white/20">
+                            <span class="text-white/80">Wind Alert</span>
+                            <div class="px-2 py-2">
+                                <div id="windSliderMobile" class="my-4"></div>
+                            </div>
+                            <div id="wind-threshold-status-mobile" class="text-sm text-white/80"></div>
+                            <input type="hidden" id="windThresholdMinMobile" value="{{ data.user.wind_threshold_knots or 22 }}">
+                            <input type="hidden" id="windThresholdMaxMobile" value="{% if data.user.wind_threshold_max_knots %}{{ data.user.wind_threshold_max_knots }}{% endif %}">
+                        </div>
+
+                        <div class="flex justify-between items-center pt-2 border-t border-white/20">
+                            <span class="text-white/80">LED Colors:</span>
+                            <div class="flex items-center space-x-2 w-32 justify-end">
+                                <a href="{{ url_for('dashboard.themes_page') }}" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm text-white font-semibold transition-colors">
+                                    Configure
+                                </a>
+                            </div>
+                        </div>
+                        <div class="text-sm text-white/80 mt-2">
+                            Current: {{ data.user.theme.replace('_', ' ').title() if data.user.theme else 'Ocean Breeze' }}
+                        </div>
+
+                        <div class="flex justify-between items-center pt-2 border-t border-white/20">
+                            <span class="text-white/80">Units:</span>
+                            <div class="flex items-center space-x-2 justify-end">
+                                <button id="unitToggleMobile" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm text-white font-semibold transition-colors whitespace-nowrap">
+                                    {% if data.user.preferred_output == 'feet' %}Switch to Meters{% else %}Switch to Feet{% endif %}
+                                </button>
+                            </div>
+                        </div>
+                        <div id="unit-status-mobile" class="text-sm text-white/80 mt-2"></div>
+
+                        <div class="flex justify-between items-center pt-2 border-t border-white/20">
+                            <span class="text-white/80">My Lamps:</span>
+                            <button id="showAddArduinoBtnMobile" class="text-xs bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded text-white font-semibold transition-colors">
+                                + Link New Lamp
+                            </button>
+                        </div>
+                        <div id="arduinoListMobile" class="space-y-2 mt-1">
+                            {% for arduino in data.arduinos %}
+                                <div class="flex justify-between items-center bg-white/10 rounded px-2 py-1 text-sm">
+                                    <span class="text-white/60">#{{ arduino.arduino_id }}</span>
+                                    <span class="font-medium">{{ arduino.location.replace(', Israel', '') }}</span>
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        <div id="addArduinoFormMobile" class="hidden mt-3 p-3 bg-black/20 rounded-lg border border-white/10">
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="text-white/60 text-xs block mb-1">Arduino ID:</label>
+                                    <input type="number" id="newArduinoIdMobile" placeholder="e.g. 123456" 
+                                           class="bg-white/10 text-white rounded px-3 py-1 text-sm border border-white/20 w-full">
+                                </div>
+                                <div>
+                                    <label class="text-white/60 text-xs block mb-1">Location:</label>
+                                    <select id="newArduinoLocationMobile" class="bg-gray-800 text-white rounded px-3 py-1 text-sm border border-white/20 w-full">
+                                        {% for location in locations %}
+                                            <option value="{{ location }}">{{ location }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button id="cancelAddArduinoMobile" class="flex-1 bg-white/10 hover:bg-white/20 py-1 rounded text-xs text-white">Cancel</button>
+                                    <button id="submitAddArduinoMobile" class="flex-1 bg-blue-500 hover:bg-blue-600 py-1 rounded text-xs text-white font-bold">Link Lamp</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-center pt-2 border-t border-white/20">
+                            <span class="text-white/80">Status:</span>
+                            {% if data.conditions %}
+                                <span class="status-online font-semibold">
+                                    ● Online
+                                    {% if data.conditions.last_updated %}
+                                        <span class="text-white/60 text-xs ml-1">(Data updated <span id="statusUpdateTimeMobile" data-timestamp="{{ data.conditions.last_updated.isoformat() }}Z">--</span>)</span>
+                                    {% endif %}
+                                </span>
+                            {% else %}
+                                <span class="status-offline font-semibold">● No Data</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Desktop View: Original Layout -->
+            <div class="hidden lg:block p-6">
+                <h2 class="text-2xl font-bold text-white mb-4">Surf data Configuration</h2>
                 
-                <div class="flex justify-between items-center">
-                    <span class="text-white/80">Location:</span>
-                    <select id="locationSelect" class="bg-white/20 text-white rounded px-2 py-1 border border-white/30 text-sm font-semibold">
-                        {% for location in locations %}
-                            <option value="{{ location }}" {% if location == data.user.location %}selected{% endif %}>
-                                {{ location.replace(', Israel', '') }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div id="location-status" class="text-sm text-white/80 mt-2"></div>
-                
-
-
-                <!-- Add this div after the Units row -->
-                <div class="flex justify-between items-center">
-                    <span class="text-white/80">Wave Alert:</span>
-                    <div class="flex items-center space-x-2 w-32 justify-end">
-                        <input type="number" id="waveThreshold"
-                               value="{% if data.user.preferred_output == 'feet' %}{{ '%.1f'|format((data.user.wave_threshold_m or 1.0) * 3.28084) }}{% else %}{{ data.user.wave_threshold_m or 1.0 }}{% endif %}"
-                               min="0.1" max="{% if data.user.preferred_output == 'feet' %}33{% else %}10.0{% endif %}" step="0.1"
-                               data-unit="{{ data.user.preferred_output or 'meters' }}"
-                               class="bg-white/20 text-white rounded px-2 py-1 w-16 text-sm border border-white/30">
-                        <span class="text-white/80 text-sm">{% if data.user.preferred_output == 'feet' %}feet{% else %}meters{% endif %}</span>
-                        <button id="updateThreshold" class="bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded text-xs text-white">Set</button>
+                <div class="space-y-3 text-white">
+                    <div class="flex justify-between items-center">
+                        <span class="text-white/80">Location:</span>
+                        <select id="locationSelect" aria-label="Select your location" class="bg-white/20 text-white rounded px-2 py-1 border border-white/30 text-sm font-semibold">
+                            {% for location in locations %}
+                                <option value="{{ location }}" {% if location == data.user.location %}selected{% endif %}>
+                                    {{ location.replace(', Israel', '') }}
+                                </option>
+                            {% endfor %}
+                        </select>
                     </div>
-                </div>
-                <div id="threshold-status" class="text-sm text-white/80 mt-2"></div>
+                    <div id="location-status" class="text-sm text-white/80 mt-2"></div>
 
-                <div class="flex justify-between items-center">
-                    <span class="text-white/80">Wind Alert:</span>
-                    <div class="flex items-center space-x-2 w-32 justify-end">
-                        <input type="number" id="windThreshold"
-                               value="{{ data.user.wind_threshold_knots or 22 }}"
-                               min="1" max="25" step="1"
-                               data-unit="knots"
-                               class="bg-white/20 text-white rounded px-2 py-1 w-16 text-sm border border-white/30">
-                        <span class="text-white/80 text-sm">knots</span>
-                        <button id="updateWindThreshold" class="bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded text-xs text-white">Set</button>
+                    <!-- Wave Alert Range Slider -->
+                    <div class="space-y-2 pt-2 border-t border-white/20">
+                        <span class="text-white/80">Wave Alert</span>
+                        <div class="px-2 py-2">
+                            <div id="waveSlider" class="my-4"></div>
+                        </div>
+                        <div id="threshold-status" class="text-sm text-white/80"></div>
+                        <input type="hidden" id="waveThresholdMin"
+                               value="{% if data.user.preferred_output == 'feet' %}{{ '%.1f'|format((data.user.wave_threshold_m if data.user.wave_threshold_m is not none else 0.0) * 3.28084) }}{% else %}{{ data.user.wave_threshold_m if data.user.wave_threshold_m is not none else 0.0 }}{% endif %}"
+                               data-unit="{{ data.user.preferred_output or 'meters' }}">
+                        <input type="hidden" id="waveThresholdMax"
+                               value="{% if data.user.wave_threshold_max_m %}{% if data.user.preferred_output == 'feet' %}{{ '%.1f'|format(data.user.wave_threshold_max_m * 3.28084) }}{% else %}{{ data.user.wave_threshold_max_m }}{% endif %}{% endif %}">
                     </div>
-                </div>
-                <div id="wind-threshold-status" class="text-sm text-white/80 mt-2"></div>
 
-                <div class="flex justify-between items-center pt-2 border-t border-white/20">
-                    <span class="text-white/80">LED Colors:</span>
-                    <div class="flex items-center space-x-2 w-32 justify-end">
-                        <a href="{{ url_for('dashboard.themes_page') }}" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm text-white font-semibold transition-colors">
-                            Configure
-                        </a>
+                    <!-- Wind Alert Range Slider -->
+                    <div class="space-y-2 pt-2 border-t border-white/20">
+                        <span class="text-white/80">Wind Alert</span>
+                        <div class="px-2 py-2">
+                            <div id="windSlider" class="my-4"></div>
+                        </div>
+                        <div id="wind-threshold-status" class="text-sm text-white/80"></div>
+                        <input type="hidden" id="windThresholdMin" value="{{ data.user.wind_threshold_knots or 22 }}">
+                        <input type="hidden" id="windThresholdMax" value="{% if data.user.wind_threshold_max_knots %}{{ data.user.wind_threshold_max_knots }}{% endif %}">
                     </div>
-                </div>
-                <div class="text-sm text-white/80 mt-2">
-                    Current: {{ data.user.theme.replace('_', ' ').title() if data.user.theme else 'Ocean Breeze' }}
-                </div>
 
-                <div class="flex justify-between items-center pt-2 border-t border-white/20">
-                    <span class="text-white/80">Units:</span>
-                    <div class="flex items-center space-x-2 justify-end">
-                        <button id="unitToggle" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm text-white font-semibold transition-colors whitespace-nowrap">
-                            {% if data.user.preferred_output == 'feet' %}Switch to Meters{% else %}Switch to Feet{% endif %}
+                    <div class="flex justify-between items-center pt-2 border-t border-white/20">
+                        <span class="text-white/80">LED Colors:</span>
+                        <div class="flex items-center space-x-2 w-32 justify-end">
+                            <a href="{{ url_for('dashboard.themes_page') }}" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm text-white font-semibold transition-colors">
+                                Configure
+                            </a>
+                        </div>
+                    </div>
+                    <div class="text-sm text-white/80 mt-2">
+                        Current: {{ data.user.theme.replace('_', ' ').title() if data.user.theme else 'Ocean Breeze' }}
+                    </div>
+
+                    <div class="flex justify-between items-center pt-2 border-t border-white/20">
+                        <span class="text-white/80">Units:</span>
+                        <div class="flex items-center space-x-2 justify-end">
+                            <button id="unitToggle" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm text-white font-semibold transition-colors whitespace-nowrap">
+                                {% if data.user.preferred_output == 'feet' %}Switch to Meters{% else %}Switch to Feet{% endif %}
+                            </button>
+                        </div>
+                    </div>
+                    <div id="unit-status" class="text-sm text-white/80 mt-2"></div>
+
+                    <div class="flex justify-between items-center pt-2 border-t border-white/20">
+                        <span class="text-white/80">My Lamps:</span>
+                        <button id="showAddArduinoBtn" class="text-xs bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded text-white font-semibold transition-colors">
+                            + Link New Lamp
                         </button>
                     </div>
-                </div>
-                <div id="unit-status" class="text-sm text-white/80 mt-2"></div>
+                    <div id="arduinoList" class="space-y-2 mt-1">
+                        {% for arduino in data.arduinos %}
+                            <div class="flex justify-between items-center bg-white/10 rounded px-2 py-1 text-sm">
+                                <span class="text-white/60">#{{ arduino.arduino_id }}</span>
+                                <span class="font-medium">{{ arduino.location.replace(', Israel', '') }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
 
-                <div class="flex justify-between items-center pt-2 border-t border-white/20">
-                    <span class="text-white/80">Status:</span>
-                    {% if data.conditions %}
-                        <span class="status-online font-semibold">● Online</span>
-                    {% else %}
-                        <span class="status-offline font-semibold">● No Data</span>
-                    {% endif %}
+                    <!-- Hidden Add Arduino Form -->
+                    <div id="addArduinoForm" class="hidden mt-3 p-3 bg-black/20 rounded-lg border border-white/10">
+                        <div class="space-y-3">
+                            <div>
+                                <label class="text-white/60 text-xs block mb-1">Arduino ID:</label>
+                                <input type="number" id="newArduinoId" placeholder="e.g. 123456" 
+                                       class="bg-white/10 text-white rounded px-3 py-1 text-sm border border-white/20 w-full">
+                            </div>
+                            <div>
+                                <label class="text-white/60 text-xs block mb-1">Location:</label>
+                                <select id="newArduinoLocation" class="bg-gray-800 text-white rounded px-3 py-1 text-sm border border-white/20 w-full">
+                                    {% for location in locations %}
+                                        <option value="{{ location }}">{{ location }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="flex gap-2">
+                                <button id="cancelAddArduino" class="flex-1 bg-white/10 hover:bg-white/20 py-1 rounded text-xs text-white">Cancel</button>
+                                <button id="submitAddArduino" class="flex-1 bg-blue-500 hover:bg-blue-600 py-1 rounded text-xs text-white font-bold">Link Lamp</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center pt-2 border-t border-white/20">
+                        <span class="text-white/80">Status:</span>
+                        {% if data.conditions %}
+                            <span class="status-online font-semibold">
+                                ● Online
+                                {% if data.conditions.last_updated %}
+                                    <span class="text-white/60 text-xs ml-1">(Data updated <span id="statusUpdateTime" data-timestamp="{{ data.conditions.last_updated.isoformat() }}Z">--</span>)</span>
+                                {% endif %}
+                            </span>
+                        {% else %}
+                            <span class="status-offline font-semibold">● No Data</span>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Current Surf Conditions Card -->
-        <div class="card rounded-2xl p-6 shadow-2xl">
-            <h2 class="text-2xl font-bold text-white mb-4">Current Surf Conditions</h2>
+        <div class="card rounded-2xl p-4 lg:p-6 shadow-2xl order-1 lg:order-2">
             
-            {% if data.conditions %}
-                <div class="space-y-4">
-                    <!-- Wave Data -->
-                    <div class="grid grid-cols-2 gap-4">
+            <!-- Mobile View: Single Row, No Title, Integers -->
+            <div class="block lg:hidden">
+                {% if data.conditions %}
+                    <div class="grid grid-cols-4 gap-2">
+                        <!-- Wave Height -->
                         <div class="text-center">
-                            <div class="wave-icon mb-2 h-32 flex items-center justify-center"><img src="{{ url_for('static', filename='icons/wave_height_new.png') }}" alt="Wave Height" class="mx-auto png-icon" style="width: 183px; height: 183px;"></div>
-                            <div class="text-white/80 text-sm">Wave Height</div>
-                            <div class="text-white font-bold text-xl">
+                            <div class="mb-1 flex items-center justify-center h-16">
+                                <img src="{{ url_for('static', filename='icons/wave_height_new.png') }}" alt="Wave Height" class="max-h-full w-auto object-contain png-icon" style="transform: scale(1.15);">
+                            </div>
+                            <div class="text-white font-bold text-lg sm:text-xl">
                                 {% if data.conditions.wave_height_m %}
                                     {% if data.user.preferred_output == 'feet' %}
                                         {{ "%.1f"|format(data.conditions.wave_height_m * 3.28084) }}ft
@@ -183,67 +435,254 @@
                             </div>
                         </div>
 
+                        <!-- Wave Period -->
                         <div class="text-center">
-                            <div class="wave-icon mb-2 h-32 flex items-center justify-center"><img src="{{ url_for('static', filename='icons/wave_period_new.png') }}" alt="Wave Period" class="mx-auto png-icon" style="width: 106px; height: 106px;"></div>
-                            <div class="text-white/80 text-sm">Wave Period</div>
-                            <div class="text-white font-bold text-xl">
+                            <div class="mb-1 flex items-center justify-center h-16">
+                                <img src="{{ url_for('static', filename='icons/wave_period_new.png') }}" alt="Wave Period" class="max-h-full w-auto object-contain png-icon" style="transform: scale(1.15);">
+                            </div>
+                            <div class="text-white font-bold text-lg sm:text-xl">
                                 {% if data.conditions.wave_period_s %}
-                                    {{ "%.1f"|format(data.conditions.wave_period_s) }}s
+                                    {{ data.conditions.wave_period_s | int }}s
                                 {% else %}
                                     --
                                 {% endif %}
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Wind Data -->
-                    <div class="grid grid-cols-2 gap-4 pt-4 border-t border-white/20">
+                        <!-- Wind Speed -->
                         <div class="text-center">
-                            <div class="wind-icon mb-2 h-32 flex items-center justify-center"><img src="{{ url_for('static', filename='icons/wind_speed_new.png') }}" alt="Wind Speed" class="mx-auto png-icon" style="width: 97px; height: 97px;"></div>
-                            <div class="text-white/80 text-sm">Wind Speed</div>
-                            <div class="text-white font-bold text-xl">
+                            <div class="mb-1 flex items-center justify-center h-16">
+                                <img src="{{ url_for('static', filename='icons/wind_speed_new.png') }}" alt="Wind Speed" class="max-h-full w-auto object-contain png-icon">
+                            </div>
+                            <div class="text-white font-bold text-lg sm:text-xl">
                                 {% if data.conditions.wind_speed_mps %}
-                                    {{ "%.1f"|format(data.conditions.wind_speed_mps * 1.94384) }} knots
+                                    {{ (data.conditions.wind_speed_mps * 1.94384) | int }} knots
                                 {% else %}
                                     --
                                 {% endif %}
                             </div>
                         </div>
 
+                        <!-- Wind Direction -->
                         <div class="text-center">
-                            <div class="wind-icon mb-2 h-32 flex items-center justify-center"><img src="{{ url_for('static', filename='icons/wind_direction_new.png') }}" alt="Wind Direction" class="mx-auto png-icon" style="width: 141px; height: 141px;"></div>
-                            <div class="text-white/80 text-sm">Wind Direction</div>
-                            <div class="text-white font-bold text-xl">
-                                {{ data.conditions.wind_direction_deg | wind_direction }}
+                            <div class="mb-1 flex items-center justify-center h-16">
+                                <img src="{{ url_for('static', filename='icons/wind_direction_new.png') }}" alt="Wind Direction" class="max-h-full w-auto object-contain png-icon">
+                            </div>
+                            <div class="text-white font-bold text-lg sm:text-xl">
+                                {{ data.conditions.wind_direction_deg }}°
                             </div>
                         </div>
                     </div>
-                    
-                </div>
-            {% else %}
-                <!-- No Data Available -->
-                <div class="text-center py-8">
-                    <div class="text-6xl mb-4 opacity-50">📡</div>
-                    <h3 class="text-xl font-semibold text-white mb-2">No Current Data</h3>
-                    <p class="text-white/80 mb-4">
-                        Your lamp hasn't received surf data yet. This could be because:
-                    </p>
-                    <ul class="text-white/70 text-sm space-y-1">
-                        <li>• Your lamp was recently registered</li>
-                        <li>• The monitoring system is updating</li>
-                        <li>• There's a temporary connection issue</li>
-                    </ul>
-                    <p class="text-white/80 text-sm mt-4">
-                        Data updates every 30 minutes. Please check back soon!
-                    </p>
-                </div>
-            {% endif %}
+                {% else %}
+                    <!-- No Data Available Mobile -->
+                    <div class="text-center py-4">
+                        <div class="text-4xl mb-2 opacity-50">📡</div>
+                        <h3 class="text-lg font-semibold text-white mb-1">No Data</h3>
+                        <p class="text-white/80 text-xs">Waiting for update...</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Desktop View: Original Layout -->
+            <div class="hidden lg:block">
+                <h2 class="text-2xl font-bold text-white mb-4">Current Surf Conditions</h2>
+                {% if data.conditions %}
+                    <div class="space-y-4">
+                        <!-- Wave Data -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="text-center">
+                                <div class="wave-icon mb-2 h-32 flex items-center justify-center"><img src="{{ url_for('static', filename='icons/wave_height_new.png') }}" alt="Wave Height" class="mx-auto png-icon" style="width: 183px; height: 183px; transform: scale(1.15);"></div>
+                                <div class="text-white font-bold text-xl">
+                                    {% if data.conditions.wave_height_m %}
+                                        {% if data.user.preferred_output == 'feet' %}
+                                            {{ "%.1f"|format(data.conditions.wave_height_m * 3.28084) }}ft
+                                        {% else %}
+                                            {{ "%.1f"|format(data.conditions.wave_height_m) }}m
+                                        {% endif %}
+                                    {% else %}
+                                        --
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="text-center">
+                                <div class="wave-icon mb-2 h-32 flex items-center justify-center"><img src="{{ url_for('static', filename='icons/wave_period_new.png') }}" alt="Wave Period" class="mx-auto png-icon" style="width: 106px; height: 106px; transform: scale(1.15);"></div>
+                                <div class="text-white font-bold text-xl">
+                                    {% if data.conditions.wave_period_s %}
+                                        {{ "%.1f"|format(data.conditions.wave_period_s) }}s
+                                    {% else %}
+                                        --
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Wind Data -->
+                        <div class="grid grid-cols-2 gap-4 pt-4 border-t border-white/20">
+                            <div class="text-center">
+                                <div class="wind-icon mb-2 h-32 flex items-center justify-center"><img src="{{ url_for('static', filename='icons/wind_speed_new.png') }}" alt="Wind Speed" class="mx-auto png-icon" style="width: 97px; height: 97px;"></div>
+                                <div class="text-white font-bold text-xl">
+                                    {% if data.conditions.wind_speed_mps %}
+                                        {{ "%.1f"|format(data.conditions.wind_speed_mps * 1.94384) }} knots
+                                    {% else %}
+                                        --
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="text-center">
+                                <div class="wind-icon mb-2 h-32 flex items-center justify-center"><img src="{{ url_for('static', filename='icons/wind_direction_new.png') }}" alt="Wind Direction" class="mx-auto png-icon" style="width: 141px; height: 141px;"></div>
+                                <div class="text-white font-bold text-xl">
+                                    {{ data.conditions.wind_direction_deg }}°
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <!-- No Data Available Desktop -->
+                    <div class="text-center py-8">
+                        <div class="text-6xl mb-4 opacity-50">📡</div>
+                        <h3 class="text-xl font-semibold text-white mb-2">No Current Data</h3>
+                        <p class="text-white/80 mb-4">
+                            Your lamp hasn't received surf data yet. This could be because:
+                        </p>
+                        <ul class="text-white/70 text-sm space-y-1">
+                            <li>• Your lamp was recently registered</li>
+                            <li>• The monitoring system is updating</li>
+                            <li>• There's a temporary connection issue</li>
+                        </ul>
+                        <p class="text-white/80 text-sm mt-4">
+                            Data updates every 30 minutes. Please check back soon!
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
         </div>
     </div>
 
     <!-- Light Configuration -->
     <div class="max-w-6xl mx-auto mt-8">
-        <div class="card rounded-2xl p-6 shadow-2xl">
+        
+        <!-- Mobile View: Drawer/Accordion -->
+        <div class="card rounded-2xl shadow-2xl lg:hidden overflow-hidden">
+            <button onclick="document.getElementById('light-config-content').classList.toggle('hidden'); document.getElementById('light-config-chevron').classList.toggle('rotate-180');" 
+                    class="w-full text-left p-6 flex justify-between items-center bg-white/5 hover:bg-white/10 transition-colors">
+                <h2 class="text-xl font-bold text-white">Light Configuration</h2>
+                <svg id="light-config-chevron" class="w-6 h-6 text-white transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </button>
+            
+            <div id="light-config-content" class="hidden border-t border-white/10 p-6">
+                <div class="space-y-6">
+                    {% if off_hours_feature_enabled %}
+                    <!-- Off Hours Configuration -->
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-white/80">Sleep Mode (Lamp Off):</span>
+                            <span id="sleepModeStatusMobile" class="text-xs font-bold uppercase tracking-wider
+                                {% if data.user.off_times_enabled %}
+                                    text-orange-500
+                                {% else %}
+                                    text-white/50
+                                {% endif %}">
+                                {% if data.user.off_times_enabled %}Active{% else %}Disabled{% endif %}
+                            </span>
+                        </div>
+
+                        <!-- Preset Buttons -->
+                        <div class="space-y-2">
+                            <div class="grid grid-cols-3 gap-2">
+                                <button data-preset="typical" data-start="23:00" data-end="07:00"
+                                        class="preset-btn text-sm py-3 px-2 rounded transition-all border leading-tight
+                                        {% if data.user.off_times_enabled and data.user.off_time_start == '23:00' %}
+                                            bg-orange-600/80 border-orange-500 text-white font-semibold shadow-[0_0_15px_rgba(234,88,12,0.3)]
+                                        {% else %}
+                                            bg-white/10 hover:bg-white/20 text-white/80 border-white/20
+                                        {% endif %}">
+                                    <span class="whitespace-nowrap block font-normal">Typical</span>
+                                    <span class="opacity-60 text-base whitespace-nowrap block font-light">11pm-7am</span>
+                                </button>
+                                <button data-preset="early" data-start="22:00" data-end="06:00"
+                                        class="preset-btn text-sm py-3 px-2 rounded transition-all border leading-tight
+                                        {% if data.user.off_times_enabled and data.user.off_time_start == '22:00' %}
+                                            bg-orange-600/80 border-orange-500 text-white font-semibold shadow-[0_0_15px_rgba(234,88,12,0.3)]
+                                        {% else %}
+                                            bg-white/10 hover:bg-white/20 text-white/80 border-white/20
+                                        {% endif %}">
+                                    <span class="whitespace-nowrap block font-normal">Early</span>
+                                    <span class="opacity-60 text-base whitespace-nowrap block font-light">10pm-6am</span>
+                                </button>
+                                <button data-preset="night-owl" data-start="01:00" data-end="09:00"
+                                        class="preset-btn text-sm py-3 px-2 rounded transition-all border leading-tight
+                                        {% if data.user.off_times_enabled and data.user.off_time_start == '01:00' %}
+                                            bg-orange-600/80 border-orange-500 text-white font-semibold shadow-[0_0_15px_rgba(234,88,12,0.3)]
+                                        {% else %}
+                                            bg-white/10 hover:bg-white/20 text-white/80 border-white/20
+                                        {% endif %}">
+                                    <span class="whitespace-nowrap block font-normal">Night Owl</span>
+                                    <span class="opacity-60 text-base whitespace-nowrap block font-light">1am-9am</span>
+                                </button>
+                            </div>
+
+                            <button id="customPresetBtnMobile"
+                                    class="w-full text-sm py-2 rounded transition-all border
+                                    {% if data.user.off_times_enabled and data.user.off_time_start not in ['23:00', '22:00', '01:00'] %}
+                                        bg-orange-600/80 border-orange-500 text-white font-semibold shadow-[0_0_15px_rgba(234,88,12,0.3)]
+                                    {% else %}
+                                        bg-white/10 hover:bg-white/20 text-white/80 border-white/20
+                                    {% endif %}">
+                                Custom...
+                            </button>
+                        </div>
+
+                        <!-- Custom Time Inputs (hidden by default) -->
+                        <div id="customTimeInputsMobile" class="space-y-3 hidden bg-black/20 p-3 rounded-lg mt-2">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-white/60 text-xs block mb-1">Start (Off):</label>
+                                    <input type="time" id="offTimeStartMobile"
+                                           value="{{ data.user.off_time_start if data.user.off_time_start else '22:00' }}"
+                                           class="bg-white/10 text-white rounded px-3 py-2 text-lg border border-white/20 w-full focus:border-blue-500 focus:outline-none">
+                                </div>
+                                <div>
+                                    <label class="text-white/60 text-xs block mb-1">End (On):</label>
+                                    <input type="time" id="offTimeEndMobile"
+                                           value="{{ data.user.off_time_end if data.user.off_time_end else '06:00' }}"
+                                           class="bg-white/10 text-white rounded px-3 py-2 text-lg border border-white/20 w-full focus:border-blue-500 focus:outline-none">
+                                </div>
+                            </div>
+                            <button id="updateOffTimesMobile" class="w-full bg-blue-500 hover:bg-blue-600 py-1.5 rounded text-sm text-white font-semibold shadow-lg transition-transform active:scale-95">
+                                Apply Schedule
+                            </button>
+                        </div>
+
+                        <div id="off-times-status-mobile" class="text-xs font-semibold mt-2 h-4"></div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Brightness Control -->
+                    <div class="{% if off_hours_feature_enabled %}pt-4 border-t border-white/20 {% endif %}space-y-2">
+                        <span class="text-white/80 block mb-2">Brightness:</span>
+                        <div class="flex gap-3">
+                            <button data-brightness="{{ brightness_levels.LOW }}" class="brightness-btn flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-4 rounded-lg transition-all border border-white/20">
+                                Low
+                            </button>
+                            <button data-brightness="{{ brightness_levels.MID }}" class="brightness-btn flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-4 rounded-lg transition-all border border-white/20">
+                                Mid
+                            </button>
+                            <button data-brightness="{{ brightness_levels.HIGH }}" class="brightness-btn flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-4 rounded-lg transition-all border border-white/20">
+                                High
+                            </button>
+                        </div>
+                        <div id="brightness-status-mobile" class="text-sm text-white/80 mt-2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Desktop View: Original Layout -->
+        <div class="card rounded-2xl p-6 shadow-2xl hidden lg:block">
             <h2 class="text-xl font-bold text-white mb-4">Light Configuration</h2>
 
             <div class="space-y-6">
@@ -266,36 +705,39 @@
                     <div class="space-y-2">
                         <div class="grid grid-cols-3 gap-2">
                             <button data-preset="typical" data-start="23:00" data-end="07:00"
-                                    class="preset-btn text-xs py-2 px-2 rounded transition-all border
+                                    class="preset-btn text-sm py-3 px-2 rounded transition-all border leading-tight
                                     {% if data.user.off_times_enabled and data.user.off_time_start == '23:00' %}
                                         bg-orange-600/80 border-orange-500 text-white font-semibold shadow-[0_0_15px_rgba(234,88,12,0.3)]
                                     {% else %}
                                         bg-white/10 hover:bg-white/20 text-white/80 border-white/20
                                     {% endif %}">
-                                Typical<br><span class="opacity-60">11pm-7am</span>
+                                <span class="whitespace-nowrap block font-normal">Typical</span>
+                                <span class="opacity-60 text-base whitespace-nowrap block font-light">11pm-7am</span>
                             </button>
                             <button data-preset="early" data-start="22:00" data-end="06:00"
-                                    class="preset-btn text-xs py-2 px-2 rounded transition-all border
+                                    class="preset-btn text-sm py-3 px-2 rounded transition-all border leading-tight
                                     {% if data.user.off_times_enabled and data.user.off_time_start == '22:00' %}
                                         bg-orange-600/80 border-orange-500 text-white font-semibold shadow-[0_0_15px_rgba(234,88,12,0.3)]
                                     {% else %}
                                         bg-white/10 hover:bg-white/20 text-white/80 border-white/20
                                     {% endif %}">
-                                Early<br><span class="opacity-60">10pm-6am</span>
+                                <span class="whitespace-nowrap block font-normal">Early</span>
+                                <span class="opacity-60 text-base whitespace-nowrap block font-light">10pm-6am</span>
                             </button>
                             <button data-preset="night-owl" data-start="01:00" data-end="09:00"
-                                    class="preset-btn text-xs py-2 px-2 rounded transition-all border
+                                    class="preset-btn text-sm py-3 px-2 rounded transition-all border leading-tight
                                     {% if data.user.off_times_enabled and data.user.off_time_start == '01:00' %}
                                         bg-orange-600/80 border-orange-500 text-white font-semibold shadow-[0_0_15px_rgba(234,88,12,0.3)]
                                     {% else %}
                                         bg-white/10 hover:bg-white/20 text-white/80 border-white/20
                                     {% endif %}">
-                                Night Owl<br><span class="opacity-60">1am-9am</span>
+                                <span class="whitespace-nowrap block font-normal">Night Owl</span>
+                                <span class="opacity-60 text-base whitespace-nowrap block font-light">1am-9am</span>
                             </button>
                         </div>
-                        
-                        <button id="customPresetBtn" 
-                                class="w-full text-xs py-2 rounded transition-all border
+
+                        <button id="customPresetBtn"
+                                class="w-full text-sm py-2 rounded transition-all border
                                 {% if data.user.off_times_enabled and data.user.off_time_start not in ['23:00', '22:00', '01:00'] %}
                                     bg-orange-600/80 border-orange-500 text-white font-semibold shadow-[0_0_15px_rgba(234,88,12,0.3)]
                                 {% else %}
@@ -312,13 +754,13 @@
                                 <label class="text-white/60 text-xs block mb-1">Start (Off):</label>
                                 <input type="time" id="offTimeStart"
                                        value="{{ data.user.off_time_start if data.user.off_time_start else '22:00' }}"
-                                       class="bg-white/10 text-white rounded px-2 py-1 text-sm border border-white/20 w-full focus:border-blue-500 focus:outline-none">
+                                       class="bg-white/10 text-white rounded px-3 py-2 text-lg border border-white/20 w-full focus:border-blue-500 focus:outline-none">
                             </div>
                             <div>
                                 <label class="text-white/60 text-xs block mb-1">End (On):</label>
                                 <input type="time" id="offTimeEnd"
                                        value="{{ data.user.off_time_end if data.user.off_time_end else '06:00' }}"
-                                       class="bg-white/10 text-white rounded px-2 py-1 text-sm border border-white/20 w-full focus:border-blue-500 focus:outline-none">
+                                       class="bg-white/10 text-white rounded px-3 py-2 text-lg border border-white/20 w-full focus:border-blue-500 focus:outline-none">
                             </div>
                         </div>
                         <button id="updateOffTimes" class="w-full bg-blue-500 hover:bg-blue-600 py-1.5 rounded text-sm text-white font-semibold shadow-lg transition-transform active:scale-95">
@@ -352,8 +794,55 @@
 
     <!-- Quick Actions -->
     <div class="max-w-6xl mx-auto mt-6">
-        <div class="card rounded-2xl p-6 shadow-2xl">
+        
+        <!-- Mobile View: Drawer + External Logout -->
+        <div class="lg:hidden space-y-4">
+            <div class="card rounded-2xl shadow-2xl overflow-hidden">
+                <button onclick="document.getElementById('quick-actions-content').classList.toggle('hidden'); document.getElementById('quick-actions-chevron').classList.toggle('rotate-180');" 
+                        class="w-full text-left p-6 flex justify-between items-center bg-white/5 hover:bg-white/10 transition-colors">
+                    <h2 class="text-xl font-bold text-white">Quick Actions</h2>
+                    <svg id="quick-actions-chevron" class="w-6 h-6 text-white transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+                
+                <div id="quick-actions-content" class="hidden border-t border-white/10 p-6">
+                    <div class="flex flex-col gap-3">
+                        {% if data.user.is_admin %}
+                        <a href="{{ url_for('admin.arduino_monitor') }}" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors text-center">
+                            Arduino Monitor
+                        </a>
+                        <a href="{{ url_for('admin.admin_broadcast') }}" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors text-center">
+                            Broadcast Message
+                        </a>
+                        {% endif %}
+                        <a href="{{ url_for('dashboard.wifi_setup_guide') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors text-center">
+                            WiFi Setup
+                        </a>
+                        <button id="reportErrorBtnMobile" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors">
+                            Report Error
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- External Logout Button -->
+            <a href="{{ url_for('auth.logout') }}" class="block w-full card rounded-2xl p-4 shadow-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-center transition-colors">
+                Logout
+            </a>
+        </div>
+
+        <!-- Desktop View: Original Layout -->
+        <div class="card rounded-2xl p-6 shadow-2xl hidden lg:block">
             <div class="flex flex-col sm:flex-row gap-3 sm:gap-2 justify-center">
+                {% if data.user.is_admin %}
+                <a href="{{ url_for('admin.arduino_monitor') }}" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors text-center">
+                    Arduino Monitor
+                </a>
+                <a href="{{ url_for('admin.admin_broadcast') }}" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors text-center">
+                    Broadcast Message
+                </a>
+                {% endif %}
                 <a href="{{ url_for('dashboard.wifi_setup_guide') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors text-center">
                     WiFi Setup
                 </a>
@@ -368,8 +857,8 @@
     </div>
 
     <!-- Floating Chat Button -->
-    <button id="chatFloatingBtn" class="fixed bottom-6 right-6 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full p-4 shadow-2xl hover:shadow-blue-500/50 transition-all hover:scale-110 z-40 hidden">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <button id="chatFloatingBtn" aria-label="Open chat assistant" class="fixed bottom-6 right-6 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full p-4 shadow-2xl hover:shadow-blue-500/50 transition-all hover:scale-110 z-40 hidden">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
         </svg>
     </button>
@@ -380,8 +869,8 @@
             <!-- Header -->
             <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-t-2xl flex justify-between items-center">
                 <h2 class="text-xl font-bold">Surf Lamp Assistant</h2>
-                <button id="closeChatBtn" class="text-white hover:text-gray-200 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <button id="closeChatBtn" aria-label="Close chat assistant" class="text-white hover:text-gray-200 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
@@ -403,6 +892,7 @@
                     <input
                         type="text"
                         id="chatInput"
+                        aria-label="Chat message input"
                         placeholder="Ask a question..."
                         class="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800"
                         maxlength="500"
@@ -429,6 +919,7 @@
     <script src="{{ url_for('static', filename='js/theme-manager.js') }}"></script>
 
     <!-- Features -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.js"></script>
     <script src="{{ url_for('static', filename='js/features/location-update.js') }}"></script>
     <script src="{{ url_for('static', filename='js/features/wave-threshold.js') }}"></script>
     <script src="{{ url_for('static', filename='js/features/wind-threshold.js') }}"></script>
@@ -438,6 +929,7 @@
     <script src="{{ url_for('static', filename='js/features/error-report.js') }}"></script>
     <script src="{{ url_for('static', filename='js/features/chat-assistant.js') }}"></script>
     <script src="{{ url_for('static', filename='js/features/broadcasts.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/features/arduino-management.js') }}"></script>
 
     <!-- LED Visualization -->
     <script src="{{ url_for('static', filename='js/led-visualization/core.js') }}"></script>
@@ -501,7 +993,7 @@
     {% endif %}
 
     // LED Visualization
-    LEDDataFetcher.init({{ data.lamp.arduino_id }}, '{{ data.user.theme }}');
+    LEDDataFetcher.init({{ data.arduinos[0].arduino_id if data.arduinos else 0 }}, '{{ data.user.theme }}');
 
     // Error Report Modal
     ErrorReport.init();
@@ -512,16 +1004,46 @@
     // Broadcast Notifications
     Broadcasts.init();
 
-    </script>
+    // Arduino Management (Link New Lamp)
+    ArduinoManagement.init();
 
-    <!-- Legal Footer -->
-    <footer class="legal-footer">
-        <div>
-            <a href="/privacy-policy" target="_blank">Privacy Policy</a>
-            <a href="/terms-of-service" target="_blank">Terms of Service</a>
-            <a href="/warranty" target="_blank">Warranty</a>
-        </div>
-        <p>© 2025 Surf Lamp. All rights reserved.</p>
-    </footer>
+    // Status Update Time Display
+    function formatTimeAgo(isoTimestamp) {
+        const now = new Date();
+        const updated = new Date(isoTimestamp);
+        const diffMs = now - updated;
+        const diffMins = Math.floor(diffMs / 60000);
+
+        if (diffMins < 1) return "just now";
+        if (diffMins < 60) return `${diffMins}m ago`;
+        const diffHours = Math.floor(diffMins / 60);
+        if (diffHours < 24) return `${diffHours}h ago`;
+        return `${Math.floor(diffHours / 24)}d ago`;
+    }
+
+    function updateStatusTime() {
+        // Update desktop element
+        const elem = document.getElementById('statusUpdateTime');
+        const timestamp = elem?.dataset.timestamp;
+        if (timestamp) {
+            elem.textContent = formatTimeAgo(timestamp);
+        }
+
+        // Update mobile element
+        const elemMobile = document.getElementById('statusUpdateTimeMobile');
+        const timestampMobile = elemMobile?.dataset.timestamp;
+        if (timestampMobile) {
+            elemMobile.textContent = formatTimeAgo(timestampMobile);
+        }
+    }
+
+    // Update status time on page load and every minute
+    updateStatusTime();
+    setInterval(updateStatusTime, 60000);
+
+    </script>
+    <script src="{{ url_for('static', filename='js/flash-messages.js') }}"></script>
+
+    {% include 'partials/legal_footer.html' %}
 </body>
 </html>

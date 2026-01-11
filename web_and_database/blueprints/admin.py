@@ -7,7 +7,8 @@ from config import limiter, SURF_LOCATIONS
 from utils.decorators import login_required, admin_required
 from waitlist_db import get_all_waitlist_entries, get_recent_signups, get_waitlist_count
 from forms import sanitize_input
-from data_base import SessionLocal, User, Broadcast
+from data_base import SessionLocal, User, Broadcast, Arduino, Location
+from sqlalchemy.orm import joinedload
 
 logger = logging.getLogger(__name__)
 
@@ -86,8 +87,21 @@ def create_broadcast():
     # Sanitize message
     message = sanitize_input(message)
 
-    # Calculate expiry (2 hours from now)
-    expires_at = datetime.utcnow() + timedelta(hours=2)
+    # Duration Policy (Scott Meyers: Enforce invariants via strict lookup)
+    ALLOWED_DURATIONS = {
+        2: timedelta(hours=2),
+        5: timedelta(hours=5),
+        10: timedelta(hours=10)
+    }
+    
+    try:
+        requested_duration = int(request.json.get('duration', 2))
+    except (ValueError, TypeError):
+        requested_duration = 2
+
+    # Calculate expiry based on policy (defaulting to 2h if invalid input)
+    expiry_delta = ALLOWED_DURATIONS.get(requested_duration, timedelta(hours=2))
+    expires_at = datetime.utcnow() + expiry_delta
 
     # Create broadcast
     db = SessionLocal()
@@ -141,5 +155,93 @@ def get_active_broadcasts():
                 'created_at': b.created_at.isoformat()
             } for b in broadcasts]
         })
+    finally:
+        db.close()
+
+@bp.route('/admin/arduino-monitor')
+@login_required
+@admin_required
+def arduino_monitor():
+    """Arduino monitoring dashboard showing device connectivity status"""
+    return render_template('arduino_monitor.html')
+
+@bp.route('/api/admin/arduino-status')
+@login_required
+def arduino_status_api():
+    """API endpoint returning Arduino device status based on arduino.last_poll_time timestamps"""
+    db = SessionLocal()
+    try:
+        # Get all arduinos with their users and locations
+        results = db.query(Arduino, User, Location).join(User, Arduino.user_id == User.user_id).join(Location, Arduino.location == Location.location).all()
+
+        now = datetime.utcnow()
+        devices = []
+
+        for arduino, user, location in results:
+            arduino_id = arduino.arduino_id
+
+            # Use arduino.last_poll_time which is updated on every Arduino data pull
+            if arduino.last_poll_time:
+                last_seen = arduino.last_poll_time
+
+                # Handle timezone-aware timestamps
+                if last_seen.tzinfo is not None:
+                    last_seen = last_seen.replace(tzinfo=None)
+
+                time_diff = (now - last_seen).total_seconds()
+                minutes_ago = int(time_diff / 60)
+
+                # Classify status based on last pull time
+                if minutes_ago < 15:
+                    status = 'active'
+                    status_text = f'{minutes_ago} min ago' if minutes_ago > 0 else 'Just now'
+                elif minutes_ago < 60:
+                    status = 'stale'
+                    status_text = f'{minutes_ago} min ago'
+                else:
+                    hours_ago = int(minutes_ago / 60)
+                    if hours_ago < 48:
+                        status = 'offline'
+                        status_text = f'{hours_ago} hour{"s" if hours_ago > 1 else ""} ago'
+                    else:
+                        days_ago = int(hours_ago / 24)
+                        status = 'offline'
+                        status_text = f'{days_ago} day{"s" if days_ago > 1 else ""} ago'
+
+                last_updated = last_seen.isoformat()
+            else:
+                # No timestamp recorded yet
+                status = 'never'
+                status_text = 'Never connected'
+                last_updated = None
+
+            devices.append({
+                'arduino_id': arduino_id,
+                'location': arduino.location,
+                'username': user.username,
+                'status': status,
+                'status_text': status_text,
+                'last_updated': last_updated
+            })
+
+        # Sort by status priority (active -> stale -> offline -> never), then by arduino_id descending
+        status_priority = {'active': 0, 'stale': 1, 'offline': 2, 'never': 3}
+        devices.sort(key=lambda x: (status_priority[x['status']], -x['arduino_id']))
+
+        return jsonify({
+            'success': True,
+            'timestamp': now.isoformat(),
+            'devices': devices,
+            'summary': {
+                'total': len(devices),
+                'active': sum(1 for d in devices if d['status'] == 'active'),
+                'stale': sum(1 for d in devices if d['status'] == 'stale'),
+                'offline': sum(1 for d in devices if d['status'] == 'offline'),
+                'never': sum(1 for d in devices if d['status'] == 'never')
+            }
+        })
+    except Exception as e:
+        logger.error(f"❌ Arduino status API error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
     finally:
         db.close()

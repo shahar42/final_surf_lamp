@@ -83,7 +83,7 @@ const DashboardConfig = {
         ocean_breeze: {
             wave: [0, 150, 255],
             period: [0, 255, 200],
-            wind: [100, 200, 255]
+            wind: [255, 215, 0]  // Yellow
         },
         sunset_glow: {
             wave: [255, 100, 50],
@@ -98,21 +98,21 @@ const DashboardConfig = {
         day: { // Default theme
             wave: [0, 150, 255],
             period: [0, 255, 200],
-            wind: [100, 200, 255]
+            wind: [255, 215, 0] // Yellow
         }
     },
 
     // Form Validation Limits
     LIMITS: {
-        WAVE_THRESHOLD_MIN_METERS: 0.1,
-        WAVE_THRESHOLD_MAX_METERS: 10.0,
-        WAVE_THRESHOLD_MIN_FEET: 0.1,
-        WAVE_THRESHOLD_MAX_FEET: 33,
+        WAVE_THRESHOLD_MIN_METERS: 0.0,
+        WAVE_THRESHOLD_MAX_METERS: 3.0,
+        WAVE_THRESHOLD_MIN_FEET: 0.0,
+        WAVE_THRESHOLD_MAX_FEET: 10.0,
 
         WIND_THRESHOLD_MIN_KNOTS: 1,
-        WIND_THRESHOLD_MAX_KNOTS: 25,
+        WIND_THRESHOLD_MAX_KNOTS: 40,
         WIND_THRESHOLD_MIN_MPH: 1,
-        WIND_THRESHOLD_MAX_MPH: 29,
+        WIND_THRESHOLD_MAX_MPH: 46,
 
         ERROR_DESCRIPTION_MAX_LENGTH: 1000,
         CHAT_MESSAGE_MAX_LENGTH: 500
@@ -135,6 +135,38 @@ const DashboardConfig = {
         // Wind speed: windSpeed * 18.0 / 13.0
         WIND_SPEED_MULTIPLIER: 18.0,
         WIND_SPEED_DIVISOR: 13.0
+    },
+
+    // Visual Calibration Values (The "Enum")
+    CALIBRATION: {
+        STRIPS: {
+            TOP_Y: 146,
+            BOTTOM_Y: 440,
+            LEFT_OFFSET_X: 31,
+            RIGHT_OFFSET_X: 30,
+            WIDTH: 6
+        },
+        LAYOUT: {
+            LAMP_SCALE: 1.15,
+            ARROW_TOP_Y: 82,     // px
+            ARROW_SIZE: 63,      // px
+            LEGEND_MARGIN_TOP: 30, // px
+            LEGEND_SPREAD: 22    // px (padding left/right)
+        },
+        STYLE: {
+            GLOW_OPACITY: 0.65,      // 0.0 to 1.0
+            GLOW_BLUR: 6,           // px
+            INNER_SHINE_ALPHA: 0.4, // 0.0 to 1.0
+            STRIP_OPACITY: 0.75,     // 0.0 to 1.0
+            GROOVE_SHADOW_OPACITY: 0.75 // 0.0 to 1.0 (Darkness of the wood cut)
+        },
+        STRIP_LABELS: {
+            FONT_SIZE: 12,       // px
+            TOP_Y: 448,          // px from top
+            LEFT_LABEL_X: 140,   // px from left (P - Period)
+            CENTER_LABEL_X: 169, // px from left (W - Wind)
+            RIGHT_LABEL_X: 201   // px from left (H - Height)
+        }
     }
 };
 
