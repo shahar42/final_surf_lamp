@@ -54,7 +54,7 @@ def configure_app(app):
     app.config['SESSION_COOKIE_SECURE'] = True  # HTTPS only
     app.config['SESSION_COOKIE_HTTPONLY'] = True  # No JavaScript access
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # CSRF protection
-    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
 
     # Mail Config
     app.config.update(
