@@ -98,17 +98,6 @@
 </head>
 <body class="min-h-screen flex flex-col">
 
-    <!-- Flash Messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="flash-message px-6 py-3 rounded-lg text-white font-semibold {{ 'bg-green-500' if category == 'success' else 'bg-red-500' }} shadow-lg">
-            {{ message }}
-          </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
-
     <!-- Main content wrapper -->
     <div class="flex-grow flex items-center justify-center p-4">
         <div class="form-container w-full max-w-md p-8 rounded-2xl shadow-2xl">
@@ -117,9 +106,24 @@
             <p class="text-white/80 mt-2">thanks for using SurfLamp, waves are on their way...</p>
         </div>
 
+        {% if qr_required %}
+        <div class="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-4 mb-6 text-white">
+            <div class="flex items-start">
+                <svg class="w-6 h-6 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+                <div>
+                    <p class="font-semibold mb-1">QR Code Required</p>
+                    <p class="text-sm text-white/90">Please scan the QR code on the card in your ocean-pulse to register your device.</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <form action="{{ url_for('auth.register') }}" method="POST" class="space-y-6">
             {{ form.hidden_tag() }}
-            
+            {{ form.arduino_id() }}
+
             <!-- Name Field -->
             <div>
                 {{ form.name(class="form-input w-full px-4 py-3 rounded-lg" + (" error" if form.name.errors else ""), placeholder="Your Name (becomes username)") }}
@@ -165,18 +169,6 @@
                 {% if form.password.errors %}
                     <div class="field-error">
                         {% for error in form.password.errors %}
-                            <div>• {{ error }}</div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            </div>
-            
-            <!-- Device ID (Device Serial Number) -->
-            <div>
-                {{ form.arduino_id(class="form-input w-full px-4 py-3 rounded-lg" + (" error" if form.arduino_id.errors else ""), placeholder="Device ID - Scan QR code or check card in box", value=form.arduino_id.data if form.arduino_id.data else '') }}
-                {% if form.arduino_id.errors %}
-                    <div class="field-error">
-                        {% for error in form.arduino_id.errors %}
                             <div>• {{ error }}</div>
                         {% endfor %}
                     </div>
@@ -325,69 +317,10 @@
                     }
                 });
             }
-
-            // Real-time validation for arduino_id field
-            const arduinoIdField = document.getElementById('arduino_id');
-            if (arduinoIdField) {
-                arduinoIdField.addEventListener('input', function() {
-                    const arduinoId = this.value;
-                    const numValue = parseInt(arduinoId);
-                    const isValid = !isNaN(numValue) && numValue >= 1 && numValue <= 999999;
-
-                    if (isValid) {
-                        this.classList.remove('error');
-                        this.classList.add('success');
-                    } else if (arduinoId.length > 0) {
-                        this.classList.remove('success');
-                        this.classList.add('error');
-                    } else {
-                        this.classList.remove('error', 'success');
-                    }
-                });
-            }
         });
     </script>
 
-    <style>
-    /* Legal footer */
-    .legal-footer {
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
-        backdrop-filter: blur(10px);
-        border-top: 1px solid rgba(255, 255, 255, 0.2);
-        padding: 20px;
-        text-align: center;
-        width: 100%;
-        margin-top: auto;
-    }
-    .legal-footer a {
-        color: #FFFCDE;
-        text-decoration: none;
-        margin: 0 15px;
-        font-size: 14px;
-        opacity: 0.9;
-        transition: opacity 0.2s;
-    }
-    .legal-footer a:hover {
-        opacity: 1;
-        text-decoration: underline;
-    }
-    .legal-footer p {
-        color: #FFFCDE;
-        margin: 10px 0 0 0;
-        font-size: 12px;
-        opacity: 0.8;
-    }
-    </style>
-
-    <!-- Legal Footer -->
-    <footer class="legal-footer">
-        <div>
-            <a href="/privacy-policy" target="_blank">Privacy Policy</a>
-            <a href="/terms-of-service" target="_blank">Terms of Service</a>
-            <a href="/warranty" target="_blank">Warranty</a>
-        </div>
-        <p>© 2025 Surf Lamp. All rights reserved.</p>
-    </footer>
+    {% include 'partials/legal_footer.html' %}
 
 </body>
 </html>

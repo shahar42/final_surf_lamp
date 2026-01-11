@@ -10,14 +10,17 @@ const BrightnessControl = {
      */
     init: function(currentBrightness) {
         const buttons = document.querySelectorAll('.brightness-btn');
-        const statusDiv = document.getElementById('brightness-status');
+        const statusDivs = [
+            document.getElementById('brightness-status'),
+            document.getElementById('brightness-status-mobile')
+        ].filter(el => el !== null);
 
-        if (!buttons.length || !statusDiv) {
-            console.error('BrightnessControl: Required elements not found');
+        if (!buttons.length) {
+            console.error('BrightnessControl: No buttons found');
             return;
         }
 
-        // Clear all active states first (defensive programming)
+        // Clear all active states first
         buttons.forEach(btn => btn.classList.remove('brightness-active'));
 
         // Set initial active state based on current brightness
@@ -33,7 +36,7 @@ const BrightnessControl = {
             btn.addEventListener('click', async function() {
                 const selectedBrightness = parseFloat(this.getAttribute('data-brightness'));
 
-                StatusMessage.loading(statusDiv);
+                statusDivs.forEach(d => StatusMessage.loading(d));
 
                 // Make API request
                 const result = await ApiClient.post(
@@ -42,13 +45,19 @@ const BrightnessControl = {
                 );
 
                 if (result.ok) {
-                    // Update active state
-                    buttons.forEach(b => b.classList.remove('brightness-active'));
-                    this.classList.add('brightness-active');
+                    // Update active state across all buttons (syncs desktop/mobile buttons)
+                    buttons.forEach(b => {
+                        const bVal = parseFloat(b.getAttribute('data-brightness'));
+                        if (Math.abs(bVal - selectedBrightness) < 0.01) {
+                            b.classList.add('brightness-active');
+                        } else {
+                            b.classList.remove('brightness-active');
+                        }
+                    });
 
-                    StatusMessage.success(statusDiv, result.data.message);
+                    statusDivs.forEach(d => StatusMessage.success(d, result.data.message));
                 } else {
-                    StatusMessage.error(statusDiv, 'Error: ' + result.data.message);
+                    statusDivs.forEach(d => StatusMessage.error(d, 'Error: ' + result.data.message));
                 }
             });
         });

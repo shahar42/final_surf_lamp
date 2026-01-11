@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accessibility Statement - Surf Lamp</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}?v=2" sizes="32x32">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Global ocean color system -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+        .text-white, .text-white\/80, .text-white\/60 {
+            color: #FFFCDE !important;
+        }
+        .card {
+            background-color: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .content-text {
+            color: #FFFCDE;
+            line-height: 1.8;
+        }
+        .content-text h1 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: #FFFCDE;
+        }
+        .content-text h2 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            color: #FFFCDE;
+        }
+        .content-text h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            color: #FFFCDE;
+        }
+        .content-text p {
+            margin-bottom: 1rem;
+        }
+        .content-text ul {
+            list-style-type: disc;
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .content-text li {
+            margin-bottom: 0.5rem;
+        }
+        .content-text strong {
+            font-weight: 700;
+            color: #ffffff;
+        }
+        .content-text a {
+            color: #00d4ff;
+            text-decoration: underline;
+        }
+        .content-text a:hover {
+            color: #00b8e6;
+        }
+        .back-btn {
+            background-color: #0072ff;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        .back-btn:hover {
+            background-color: #0056cc;
+            transform: translateY(-1px);
+        }
+        .contact-box {
+            background-color: rgba(0, 114, 255, 0.2);
+            border: 2px solid rgba(0, 114, 255, 0.4);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4">
+
+    <div class="max-w-4xl mx-auto">
+
+        <!-- Header with Back Button -->
+        <div class="mb-6 flex justify-between items-center">
+            <h1 class="text-3xl font-bold text-white">Accessibility Statement</h1>
+            <a href="{{ url_for('dashboard.dashboard') }}" class="back-btn text-white font-semibold py-2 px-6 rounded-lg shadow-lg">
+                ← Back to Dashboard
+            </a>
+        </div>
+
+        <!-- Main Content Card -->
+        <div class="card rounded-2xl p-8 shadow-2xl">
+            <div class="content-text">
+                <p><strong>Last Updated:</strong> January 2026</p>
+
+                <h2>Our Commitment to Accessibility</h2>
+                <p>Surf Lamp is committed to ensuring digital accessibility for people with disabilities. We are continually improving the user experience for everyone and applying the relevant accessibility standards.</p>
+
+                <h2>Conformance Standards</h2>
+                <p>Surf Lamp strives to conform to the <strong>Israeli Standard (IS) 5568</strong> and <strong>Web Content Accessibility Guidelines (WCAG) 2.0</strong> at the <strong>AA level</strong>. These guidelines explain how to make web content more accessible to people with disabilities and user-friendly for everyone.</p>
+
+                <h2>Current Accessibility Features</h2>
+                <ul>
+                    <li>Semantic HTML structure for screen reader compatibility</li>
+                    <li>Keyboard navigation support for all interactive elements</li>
+                    <li>High contrast color scheme meeting WCAG contrast ratio requirements</li>
+                    <li>Responsive design that works across devices and screen sizes</li>
+                    <li>Clear visual hierarchy and consistent navigation</li>
+                    <li>Alternative text descriptions for meaningful images and icons</li>
+                    <li>Form labels and error messages for accessible form interaction</li>
+                </ul>
+
+                <h2>Known Limitations</h2>
+                <p>While we work to maintain the highest accessibility standards, some areas of our service may have limitations:</p>
+                <ul>
+                    <li>LED visualization graphics may not be fully accessible to screen readers (alternative text descriptions provided)</li>
+                    <li>Real-time data updates may not always announce to assistive technologies</li>
+                </ul>
+                <p>We are actively working to address these limitations in future updates.</p>
+
+                <h2>Feedback and Contact</h2>
+                <p>We welcome your feedback on the accessibility of Surf Lamp. If you encounter accessibility barriers or have suggestions for improvement, please contact our Accessibility Coordinator:</p>
+
+                <div class="contact-box">
+                    <p><strong>Accessibility Coordinator:</strong> Shahar (Founder)</p>
+                    <p><strong>Email:</strong> <a href="mailto:surflamp100@gmail.com">surflamp100@gmail.com</a></p>
+                    <p><strong>Alternative:</strong> Use the "Report Error" button on your dashboard</p>
+                </div>
+
+                <p style="margin-top: 1.5rem;">We aim to respond to accessibility feedback within <strong>5 business days</strong> and to propose a solution within <strong>10 business days</strong>.</p>
+
+                <h2>Technical Specifications</h2>
+                <p>Surf Lamp relies on the following technologies to work with your web browser and assistive technologies:</p>
+                <ul>
+                    <li>HTML5</li>
+                    <li>CSS3</li>
+                    <li>JavaScript</li>
+                    <li>ARIA (Accessible Rich Internet Applications) attributes</li>
+                </ul>
+
+                <h2>Assessment and Testing</h2>
+                <p>Surf Lamp's accessibility has been assessed through:</p>
+                <ul>
+                    <li>Self-evaluation and internal testing</li>
+                    <li>Keyboard navigation testing</li>
+                    <li>Color contrast analysis tools</li>
+                    <li>Screen reader compatibility testing</li>
+                </ul>
+
+                <h2>Continuous Improvement</h2>
+                <p>This accessibility statement will be reviewed and updated as we continue to improve the accessibility of Surf Lamp. We are dedicated to making our web application accessible to the widest possible audience.</p>
+
+                <p style="margin-top: 2rem; font-size: 0.9rem; color: rgba(255, 252, 222, 0.7);">
+                    This statement was created in accordance with the requirements of the Equal Rights for Persons with Disabilities Act, 1998 and Israeli Standard IS 5568.
+                </p>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>

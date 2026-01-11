@@ -142,11 +142,6 @@ settings.json
 settings.local.json
 *.ini
 
-# MCP server docs
-mcp-supabase-server/CLAUDE_SESSION_PROMPT.md
-mcp-supabase-server/MIGRATION_TODO.md
-render-mcp-server/MAINTENANCE.md
-
 # Stormglass integration (archived)
 stormglass_test/
 
@@ -166,3 +161,7 @@ constumer_support/
 
 # Arduino - Track all sketches
 !*.ino
+
+# MCP servers (local development only)
+render-mcp-server/
+mcp-supabase-server/

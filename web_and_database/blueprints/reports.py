@@ -29,17 +29,19 @@ def report_error():
         # Get additional context
         db = SessionLocal()
         try:
-            user, lamp, _ = get_user_lamp_data(user_email)
+            user, arduinos, _ = get_user_lamp_data(user_email)
 
             if not user:
                 return {'success': False, 'message': 'User not found'}, 404
+
+            # Get first arduino if user has any (most users have just one)
+            arduino_id = arduinos[0].arduino_id if arduinos else None
 
             error_report = ErrorReport(
                 user_id=user.user_id,
                 username=user.username,
                 email=user.email,
-                lamp_id=lamp.lamp_id if lamp else None,
-                arduino_id=lamp.arduino_id if lamp else None,
+                arduino_id=arduino_id,
                 location=user.location,
                 user_agent=request.headers.get('User-Agent', 'Unknown'),
                 error_description=error_description

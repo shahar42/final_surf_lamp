@@ -9,50 +9,63 @@ const LocationUpdate = {
      * @param {string} currentLocation - User's current location
      */
     init: function(currentLocation) {
-        const locationSelect = document.getElementById('locationSelect');
-        const statusDiv = document.getElementById('location-status');
+        const selects = [
+            document.getElementById('locationSelect'),
+            document.getElementById('locationSelectMobile')
+        ].filter(el => el !== null);
 
-        if (!locationSelect || !statusDiv) {
-            console.error('LocationUpdate: Required elements not found');
+        const statusDivs = [
+            document.getElementById('location-status'),
+            document.getElementById('location-status-mobile')
+        ].filter(el => el !== null);
+
+        if (selects.length === 0) {
+            console.error('LocationUpdate: No select elements found');
             return;
         }
 
-        locationSelect.addEventListener('change', async function() {
-            const newLocation = this.value;
+        const self = this;
+        selects.forEach(select => {
+            select.addEventListener('change', async function() {
+                const newLocation = this.value;
 
-            // No change
-            if (newLocation === currentLocation) return;
+                // No change
+                if (newLocation === currentLocation) return;
 
-            // Disable dropdown during update
-            locationSelect.disabled = true;
-            StatusMessage.loading(statusDiv);
+                // Disable all dropdowns during update
+                selects.forEach(s => s.disabled = true);
+                statusDivs.forEach(d => StatusMessage.loading(d));
 
-            // Make API request
-            const result = await ApiClient.post(
-                DashboardConfig.API.UPDATE_LOCATION,
-                { location: newLocation }
-            );
+                // Make API request
+                const result = await ApiClient.post(
+                    DashboardConfig.API.UPDATE_LOCATION,
+                    { location: newLocation }
+                );
 
-            // Re-enable dropdown
-            locationSelect.disabled = false;
+                // Re-enable all dropdowns
+                selects.forEach(s => s.disabled = false);
 
-            if (result.ok) {
-                StatusMessage.success(statusDiv, result.data.message);
+                if (result.ok) {
+                    statusDivs.forEach(d => StatusMessage.success(d, result.data.message));
 
-                // Update selected option
-                const oldOption = document.querySelector(`#locationSelect option[value='${currentLocation}']`);
-                const newOption = document.querySelector(`#locationSelect option[value='${newLocation}']`);
+                    // Update values and selected attributes across all selects
+                    selects.forEach(s => {
+                        s.value = newLocation;
+                        // Update selected option attribute
+                        const oldOption = s.querySelector(`option[value='${currentLocation}']`);
+                        const newOption = s.querySelector(`option[value='${newLocation}']`);
+                        if (oldOption) oldOption.removeAttribute('selected');
+                        if (newOption) newOption.setAttribute('selected', 'selected');
+                    });
 
-                if (oldOption) oldOption.removeAttribute('selected');
-                if (newOption) newOption.setAttribute('selected', 'selected');
-
-                // Update current location for future comparisons
-                currentLocation = newLocation;
-            } else {
-                StatusMessage.error(statusDiv, 'Error: ' + result.data.message);
-                // Reset dropdown to original value
-                locationSelect.value = currentLocation;
-            }
+                    // Update current location for future comparisons
+                    currentLocation = newLocation;
+                } else {
+                    statusDivs.forEach(d => StatusMessage.error(d, 'Error: ' + result.data.message));
+                    // Reset all dropdowns to original value
+                    selects.forEach(s => s.value = currentLocation);
+                }
+            });
         });
     }
 };
