@@ -162,6 +162,5 @@ constumer_support/
 # Arduino - Track all sketches
 !*.ino
 
-# MCP servers (local development only)
-render-mcp-server/
-mcp-supabase-server/
+# MCP servers are now tracked in git to prevent disappearing
+# (removed from gitignore Jan 11, 2026)
