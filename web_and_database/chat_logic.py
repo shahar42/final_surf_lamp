@@ -85,7 +85,7 @@ def get_wifi_module():
     return """
 **WIFI SETUP:**
 - Blue LEDs = setup mode
-- Connect to "SurfLamp-Setup" network (password: surf123456)
+- Connect to "SurfLamp-Setup" network (open network, no password)
 - Configure at 192.168.4.1
 - Must use 2.4GHz WiFi (NOT 5GHz)
 - Red blinking = lost connection, auto-retry
