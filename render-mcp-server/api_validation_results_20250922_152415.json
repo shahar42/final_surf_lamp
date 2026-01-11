@@ -1,0 +1,17 @@
+{
+  "timestamp": "20250922_152415",
+  "summary": {
+    "total_locations": 1,
+    "successful_validations": 0,
+    "total_api_calls": 0,
+    "successful_api_calls": 0,
+    "total_matches": 0,
+    "total_mismatches": 0
+  },
+  "detailed_results": [
+    {
+      "location": "Hadera, Israel",
+      "error": "list indices must be integers or slices, not str"
+    }
+  ]
+}

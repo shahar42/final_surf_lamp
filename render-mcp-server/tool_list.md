@@ -1,0 +1,31 @@
+# Render MCP Server Tools
+
+- `render_deployments`: Lists recent service deployment history.
+- `render_service_status`: Gets current status of service.
+- `render_service_events`: Analyzes recent service event logs.
+- `render_environment_vars`: Shows configured environment variables.
+- `render_list_all_services`: Lists all services in account.
+- `render_deploy_details`: Shows details of specific deployment.
+- `render_services_status`: Analyzes status of all services.
+- `render_services_cost_analysis`: Analyzes and suggests cost optimizations.
+- `render_services_ssh_info`: Gets SSH details for services.
+- `render_restart_service`: Restarts a specific running service.
+- `render_suspend_service`: Suspends a running service.
+- `render_resume_service`: Resumes a suspended service.
+- `render_scale_service`: Scales service to N instances.
+- `render_get_custom_domains`: Lists custom domains for service.
+- `render_get_secret_files`: Lists secret files for service.
+- `render_get_service_instances`: Lists all running service instances.
+- `render_list_env_groups`: Lists all shared environment groups.
+- `render_list_disks`: Lists all persistent disks.
+- `render_list_projects`: Lists all projects in account.
+- `render_get_user_info`: Gets current Render user info.
+- `render_list_maintenance_windows`: Lists scheduled Render maintenance.
+- `render_delete_service`: Permanently deletes a service.
+- `render_logs`: Gets recent runtime service logs.
+- `search_render_logs`: Searches for text in logs.
+- `render_recent_errors`: Gets recent errors and warnings.
+- `render_latest_deployment_logs`: Gets logs from latest deployment.
+- `create_background_worker`: Creates a new background worker.
+- `create_web_service`: Creates a new web service.
+- `trigger_deploy`: Triggers a manual service deployment.
