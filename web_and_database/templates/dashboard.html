@@ -160,6 +160,103 @@
         </div>
     </div>
 
+    <!-- LED Underlayer Control Panel (Development Tool) -->
+    <div id="underlayerControlPanel" class="fixed bottom-4 right-4 z-50 hidden">
+        <div class="bg-gray-900/95 backdrop-blur-lg rounded-xl shadow-2xl p-6 w-80 max-h-[80vh] overflow-y-auto border border-blue-500/30">
+            <div class="flex justify-between items-center mb-4 pb-3 border-b border-white/20">
+                <h3 class="text-white font-bold text-lg">Underlayer Config</h3>
+                <button onclick="toggleUnderlayerPanel()" class="text-white/70 hover:text-white">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Left Strip -->
+            <div class="mb-6 pb-4 border-b border-white/10">
+                <h4 class="text-yellow-400 font-semibold mb-3 text-sm">Left (Period)</h4>
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-white/70 text-xs">X: <span id="leftXVal">0</span>px</label>
+                        <input type="range" id="leftX" min="-50" max="50" value="0" class="w-full">
+                    </div>
+                    <div>
+                        <label class="text-white/70 text-xs">Y: <span id="leftYVal">0</span>px</label>
+                        <input type="range" id="leftY" min="-50" max="50" value="0" class="w-full">
+                    </div>
+                    <div>
+                        <label class="text-white/70 text-xs">Opacity: <span id="leftOpacityVal">0.3</span></label>
+                        <input type="range" id="leftOpacity" min="0" max="1" value="0.3" step="0.05" class="w-full">
+                    </div>
+                    <div>
+                        <label class="text-white/70 text-xs">Color</label>
+                        <input type="color" id="leftColor" value="#4a5568" class="w-full h-8 rounded cursor-pointer">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center Strip -->
+            <div class="mb-6 pb-4 border-b border-white/10">
+                <h4 class="text-blue-400 font-semibold mb-3 text-sm">Center (Wind)</h4>
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-white/70 text-xs">X: <span id="centerXVal">0</span>px</label>
+                        <input type="range" id="centerX" min="-50" max="50" value="0" class="w-full">
+                    </div>
+                    <div>
+                        <label class="text-white/70 text-xs">Y: <span id="centerYVal">0</span>px</label>
+                        <input type="range" id="centerY" min="-50" max="50" value="0" class="w-full">
+                    </div>
+                    <div>
+                        <label class="text-white/70 text-xs">Opacity: <span id="centerOpacityVal">0.3</span></label>
+                        <input type="range" id="centerOpacity" min="0" max="1" value="0.3" step="0.05" class="w-full">
+                    </div>
+                    <div>
+                        <label class="text-white/70 text-xs">Color</label>
+                        <input type="color" id="centerColor" value="#4a5568" class="w-full h-8 rounded cursor-pointer">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Strip -->
+            <div class="mb-4">
+                <h4 class="text-orange-400 font-semibold mb-3 text-sm">Right (Wave)</h4>
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-white/70 text-xs">X: <span id="rightXVal">0</span>px</label>
+                        <input type="range" id="rightX" min="-50" max="50" value="0" class="w-full">
+                    </div>
+                    <div>
+                        <label class="text-white/70 text-xs">Y: <span id="rightYVal">0</span>px</label>
+                        <input type="range" id="rightY" min="-50" max="50" value="0" class="w-full">
+                    </div>
+                    <div>
+                        <label class="text-white/70 text-xs">Opacity: <span id="rightOpacityVal">0.3</span></label>
+                        <input type="range" id="rightOpacity" min="0" max="1" value="0.3" step="0.05" class="w-full">
+                    </div>
+                    <div>
+                        <label class="text-white/70 text-xs">Color</label>
+                        <input type="color" id="rightColor" value="#4a5568" class="w-full h-8 rounded cursor-pointer">
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="exportUnderlayerConfig()" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-semibold text-sm transition-colors mt-4">
+                Export Config
+            </button>
+            <div id="configOutput" class="hidden mt-3 bg-black/50 p-3 rounded text-xs text-green-400 font-mono max-h-40 overflow-y-auto"></div>
+        </div>
+    </div>
+
+    <!-- Toggle Button for Control Panel -->
+    <button id="underlayerToggleBtn" onclick="toggleUnderlayerPanel()" class="fixed bottom-4 right-4 z-40 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+        </svg>
+    </button>
+
+    </div>
+
     <!-- Main Dashboard Content -->
     <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
 
@@ -997,6 +1094,65 @@
 
     // LED Visualization
     LEDDataFetcher.init({{ data.arduinos[0].arduino_id if data.arduinos else 0 }}, '{{ data.user.theme }}');
+
+    // Underlayer Control Panel
+    window.underlayerConfig = {
+        left: { xOffset: 0, yOffset: 0, opacity: 0.3, color: '#4a5568' },
+        center: { xOffset: 0, yOffset: 0, opacity: 0.3, color: '#4a5568' },
+        right: { xOffset: 0, yOffset: 0, opacity: 0.3, color: '#4a5568' }
+    };
+
+    function toggleUnderlayerPanel() {
+        const panel = document.getElementById('underlayerControlPanel');
+        const btn = document.getElementById('underlayerToggleBtn');
+        panel.classList.toggle('hidden');
+        btn.classList.toggle('hidden');
+    }
+
+    function setupUnderlayerControls() {
+        const strips = ['left', 'center', 'right'];
+
+        strips.forEach(strip => {
+            // X Offset
+            const xInput = document.getElementById(`${strip}X`);
+            const xVal = document.getElementById(`${strip}XVal`);
+            xInput.addEventListener('input', (e) => {
+                window.underlayerConfig[strip].xOffset = parseFloat(e.target.value);
+                xVal.textContent = e.target.value;
+            });
+
+            // Y Offset
+            const yInput = document.getElementById(`${strip}Y`);
+            const yVal = document.getElementById(`${strip}YVal`);
+            yInput.addEventListener('input', (e) => {
+                window.underlayerConfig[strip].yOffset = parseFloat(e.target.value);
+                yVal.textContent = e.target.value;
+            });
+
+            // Opacity
+            const opacityInput = document.getElementById(`${strip}Opacity`);
+            const opacityVal = document.getElementById(`${strip}OpacityVal`);
+            opacityInput.addEventListener('input', (e) => {
+                window.underlayerConfig[strip].opacity = parseFloat(e.target.value);
+                opacityVal.textContent = parseFloat(e.target.value).toFixed(2);
+            });
+
+            // Color
+            const colorInput = document.getElementById(`${strip}Color`);
+            colorInput.addEventListener('input', (e) => {
+                window.underlayerConfig[strip].color = e.target.value;
+            });
+        });
+    }
+
+    function exportUnderlayerConfig() {
+        const output = document.getElementById('configOutput');
+        const config = JSON.stringify(window.underlayerConfig, null, 2);
+        output.textContent = `// Underlayer Configuration:\n${config}`;
+        output.classList.remove('hidden');
+    }
+
+    setupUnderlayerControls();
 
     // Error Report Modal
     ErrorReport.init();

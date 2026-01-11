@@ -95,21 +95,50 @@ const LEDVisualizationCore = {
     drawWindDirectionIndicator: function(ctx, x, y, color) {
         ctx.save();
         const radius = 6;
-        
+
         // Glow
         ctx.shadowBlur = 10;
         ctx.shadowColor = `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.8)`;
-        
+
         ctx.fillStyle = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
         ctx.beginPath();
         ctx.arc(x, y, radius, 0, Math.PI * 2);
         ctx.fill();
-        
+
         // Highlight
         ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
         ctx.beginPath();
         ctx.arc(x - 2, y - 2, 2, 0, Math.PI * 2);
         ctx.fill();
+
+        ctx.restore();
+    },
+
+    /**
+     * Draw underlayer groove line
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {number} x - X position of the strip center
+     * @param {number} yBottom - Bottom Y position
+     * @param {number} yTop - Top Y position
+     * @param {number} width - Width of the strip
+     * @param {object} config - Configuration {xOffset, yOffset, opacity, color}
+     */
+    drawUnderlayer: function(ctx, x, yBottom, yTop, width, config) {
+        ctx.save();
+
+        // Apply offsets
+        x += config.xOffset;
+        yTop += config.yOffset;
+        yBottom += config.yOffset;
+
+        // Convert hex color to rgba
+        const hex = config.color;
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+
+        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${config.opacity})`;
+        ctx.fillRect(x - width/2, yTop, width, yBottom - yTop);
 
         ctx.restore();
     },
@@ -150,13 +179,27 @@ const LEDVisualizationCore = {
         // Using centralized calibration from config.js
         const centerX = canvas.width / 2;
         const cal = DashboardConfig.CALIBRATION.STRIPS;
-        
+
         const bottomY = cal.BOTTOM_Y;
         const topY = cal.TOP_Y;
         const stripWidth = cal.WIDTH;
-        
+
         const leftOffset = cal.LEFT_OFFSET_X;
         const rightOffset = cal.RIGHT_OFFSET_X;
+
+        // 2.5. Draw Underlayers (if configured)
+        if (typeof window !== 'undefined' && window.underlayerConfig) {
+            const config = window.underlayerConfig;
+
+            // Draw left underlayer
+            this.drawUnderlayer(ctx, centerX - leftOffset, bottomY, topY, stripWidth, config.left);
+
+            // Draw center underlayer
+            this.drawUnderlayer(ctx, centerX, bottomY, topY, stripWidth, config.center);
+
+            // Draw right underlayer
+            this.drawUnderlayer(ctx, centerX + rightOffset, bottomY, topY, stripWidth, config.right);
+        }
 
         // LEFT RAIL: Wave Period
         if (theme && theme.period) {
