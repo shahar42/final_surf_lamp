@@ -216,18 +216,6 @@
                         </div>
 
                         <div class="flex justify-between items-center pt-2 border-t border-white/20">
-                            <span class="text-white/80">LED Colors:</span>
-                            <div class="flex items-center space-x-2 w-32 justify-end">
-                                <a href="{{ url_for('dashboard.themes_page') }}" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm text-white font-semibold transition-colors">
-                                    Configure
-                                </a>
-                            </div>
-                        </div>
-                        <div class="text-sm text-white/80 mt-2">
-                            Current: {{ data.user.theme.replace('_', ' ').title() if data.user.theme else 'Ocean Breeze' }}
-                        </div>
-
-                        <div class="flex justify-between items-center pt-2 border-t border-white/20">
                             <span class="text-white/80">Units:</span>
                             <div class="flex items-center space-x-2 justify-end">
                                 <button id="unitToggleMobile" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm text-white font-semibold transition-colors whitespace-nowrap">
@@ -575,6 +563,21 @@
             
             <div id="light-config-content" class="hidden border-t border-white/10 p-6">
                 <div class="space-y-6">
+                    <!-- LED Theme Configuration -->
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-white/80">LED Colors:</span>
+                            <div class="flex items-center space-x-2 w-32 justify-end">
+                                <a href="{{ url_for('dashboard.themes_page') }}" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm text-white font-semibold transition-colors">
+                                    Configure
+                                </a>
+                            </div>
+                        </div>
+                        <div class="text-sm text-white/80">
+                            Current: {{ data.user.theme.replace('_', ' ').title() if data.user.theme else 'Ocean Breeze' }}
+                        </div>
+                    </div>
+
                     {% if off_hours_feature_enabled %}
                     <!-- Off Hours Configuration -->
                     <div class="space-y-3">
