@@ -427,7 +427,14 @@
                         </div>
                     </div>
                     <div class="text-sm text-white/80 mt-2">
-                        Current: {{ data.user.theme.replace('_', ' ').title() if data.user.theme else 'Ocean Breeze' }}
+                        {% set theme_names = {
+                            'classic_surf': 'Classic Surf',
+                            'vibrant_mix': 'Vibrant Mix',
+                            'tropical_paradise': 'Tropical Paradise',
+                            'ocean_sunset': 'Ocean Sunset',
+                            'electric_vibes': 'Electric Vibes'
+                        } %}
+                        Current: {{ theme_names.get(data.user.theme, 'Classic Surf') }}
                     </div>
 
                     <div class="flex justify-between items-center pt-2 border-t border-white/20">
@@ -671,7 +678,14 @@
                             </div>
                         </div>
                         <div class="text-sm text-white/80">
-                            Current: {{ data.user.theme.replace('_', ' ').title() if data.user.theme else 'Ocean Breeze' }}
+                            {% set theme_names_desktop = {
+                                'classic_surf': 'Classic Surf',
+                                'vibrant_mix': 'Vibrant Mix',
+                                'tropical_paradise': 'Tropical Paradise',
+                                'ocean_sunset': 'Ocean Sunset',
+                                'electric_vibes': 'Electric Vibes'
+                            } %}
+                            Current: {{ theme_names_desktop.get(data.user.theme, 'Classic Surf') }}
                         </div>
                     </div>
 
