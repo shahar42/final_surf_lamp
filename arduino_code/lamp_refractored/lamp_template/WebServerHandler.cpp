@@ -223,6 +223,8 @@ bool processSurfData(const String& jsonData) {
 
     if (error) {
         Serial.printf("❌ JSON parsing failed: %s\n", error.c_str());
+        lastSurfData.jsonParseError = true;
+        lastSurfData.needsDisplayUpdate.store(true);
         return false;
     }
 
@@ -269,6 +271,17 @@ bool processSurfData(const String& jsonData) {
     Serial.printf("⏰ Timestamp: %lu ms (uptime)\n", millis());
     Serial.printf("💡 LEDs Active - Wind: %d, Wave: %d, Period: %d\n", windSpeedLEDs, waveHeightLEDs, wavePeriodLEDs);
 
+    // Validate data quality
+    bool bothZero = (wave_height_cm == 0 && wind_speed_mps == 0);
+    bool partialZero = (wave_height_cm == 0 || wind_speed_mps == 0) && !bothZero;
+
+    if (bothZero) {
+        Serial.println("⚠️ INVALID DATA: Both wave height and wind speed are zero");
+    } else if (partialZero) {
+        Serial.println("⚠️ PARTIAL DATA FAILURE: One value is zero");
+        Serial.printf("   Wave: %d cm, Wind: %d m/s\n", wave_height_cm, wind_speed_mps);
+    }
+
     // Update global state (converting height and threshold to meters for consistency)
     lastSurfData.waveHeight = wave_height_cm / 100.0;
     lastSurfData.wavePeriod = wave_period_s;
@@ -282,6 +295,21 @@ bool processSurfData(const String& jsonData) {
     lastSurfData.theme = led_theme;
     lastSurfData.lastUpdate = millis();
     lastSurfData.dataReceived = true;
+
+    // Clear all error flags first, then set specific ones if detected
+    lastSurfData.invalidDataError = false;
+    lastSurfData.serverUnreachableError = false;
+    lastSurfData.jsonParseError = false;
+    lastSurfData.partialDataError = false;
+    lastSurfData.staleDataError = false;
+
+    // Set error flags based on validation
+    if (bothZero) {
+        lastSurfData.invalidDataError = true;
+    } else if (partialZero) {
+        lastSurfData.partialDataError = true;
+    }
+
     lastSurfData.needsDisplayUpdate.store(true);  // Thread-safe signal to Core 1 loop()
 
     return true;
@@ -328,6 +356,11 @@ bool fetchSurfDataFromServer() {
     } else {
         Serial.printf("❌ HTTP error fetching surf data: %d (%s)\n", httpCode, http.errorToString(httpCode).c_str());
         http.end();
+
+        // Mark server as unreachable
+        lastSurfData.serverUnreachableError = true;
+        lastSurfData.needsDisplayUpdate.store(true);
+
         return false;
     }
 }
