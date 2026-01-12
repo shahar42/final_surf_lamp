@@ -185,12 +185,12 @@
                         <input type="range" id="leftY" min="-50" max="50" value="0" class="w-full">
                     </div>
                     <div>
-                        <label class="text-white/70 text-xs">Opacity: <span id="leftOpacityVal">0.3</span></label>
-                        <input type="range" id="leftOpacity" min="0" max="1" value="0.3" step="0.05" class="w-full">
+                        <label class="text-white/70 text-xs">Opacity: <span id="leftOpacityVal">0.10</span></label>
+                        <input type="range" id="leftOpacity" min="0" max="1" value="0.10" step="0.05" class="w-full">
                     </div>
                     <div>
                         <label class="text-white/70 text-xs">Color</label>
-                        <input type="color" id="leftColor" value="#4a5568" class="w-full h-8 rounded cursor-pointer">
+                        <input type="color" id="leftColor" value="#000000" class="w-full h-8 rounded cursor-pointer">
                     </div>
                 </div>
             </div>
@@ -208,12 +208,12 @@
                         <input type="range" id="centerY" min="-50" max="50" value="0" class="w-full">
                     </div>
                     <div>
-                        <label class="text-white/70 text-xs">Opacity: <span id="centerOpacityVal">0.3</span></label>
-                        <input type="range" id="centerOpacity" min="0" max="1" value="0.3" step="0.05" class="w-full">
+                        <label class="text-white/70 text-xs">Opacity: <span id="centerOpacityVal">0.10</span></label>
+                        <input type="range" id="centerOpacity" min="0" max="1" value="0.10" step="0.05" class="w-full">
                     </div>
                     <div>
                         <label class="text-white/70 text-xs">Color</label>
-                        <input type="color" id="centerColor" value="#4a5568" class="w-full h-8 rounded cursor-pointer">
+                        <input type="color" id="centerColor" value="#000000" class="w-full h-8 rounded cursor-pointer">
                     </div>
                 </div>
             </div>
@@ -231,12 +231,12 @@
                         <input type="range" id="rightY" min="-50" max="50" value="0" class="w-full">
                     </div>
                     <div>
-                        <label class="text-white/70 text-xs">Opacity: <span id="rightOpacityVal">0.3</span></label>
-                        <input type="range" id="rightOpacity" min="0" max="1" value="0.3" step="0.05" class="w-full">
+                        <label class="text-white/70 text-xs">Opacity: <span id="rightOpacityVal">0.10</span></label>
+                        <input type="range" id="rightOpacity" min="0" max="1" value="0.10" step="0.05" class="w-full">
                     </div>
                     <div>
                         <label class="text-white/70 text-xs">Color</label>
-                        <input type="color" id="rightColor" value="#4a5568" class="w-full h-8 rounded cursor-pointer">
+                        <input type="color" id="rightColor" value="#000000" class="w-full h-8 rounded cursor-pointer">
                     </div>
                 </div>
             </div>
@@ -248,8 +248,8 @@
         </div>
     </div>
 
-    <!-- Toggle Button for Control Panel -->
-    <button id="underlayerToggleBtn" onclick="toggleUnderlayerPanel()" class="fixed bottom-4 right-4 z-40 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all">
+    <!-- Toggle Button for Control Panel (Hidden - Configuration Complete) -->
+    <button id="underlayerToggleBtn" onclick="toggleUnderlayerPanel()" class="fixed bottom-4 right-4 z-40 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all hidden">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
         </svg>
@@ -1097,9 +1097,9 @@
 
     // Underlayer Control Panel
     window.underlayerConfig = {
-        left: { xOffset: 0, yOffset: 0, opacity: 0.3, color: '#4a5568' },
-        center: { xOffset: 0, yOffset: 0, opacity: 0.3, color: '#4a5568' },
-        right: { xOffset: 0, yOffset: 0, opacity: 0.3, color: '#4a5568' }
+        left: { xOffset: 0, yOffset: 0, opacity: 0.10, color: '#000000' },
+        center: { xOffset: 0, yOffset: 0, opacity: 0.10, color: '#000000' },
+        right: { xOffset: 0, yOffset: 0, opacity: 0.10, color: '#000000' }
     };
 
     function toggleUnderlayerPanel() {
