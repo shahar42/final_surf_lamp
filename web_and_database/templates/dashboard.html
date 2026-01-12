@@ -925,11 +925,6 @@
                     </div>
                 </div>
             </div>
-            
-            <!-- External Logout Button -->
-            <a href="{{ url_for('auth.logout') }}" class="block w-full card rounded-2xl p-4 shadow-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-center transition-colors">
-                Logout
-            </a>
 
             <!-- Admin Only: LED Error Codes -->
             {% if data.user.is_admin %}
@@ -1031,6 +1026,11 @@
                 </div>
             </div>
             {% endif %}
+
+            <!-- External Logout Button -->
+            <a href="{{ url_for('auth.logout') }}" class="block w-full card rounded-2xl p-4 shadow-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-center transition-colors">
+                Logout
+            </a>
         </div>
 
         <!-- Desktop View: Original Layout -->
