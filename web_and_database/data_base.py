@@ -109,8 +109,6 @@ class User(Base):
     off_time_start = Column(Time, nullable=True)
     off_time_end = Column(Time, nullable=True)
     off_times_enabled = Column(Boolean, default=False, nullable=False)
-    quiet_time_start = Column(Time, nullable=True)
-    quiet_time_end = Column(Time, nullable=True)
     quiet_times_enabled = Column(Boolean, default=True, nullable=False)
     brightness_level = Column(Float, default=BRIGHTNESS_LEVELS['MID'], nullable=False)
 
