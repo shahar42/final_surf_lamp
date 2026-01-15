@@ -66,7 +66,8 @@ def dashboard():
             'brightness_level': getattr(user, 'brightness_level', 0.4),
             'off_times_enabled': getattr(user, 'off_times_enabled', False),
             'off_time_start': getattr(user, 'off_time_start', None),
-            'off_time_end': getattr(user, 'off_time_end', None)
+            'off_time_end': getattr(user, 'off_time_end', None),
+            'quiet_times_enabled': getattr(user, 'quiet_times_enabled', True)
         },
         'arduinos': [
             {
@@ -119,7 +120,12 @@ def dashboard_view(view_type):
             'wave_threshold_max_m': user.wave_threshold_max_m,
             'wind_threshold_knots': user.wind_threshold_knots or 22.0,
             'wind_threshold_max_knots': user.wind_threshold_max_knots,
-            'is_admin': getattr(user, 'is_admin', False)
+            'is_admin': getattr(user, 'is_admin', False),
+            'brightness_level': getattr(user, 'brightness_level', 0.4),
+            'off_times_enabled': getattr(user, 'off_times_enabled', False),
+            'off_time_start': getattr(user, 'off_time_start', None),
+            'off_time_end': getattr(user, 'off_time_end', None),
+            'quiet_times_enabled': getattr(user, 'quiet_times_enabled', True)
         },
         'arduinos': [
             {
