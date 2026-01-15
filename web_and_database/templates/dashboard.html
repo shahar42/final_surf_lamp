@@ -805,11 +805,11 @@
                         <button id="quietHoursToggleMobile"
                                 class="text-xs font-bold uppercase tracking-wider px-3 py-1 rounded transition-all
                                 {% if data.user.quiet_times_enabled %}
-                                    bg-blue-500/20 text-blue-400 border border-blue-500/40 shadow-[0_0_10px_rgba(59,130,246,0.3)]
+                                    bg-blue-500 text-white
                                 {% else %}
                                     text-white/50 border border-white/20
                                 {% endif %}">
-                            {% if data.user.quiet_times_enabled %}Enabled{% else %}Disabled{% endif %}
+                            {% if data.user.quiet_times_enabled %}Turned On{% else %}Turned Off{% endif %}
                         </button>
                     </div>
 
@@ -930,11 +930,11 @@
                     <button id="quietHoursToggle"
                             class="text-xs font-bold uppercase tracking-wider px-3 py-1 rounded transition-all
                             {% if data.user.quiet_times_enabled %}
-                                bg-blue-500/20 text-blue-400 border border-blue-500/40 shadow-[0_0_10px_rgba(59,130,246,0.3)]
+                                bg-blue-500 text-white
                             {% else %}
                                 text-white/50 border border-white/20
                             {% endif %}">
-                        {% if data.user.quiet_times_enabled %}Enabled{% else %}Disabled{% endif %}
+                        {% if data.user.quiet_times_enabled %}Turned On{% else %}Turned Off{% endif %}
                     </button>
                 </div>
 

@@ -23,7 +23,7 @@ const QuietHours = {
         buttons.forEach(btn => {
             btn.addEventListener('click', async function() {
                 // Get current state from button text
-                const isCurrentlyEnabled = this.textContent.trim() === 'Enabled';
+                const isCurrentlyEnabled = this.textContent.trim() === 'Turned On';
                 const newState = !isCurrentlyEnabled;
 
                 // Make API request
@@ -36,15 +36,15 @@ const QuietHours = {
                     // Update all buttons (syncs desktop/mobile)
                     buttons.forEach(b => {
                         if (newState) {
-                            // Enable state - blue glow
-                            b.classList.remove('text-white/50', 'border-white/20');
-                            b.classList.add('bg-blue-500/20', 'text-blue-400', 'border-blue-500/40', 'shadow-[0_0_10px_rgba(59,130,246,0.3)]');
-                            b.textContent = 'Enabled';
+                            // Enable state - solid blue background (matches LED Configure button)
+                            b.classList.remove('text-white/50', 'border', 'border-white/20');
+                            b.classList.add('bg-blue-500', 'text-white');
+                            b.textContent = 'Turned On';
                         } else {
                             // Disable state - grayed out
-                            b.classList.remove('bg-blue-500/20', 'text-blue-400', 'border-blue-500/40', 'shadow-[0_0_10px_rgba(59,130,246,0.3)]');
-                            b.classList.add('text-white/50', 'border-white/20');
-                            b.textContent = 'Disabled';
+                            b.classList.remove('bg-blue-500', 'text-white');
+                            b.classList.add('text-white/50', 'border', 'border-white/20');
+                            b.textContent = 'Turned Off';
                         }
                     });
 
