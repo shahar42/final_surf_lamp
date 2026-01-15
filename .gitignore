@@ -167,3 +167,4 @@ constumer_support/
 
 # MCP servers are now tracked in git to prevent disappearing
 # (removed from gitignore Jan 11, 2026)
+web_and_database/.env
