@@ -10,7 +10,7 @@ class ServerDiscovery {
 private:
     // Hardcoded fallback servers (Phase 1 compatibility)
     const char* fallback_servers[3] = {
-        "final-surf-lamp.onrender.com",
+        "final-surf-lamp-web.onrender.com",
         "backup-api.herokuapp.com", 
         "localhost:5001"  // For development
     };
