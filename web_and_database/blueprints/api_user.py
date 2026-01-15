@@ -303,3 +303,31 @@ def update_unit_preference():
     except Exception as e:
         logger.error(f"❌ Error updating unit preference: {e}")
         return {'success': False, 'message': f'Server error: {str(e)}'}, 500
+
+@bp.route("/toggle-quiet-hours", methods=['POST'])
+@login_required
+@limiter.limit("30/minute")
+def toggle_quiet_hours():
+    """Toggle quiet hours feature on/off (10pm-6am top LED mode)"""
+    try:
+        data = request.get_json()
+        enabled = data.get('enabled', True)
+        user_id = session.get('user_id')
+
+        db = SessionLocal()
+        try:
+            user = db.query(User).filter(User.user_id == user_id).first()
+            if user:
+                user.quiet_times_enabled = enabled
+                db.commit()
+                status = "enabled" if enabled else "disabled"
+                logger.info(f"✅ User {user.username} {status} quiet hours")
+                return {'success': True, 'message': f'Quiet hours {status}'}
+            else:
+                return {'success': False, 'message': 'User not found'}, 404
+        finally:
+            db.close()
+
+    except Exception as e:
+        logger.error(f"❌ Error toggling quiet hours: {e}")
+        return {'success': False, 'message': f'Server error: {str(e)}'}, 500

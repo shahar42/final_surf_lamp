@@ -41,6 +41,7 @@ const DashboardConfig = {
         UPDATE_BRIGHTNESS: '/update-brightness',
         UPDATE_UNIT_PREFERENCE: '/update-unit-preference',
         UPDATE_OFF_TIMES: '/update-off-times',
+        TOGGLE_QUIET_HOURS: '/toggle-quiet-hours',
         REPORT_ERROR: '/report-error',
         CHAT: '/api/chat',
         CHAT_STATUS: '/api/chat/status',

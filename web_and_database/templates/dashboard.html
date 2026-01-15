@@ -799,8 +799,22 @@
                     </div>
                     {% endif %}
 
+                    <!-- Quiet Hours Toggle -->
+                    <div class="{% if off_hours_feature_enabled %}pt-4 {% else %}{% endif %}border-t border-white/20 pb-4 flex justify-between items-center">
+                        <span class="text-white/80">Quiet Hours (Top LED):</span>
+                        <button id="quietHoursToggleMobile"
+                                class="text-xs font-bold uppercase tracking-wider px-3 py-1 rounded transition-all
+                                {% if data.user.quiet_times_enabled %}
+                                    bg-blue-500/20 text-blue-400 border border-blue-500/40 shadow-[0_0_10px_rgba(59,130,246,0.3)]
+                                {% else %}
+                                    text-white/50 border border-white/20
+                                {% endif %}">
+                            {% if data.user.quiet_times_enabled %}Enabled{% else %}Disabled{% endif %}
+                        </button>
+                    </div>
+
                     <!-- Brightness Control -->
-                    <div class="{% if off_hours_feature_enabled %}pt-4 border-t border-white/20 {% endif %}space-y-2">
+                    <div class="pt-4 border-t border-white/20 space-y-2">
                         <span class="text-white/80 block mb-2">Brightness:</span>
                         <div class="flex gap-3">
                             <button data-brightness="{{ brightness_levels.LOW }}" class="brightness-btn flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-4 rounded-lg transition-all border border-white/20">
@@ -910,8 +924,22 @@
                 </div>
                 {% endif %}
 
+                <!-- Quiet Hours Toggle -->
+                <div class="{% if off_hours_feature_enabled %}pt-4 {% else %}{% endif %}border-t border-white/20 pb-4 flex justify-between items-center">
+                    <span class="text-white/80">Quiet Hours (Top LED):</span>
+                    <button id="quietHoursToggle"
+                            class="text-xs font-bold uppercase tracking-wider px-3 py-1 rounded transition-all
+                            {% if data.user.quiet_times_enabled %}
+                                bg-blue-500/20 text-blue-400 border border-blue-500/40 shadow-[0_0_10px_rgba(59,130,246,0.3)]
+                            {% else %}
+                                text-white/50 border border-white/20
+                            {% endif %}">
+                        {% if data.user.quiet_times_enabled %}Enabled{% else %}Disabled{% endif %}
+                    </button>
+                </div>
+
                 <!-- Brightness Control -->
-                <div class="{% if off_hours_feature_enabled %}pt-4 border-t border-white/20 {% endif %}space-y-2">
+                <div class="pt-4 border-t border-white/20 space-y-2">
                     <span class="text-white/80 block mb-2">Brightness:</span>
                     <div class="flex gap-3">
                         <button data-brightness="{{ brightness_levels.LOW }}" class="brightness-btn flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-4 rounded-lg transition-all border border-white/20">
@@ -1257,6 +1285,7 @@
     <script src="{{ url_for('static', filename='js/features/brightness-control.js') }}"></script>
     <script src="{{ url_for('static', filename='js/features/unit-preference.js') }}"></script>
     <script src="{{ url_for('static', filename='js/features/off-hours.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/features/quiet-hours.js') }}"></script>
     <script src="{{ url_for('static', filename='js/features/error-report.js') }}"></script>
     <script src="{{ url_for('static', filename='js/features/chat-assistant.js') }}"></script>
     <script src="{{ url_for('static', filename='js/features/broadcasts.js') }}"></script>
@@ -1316,6 +1345,7 @@
     WaveThreshold.init();
     WindThreshold.init();
     BrightnessControl.init({{ data.user.brightness_level or brightness_levels.MID }});
+    QuietHours.init({{ 'true' if data.user.quiet_times_enabled else 'false' }});
     UnitPreference.init('{{ data.user.preferred_output or "meters" }}');
 
     // Night Mode (Off Hours) - Preset & Custom Controls

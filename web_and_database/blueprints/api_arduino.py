@@ -116,7 +116,10 @@ def get_arduino_surf_data(arduino_id):
             arduino, location, user = result
 
             # Check if current time is within quiet hours for this user's location
-            quiet_hours_active = is_quiet_hours(user.location)
+            quiet_hours_active = is_quiet_hours(
+                user.location,
+                getattr(user, 'quiet_times_enabled', True)
+            )
 
             # Check if current time is within user-defined off hours
             off_hours_active = is_off_hours(
@@ -223,7 +226,10 @@ def get_arduino_surf_data_v2(arduino_id):
             tz_offset = get_current_tz_offset(user.location)
 
             # Check quiet/off hours
-            quiet_hours_active = is_quiet_hours(user.location)
+            quiet_hours_active = is_quiet_hours(
+                user.location,
+                getattr(user, 'quiet_times_enabled', True)
+            )
             off_hours_active = is_off_hours(
                 user.location,
                 getattr(user, 'off_time_start', None),

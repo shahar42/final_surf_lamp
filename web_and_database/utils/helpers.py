@@ -31,18 +31,22 @@ def get_current_tz_offset(user_location):
         logger.warning(f"Error calculating tz_offset for {user_location}: {e}")
         return 2
 
-def is_quiet_hours(user_location, quiet_start_hour=22, quiet_end_hour=6):
+def is_quiet_hours(user_location, quiet_times_enabled=True, quiet_start_hour=22, quiet_end_hour=6):
     """
     Check if current time in user's location is within quiet hours (sleep time).
 
     Args:
         user_location: User's location string (e.g., "Tel Aviv, Israel")
+        quiet_times_enabled: bool indicating if quiet hours feature is enabled
         quiet_start_hour: Hour when quiet period starts (22 = 10 PM)
         quiet_end_hour: Hour when quiet period ends (6 = 6 AM)
 
     Returns:
         bool: True if within quiet hours, False otherwise
     """
+    if not quiet_times_enabled:
+        return False
+
     if not user_location or user_location not in LOCATION_TIMEZONES:
         return False  # Default to no quiet hours if location unknown
 
