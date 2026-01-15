@@ -47,11 +47,19 @@ const QuietHours = {
                             b.textContent = 'Turned Off';
                         }
                     });
-
-                    // Show brief success flash message
-                    FlashMessage.show(result.data.message, 'success', 2000);
                 } else {
-                    FlashMessage.show('Error: ' + result.data.message, 'error', 3000);
+                    // If API fails, revert UI to show actual state
+                    buttons.forEach(b => {
+                        if (isCurrentlyEnabled) {
+                            b.classList.remove('text-white/50', 'border', 'border-white/20');
+                            b.classList.add('bg-blue-500', 'text-white');
+                            b.textContent = 'Turned On';
+                        } else {
+                            b.classList.remove('bg-blue-500', 'text-white');
+                            b.classList.add('text-white/50', 'border', 'border-white/20');
+                            b.textContent = 'Turned Off';
+                        }
+                    });
                 }
             });
         });

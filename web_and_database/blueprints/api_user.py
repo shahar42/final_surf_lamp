@@ -322,12 +322,12 @@ def toggle_quiet_hours():
                 db.commit()
                 status = "enabled" if enabled else "disabled"
                 logger.info(f"✅ User {user.username} {status} quiet hours")
-                return {'success': True, 'message': f'Quiet hours {status}'}
+                return jsonify({'success': True, 'message': f'Quiet hours {status}'})
             else:
-                return {'success': False, 'message': 'User not found'}, 404
+                return jsonify({'success': False, 'message': 'User not found'}), 404
         finally:
             db.close()
 
     except Exception as e:
         logger.error(f"❌ Error toggling quiet hours: {e}")
-        return {'success': False, 'message': f'Server error: {str(e)}'}, 500
+        return jsonify({'success': False, 'message': f'Server error: {str(e)}'}), 500

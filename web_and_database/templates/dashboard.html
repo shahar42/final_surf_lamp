@@ -992,105 +992,11 @@
                 </div>
             </div>
 
-            <!-- Admin Only: LED Error Codes -->
+            <!-- Admin Only: LED Error Codes Button -->
             {% if data.user.is_admin %}
-            <div class="card rounded-2xl shadow-2xl overflow-hidden">
-                <button onclick="document.getElementById('error-codes-content').classList.toggle('hidden'); document.getElementById('error-codes-chevron').classList.toggle('rotate-180');"
-                        class="w-full text-left p-6 flex justify-between items-center bg-white/5 hover:bg-white/10 transition-colors">
-                    <h2 class="text-xl font-bold text-white">LED Error Codes</h2>
-                    <svg id="error-codes-chevron" class="w-6 h-6 text-white transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                    </svg>
-                </button>
-
-                <div id="error-codes-content" class="hidden border-t border-white/10 p-6">
-                    <div class="space-y-3 text-sm">
-                        <!-- No WiFi -->
-                        <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
-                            <div class="flex-shrink-0 w-16 h-8 rounded flex items-center justify-center" style="background: linear-gradient(to right, #00FFFF 33%, #FFFFFF 33%, #FFFFFF 66%, #00FFFF 66%);">
-                                <span class="text-[8px] text-black font-bold">AP</span>
-                            </div>
-                            <div>
-                                <div class="text-white font-semibold">No WiFi</div>
-                                <div class="text-gray-300 text-xs">Status: Blinking Red | Left: AP Mode</div>
-                                <div class="text-gray-400 text-xs mt-1">Open WiFi config portal</div>
-                            </div>
-                        </div>
-
-                        <!-- Waiting for data -->
-                        <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
-                            <div class="flex-shrink-0 w-16 h-8 rounded" style="background: #00FF00;"></div>
-                            <div>
-                                <div class="text-white font-semibold">Waiting for Data</div>
-                                <div class="text-gray-300 text-xs">Status: Solid Green | Left: GREEN</div>
-                                <div class="text-gray-400 text-xs mt-1">WiFi connected, no server response yet</div>
-                            </div>
-                        </div>
-
-                        <!-- Server unreachable -->
-                        <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
-                            <div class="flex-shrink-0 w-16 h-8 rounded" style="background: linear-gradient(to right, #00FF00 50%, #0000FF 50%);"></div>
-                            <div>
-                                <div class="text-white font-semibold">Server Unreachable</div>
-                                <div class="text-gray-300 text-xs">Status: Blinking Orange | Left: GREEN/BLUE</div>
-                                <div class="text-gray-400 text-xs mt-1">HTTP timeout or 404/5xx error</div>
-                            </div>
-                        </div>
-
-                        <!-- JSON parse error -->
-                        <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
-                            <div class="flex-shrink-0 w-16 h-8 rounded" style="background: linear-gradient(to right, #00FF00 50%, #FFFF00 50%);"></div>
-                            <div>
-                                <div class="text-white font-semibold">JSON Parse Error</div>
-                                <div class="text-gray-300 text-xs">Status: Blinking Orange | Left: GREEN/YELLOW</div>
-                                <div class="text-gray-400 text-xs mt-1">Server sent malformed data</div>
-                            </div>
-                        </div>
-
-                        <!-- Invalid data (both zero) -->
-                        <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
-                            <div class="flex-shrink-0 w-16 h-8 rounded" style="background: #FF0000;"></div>
-                            <div>
-                                <div class="text-white font-semibold">Invalid Data</div>
-                                <div class="text-gray-300 text-xs">Status: Blinking Red | Left: RED</div>
-                                <div class="text-gray-400 text-xs mt-1">Wave=0 AND Wind=0 (both sensors zero)</div>
-                            </div>
-                        </div>
-
-                        <!-- Partial data failure -->
-                        <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
-                            <div class="flex-shrink-0 w-16 h-8 rounded" style="background: #800080;"></div>
-                            <div>
-                                <div class="text-white font-semibold">Partial Sensor Failure</div>
-                                <div class="text-gray-300 text-xs">Status: Blinking Red | Left: PURPLE</div>
-                                <div class="text-gray-400 text-xs mt-1">Wave=0 OR Wind=0 (one sensor failing)</div>
-                            </div>
-                        </div>
-
-                        <!-- Stale data -->
-                        <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
-                            <div class="flex-shrink-0 w-16 h-8 rounded" style="background: linear-gradient(to right, #FF0000 50%, #0000FF 50%);"></div>
-                            <div>
-                                <div class="text-white font-semibold">Stale Data</div>
-                                <div class="text-gray-300 text-xs">Status: Blinking Orange | Left: RED/BLUE</div>
-                                <div class="text-gray-400 text-xs mt-1">No update received for &gt;30 minutes</div>
-                            </div>
-                        </div>
-
-                        <!-- Normal operation -->
-                        <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg border-2 border-green-500/30">
-                            <div class="flex-shrink-0 w-16 h-8 rounded flex items-center justify-center text-xs font-bold text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                                SURF
-                            </div>
-                            <div>
-                                <div class="text-green-400 font-semibold">Normal Operation ✓</div>
-                                <div class="text-gray-300 text-xs">Status: Blinking Green | Left: Surf data</div>
-                                <div class="text-gray-400 text-xs mt-1">Fresh data (&lt;30min), displaying conditions</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <button onclick="ModalManager.open('errorCodesDrawer')" class="card rounded-2xl shadow-2xl p-6 w-full bg-white/5 hover:bg-white/10 transition-colors text-left">
+                <h2 class="text-xl font-bold text-white">LED Error Codes</h2>
+            </button>
             {% endif %}
 
             <!-- External Logout Button -->
@@ -1267,6 +1173,108 @@
 
     <!-- Broadcast Notifications (bottom-left to avoid chat button) -->
     <div id="broadcastContainer" class="fixed bottom-6 left-6 z-40 space-y-3 max-w-sm"></div>
+
+    <!-- LED Error Codes Bottom Sheet Drawer -->
+    <div id="errorCodesDrawer" class="fixed inset-0 bg-black/50 hidden z-50" onclick="if(event.target === this) ModalManager.close('errorCodesDrawer')">
+        <div class="fixed bottom-0 left-0 right-0 bg-gray-900 rounded-t-3xl shadow-2xl max-h-[80vh] overflow-y-auto" style="animation: slideUp 0.3s ease-out;">
+            <!-- Header -->
+            <div class="sticky top-0 bg-gray-900 border-b border-white/10 px-6 py-4 flex justify-between items-center">
+                <h2 class="text-xl font-bold text-white">LED Error Codes</h2>
+                <button onclick="ModalManager.close('errorCodesDrawer')" class="text-white/70 hover:text-white transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Content -->
+            <div class="px-6 py-4 space-y-3 text-sm">
+                <!-- No WiFi -->
+                <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
+                    <div class="flex-shrink-0 w-16 h-8 rounded flex items-center justify-center" style="background: linear-gradient(to right, #00FFFF 33%, #FFFFFF 33%, #FFFFFF 66%, #00FFFF 66%);">
+                        <span class="text-[8px] text-black font-bold">AP</span>
+                    </div>
+                    <div>
+                        <div class="text-white font-semibold">No WiFi</div>
+                        <div class="text-gray-300 text-xs">Status: Blinking Red | Left: AP Mode</div>
+                        <div class="text-gray-400 text-xs mt-1">Open WiFi config portal</div>
+                    </div>
+                </div>
+
+                <!-- Waiting for data -->
+                <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
+                    <div class="flex-shrink-0 w-16 h-8 rounded" style="background: #00FF00;"></div>
+                    <div>
+                        <div class="text-white font-semibold">Waiting for Data</div>
+                        <div class="text-gray-300 text-xs">Status: Solid Green | Left: GREEN</div>
+                        <div class="text-gray-400 text-xs mt-1">WiFi connected, no server response yet</div>
+                    </div>
+                </div>
+
+                <!-- Server unreachable -->
+                <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
+                    <div class="flex-shrink-0 w-16 h-8 rounded" style="background: linear-gradient(to right, #00FF00 50%, #0000FF 50%);"></div>
+                    <div>
+                        <div class="text-white font-semibold">Server Unreachable</div>
+                        <div class="text-gray-300 text-xs">Status: Blinking Orange | Left: GREEN/BLUE</div>
+                        <div class="text-gray-400 text-xs mt-1">HTTP timeout or 404/5xx error</div>
+                    </div>
+                </div>
+
+                <!-- JSON parse error -->
+                <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
+                    <div class="flex-shrink-0 w-16 h-8 rounded" style="background: linear-gradient(to right, #00FF00 50%, #FFFF00 50%);"></div>
+                    <div>
+                        <div class="text-white font-semibold">JSON Parse Error</div>
+                        <div class="text-gray-300 text-xs">Status: Blinking Orange | Left: GREEN/YELLOW</div>
+                        <div class="text-gray-400 text-xs mt-1">Server sent malformed data</div>
+                    </div>
+                </div>
+
+                <!-- Invalid data (both zero) -->
+                <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
+                    <div class="flex-shrink-0 w-16 h-8 rounded" style="background: #FF0000;"></div>
+                    <div>
+                        <div class="text-white font-semibold">Invalid Data</div>
+                        <div class="text-gray-300 text-xs">Status: Blinking Red | Left: RED</div>
+                        <div class="text-gray-400 text-xs mt-1">Wave=0 AND Wind=0 (both sensors zero)</div>
+                    </div>
+                </div>
+
+                <!-- Partial data failure -->
+                <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
+                    <div class="flex-shrink-0 w-16 h-8 rounded" style="background: #800080;"></div>
+                    <div>
+                        <div class="text-white font-semibold">Partial Sensor Failure</div>
+                        <div class="text-gray-300 text-xs">Status: Blinking Red | Left: PURPLE</div>
+                        <div class="text-gray-400 text-xs mt-1">Wave=0 OR Wind=0 (one sensor failing)</div>
+                    </div>
+                </div>
+
+                <!-- Stale data -->
+                <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
+                    <div class="flex-shrink-0 w-16 h-8 rounded" style="background: linear-gradient(to right, #FF0000 50%, #0000FF 50%);"></div>
+                    <div>
+                        <div class="text-white font-semibold">Stale Data</div>
+                        <div class="text-gray-300 text-xs">Status: Blinking Orange | Left: RED/BLUE</div>
+                        <div class="text-gray-400 text-xs mt-1">No update received for &gt;30 minutes</div>
+                    </div>
+                </div>
+
+                <!-- Normal operation -->
+                <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg border-2 border-green-500/30 mb-4">
+                    <div class="flex-shrink-0 w-16 h-8 rounded flex items-center justify-center text-xs font-bold text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        SURF
+                    </div>
+                    <div>
+                        <div class="text-green-400 font-semibold">Normal Operation ✓</div>
+                        <div class="text-gray-300 text-xs">Status: Blinking Green | Left: Surf data</div>
+                        <div class="text-gray-400 text-xs mt-1">Fresh data (&lt;30min), displaying conditions</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Dashboard Configuration -->
     <script src="{{ url_for('static', filename='js/config.js') }}"></script>
