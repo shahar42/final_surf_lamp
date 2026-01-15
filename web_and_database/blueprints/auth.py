@@ -123,13 +123,18 @@ def login():
 
             if bcrypt.check_password_hash(user.password_hash, password):
                 logger.info(f"✅ Login successful for user: {user.username} ({user.email})")
+
+                # Set session.permanent BEFORE setting session data (critical for cookie max-age)
+                if form.remember_me.data:
+                    session.permanent = True
+                    logger.info(f"🔒 Remember me enabled for user: {user.username} (30 days)")
+                else:
+                    session.permanent = False
+                    logger.info(f"⏱️ Session-only login for user: {user.username}")
+
                 session['user_email'] = user.email
                 session['user_id'] = user.user_id
                 session['username'] = user.username
-
-                if form.remember_me.data:
-                    session.permanent = True
-                    logger.info(f"🔒 Remember me enabled for user: {user.username}")
 
                 return redirect(url_for('dashboard.dashboard'))
             else:

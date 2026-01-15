@@ -57,8 +57,8 @@ def get_core_context(user_data, conditions_data):
 
     return f"""**USER'S SURF LAMP DATA:**
 - Location: {user_data.location}
-- Wave Alert Threshold: {user_data.wave_threshold_m}m
-- Wind Alert Threshold: {user_data.wind_threshold_knots} knots
+- Perfect Waves Range: {user_data.wave_threshold_m}m
+- Perfect Wind Range: {user_data.wind_threshold_knots} knots
 - Current Theme: {user_data.theme if user_data.theme else 'classic_surf'}
 - Lamp Status: {status}
 - Night Mode: {night_mode_status}
@@ -85,7 +85,7 @@ def get_wifi_module():
     return """
 **WIFI SETUP:**
 - Blue LEDs = setup mode
-- Connect to "SurfLamp-Setup" network (password: surf123456)
+- Connect to "SurfLamp-Setup" network (open network, no password)
 - Configure at 192.168.4.1
 - Must use 2.4GHz WiFi (NOT 5GHz)
 - Red blinking = lost connection, auto-retry

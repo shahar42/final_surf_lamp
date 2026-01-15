@@ -54,7 +54,9 @@ def configure_app(app):
     app.config['SESSION_COOKIE_SECURE'] = True  # HTTPS only
     app.config['SESSION_COOKIE_HTTPONLY'] = True  # No JavaScript access
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # CSRF protection
-    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
+    app.config['SESSION_COOKIE_NAME'] = 'surf_lamp_session'  # Explicit cookie name
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
+    app.config['SESSION_REFRESH_EACH_REQUEST'] = False  # Don't reset expiry on every request (CRITICAL for remember me)
 
     # Mail Config
     app.config.update(

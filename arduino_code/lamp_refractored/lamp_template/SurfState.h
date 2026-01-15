@@ -53,6 +53,14 @@ struct SurfData {
     // State tracking
     unsigned long lastUpdate = 0;     // Timestamp of last data update (millis)
     bool dataReceived = false;        // Has any data been received yet?
+
+    // Error states (checked in priority order in updateSurfDisplay)
+    bool invalidDataError = false;    // Data received but all zeros (left strip: RED)
+    bool serverUnreachableError = false; // HTTP timeout/error (left strip: half green, half blue)
+    bool jsonParseError = false;      // JSON malformed (left strip: half green, half yellow)
+    bool partialDataError = false;    // One value is zero but not both (left strip: PURPLE)
+    bool staleDataError = false;      // Data >30min old (left strip: half red, half blue)
+
     std::atomic<bool> needsDisplayUpdate{false};  // Thread-safe flag for cross-core communication (Core 0 writes, Core 1 reads)
 
     // Unit conversion helpers (inline = zero overhead, const = no accidental modification)

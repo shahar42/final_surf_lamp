@@ -71,10 +71,17 @@ void blinkGreenLED();   // Data is fresh
 void blinkRedLED();     // WiFi disconnected
 void blinkYellowLED();  // Config mode active
 void blinkOrangeLED();  // Stale data / server issues
-void showNoDataConnected(); // Connected but no data (All Green)
+void showNoDataConnected(); // Connected but no data (Left strip green only)
 void showTryingToConnect();
 void showCheckingLocation();
 void showAPMode();          // WiFi configuration portal active
+
+// Error display patterns (left strip only)
+void showInvalidDataError();     // All zeros (solid RED)
+void showServerUnreachableError(); // HTTP timeout (half green, half blue)
+void showStaleDataError();       // Data >30min old (half red, half blue)
+void showPartialDataError();     // One sensor failing (solid PURPLE)
+void showJsonParseError();       // Malformed JSON (half green, half yellow)
 
 // ---------------- DATA DISPLAY FUNCTIONS ----------------
 

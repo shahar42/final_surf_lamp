@@ -90,7 +90,7 @@
                             <div class="flex flex-col items-center gap-1 w-24 text-center">
                                 <span class="text-white/70 text-xs uppercase tracking-wider">Period</span>
                             </div>
-                            
+
                             <!-- Center: Wind -->
                             <div class="flex flex-col items-center gap-1 w-24 text-center">
                                 <span class="text-white/70 text-xs uppercase tracking-wider">Wind</span>
@@ -99,6 +99,30 @@
                             <!-- Right: Height -->
                             <div class="flex flex-col items-center gap-1 w-24 text-center">
                                 <span class="text-white/70 text-xs uppercase tracking-wider">Height</span>
+                            </div>
+                        </div>
+
+                        <!-- Wind Direction Legend -->
+                        <div class="flex justify-center items-center gap-4 mt-3">
+                            <!-- North (Green) -->
+                            <div class="flex items-center gap-1">
+                                <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                                <span class="text-white/60 text-xs">N</span>
+                            </div>
+                            <!-- East (Yellow) -->
+                            <div class="flex items-center gap-1">
+                                <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                <span class="text-white/60 text-xs">E</span>
+                            </div>
+                            <!-- South (Red) -->
+                            <div class="flex items-center gap-1">
+                                <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                                <span class="text-white/60 text-xs">S</span>
+                            </div>
+                            <!-- West (Blue) -->
+                            <div class="flex items-center gap-1">
+                                <div class="w-3 h-3 rounded-full bg-blue-500"></div>
+                                <span class="text-white/60 text-xs">W</span>
                             </div>
                         </div>
                     </div>
@@ -160,6 +184,103 @@
         </div>
     </div>
 
+    <!-- LED Underlayer Control Panel (Development Tool) -->
+    <div id="underlayerControlPanel" class="fixed bottom-4 right-4 z-50 hidden">
+        <div class="bg-gray-900/95 backdrop-blur-lg rounded-xl shadow-2xl p-6 w-80 max-h-[80vh] overflow-y-auto border border-blue-500/30">
+            <div class="flex justify-between items-center mb-4 pb-3 border-b border-white/20">
+                <h3 class="text-white font-bold text-lg">Underlayer Config</h3>
+                <button onclick="toggleUnderlayerPanel()" class="text-white/70 hover:text-white">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Left Strip -->
+            <div class="mb-6 pb-4 border-b border-white/10">
+                <h4 class="text-yellow-400 font-semibold mb-3 text-sm">Left (Period)</h4>
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-white/70 text-xs">X: <span id="leftXVal">0</span>px</label>
+                        <input type="range" id="leftX" min="-50" max="50" value="0" class="w-full">
+                    </div>
+                    <div>
+                        <label class="text-white/70 text-xs">Y: <span id="leftYVal">0</span>px</label>
+                        <input type="range" id="leftY" min="-50" max="50" value="0" class="w-full">
+                    </div>
+                    <div>
+                        <label class="text-white/70 text-xs">Opacity: <span id="leftOpacityVal">0.13</span></label>
+                        <input type="range" id="leftOpacity" min="0" max="1" value="0.13" step="0.05" class="w-full">
+                    </div>
+                    <div>
+                        <label class="text-white/70 text-xs">Color</label>
+                        <input type="color" id="leftColor" value="#000000" class="w-full h-8 rounded cursor-pointer">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center Strip -->
+            <div class="mb-6 pb-4 border-b border-white/10">
+                <h4 class="text-blue-400 font-semibold mb-3 text-sm">Center (Wind)</h4>
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-white/70 text-xs">X: <span id="centerXVal">0</span>px</label>
+                        <input type="range" id="centerX" min="-50" max="50" value="0" class="w-full">
+                    </div>
+                    <div>
+                        <label class="text-white/70 text-xs">Y: <span id="centerYVal">0</span>px</label>
+                        <input type="range" id="centerY" min="-50" max="50" value="0" class="w-full">
+                    </div>
+                    <div>
+                        <label class="text-white/70 text-xs">Opacity: <span id="centerOpacityVal">0.13</span></label>
+                        <input type="range" id="centerOpacity" min="0" max="1" value="0.13" step="0.05" class="w-full">
+                    </div>
+                    <div>
+                        <label class="text-white/70 text-xs">Color</label>
+                        <input type="color" id="centerColor" value="#000000" class="w-full h-8 rounded cursor-pointer">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Strip -->
+            <div class="mb-4">
+                <h4 class="text-orange-400 font-semibold mb-3 text-sm">Right (Wave)</h4>
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-white/70 text-xs">X: <span id="rightXVal">0</span>px</label>
+                        <input type="range" id="rightX" min="-50" max="50" value="0" class="w-full">
+                    </div>
+                    <div>
+                        <label class="text-white/70 text-xs">Y: <span id="rightYVal">0</span>px</label>
+                        <input type="range" id="rightY" min="-50" max="50" value="0" class="w-full">
+                    </div>
+                    <div>
+                        <label class="text-white/70 text-xs">Opacity: <span id="rightOpacityVal">0.13</span></label>
+                        <input type="range" id="rightOpacity" min="0" max="1" value="0.13" step="0.05" class="w-full">
+                    </div>
+                    <div>
+                        <label class="text-white/70 text-xs">Color</label>
+                        <input type="color" id="rightColor" value="#000000" class="w-full h-8 rounded cursor-pointer">
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="exportUnderlayerConfig()" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-semibold text-sm transition-colors mt-4">
+                Export Config
+            </button>
+            <div id="configOutput" class="hidden mt-3 bg-black/50 p-3 rounded text-xs text-green-400 font-mono max-h-40 overflow-y-auto"></div>
+        </div>
+    </div>
+
+    <!-- Toggle Button for Control Panel (Hidden - Configuration Complete) -->
+    <button id="underlayerToggleBtn" onclick="toggleUnderlayerPanel()" class="fixed bottom-4 right-4 z-40 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all hidden">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+        </svg>
+    </button>
+
+    </div>
+
     <!-- Main Dashboard Content -->
     <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
 
@@ -190,9 +311,9 @@
                         </div>
                         <div id="location-status-mobile" class="text-sm text-white/80 mt-2"></div>
 
-                        <!-- Wave Alert Range Slider Mobile -->
+                        <!-- Perfect Waves Range Slider Mobile -->
                         <div class="space-y-2 pt-2 border-t border-white/20">
-                            <span class="text-white/80">Wave Alert</span>
+                            <span class="text-white/80">Perfect Waves</span>
                             <div class="px-2 py-2">
                                 <div id="waveSliderMobile" class="my-4"></div>
                             </div>
@@ -204,27 +325,15 @@
                                    value="{% if data.user.wave_threshold_max_m %}{% if data.user.preferred_output == 'feet' %}{{ '%.1f'|format(data.user.wave_threshold_max_m * 3.28084) }}{% else %}{{ data.user.wave_threshold_max_m }}{% endif %}{% endif %}">
                         </div>
 
-                        <!-- Wind Alert Range Slider Mobile -->
+                        <!-- Perfect Wind Range Slider Mobile -->
                         <div class="space-y-2 pt-2 border-t border-white/20">
-                            <span class="text-white/80">Wind Alert</span>
+                            <span class="text-white/80">Perfect Wind</span>
                             <div class="px-2 py-2">
                                 <div id="windSliderMobile" class="my-4"></div>
                             </div>
                             <div id="wind-threshold-status-mobile" class="text-sm text-white/80"></div>
                             <input type="hidden" id="windThresholdMinMobile" value="{{ data.user.wind_threshold_knots or 22 }}">
                             <input type="hidden" id="windThresholdMaxMobile" value="{% if data.user.wind_threshold_max_knots %}{{ data.user.wind_threshold_max_knots }}{% endif %}">
-                        </div>
-
-                        <div class="flex justify-between items-center pt-2 border-t border-white/20">
-                            <span class="text-white/80">LED Colors:</span>
-                            <div class="flex items-center space-x-2 w-32 justify-end">
-                                <a href="{{ url_for('dashboard.themes_page') }}" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm text-white font-semibold transition-colors">
-                                    Configure
-                                </a>
-                            </div>
-                        </div>
-                        <div class="text-sm text-white/80 mt-2">
-                            Current: {{ data.user.theme.replace('_', ' ').title() if data.user.theme else 'Ocean Breeze' }}
                         </div>
 
                         <div class="flex justify-between items-center pt-2 border-t border-white/20">
@@ -308,9 +417,9 @@
                     </div>
                     <div id="location-status" class="text-sm text-white/80 mt-2"></div>
 
-                    <!-- Wave Alert Range Slider -->
+                    <!-- Perfect Waves Range Slider -->
                     <div class="space-y-2 pt-2 border-t border-white/20">
-                        <span class="text-white/80">Wave Alert</span>
+                        <span class="text-white/80">Perfect Waves</span>
                         <div class="px-2 py-2">
                             <div id="waveSlider" class="my-4"></div>
                         </div>
@@ -322,9 +431,9 @@
                                value="{% if data.user.wave_threshold_max_m %}{% if data.user.preferred_output == 'feet' %}{{ '%.1f'|format(data.user.wave_threshold_max_m * 3.28084) }}{% else %}{{ data.user.wave_threshold_max_m }}{% endif %}{% endif %}">
                     </div>
 
-                    <!-- Wind Alert Range Slider -->
+                    <!-- Perfect Wind Range Slider -->
                     <div class="space-y-2 pt-2 border-t border-white/20">
-                        <span class="text-white/80">Wind Alert</span>
+                        <span class="text-white/80">Perfect Wind</span>
                         <div class="px-2 py-2">
                             <div id="windSlider" class="my-4"></div>
                         </div>
@@ -342,7 +451,14 @@
                         </div>
                     </div>
                     <div class="text-sm text-white/80 mt-2">
-                        Current: {{ data.user.theme.replace('_', ' ').title() if data.user.theme else 'Ocean Breeze' }}
+                        {% set theme_names = {
+                            'classic_surf': 'Classic Surf',
+                            'vibrant_mix': 'Vibrant Mix',
+                            'tropical_paradise': 'Tropical Paradise',
+                            'ocean_sunset': 'Ocean Sunset',
+                            'electric_vibes': 'Electric Vibes'
+                        } %}
+                        Current: {{ theme_names.get(data.user.theme, 'Classic Surf') }}
                     </div>
 
                     <div class="flex justify-between items-center pt-2 border-t border-white/20">
@@ -575,6 +691,28 @@
             
             <div id="light-config-content" class="hidden border-t border-white/10 p-6">
                 <div class="space-y-6">
+                    <!-- LED Theme Configuration -->
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-white/80">LED Colors:</span>
+                            <div class="flex items-center space-x-2 w-32 justify-end">
+                                <a href="{{ url_for('dashboard.themes_page') }}" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm text-white font-semibold transition-colors">
+                                    Configure
+                                </a>
+                            </div>
+                        </div>
+                        <div class="text-sm text-white/80">
+                            {% set theme_names_desktop = {
+                                'classic_surf': 'Classic Surf',
+                                'vibrant_mix': 'Vibrant Mix',
+                                'tropical_paradise': 'Tropical Paradise',
+                                'ocean_sunset': 'Ocean Sunset',
+                                'electric_vibes': 'Electric Vibes'
+                            } %}
+                            Current: {{ theme_names_desktop.get(data.user.theme, 'Classic Surf') }}
+                        </div>
+                    </div>
+
                     {% if off_hours_feature_enabled %}
                     <!-- Off Hours Configuration -->
                     <div class="space-y-3">
@@ -661,8 +799,22 @@
                     </div>
                     {% endif %}
 
+                    <!-- Quiet Hours Toggle -->
+                    <div class="{% if off_hours_feature_enabled %}pt-4 {% else %}{% endif %}border-t border-white/20 pb-4 flex justify-between items-center">
+                        <span class="text-white/80">Quiet Hours (Top LED):</span>
+                        <button id="quietHoursToggleMobile"
+                                class="text-xs font-bold uppercase tracking-wider px-3 py-1 rounded transition-all
+                                {% if data.user.quiet_times_enabled %}
+                                    bg-blue-500 text-white
+                                {% else %}
+                                    text-white/50 border border-white/20
+                                {% endif %}">
+                            {% if data.user.quiet_times_enabled %}Turned On{% else %}Turned Off{% endif %}
+                        </button>
+                    </div>
+
                     <!-- Brightness Control -->
-                    <div class="{% if off_hours_feature_enabled %}pt-4 border-t border-white/20 {% endif %}space-y-2">
+                    <div class="pt-4 border-t border-white/20 space-y-2">
                         <span class="text-white/80 block mb-2">Brightness:</span>
                         <div class="flex gap-3">
                             <button data-brightness="{{ brightness_levels.LOW }}" class="brightness-btn flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-4 rounded-lg transition-all border border-white/20">
@@ -772,8 +924,22 @@
                 </div>
                 {% endif %}
 
+                <!-- Quiet Hours Toggle -->
+                <div class="{% if off_hours_feature_enabled %}pt-4 {% else %}{% endif %}border-t border-white/20 pb-4 flex justify-between items-center">
+                    <span class="text-white/80">Quiet Hours (Top LED):</span>
+                    <button id="quietHoursToggle"
+                            class="text-xs font-bold uppercase tracking-wider px-3 py-1 rounded transition-all
+                            {% if data.user.quiet_times_enabled %}
+                                bg-blue-500 text-white
+                            {% else %}
+                                text-white/50 border border-white/20
+                            {% endif %}">
+                        {% if data.user.quiet_times_enabled %}Turned On{% else %}Turned Off{% endif %}
+                    </button>
+                </div>
+
                 <!-- Brightness Control -->
-                <div class="{% if off_hours_feature_enabled %}pt-4 border-t border-white/20 {% endif %}space-y-2">
+                <div class="pt-4 border-t border-white/20 space-y-2">
                     <span class="text-white/80 block mb-2">Brightness:</span>
                     <div class="flex gap-3">
                         <button data-brightness="{{ brightness_levels.LOW }}" class="brightness-btn flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-4 rounded-lg transition-all border border-white/20">
@@ -825,7 +991,108 @@
                     </div>
                 </div>
             </div>
-            
+
+            <!-- Admin Only: LED Error Codes -->
+            {% if data.user.is_admin %}
+            <div class="card rounded-2xl shadow-2xl overflow-hidden">
+                <button onclick="document.getElementById('error-codes-content').classList.toggle('hidden'); document.getElementById('error-codes-chevron').classList.toggle('rotate-180');"
+                        class="w-full text-left p-6 flex justify-between items-center bg-white/5 hover:bg-white/10 transition-colors">
+                    <h2 class="text-xl font-bold text-white">LED Error Codes</h2>
+                    <svg id="error-codes-chevron" class="w-6 h-6 text-white transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+
+                <div id="error-codes-content" class="hidden border-t border-white/10 p-6">
+                    <div class="space-y-3 text-sm">
+                        <!-- No WiFi -->
+                        <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
+                            <div class="flex-shrink-0 w-16 h-8 rounded flex items-center justify-center" style="background: linear-gradient(to right, #00FFFF 33%, #FFFFFF 33%, #FFFFFF 66%, #00FFFF 66%);">
+                                <span class="text-[8px] text-black font-bold">AP</span>
+                            </div>
+                            <div>
+                                <div class="text-white font-semibold">No WiFi</div>
+                                <div class="text-gray-300 text-xs">Status: Blinking Red | Left: AP Mode</div>
+                                <div class="text-gray-400 text-xs mt-1">Open WiFi config portal</div>
+                            </div>
+                        </div>
+
+                        <!-- Waiting for data -->
+                        <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
+                            <div class="flex-shrink-0 w-16 h-8 rounded" style="background: #00FF00;"></div>
+                            <div>
+                                <div class="text-white font-semibold">Waiting for Data</div>
+                                <div class="text-gray-300 text-xs">Status: Solid Green | Left: GREEN</div>
+                                <div class="text-gray-400 text-xs mt-1">WiFi connected, no server response yet</div>
+                            </div>
+                        </div>
+
+                        <!-- Server unreachable -->
+                        <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
+                            <div class="flex-shrink-0 w-16 h-8 rounded" style="background: linear-gradient(to right, #00FF00 50%, #0000FF 50%);"></div>
+                            <div>
+                                <div class="text-white font-semibold">Server Unreachable</div>
+                                <div class="text-gray-300 text-xs">Status: Blinking Orange | Left: GREEN/BLUE</div>
+                                <div class="text-gray-400 text-xs mt-1">HTTP timeout or 404/5xx error</div>
+                            </div>
+                        </div>
+
+                        <!-- JSON parse error -->
+                        <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
+                            <div class="flex-shrink-0 w-16 h-8 rounded" style="background: linear-gradient(to right, #00FF00 50%, #FFFF00 50%);"></div>
+                            <div>
+                                <div class="text-white font-semibold">JSON Parse Error</div>
+                                <div class="text-gray-300 text-xs">Status: Blinking Orange | Left: GREEN/YELLOW</div>
+                                <div class="text-gray-400 text-xs mt-1">Server sent malformed data</div>
+                            </div>
+                        </div>
+
+                        <!-- Invalid data (both zero) -->
+                        <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
+                            <div class="flex-shrink-0 w-16 h-8 rounded" style="background: #FF0000;"></div>
+                            <div>
+                                <div class="text-white font-semibold">Invalid Data</div>
+                                <div class="text-gray-300 text-xs">Status: Blinking Red | Left: RED</div>
+                                <div class="text-gray-400 text-xs mt-1">Wave=0 AND Wind=0 (both sensors zero)</div>
+                            </div>
+                        </div>
+
+                        <!-- Partial data failure -->
+                        <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
+                            <div class="flex-shrink-0 w-16 h-8 rounded" style="background: #800080;"></div>
+                            <div>
+                                <div class="text-white font-semibold">Partial Sensor Failure</div>
+                                <div class="text-gray-300 text-xs">Status: Blinking Red | Left: PURPLE</div>
+                                <div class="text-gray-400 text-xs mt-1">Wave=0 OR Wind=0 (one sensor failing)</div>
+                            </div>
+                        </div>
+
+                        <!-- Stale data -->
+                        <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
+                            <div class="flex-shrink-0 w-16 h-8 rounded" style="background: linear-gradient(to right, #FF0000 50%, #0000FF 50%);"></div>
+                            <div>
+                                <div class="text-white font-semibold">Stale Data</div>
+                                <div class="text-gray-300 text-xs">Status: Blinking Orange | Left: RED/BLUE</div>
+                                <div class="text-gray-400 text-xs mt-1">No update received for &gt;30 minutes</div>
+                            </div>
+                        </div>
+
+                        <!-- Normal operation -->
+                        <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg border-2 border-green-500/30">
+                            <div class="flex-shrink-0 w-16 h-8 rounded flex items-center justify-center text-xs font-bold text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                SURF
+                            </div>
+                            <div>
+                                <div class="text-green-400 font-semibold">Normal Operation ✓</div>
+                                <div class="text-gray-300 text-xs">Status: Blinking Green | Left: Surf data</div>
+                                <div class="text-gray-400 text-xs mt-1">Fresh data (&lt;30min), displaying conditions</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- External Logout Button -->
             <a href="{{ url_for('auth.logout') }}" class="block w-full card rounded-2xl p-4 shadow-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-center transition-colors">
                 Logout
@@ -854,6 +1121,98 @@
                 </a>
             </div>
         </div>
+
+        <!-- Admin Only: LED Error Codes (Desktop) -->
+        {% if data.user.is_admin %}
+        <div class="card rounded-2xl p-6 shadow-2xl mt-6 hidden lg:block">
+            <h2 class="text-xl font-bold text-white mb-4">LED Error Codes Reference</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- No WiFi -->
+                <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
+                    <div class="flex-shrink-0 w-16 h-8 rounded flex items-center justify-center" style="background: linear-gradient(to right, #00FFFF 33%, #FFFFFF 33%, #FFFFFF 66%, #00FFFF 66%);">
+                        <span class="text-[8px] text-black font-bold">AP</span>
+                    </div>
+                    <div>
+                        <div class="text-white font-semibold">No WiFi</div>
+                        <div class="text-gray-300 text-xs">Status: Blinking Red | Left: AP Mode</div>
+                        <div class="text-gray-400 text-xs mt-1">Open WiFi config portal</div>
+                    </div>
+                </div>
+
+                <!-- Waiting for data -->
+                <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
+                    <div class="flex-shrink-0 w-16 h-8 rounded" style="background: #00FF00;"></div>
+                    <div>
+                        <div class="text-white font-semibold">Waiting for Data</div>
+                        <div class="text-gray-300 text-xs">Status: Solid Green | Left: GREEN</div>
+                        <div class="text-gray-400 text-xs mt-1">WiFi connected, no server response yet</div>
+                    </div>
+                </div>
+
+                <!-- Server unreachable -->
+                <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
+                    <div class="flex-shrink-0 w-16 h-8 rounded" style="background: linear-gradient(to right, #00FF00 50%, #0000FF 50%);"></div>
+                    <div>
+                        <div class="text-white font-semibold">Server Unreachable</div>
+                        <div class="text-gray-300 text-xs">Status: Blinking Orange | Left: GREEN/BLUE</div>
+                        <div class="text-gray-400 text-xs mt-1">HTTP timeout or 404/5xx error</div>
+                    </div>
+                </div>
+
+                <!-- JSON parse error -->
+                <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
+                    <div class="flex-shrink-0 w-16 h-8 rounded" style="background: linear-gradient(to right, #00FF00 50%, #FFFF00 50%);"></div>
+                    <div>
+                        <div class="text-white font-semibold">JSON Parse Error</div>
+                        <div class="text-gray-300 text-xs">Status: Blinking Orange | Left: GREEN/YELLOW</div>
+                        <div class="text-gray-400 text-xs mt-1">Server sent malformed data</div>
+                    </div>
+                </div>
+
+                <!-- Invalid data (both zero) -->
+                <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
+                    <div class="flex-shrink-0 w-16 h-8 rounded" style="background: #FF0000;"></div>
+                    <div>
+                        <div class="text-white font-semibold">Invalid Data</div>
+                        <div class="text-gray-300 text-xs">Status: Blinking Red | Left: RED</div>
+                        <div class="text-gray-400 text-xs mt-1">Wave=0 AND Wind=0 (both sensors zero)</div>
+                    </div>
+                </div>
+
+                <!-- Partial data failure -->
+                <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
+                    <div class="flex-shrink-0 w-16 h-8 rounded" style="background: #800080;"></div>
+                    <div>
+                        <div class="text-white font-semibold">Partial Sensor Failure</div>
+                        <div class="text-gray-300 text-xs">Status: Blinking Red | Left: PURPLE</div>
+                        <div class="text-gray-400 text-xs mt-1">Wave=0 OR Wind=0 (one sensor failing)</div>
+                    </div>
+                </div>
+
+                <!-- Stale data -->
+                <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
+                    <div class="flex-shrink-0 w-16 h-8 rounded" style="background: linear-gradient(to right, #FF0000 50%, #0000FF 50%);"></div>
+                    <div>
+                        <div class="text-white font-semibold">Stale Data</div>
+                        <div class="text-gray-300 text-xs">Status: Blinking Orange | Left: RED/BLUE</div>
+                        <div class="text-gray-400 text-xs mt-1">No update received for &gt;30 minutes</div>
+                    </div>
+                </div>
+
+                <!-- Normal operation -->
+                <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg border-2 border-green-500/30">
+                    <div class="flex-shrink-0 w-16 h-8 rounded flex items-center justify-center text-xs font-bold text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        SURF
+                    </div>
+                    <div>
+                        <div class="text-green-400 font-semibold">Normal Operation ✓</div>
+                        <div class="text-gray-300 text-xs">Status: Blinking Green | Left: Surf data</div>
+                        <div class="text-gray-400 text-xs mt-1">Fresh data (&lt;30min), displaying conditions</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Floating Chat Button -->
@@ -926,6 +1285,7 @@
     <script src="{{ url_for('static', filename='js/features/brightness-control.js') }}"></script>
     <script src="{{ url_for('static', filename='js/features/unit-preference.js') }}"></script>
     <script src="{{ url_for('static', filename='js/features/off-hours.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/features/quiet-hours.js') }}"></script>
     <script src="{{ url_for('static', filename='js/features/error-report.js') }}"></script>
     <script src="{{ url_for('static', filename='js/features/chat-assistant.js') }}"></script>
     <script src="{{ url_for('static', filename='js/features/broadcasts.js') }}"></script>
@@ -985,6 +1345,7 @@
     WaveThreshold.init();
     WindThreshold.init();
     BrightnessControl.init({{ data.user.brightness_level or brightness_levels.MID }});
+    QuietHours.init({{ 'true' if data.user.quiet_times_enabled else 'false' }});
     UnitPreference.init('{{ data.user.preferred_output or "meters" }}');
 
     // Night Mode (Off Hours) - Preset & Custom Controls
@@ -994,6 +1355,65 @@
 
     // LED Visualization
     LEDDataFetcher.init({{ data.arduinos[0].arduino_id if data.arduinos else 0 }}, '{{ data.user.theme }}');
+
+    // Underlayer Control Panel
+    window.underlayerConfig = {
+        left: { xOffset: 0, yOffset: 0, opacity: 0.13, color: '#000000' },
+        center: { xOffset: 0, yOffset: 0, opacity: 0.13, color: '#000000' },
+        right: { xOffset: 0, yOffset: 0, opacity: 0.13, color: '#000000' }
+    };
+
+    function toggleUnderlayerPanel() {
+        const panel = document.getElementById('underlayerControlPanel');
+        const btn = document.getElementById('underlayerToggleBtn');
+        panel.classList.toggle('hidden');
+        btn.classList.toggle('hidden');
+    }
+
+    function setupUnderlayerControls() {
+        const strips = ['left', 'center', 'right'];
+
+        strips.forEach(strip => {
+            // X Offset
+            const xInput = document.getElementById(`${strip}X`);
+            const xVal = document.getElementById(`${strip}XVal`);
+            xInput.addEventListener('input', (e) => {
+                window.underlayerConfig[strip].xOffset = parseFloat(e.target.value);
+                xVal.textContent = e.target.value;
+            });
+
+            // Y Offset
+            const yInput = document.getElementById(`${strip}Y`);
+            const yVal = document.getElementById(`${strip}YVal`);
+            yInput.addEventListener('input', (e) => {
+                window.underlayerConfig[strip].yOffset = parseFloat(e.target.value);
+                yVal.textContent = e.target.value;
+            });
+
+            // Opacity
+            const opacityInput = document.getElementById(`${strip}Opacity`);
+            const opacityVal = document.getElementById(`${strip}OpacityVal`);
+            opacityInput.addEventListener('input', (e) => {
+                window.underlayerConfig[strip].opacity = parseFloat(e.target.value);
+                opacityVal.textContent = parseFloat(e.target.value).toFixed(2);
+            });
+
+            // Color
+            const colorInput = document.getElementById(`${strip}Color`);
+            colorInput.addEventListener('input', (e) => {
+                window.underlayerConfig[strip].color = e.target.value;
+            });
+        });
+    }
+
+    function exportUnderlayerConfig() {
+        const output = document.getElementById('configOutput');
+        const config = JSON.stringify(window.underlayerConfig, null, 2);
+        output.textContent = `// Underlayer Configuration:\n${config}`;
+        output.classList.remove('hidden');
+    }
+
+    setupUnderlayerControls();
 
     // Error Report Modal
     ErrorReport.init();

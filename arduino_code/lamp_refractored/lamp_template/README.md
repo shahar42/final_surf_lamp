@@ -254,7 +254,7 @@ Each surf lamp has 3 strips:
 - Wave Height (Right): **All Red**
 - Wind Speed (Center): **All White**
 - Wave Period (Left): **All Green**
-- **Action**: Connect to "SurfLamp-Setup" WiFi (password: surf123456)
+- **Action**: Connect to "SurfLamp-Setup" WiFi (open network)
 
 #### Trying to Connect
 - All LEDs: **Slow blinking green**
@@ -290,7 +290,7 @@ Your lamp exposes these endpoints at `http://<lamp_ip>`:
 ### Lamp Not Connecting to WiFi
 
 1. **Hold BOOT button for 5 seconds** → Forces WiFi reset
-2. Connect to "SurfLamp-Setup" WiFi (password: surf123456)
+2. Connect to "SurfLamp-Setup" WiFi (open network)
 3. Browser should auto-open to 192.168.4.1
 4. Enter your WiFi credentials
 

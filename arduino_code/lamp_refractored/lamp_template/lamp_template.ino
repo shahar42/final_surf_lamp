@@ -167,24 +167,29 @@ void loop() {
     // Update blinking animations for threshold alerts
     updateBlinkingAnimation();
 
-    // Update status LED based on data freshness
+    // Update status LED and check for stale data
     unsigned long dataAge = millis() - lastSurfData.lastUpdate;
-    if (lastSurfData.dataReceived && dataAge < DATA_STALENESS_THRESHOLD) {
+
+    // Detect stale data (>30min old)
+    if (lastSurfData.dataReceived && dataAge >= DATA_STALENESS_THRESHOLD) {
+        if (!lastSurfData.staleDataError) {
+            lastSurfData.staleDataError = true;
+            lastSurfData.needsDisplayUpdate.store(true);
+            Serial.printf("⚠️ Data became stale (%lu min old)\n", dataAge / 60000);
+        }
+    }
+
+    // Status LED logic based on error states
+    if (lastSurfData.serverUnreachableError || lastSurfData.jsonParseError) {
+        blinkOrangeLED();  // 🟠 Server/communication issues
+    } else if (lastSurfData.invalidDataError || lastSurfData.partialDataError) {
+        blinkRedLED();  // 🔴 Data quality errors
+    } else if (lastSurfData.staleDataError) {
+        blinkOrangeLED();  // 🟠 Stale data
+    } else if (lastSurfData.dataReceived && dataAge < DATA_STALENESS_THRESHOLD) {
         blinkGreenLED();   // ✅ Fresh data (< 30 min old)
     } else {
-        showNoDataConnected();  
-
-        // Log staleness periodically (every 60 seconds)
-        static unsigned long lastStaleLog = 0;
-        if (millis() - lastStaleLog > 60000) {
-            if (!lastSurfData.dataReceived) {
-                Serial.println("⚠️ Status: GREEN (was ORANGE) - No data received yet");
-            } else {
-                Serial.printf("⚠️ Status: GREEN (was ORANGE) - Data is %lu min old (threshold: %lu min)\n",
-                              dataAge / 60000, DATA_STALENESS_THRESHOLD / 60000);
-            }
-            lastStaleLog = millis();
-        }
+        showNoDataConnected();  // Left strip green - waiting for first data
     }
 
     delay(5); // Small delay to prevent excessive CPU usage

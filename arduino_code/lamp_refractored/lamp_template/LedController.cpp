@@ -117,7 +117,14 @@ void showNoDataConnected() {
 
     // Limit refresh rate to 10Hz to avoid excessive CPU/LED updates
     if (millis() - lastUpdate >= 100) {
-        fill_solid(leds, TOTAL_LEDS, CRGB::Green);
+        // Clear ALL LEDs first
+        FastLED.clear();
+
+        // Wave Period (Left): Solid GREEN = Waiting for first data
+        for (int i = 0; i < WAVE_PERIOD_LENGTH; i++) {
+            leds[WAVE_PERIOD_START + i] = CRGB::Green;
+        }
+
         FastLED.show();
         lastUpdate = millis();
     }
@@ -182,6 +189,88 @@ void showAPMode() {
     // Wave Period (Left): Cyan
     for (int i = 0; i < WAVE_PERIOD_LENGTH; i++) {
         leds[WAVE_PERIOD_START + i] = CRGB::Cyan;
+    }
+
+    FastLED.show();
+}
+
+void showInvalidDataError() {
+    if (shouldSuppressAllLEDs()) return;  // Off hours: all LEDs off
+
+    // Clear ALL LEDs first
+    FastLED.clear();
+
+    // Wave Period (Left): Solid RED = Invalid data (both wave and wind are zero)
+    for (int i = 0; i < WAVE_PERIOD_LENGTH; i++) {
+        leds[WAVE_PERIOD_START + i] = CRGB::Red;
+    }
+
+    FastLED.show();
+}
+
+void showServerUnreachableError() {
+    if (shouldSuppressAllLEDs()) return;  // Off hours: all LEDs off
+
+    // Clear ALL LEDs first
+    FastLED.clear();
+
+    // Wave Period (Left): Half green, half blue = Server unreachable
+    int halfPoint = WAVE_PERIOD_LENGTH / 2;
+    for (int i = 0; i < halfPoint; i++) {
+        leds[WAVE_PERIOD_START + i] = CRGB::Green;
+    }
+    for (int i = halfPoint; i < WAVE_PERIOD_LENGTH; i++) {
+        leds[WAVE_PERIOD_START + i] = CRGB::Blue;
+    }
+
+    FastLED.show();
+}
+
+void showStaleDataError() {
+    if (shouldSuppressAllLEDs()) return;  // Off hours: all LEDs off
+
+    // Clear ALL LEDs first
+    FastLED.clear();
+
+    // Wave Period (Left): Half red, half blue = Data is stale (>30min old)
+    int halfPoint = WAVE_PERIOD_LENGTH / 2;
+    for (int i = 0; i < halfPoint; i++) {
+        leds[WAVE_PERIOD_START + i] = CRGB::Red;
+    }
+    for (int i = halfPoint; i < WAVE_PERIOD_LENGTH; i++) {
+        leds[WAVE_PERIOD_START + i] = CRGB::Blue;
+    }
+
+    FastLED.show();
+}
+
+void showPartialDataError() {
+    if (shouldSuppressAllLEDs()) return;  // Off hours: all LEDs off
+
+    // Clear ALL LEDs first
+    FastLED.clear();
+
+    // Wave Period (Left): Solid PURPLE = One sensor failing (wave OR wind is zero, but not both)
+    for (int i = 0; i < WAVE_PERIOD_LENGTH; i++) {
+        leds[WAVE_PERIOD_START + i] = CRGB::Purple;
+    }
+
+    FastLED.show();
+}
+
+void showJsonParseError() {
+    if (shouldSuppressAllLEDs()) return;  // Off hours: all LEDs off
+
+    // Clear ALL LEDs first
+    FastLED.clear();
+
+    // Wave Period (Left): Half green, half yellow = JSON parse error
+    int halfPoint = WAVE_PERIOD_LENGTH / 2;
+    for (int i = 0; i < halfPoint; i++) {
+        leds[WAVE_PERIOD_START + i] = CRGB::Green;
+    }
+    for (int i = halfPoint; i < WAVE_PERIOD_LENGTH; i++) {
+        leds[WAVE_PERIOD_START + i] = CRGB::Yellow;
     }
 
     FastLED.show();
@@ -345,7 +434,40 @@ void updateSurfDisplay() {
         return;
     }
 
-    // OFF HOURS: Lamp completely off (top priority)
+    // ERROR STATES: Check in priority order (highest to lowest priority)
+    // Priority 1: Server/Communication Errors
+    if (lastSurfData.serverUnreachableError) {
+        showServerUnreachableError();
+        Serial.println("❌ Server unreachable - displaying GREEN/BLUE on left strip");
+        return;
+    }
+
+    if (lastSurfData.jsonParseError) {
+        showJsonParseError();
+        Serial.println("❌ JSON parse error - displaying GREEN/YELLOW on left strip");
+        return;
+    }
+
+    // Priority 2: Data Quality Errors
+    if (lastSurfData.invalidDataError) {
+        showInvalidDataError();
+        Serial.println("❌ Invalid data (both zero) - displaying RED on left strip");
+        return;
+    }
+
+    if (lastSurfData.partialDataError) {
+        showPartialDataError();
+        Serial.println("❌ Partial data failure - displaying PURPLE on left strip");
+        return;
+    }
+
+    if (lastSurfData.staleDataError) {
+        showStaleDataError();
+        Serial.println("❌ Stale data - displaying RED/BLUE on left strip");
+        return;
+    }
+
+    // OFF HOURS: Lamp completely off (top priority for normal operation)
     if (lastSurfData.offHoursActive) {
         FastLED.clear();
         FastLED.show();

@@ -143,12 +143,9 @@
         </div>
     </div>
 
-    <!-- Apply Theme Button -->
+    <!-- Theme Status Message -->
     <div class="max-w-6xl mx-auto mt-8 text-center">
-        <button id="apply-theme" class="apply-btn px-8 py-3 rounded-lg font-bold text-lg shadow-lg" disabled>
-            Apply Selected Theme
-        </button>
-        <div id="theme-status" class="text-white/80 text-sm mt-4"></div>
+        <div id="theme-status" class="text-white/80 text-sm"></div>
     </div>
 
     <script>
@@ -307,12 +304,17 @@
                 createLedStrip(`preview-period-${theme.id}`, 4, theme.period_hue, theme.saturation, theme.brightness);
             }, 10);
 
-            card.addEventListener('click', () => selectTheme(theme.id));
+            card.addEventListener('click', () => selectAndApplyTheme(theme.id));
 
             return card;
         }
 
-        function selectTheme(themeId) {
+        function selectAndApplyTheme(themeId) {
+            // Don't do anything if clicking current theme
+            if (themeId === currentUserTheme) {
+                return;
+            }
+
             // Remove selected class from all cards
             document.querySelectorAll('.theme-card').forEach(card => {
                 card.classList.remove('selected');
@@ -324,26 +326,16 @@
 
             selectedTheme = themeId;
 
-            // Enable apply button if different from current theme
-            const applyBtn = document.getElementById('apply-theme');
-            if (themeId !== currentUserTheme) {
-                applyBtn.disabled = false;
-                applyBtn.textContent = `Apply "${ledThemes.find(t => t.id === themeId).name}" Theme`;
-            } else {
-                applyBtn.disabled = true;
-                applyBtn.textContent = 'Current Theme Selected';
-            }
+            // Apply theme immediately
+            applyTheme();
         }
 
         function applyTheme() {
             if (!selectedTheme || selectedTheme === currentUserTheme) return;
 
             const statusDiv = document.getElementById('theme-status');
-            const applyBtn = document.getElementById('apply-theme');
 
-            applyBtn.disabled = true;
-            applyBtn.textContent = 'Applying Theme...';
-            statusDiv.textContent = 'Updating LED theme...';
+            statusDiv.textContent = 'Applying theme...';
             statusDiv.style.color = '#FFFCDE';
 
             fetch('/update-led-theme', {
@@ -372,21 +364,14 @@
                             card.innerHTML += '<div class="text-center mt-4"><span class="text-green-400 font-semibold text-sm">● ACTIVE</span></div>';
                         }
                     });
-
-                    applyBtn.disabled = true;
-                    applyBtn.textContent = 'Current Theme Selected';
                 } else {
-                    statusDiv.textContent = body.message || 'Theme update failed';
+                    statusDiv.textContent = body.message || 'Theme update failed. Please try again.';
                     statusDiv.style.color = '#ef4444';
-                    applyBtn.disabled = false;
-                    applyBtn.textContent = `Apply "${ledThemes.find(t => t.id === selectedTheme).name}" Theme`;
                 }
             })
             .catch(error => {
                 statusDiv.textContent = 'Network error. Please try again.';
                 statusDiv.style.color = '#ef4444';
-                applyBtn.disabled = false;
-                applyBtn.textContent = `Apply "${ledThemes.find(t => t.id === selectedTheme).name}" Theme`;
             });
         }
 
@@ -401,8 +386,9 @@
                 grid.appendChild(createThemeCard(theme));
             });
 
-            // Set up apply button
-            document.getElementById('apply-theme').addEventListener('click', applyTheme);
+            // Show helper text
+            document.getElementById('theme-status').textContent = 'Click any theme to apply it instantly';
+            document.getElementById('theme-status').style.color = '#FFFCDE';
         });
     </script>
 </body>

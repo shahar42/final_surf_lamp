@@ -65,6 +65,10 @@ def create_app():
     def arrow_playground():
         return render_template('arrow_playground.html')
 
+    @app.route('/led-underlayer-playground')
+    def led_underlayer_playground():
+        return render_template('led_underlayer_playground.html')
+
     return app
 
 app = create_app()

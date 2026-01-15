@@ -135,6 +135,9 @@ surf-lamp-processor/thread_safe_background_processor.py
 
 # Setup scripts
 *.sh
+# But track MCP server start scripts
+!mcp-supabase-server/start_server.sh
+!render-mcp-server/start_server.sh
 runtime.txt
 
 # Settings & config
@@ -162,6 +165,5 @@ constumer_support/
 # Arduino - Track all sketches
 !*.ino
 
-# MCP servers (local development only)
-render-mcp-server/
-mcp-supabase-server/
+# MCP servers are now tracked in git to prevent disappearing
+# (removed from gitignore Jan 11, 2026)
