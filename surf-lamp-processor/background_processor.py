@@ -50,6 +50,7 @@ These architectural decisions solve critical production issues:
 import os
 import time
 import logging
+from logging.handlers import RotatingFileHandler
 from sqlalchemy import create_engine
 from dotenv import load_dotenv
 
@@ -64,12 +65,12 @@ from weather_api_client import fetch_surf_data
 
 load_dotenv()
 
-# Configure detailed logging
+# Configure detailed logging with rotation (Max 5MB, keep 1 backup)
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('lamp_processor.log'),
+        RotatingFileHandler('lamp_processor.log', maxBytes=5*1024*1024, backupCount=1),
         logging.StreamHandler()
     ]
 )

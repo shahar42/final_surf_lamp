@@ -83,10 +83,10 @@ def dashboard():
     # Add surf conditions for user's default location if available
     if location:
         dashboard_data['conditions'] = {
-            'wave_height_m': location.wave_height_m,
-            'wave_period_s': location.wave_period_s,
-            'wind_speed_mps': location.wind_speed_mps,
-            'wind_direction_deg': location.wind_direction_deg,
+            'wave_height_m': location.wave_height_m or 0.0,
+            'wave_period_s': location.wave_period_s or 0.0,
+            'wind_speed_mps': location.wind_speed_mps or 0.0,
+            'wind_direction_deg': location.wind_direction_deg or 0,
             'last_updated': location.last_updated
         }
 
@@ -140,10 +140,10 @@ def dashboard_view(view_type):
 
     if location:
         dashboard_data['conditions'] = {
-            'wave_height_m': location.wave_height_m,
-            'wave_period_s': location.wave_period_s,
-            'wind_speed_mps': location.wind_speed_mps,
-            'wind_direction_deg': location.wind_direction_deg,
+            'wave_height_m': location.wave_height_m or 0.0,
+            'wave_period_s': location.wave_period_s or 0.0,
+            'wind_speed_mps': location.wind_speed_mps or 0.0,
+            'wind_direction_deg': location.wind_direction_deg or 0,
             'last_updated': location.last_updated
         }
     
