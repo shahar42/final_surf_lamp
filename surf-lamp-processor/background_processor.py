@@ -48,6 +48,8 @@ These architectural decisions solve critical production issues:
 """
 
 import os
+import sys
+import signal
 import time
 import logging
 from logging.handlers import RotatingFileHandler
@@ -101,6 +103,19 @@ try:
 except Exception as e:
     logger.error(f"Failed to create database engine: {e}")
     exit(1)
+
+
+# RAII-style cleanup: Ensure database connections are disposed on shutdown
+def cleanup_handler(sig, frame):
+    """Signal handler for graceful shutdown (SIGTERM from Render, SIGINT from Ctrl+C)"""
+    logger.info(f"🛑 Received signal {sig}, shutting down gracefully...")
+    engine.dispose()
+    logger.info("✅ Database connections disposed")
+    sys.exit(0)
+
+# Register signal handlers (like C++ destructors)
+signal.signal(signal.SIGTERM, cleanup_handler)  # Render kills with SIGTERM
+signal.signal(signal.SIGINT, cleanup_handler)   # Ctrl+C sends SIGINT
 
 
 def process_all_lamps():
@@ -227,20 +242,27 @@ def main():
     else:
         logger.info("🔄 PRODUCTION MODE: Running continuously every 15 minutes")
 
-        # Run once immediately for testing
-        logger.info("Running initial cycle...")
-        process_all_lamps()
+        try:
+            # Run once immediately for testing
+            logger.info("Running initial cycle...")
+            process_all_lamps()
 
-        # Then schedule every 15 minutes
-        import schedule
-        schedule.every(15).minutes.do(process_all_lamps)
+            # Then schedule every 15 minutes
+            import schedule
+            schedule.every(15).minutes.do(process_all_lamps)
 
-        logger.info("⏰ Scheduled to run every 15 minutes. Waiting...")
+            logger.info("⏰ Scheduled to run every 15 minutes. Waiting...")
 
-        # Keep running
-        while True:
-            schedule.run_pending()
-            time.sleep(60)  # Check every minute
+            # Keep running
+            while True:
+                schedule.run_pending()
+                time.sleep(60)  # Check every minute
+
+        finally:
+            # RAII cleanup: Always dispose connections (like C++ destructor on stack unwinding)
+            logger.info("🧹 Cleaning up database connections...")
+            engine.dispose()
+            logger.info("✅ Cleanup complete")
 
 
 if __name__ == "__main__":
