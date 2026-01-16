@@ -3,7 +3,7 @@ import time
 import sys
 import os
 from datetime import datetime, timezone
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, make_response
 from data_base import SessionLocal, Arduino, Location, User, ErrorReport
 from utils.helpers import is_quiet_hours, is_off_hours, get_current_tz_offset
 from utils.threshold_logic import calculate_effective_threshold
