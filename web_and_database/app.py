@@ -5,7 +5,7 @@ from utils.helpers import convert_wind_direction
 from flask import redirect, url_for
 from blueprints import (
     auth, dashboard, api_user,
-    api_arduino, api_chat, reports, admin, landing
+    api_arduino, api_locations, api_chat, reports, admin, landing
 )
 
 def create_app():
@@ -26,6 +26,7 @@ def create_app():
     app.register_blueprint(dashboard.bp)
     app.register_blueprint(api_user.bp)
     app.register_blueprint(api_arduino.bp)
+    app.register_blueprint(api_locations.bp)  # Public location conditions (CDN-cacheable)
     app.register_blueprint(api_chat.bp)
     app.register_blueprint(reports.bp)
     app.register_blueprint(admin.bp)

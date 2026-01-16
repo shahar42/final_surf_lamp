@@ -326,6 +326,101 @@ def get_server_discovery():
         logger.error(f"❌ Discovery endpoint error: {e}")
         return {'error': 'Discovery unavailable'}, 500
 
+@bp.route("/api/arduino/<int:arduino_id>/settings", methods=['GET'])
+def get_arduino_settings(arduino_id):
+    """
+    PRIVATE ENDPOINT - User-specific settings
+    Returns user preferences and thresholds for a specific arduino.
+
+    This data changes infrequently (only when user modifies settings).
+    Arduino should cache locally for 1 hour and only re-fetch when settings_version changes.
+
+    Response includes:
+    - Wave/wind thresholds (min/max)
+    - LED theme
+    - Brightness level
+    - Quiet hours / off hours status
+    - Location (tells arduino which /api/locations/{location}/conditions to call)
+    - Coordinates + timezone for autonomous calculations
+
+    Architecture:
+    - Paired with /api/locations/{location}/conditions for split caching
+    - Settings fetched every 60 minutes (or when user updates via server push notification)
+    - Conditions fetched every 13 minutes from CDN
+    - Arduino merges locally for efficiency
+    """
+    logger.info(f"⚙️ Settings requested for Arduino {arduino_id}")
+
+    try:
+        db = SessionLocal()
+        try:
+            # Query arduino with user data
+            result = db.query(Arduino, User).select_from(Arduino) \
+                .join(User, Arduino.user_id == User.user_id) \
+                .filter(Arduino.arduino_id == arduino_id) \
+                .first()
+
+            if not result:
+                logger.warning(f"⚠️ Arduino {arduino_id} not found in database")
+                return {'error': 'Arduino not found'}, 404
+
+            arduino, user = result
+
+            # Check quiet/off hours status
+            quiet_hours_active = is_quiet_hours(
+                user.location,
+                getattr(user, 'quiet_times_enabled', True)
+            )
+            off_hours_active = is_off_hours(
+                user.location,
+                getattr(user, 'off_time_start', None),
+                getattr(user, 'off_time_end', None),
+                getattr(user, 'off_times_enabled', False)
+            )
+
+            # Get location coordinates for autonomous calculations
+            location_data = LOCATION_COORDS.get(user.location)
+            if not location_data:
+                logger.warning(f"⚠️ Location '{user.location}' not in LOCATION_COORDS")
+                location_data = LOCATION_COORDS.get("Tel Aviv", {"latitude": 32.0853, "longitude": 34.7818})
+
+            # Calculate timezone offset
+            tz_offset = get_current_tz_offset(user.location)
+
+            # Build settings response
+            settings = {
+                'arduino_id': arduino_id,
+                'location': user.location,  # Tells arduino which /api/locations/{location}/conditions to call
+                'latitude': location_data['latitude'],
+                'longitude': location_data['longitude'],
+                'tz_offset': tz_offset,
+                'wave_threshold_cm': int((user.wave_threshold_m or 0) * 100),
+                'wave_threshold_max_cm': int((getattr(user, 'wave_threshold_max_m', None) or 999) * 100),
+                'wind_speed_threshold_knots': int(user.wind_threshold_knots or 22),
+                'wind_speed_threshold_max_knots': int(getattr(user, 'wind_threshold_max_knots', None) or 999),
+                'led_theme': user.theme or 'day',
+                'quiet_hours_active': quiet_hours_active,
+                'off_hours_active': off_hours_active,
+                'brightness_multiplier': getattr(user, 'brightness_level', BRIGHTNESS_LEVELS['MID']),
+                'settings_version': int(arduino.last_poll_time.timestamp()) if arduino.last_poll_time else 0
+            }
+
+            logger.info(f"✅ Returning settings for Arduino {arduino_id}: theme={settings['led_theme']}, location={settings['location']}")
+
+            # Private data - don't cache publicly, but allow arduino to cache locally
+            response = make_response(settings, 200)
+            response.headers['Cache-Control'] = 'private, max-age=3600'  # 1 hour
+
+            return response
+
+        finally:
+            db.close()
+
+    except Exception as e:
+        logger.error(f"❌ Error getting settings for Arduino {arduino_id}: {e}")
+        return {'error': 'Server error'}, 500
+
+
 @bp.route("/api/arduino/status", methods=['GET'])
 def arduino_status_overview():
     """
