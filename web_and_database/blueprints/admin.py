@@ -18,7 +18,6 @@ bp = Blueprint('admin', __name__)
 @login_required
 def admin_waitlist():
     """Admin dashboard to view all waitlist entries. Requires login."""
-    # Check if user is admin (user_id = 1 is typical admin pattern)
     if session.get('user_id') != 1:
         flash('Unauthorized access.', 'error')
         return redirect(url_for('dashboard.dashboard'))
@@ -33,21 +32,15 @@ def admin_waitlist():
                           total_count=total_count)
 
 @bp.route("/admin/trigger-processor")
-@login_required  # Only logged-in users can trigger
+@login_required
 def trigger_processor():
     """Manually trigger the background processor once"""
     try:
-        # Import the processor function
-        # Need to find where surf-lamp-processor is relative to here.
-        # blueprints/admin.py -> web_and_database -> root -> surf-lamp-processor
-        # root is .../Git_Surf_Lamp_Agent
         root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         sys.path.append(os.path.join(root_dir, 'surf-lamp-processor'))
         
-        # We need to handle ImportError if the directory doesn't exist
         try:
             from background_processor import run_once
-            # Run the processor once
             success = run_once()
             
             if success:
@@ -75,7 +68,7 @@ def create_broadcast():
     """Create a new broadcast message (admin only)"""
 
     message = request.json.get('message', '').strip()
-    target_location = request.json.get('target_location')  # "all" or specific location
+    target_location = request.json.get('target_location')
 
     # Validation
     if not message or len(message) > 500:
@@ -87,7 +80,7 @@ def create_broadcast():
     # Sanitize message
     message = sanitize_input(message)
 
-    # Duration Policy (Scott Meyers: Enforce invariants via strict lookup)
+    # Duration Policy
     ALLOWED_DURATIONS = {
         2: timedelta(hours=2),
         5: timedelta(hours=5),
@@ -99,16 +92,14 @@ def create_broadcast():
     except (ValueError, TypeError):
         requested_duration = 2
 
-    # Calculate expiry based on policy (defaulting to 2h if invalid input)
     expiry_delta = ALLOWED_DURATIONS.get(requested_duration, timedelta(hours=2))
     expires_at = datetime.utcnow() + expiry_delta
 
-    # Create broadcast
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.email == session['user_email']).first()
 
-        # Deactivate all previous broadcasts (new broadcast overrides all old ones)
+        # Deactivate all previous broadcasts
         db.query(Broadcast).filter(Broadcast.is_active).update({'is_active': False})
 
         broadcast = Broadcast(
@@ -141,7 +132,6 @@ def get_active_broadcasts():
 
         now = datetime.utcnow()
 
-        # Get broadcasts: (not expired) AND (all users OR user's location)
         broadcasts = db.query(Broadcast).filter(
             Broadcast.is_active,
             Broadcast.expires_at > now,
@@ -171,7 +161,6 @@ def arduino_status_api():
     """API endpoint returning Arduino device status based on arduino.last_poll_time timestamps"""
     db = SessionLocal()
     try:
-        # Get all arduinos with their users and locations
         results = db.query(Arduino, User, Location).join(User, Arduino.user_id == User.user_id).join(Location, Arduino.location == Location.location).all()
 
         now = datetime.utcnow()
@@ -180,18 +169,15 @@ def arduino_status_api():
         for arduino, user, location in results:
             arduino_id = arduino.arduino_id
 
-            # Use arduino.last_poll_time which is updated on every Arduino data pull
             if arduino.last_poll_time:
                 last_seen = arduino.last_poll_time
 
-                # Handle timezone-aware timestamps
                 if last_seen.tzinfo is not None:
                     last_seen = last_seen.replace(tzinfo=None)
 
                 time_diff = (now - last_seen).total_seconds()
                 minutes_ago = int(time_diff / 60)
 
-                # Classify status based on last pull time
                 if minutes_ago < 15:
                     status = 'active'
                     status_text = f'{minutes_ago} min ago' if minutes_ago > 0 else 'Just now'
@@ -210,7 +196,6 @@ def arduino_status_api():
 
                 last_updated = last_seen.isoformat()
             else:
-                # No timestamp recorded yet
                 status = 'never'
                 status_text = 'Never connected'
                 last_updated = None
@@ -224,7 +209,6 @@ def arduino_status_api():
                 'last_updated': last_updated
             })
 
-        # Sort by status priority (active -> stale -> offline -> never), then by arduino_id descending
         status_priority = {'active': 0, 'stale': 1, 'offline': 2, 'never': 3}
         devices.sort(key=lambda x: (status_priority[x['status']], -x['arduino_id']))
 

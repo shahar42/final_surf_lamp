@@ -20,22 +20,17 @@ def update_location():
         new_location = data.get('location')
         user_id = session.get('user_id')
         
-        # Validate location
         if new_location not in SURF_LOCATIONS:
             return {'success': False, 'message': 'Invalid location selected'}, 400
         
-        # Check rate limit
         if not check_location_change_limit(user_id):
             return {'success': False, 'message': "Maximum 5 location changes per day reached"}, 429
             
-        # Record this change
         record_location_change(user_id)
         
-        # Update location in database
         success, message = update_user_location(user_id, new_location)
         
         if success:
-            # Update session
             session['user_location'] = new_location
             return {'success': True, 'message': 'Update success, data will update soon'}
         else:
@@ -50,25 +45,19 @@ def update_location():
 def update_threshold():
     try:
         data = request.get_json()
-        print(f"[DEBUG] Wave threshold update payload: {data}")  # DEBUG LOG
-        threshold_min = float(data.get('threshold_min', data.get('threshold', 1.0)))  # Backwards compatible
+        threshold_min = float(data.get('threshold_min', data.get('threshold', 1.0)))
         threshold_max = data.get('threshold_max')
         user_id = session.get('user_id')
-        print(f"[DEBUG] Parsed - min: {threshold_min}, max: {threshold_max}, user_id: {user_id}")  # DEBUG LOG
 
-        # Convert max to float if provided
         if threshold_max is not None:
             threshold_max = float(threshold_max)
 
-        # Validate min threshold bounds
         if threshold_min < THRESHOLD_LIMITS['WAVE_MIN'] or threshold_min > THRESHOLD_LIMITS['WAVE_MAX']:
             return {'success': False, 'message': f"Minimum threshold must be between {THRESHOLD_LIMITS['WAVE_MIN']} and {THRESHOLD_LIMITS['WAVE_MAX']} meters"}, 400
 
-        # Validate max threshold bounds if provided
         if threshold_max is not None and (threshold_max < THRESHOLD_LIMITS['WAVE_MIN'] or threshold_max > THRESHOLD_LIMITS['WAVE_MAX']):
             return {'success': False, 'message': f"Maximum threshold must be between {THRESHOLD_LIMITS['WAVE_MIN']} and {THRESHOLD_LIMITS['WAVE_MAX']} meters"}, 400
 
-        # Validate range relationship
         is_valid, error_msg = validate_threshold_range(threshold_min, threshold_max)
         if not is_valid:
             return {'success': False, 'message': error_msg}, 400
@@ -80,7 +69,6 @@ def update_threshold():
                 user.wave_threshold_m = threshold_min
                 user.wave_threshold_max_m = threshold_max
                 db.commit()
-                print(f"[DEBUG] Saved to DB - user_id: {user_id}, wave_threshold_m: {user.wave_threshold_m}, wave_threshold_max_m: {user.wave_threshold_max_m}")  # DEBUG LOG
 
                 if threshold_max is not None:
                     return {'success': True, 'message': f'Wave threshold range updated: {threshold_min}m - {threshold_max}m'}
@@ -102,25 +90,19 @@ def update_threshold():
 def update_wind_threshold():
     try:
         data = request.get_json()
-        print(f"[DEBUG] Wind threshold update payload: {data}")  # DEBUG LOG
-        threshold_min = float(data.get('threshold_min', data.get('threshold', 22)))  # Backwards compatible
+        threshold_min = float(data.get('threshold_min', data.get('threshold', 22)))
         threshold_max = data.get('threshold_max')
         user_id = session.get('user_id')
-        print(f"[DEBUG] Parsed - min: {threshold_min}, max: {threshold_max}, user_id: {user_id}")  # DEBUG LOG
 
-        # Convert max to float if provided
         if threshold_max is not None:
             threshold_max = float(threshold_max)
 
-        # Validate min threshold bounds
         if threshold_min < THRESHOLD_LIMITS['WIND_MIN'] or threshold_min > THRESHOLD_LIMITS['WIND_MAX']:
             return {'success': False, 'message': f"Minimum wind threshold must be between {THRESHOLD_LIMITS['WIND_MIN']} and {THRESHOLD_LIMITS['WIND_MAX']} knots"}, 400
 
-        # Validate max threshold bounds if provided
         if threshold_max is not None and (threshold_max < THRESHOLD_LIMITS['WIND_MIN'] or threshold_max > THRESHOLD_LIMITS['WIND_MAX']):
             return {'success': False, 'message': f"Maximum wind threshold must be between {THRESHOLD_LIMITS['WIND_MIN']} and {THRESHOLD_LIMITS['WIND_MAX']} knots"}, 400
 
-        # Validate range relationship
         is_valid, error_msg = validate_threshold_range(threshold_min, threshold_max)
         if not is_valid:
             return {'success': False, 'message': error_msg}, 400
@@ -132,7 +114,6 @@ def update_wind_threshold():
                 user.wind_threshold_knots = threshold_min
                 user.wind_threshold_max_knots = threshold_max
                 db.commit()
-                print(f"[DEBUG] Saved to DB - user_id: {user_id}, wind_threshold_knots: {user.wind_threshold_knots}, wind_threshold_max_knots: {user.wind_threshold_max_knots}")  # DEBUG LOG
 
                 if threshold_max is not None:
                     return {'success': True, 'message': f'Wind threshold range updated: {threshold_min} - {threshold_max} knots'}
@@ -197,7 +178,6 @@ def update_theme():
             if user:
                 user.theme = theme
                 db.commit()
-                logger.info(f"✅ User {user.username} updated LED theme to: {theme}")
                 return {'success': True, 'message': f'LED theme updated to {theme}'}
             else:
                 return {'success': False, 'message': 'User not found'}, 404
@@ -217,7 +197,6 @@ def update_led_theme():
         theme_id = data.get('theme_id')
         user_id = session.get('user_id')
 
-        # Valid LED theme IDs - 5 themes with distinct colors (minimal red)
         valid_themes = [
             'classic_surf', 'vibrant_mix', 'tropical_paradise', 'ocean_sunset', 'electric_vibes'
         ]
@@ -231,7 +210,6 @@ def update_led_theme():
             if user:
                 user.theme = theme_id
                 db.commit()
-                logger.info(f"✅ User {user.username} updated LED theme to: {theme_id}")
                 return {'success': True, 'message': f'LED theme updated to {theme_id}'}
             else:
                 return {'success': False, 'message': 'User not found'}, 404
@@ -252,7 +230,6 @@ def update_brightness():
         brightness = float(data.get('brightness'))
         user_id = session.get('user_id')
 
-        # Validate brightness level (Range: 0.0 to 1.0)
         if not (0.0 < brightness <= 1.0):
             return {'success': False, 'message': 'Invalid brightness level. Must be between 0.0 and 1.0'}, 400
 
@@ -262,7 +239,6 @@ def update_brightness():
             if user:
                 user.brightness_level = brightness
                 db.commit()
-                logger.info(f"✅ User {user.username} updated brightness to: {brightness}")
                 return {'success': True, 'message': f'Brightness updated successfully'}
             else:
                 return {'success': False, 'message': 'User not found'}, 404
@@ -277,13 +253,12 @@ def update_brightness():
 @login_required
 @limiter.limit("30/minute")
 def update_unit_preference():
-    """Update user's wave height unit preference (meters or feet - wind always stays in knots)"""
+    """Update user's wave height unit preference (meters or feet)"""
     try:
         data = request.get_json()
         unit_preference = data.get('unit_preference')
         user_id = session.get('user_id')
 
-        # Validate unit preference
         if unit_preference not in ['meters', 'feet']:
             return {'success': False, 'message': 'Invalid unit preference. Must be meters or feet'}, 400
 
@@ -293,7 +268,6 @@ def update_unit_preference():
             if user:
                 user.preferred_output = unit_preference
                 db.commit()
-                logger.info(f"✅ User {user.username} updated unit preference to: {unit_preference}")
                 return {'success': True, 'message': f'Unit preference updated to {unit_preference}'}
             else:
                 return {'success': False, 'message': 'User not found'}, 404
@@ -308,7 +282,7 @@ def update_unit_preference():
 @login_required
 @limiter.limit("30/minute")
 def toggle_quiet_hours():
-    """Toggle quiet hours feature on/off (10pm-6am top LED mode)"""
+    """Toggle quiet hours feature on/off"""
     try:
         data = request.get_json()
         enabled = data.get('enabled', True)
@@ -321,7 +295,6 @@ def toggle_quiet_hours():
                 user.quiet_times_enabled = enabled
                 db.commit()
                 status = "enabled" if enabled else "disabled"
-                logger.info(f"✅ User {user.username} {status} quiet hours")
                 return jsonify({'success': True, 'message': f'Quiet hours {status}'})
             else:
                 return jsonify({'success': False, 'message': 'User not found'}), 404
