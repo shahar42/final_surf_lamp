@@ -1,0 +1,139 @@
+{# templates/partials/led_visualization.html #}
+<div class="max-w-6xl mx-auto mb-6 lg:mb-2">
+    <!-- Removed 'card', 'shadow-2xl', 'bg-...' classes to make it float -->
+    <div class="w-full flex justify-center">
+        <div class="flex flex-col items-center w-full">
+            <!-- Surfboard LED Visualization -->
+            <div class="flex flex-col items-center w-full overflow-hidden">
+                <!-- Surfboard Canvas with Wind Direction Compass -->
+                <div id="lampScaleContainer" class="relative inline-block origin-top" style="transform: scale(1.15);">
+                    <canvas id="surfboardCanvas" width="350" height="550" role="img" aria-label="Surfboard LED visualization showing current surf conditions with three LED strips for wave period, wind speed, and wave height">
+                        Your browser does not support the canvas element. Current surf conditions: Wave height {{ data.conditions.wave_height_m }}m, Wind speed {{ data.conditions.wind_speed_mps }} m/s, Wave period {{ data.conditions.wave_period_s }}s.
+                    </canvas>
+                    <!-- Wind Direction Compass Overlay -->
+                    <div id="arrowContainer" class="absolute left-1/2 -translate-x-1/2 flex items-center justify-center pointer-events-none" style="width: 50px; height: 50px; top: 82px;">
+                        <div class="transition-transform duration-500 origin-center" id="windArrow" style="transform: rotate({{ (data.conditions.wind_direction_deg + 180) if data.conditions.wind_direction_deg else 0 }}deg); width: 105px; height: 105px;">
+                            <!-- Carved Arrow SVG (points where wind is GOING) -->
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full" style="filter: brightness(1.45);">
+                                <defs>
+                                    <filter id="carvedArrow" x="-50%" y="-50%" width="200%" height="200%">
+                                        <feGaussianBlur in="SourceAlpha" stdDeviation="3" result="blur"/>
+                                        <feOffset in="blur" dx="0" dy="0" result="offsetBlur"/>
+                                        <feFlood flood-color="#000000" flood-opacity="0.3" result="floodColor"/>
+                                        <feComposite in="floodColor" in2="offsetBlur" operator="in" result="innerShadow"/>
+                                        <feMerge>
+                                            <feMergeNode in="innerShadow"/>
+                                            <feMergeNode in="SourceGraphic"/>
+                                        </feMerge>
+                                    </filter>
+                                </defs>
+                                <path d="M12 3 Q11.5 21 12 21 M12 3 Q9 3 6 10 M12 3 Q15 3 18 10" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.2" filter="url(#carvedArrow)"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <!-- Strip Labels (P, W, H) -->
+                    <div id="stripLabelP" class="absolute font-bold pointer-events-none" style="left: 140px; top: 448px; font-size: 12px; color: #000000; opacity: 0.3;">P</div>
+                    <div id="stripLabelW" class="absolute font-bold pointer-events-none" style="left: 169px; top: 448px; font-size: 12px; color: #000000; opacity: 0.3;">W</div>
+                    <div id="stripLabelH" class="absolute font-bold pointer-events-none" style="left: 201px; top: 448px; font-size: 12px; color: #000000; opacity: 0.3;">H</div>
+                </div>
+
+                <!-- Legend & Data Values -->
+                <div id="legendContainer" class="relative w-[350px] mx-auto text-white/90 text-sm font-semibold pointer-events-none transition-all duration-300">
+                    <div class="flex justify-between items-start transition-all duration-300" id="legendRow">
+                        <!-- Left: Period -->
+                        <div class="flex flex-col items-center gap-1 w-24 text-center">
+                            <span class="text-white/70 text-xs uppercase tracking-wider">Period</span>
+                        </div>
+
+                        <!-- Center: Wind -->
+                        <div class="flex flex-col items-center gap-1 w-24 text-center">
+                            <span class="text-white/70 text-xs uppercase tracking-wider">Wind</span>
+                        </div>
+
+                        <!-- Right: Height -->
+                        <div class="flex flex-col items-center gap-1 w-24 text-center">
+                            <span class="text-white/70 text-xs uppercase tracking-wider">Height</span>
+                        </div>
+                    </div>
+
+                    <!-- Wind Direction Legend -->
+                    <div class="flex justify-center items-center gap-4 mt-3">
+                        <!-- North (Green) -->
+                        <div class="flex items-center gap-1">
+                            <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                            <span class="text-white/60 text-xs">N</span>
+                        </div>
+                        <!-- East (Yellow) -->
+                        <div class="flex items-center gap-1">
+                            <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                            <span class="text-white/60 text-xs">E</span>
+                        </div>
+                        <!-- South (Red) -->
+                        <div class="flex items-center gap-1">
+                            <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                            <span class="text-white/60 text-xs">S</span>
+                        </div>
+                        <!-- West (Blue) -->
+                        <div class="flex items-center gap-1">
+                            <div class="w-3 h-3 rounded-full bg-blue-500"></div>
+                            <span class="text-white/60 text-xs">W</span>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                    // Apply Visual Calibration from Config
+                    document.addEventListener('DOMContentLoaded', () => {
+                        const cal = DashboardConfig.CALIBRATION.LAYOUT;
+                        
+                        // Lamp Scale
+                        const lampContainer = document.getElementById('lampScaleContainer');
+                        if (lampContainer) {
+                            lampContainer.style.transform = `scale(${cal.LAMP_SCALE})`;
+                        }
+
+                        // Arrow Position & Size
+                        const arrowContainer = document.getElementById('arrowContainer');
+                        const windArrow = document.getElementById('windArrow');
+                        if (arrowContainer) arrowContainer.style.top = `${cal.ARROW_TOP_Y}px`;
+                        if (windArrow) {
+                            windArrow.style.width = `${cal.ARROW_SIZE}px`;
+                            windArrow.style.height = `${cal.ARROW_SIZE}px`;
+                        }
+
+                        // Legend Position & Spread
+                        const legendContainer = document.getElementById('legendContainer');
+                        const legendRow = document.getElementById('legendRow');
+                        if (legendContainer) legendContainer.style.marginTop = `${cal.LEGEND_MARGIN_TOP}px`;
+                        if (legendRow) {
+                            legendRow.style.paddingLeft = `${cal.LEGEND_SPREAD}px`;
+                            legendRow.style.paddingRight = `${cal.LEGEND_SPREAD}px`;
+                        }
+
+                        // Strip Labels (P, W, H)
+                        const labels = DashboardConfig.CALIBRATION.STRIP_LABELS;
+                        const labelP = document.getElementById('stripLabelP');
+                        const labelW = document.getElementById('stripLabelW');
+                        const labelH = document.getElementById('stripLabelH');
+
+                        if (labelP) {
+                            labelP.style.fontSize = `${labels.FONT_SIZE}px`;
+                            labelP.style.top = `${labels.TOP_Y}px`;
+                            labelP.style.left = `${labels.LEFT_LABEL_X}px`;
+                        }
+                        if (labelW) {
+                            labelW.style.fontSize = `${labels.FONT_SIZE}px`;
+                            labelW.style.top = `${labels.TOP_Y}px`;
+                            labelW.style.left = `${labels.CENTER_LABEL_X}px`;
+                        }
+                        if (labelH) {
+                            labelH.style.fontSize = `${labels.FONT_SIZE}px`;
+                            labelH.style.top = `${labels.TOP_Y}px`;
+                            labelH.style.left = `${labels.RIGHT_LABEL_X}px`;
+                        }
+                    });
+                </script>
+            </div>
+        </div>
+    </div>
+</div>

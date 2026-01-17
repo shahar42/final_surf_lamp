@@ -1,0 +1,43 @@
+{# templates/partials/error_report_modal.html #}
+<div id="errorReportModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-2xl p-8 max-w-lg w-full mx-4 shadow-2xl">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Report an Error</h2>
+
+        <form id="errorReportForm">
+            <div class="mb-4">
+                <label for="errorDescription" class="block text-gray-700 font-semibold mb-2">
+                    Describe the issue you're experiencing:
+                </label>
+                <textarea
+                    id="errorDescription"
+                    rows="6"
+                    maxlength="1000"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800"
+                    placeholder="Example: My lamp LEDs are not updating after I changed my location..."
+                ></textarea>
+                <div class="text-right text-sm text-gray-500 mt-1">
+                    <span id="charCount">0</span>/1000 characters
+                </div>
+            </div>
+
+            <div id="errorReportStatus" class="mb-4 text-sm hidden"></div>
+
+            <div class="flex justify-end space-x-3">
+                <button
+                    type="button"
+                    id="cancelErrorReport"
+                    class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold rounded-lg transition-colors"
+                >
+                    Cancel
+                </button>
+                <button
+                    type="submit"
+                    id="submitErrorReport"
+                    class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-colors"
+                >
+                    Submit Report
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

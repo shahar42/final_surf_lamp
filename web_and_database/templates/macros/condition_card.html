@@ -1,0 +1,18 @@
+{# templates/macros/condition_card.html #}
+{% macro condition_card(icon_path, value, unit, label, scale=1.0) %}
+<div class="text-center">
+    <div class="mb-1 flex items-center justify-center h-16">
+        <img src="{{ url_for('static', filename=icon_path) }}"
+             alt="{{ label }}"
+             class="max-h-full w-auto object-contain png-icon"
+             style="transform: scale({{ scale }});">
+    </div>
+    <div class="text-white font-bold text-lg sm:text-xl">
+        {% if value %}
+            {{ "%.1f"|format(value) }}{{ unit }}
+        {% else %}
+            --
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
