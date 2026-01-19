@@ -1,7 +1,5 @@
 """
 Surf Data Transformer
-Pure data transformation functions with no side effects.
-
 Responsibilities:
 - Extract values from nested JSON structures
 - Find current hour in time arrays
@@ -59,7 +57,7 @@ def get_current_hour_index(time_array):
         current_hour = datetime.utcnow().replace(minute=0, second=0, microsecond=0)
         current_hour_str = current_hour.strftime("%Y-%m-%dT%H:%M")
 
-        logger.info(f"🕐 Looking for current hour: {current_hour_str}")
+        logger.info(f"🕐 Looking for the current hour: {current_hour_str}")
 
         for i, time_str in enumerate(time_array):
             if time_str.startswith(current_hour_str):
@@ -99,10 +97,25 @@ def apply_conversions(value, conversions, field_name):
 
     return value
 
+def normalize_low_values(standardized):
+
+    if 'wave_height_m' in standardized:
+        if 0.01 <= standardized['wave_height_m'] <= 0.9
+            standardized['wave_height_m'] = 1.0
+    
+    if 'wave_period_s' in standardized:
+        if 0.01 <= standardized['wave_period_s'] <= 0.9
+            standardized['wave_period_s'] = 1.0
+
+    if 'wind_speed_mps' in standardized:
+        if 0.01 <= standardized['wind_speed_mps'] <= 0.9
+            standardized['wind_speed_mps'] = 1.0
+
 
 def standardize_surf_data(raw_data, endpoint_url):
     """
     Extract standardized fields using endpoint-specific configuration.
+    when data is between 0.01 to 0.9 it rounds it up to 1 so the lamp doesnt recive 0 due to int rounding which will cause it to display partial data error
     Only returns fields that are actually found in the API response.
     """
     logger.info(f"🔧 Standardizing data from: {endpoint_url}")
@@ -150,10 +163,16 @@ def standardize_surf_data(raw_data, endpoint_url):
                 converted_value = apply_conversions(raw_value, conversions, standard_field)
                 standardized[standard_field] = converted_value
 
+
     # Only add metadata if some data was actually extracted
     if standardized:
         standardized['timestamp'] = int(time.time())
         standardized['source_endpoint'] = endpoint_url
 
     logger.info(f"✅ Standardized data: {json.dumps(standardized, indent=2)}")
+
+    normalize_low_values(standardized)
+
+    logger.info(f"values bellow 1 have been normalized")
+
     return standardized
