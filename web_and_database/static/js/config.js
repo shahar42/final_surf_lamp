@@ -79,27 +79,37 @@ const DashboardConfig = {
         315: [0, 255, 255]   // Northwest - Cyan
     },
 
-    // Color Themes (matching Arduino themes)
+    // Color Themes (matching themes.html definitions)
     COLOR_THEMES: {
-        ocean_breeze: {
-            wave: [0, 150, 255],
-            period: [0, 255, 200],
-            wind: [255, 215, 0]  // Yellow
+        classic_surf: {
+            wave: [0, 100, 255],      // Blue waves
+            period: [255, 255, 0],    // Yellow period
+            wind: [200, 200, 200]     // White wind
         },
-        sunset_glow: {
-            wave: [255, 100, 50],
-            period: [255, 150, 0],
-            wind: [255, 50, 100]
+        vibrant_mix: {
+            wave: [150, 0, 255],      // Purple waves
+            period: [0, 255, 0],      // Green period
+            wind: [0, 150, 255]       // Blue wind
         },
-        tropical_vibes: {
-            wave: [0, 255, 150],
-            period: [255, 200, 0],
-            wind: [255, 100, 200]
+        tropical_paradise: {
+            wave: [0, 255, 0],        // Green waves
+            period: [150, 0, 255],    // Magenta period
+            wind: [0, 255, 255]       // Cyan wind
+        },
+        ocean_sunset: {
+            wave: [0, 100, 255],      // Blue waves
+            period: [255, 100, 150],  // Pink period
+            wind: [255, 150, 0]       // Orange wind
+        },
+        electric_vibes: {
+            wave: [0, 255, 255],      // Cyan waves
+            period: [150, 0, 255],    // Purple period
+            wind: [255, 255, 0]       // Yellow wind
         },
         day: { // Default theme
-            wave: [0, 150, 255],
-            period: [0, 255, 200],
-            wind: [255, 215, 0] // Yellow
+            wave: [0, 100, 255],
+            period: [255, 255, 0],
+            wind: [200, 200, 200]
         }
     },
 
