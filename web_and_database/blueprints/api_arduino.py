@@ -5,7 +5,7 @@ import os
 from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify, make_response
 from data_base import SessionLocal, Arduino, Location, User, ErrorReport
-from utils.helpers import is_quiet_hours, is_off_hours, get_current_tz_offset
+from utils.helpers import is_quiet_hours, is_off_hours, get_current_tz_offset, get_sunset_info_cached
 from utils.threshold_logic import calculate_effective_threshold
 from config import BRIGHTNESS_LEVELS
 
@@ -134,8 +134,8 @@ def get_arduino_surf_data(arduino_id):
             elif quiet_hours_active:
                 logger.info(f"🌙 Quiet hours active for {user.location} - threshold alerts disabled")
 
-            # Calculate sunset info for user's location
-            sunset_info = get_sunset_info(user.location, trigger_window_minutes=15)
+            # Calculate sunset info for user's location (cached per location, expires every 24h)
+            sunset_info = get_sunset_info_cached(user.location, get_sunset_info, trigger_window_minutes=15)
             logger.info(f"🌅 Sunset info: trigger={sunset_info['sunset_trigger']}, day={sunset_info['day_of_year']}")
 
             # Calculate effective thresholds using range logic (server-side shim for range alerts)
