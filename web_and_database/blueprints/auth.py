@@ -224,31 +224,3 @@ def reset_password_form(token):
             db.close()
     
     return render_template('reset_password.html', form=form, token=token)
-
-@bp.route("/test-reset-db")
-def test_reset_db():
-    try:
-        db = SessionLocal()
-        user = db.query(User).filter(User.email == 'shaharisn1@gmail.com').first()
-        if not user:
-            db.close()
-            return "❌ User not found"
-        
-        username = user.username
-        token = secrets.token_urlsafe(48)
-        token_hash = hashlib.sha256(token.encode()).hexdigest()
-        expiration = datetime.now(timezone.utc) + timedelta(minutes=20)
-        
-        reset_token = PasswordResetToken(
-            user_id=user.user_id,
-            token_hash=token_hash,
-            expiration_time=expiration
-        )
-        db.add(reset_token)
-        db.commit()
-        db.close()
-        
-        return f"✅ Database test passed! Token created for user {username}"
-        
-    except Exception as e:
-        return f"❌ Database test failed: {e}"
