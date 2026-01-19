@@ -5,7 +5,7 @@ import os
 from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify, make_response
 from data_base import SessionLocal, Arduino, Location, User, ErrorReport
-from utils.helpers import is_quiet_hours, is_off_hours, get_current_tz_offset, get_sunset_info_cached
+from utils.helpers import is_quiet_hours, is_off_hours, get_current_tz_offset, get_sunset_info_cached, get_coordinates_cached
 from utils.threshold_logic import calculate_effective_threshold
 from config import BRIGHTNESS_LEVELS
 
@@ -216,11 +216,8 @@ def get_arduino_surf_data_v2(arduino_id):
 
             arduino, location, user = result
 
-            # Get coordinates for user's location
-            location_data = LOCATION_COORDS.get(user.location)
-            if not location_data:
-                logger.warning(f"⚠️ Location '{user.location}' not in LOCATION_COORDS, using Tel Aviv defaults")
-                location_data = LOCATION_COORDS.get("Tel Aviv", {"latitude": 32.0853, "longitude": 34.7818})
+            # Get coordinates for user's location (cached per user, expires every 1 hour)
+            location_data = get_coordinates_cached(user.user_id, user.location, LOCATION_COORDS)
 
             # Calculate current timezone offset (handles DST automatically)
             tz_offset = get_current_tz_offset(user.location)

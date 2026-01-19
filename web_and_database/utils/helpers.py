@@ -9,6 +9,10 @@ logger = logging.getLogger(__name__)
 _sunset_cache = {}
 _sunset_cache_timeout = 86400  # 24 hours in seconds
 
+# In-memory cache for user coordinates (expires every 1 hour)
+_coordinates_cache = {}
+_coordinates_cache_timeout = 3600  # 1 hour in seconds
+
 def get_sunset_info_cached(location, get_sunset_func, trigger_window_minutes=15):
     """
     Cache sunset calculations per location (only changes once per day).
@@ -35,6 +39,44 @@ def get_sunset_info_cached(location, get_sunset_func, trigger_window_minutes=15)
     _sunset_cache[cache_key] = (now, sunset_info)
 
     return sunset_info
+
+def get_coordinates_cached(user_id, user_location, location_coords_dict):
+    """
+    Cache user coordinates per user_id (only changes when user changes location).
+
+    Args:
+        user_id: User ID (for cache key)
+        user_location: User's location string
+        location_coords_dict: Dictionary of location -> {latitude, longitude}
+
+    Returns:
+        dict: {latitude, longitude} for the location
+    """
+    cache_key = f"user_{user_id}"
+    now = datetime.now()
+
+    # Check if cache exists and is still valid
+    if cache_key in _coordinates_cache:
+        cached_time, cached_value, cached_location = _coordinates_cache[cache_key]
+        if (now - cached_time).total_seconds() < _coordinates_cache_timeout:
+            # Also check if location hasn't changed (invalidate if it has)
+            if cached_location == user_location:
+                return cached_value
+
+    # Cache miss, expired, or location changed - fetch and cache
+    location_data = location_coords_dict.get(user_location)
+    if not location_data:
+        location_data = location_coords_dict.get("Tel Aviv", {"latitude": 32.0853, "longitude": 34.7818})
+
+    _coordinates_cache[cache_key] = (now, location_data, user_location)
+
+    return location_data
+
+def invalidate_user_coordinates_cache(user_id):
+    """Invalidate coordinates cache for a user (call when user changes location)."""
+    cache_key = f"user_{user_id}"
+    if cache_key in _coordinates_cache:
+        del _coordinates_cache[cache_key]
 
 def get_current_tz_offset(user_location):
     """

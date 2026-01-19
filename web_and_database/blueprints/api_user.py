@@ -19,23 +19,26 @@ def update_location():
         data = request.get_json()
         new_location = data.get('location')
         user_id = session.get('user_id')
-        
+
         if new_location not in SURF_LOCATIONS:
             return {'success': False, 'message': 'Invalid location selected'}, 400
-        
+
         if not check_location_change_limit(user_id):
             return {'success': False, 'message': "Maximum 5 location changes per day reached"}, 429
-            
+
         record_location_change(user_id)
-        
+
         success, message = update_user_location(user_id, new_location)
-        
+
         if success:
             session['user_location'] = new_location
+            # Invalidate cached coordinates when user changes location
+            from utils.helpers import invalidate_user_coordinates_cache
+            invalidate_user_coordinates_cache(user_id)
             return {'success': True, 'message': 'Update success, data will update soon'}
         else:
             return {'success': False, 'message': message}, 500
-            
+
     except Exception as e:
         return {'success': False, 'message': f'Server error: {str(e)}'}, 500
 
