@@ -1,5 +1,5 @@
 {# templates/macros/preset_buttons.html #}
-{% macro preset_button(label, time_label, start, end, device_suffix='') %}
+{% macro preset_button(label, time_label, start, end, data, device_suffix='') %}
 <button data-preset="{{ label|lower }}" data-start="{{ start }}" data-end="{{ end }}"
         class="preset-btn text-sm py-3 px-2 rounded transition-all border leading-tight
         {% if data.user.off_times_enabled and data.user.off_time_start == start %}
@@ -12,13 +12,13 @@
 </button>
 {% endmacro %}
 
-{% macro preset_button_group(device_suffix='') %}
+{% macro preset_button_group(data, device_suffix='') %}
 <div class="grid grid-cols-3 gap-2">
-    {{ preset_button('Typical', '11pm-7am', '23:00', '07:00', device_suffix) }}
-    {{ preset_button('Late Night', '1am-9am', '01:00', '09:00', device_suffix) }}
-    {{ preset_button('Early Bird', '9pm-5am', '21:00', '05:00', device_suffix) }}
-    {{ preset_button('Midnight', '12am-8am', '00:00', '08:00', device_suffix) }}
-    {{ preset_button('Custom', 'Set your own', '', '', device_suffix) }}
-    {{ preset_button('Disabled', 'Always on', 'disabled', 'disabled', device_suffix) }}
+    {{ preset_button('Typical', '11pm-7am', '23:00', '07:00', data, device_suffix) }}
+    {{ preset_button('Late Night', '1am-9am', '01:00', '09:00', data, device_suffix) }}
+    {{ preset_button('Early Bird', '9pm-5am', '21:00', '05:00', data, device_suffix) }}
+    {{ preset_button('Midnight', '12am-8am', '00:00', '08:00', data, device_suffix) }}
+    {{ preset_button('Custom', 'Set your own', '', '', data, device_suffix) }}
+    {{ preset_button('Disabled', 'Always on', 'disabled', 'disabled', data, device_suffix) }}
 </div>
 {% endmacro %}
