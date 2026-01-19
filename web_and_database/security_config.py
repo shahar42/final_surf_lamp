@@ -20,7 +20,7 @@ class SecurityConfig:
     
     # Rate Limiting Settings
     RATELIMIT_STORAGE_URL = os.environ.get('REDIS_URL', 'memory://')
-    RATELIMIT_DEFAULT = "1000 per hour"
+    RATELIMIT_DEFAULT = "1000000 per hour"
     
     # Rate limits by endpoint
     RATE_LIMITS = {
