@@ -1,9 +1,40 @@
 import pytz
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 from data_base import LOCATION_TIMEZONES
 
 logger = logging.getLogger(__name__)
+
+# In-memory cache for sunset calculations (expires every 24 hours)
+_sunset_cache = {}
+_sunset_cache_timeout = 86400  # 24 hours in seconds
+
+def get_sunset_info_cached(location, get_sunset_func, trigger_window_minutes=15):
+    """
+    Cache sunset calculations per location (only changes once per day).
+
+    Args:
+        location: Location string (e.g., "Tel Aviv, Israel")
+        get_sunset_func: The actual sunset calculation function from sunset_calculator
+        trigger_window_minutes: Minutes before/after sunset to trigger animation
+
+    Returns:
+        dict: Cached sunset info {sunset_trigger, day_of_year}
+    """
+    cache_key = location
+    now = datetime.now()
+
+    # Check if cache exists and is still valid
+    if cache_key in _sunset_cache:
+        cached_time, cached_value = _sunset_cache[cache_key]
+        if (now - cached_time).total_seconds() < _sunset_cache_timeout:
+            return cached_value
+
+    # Cache miss or expired - calculate and cache
+    sunset_info = get_sunset_func(location, trigger_window_minutes=trigger_window_minutes)
+    _sunset_cache[cache_key] = (now, sunset_info)
+
+    return sunset_info
 
 def get_current_tz_offset(user_location):
     """
