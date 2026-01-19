@@ -3,6 +3,7 @@ import sys
 import os
 from flask import Blueprint, make_response
 from data_base import SessionLocal, Location
+from utils.helpers import get_sunset_info_cached
 
 # Add processor path to import sunset calculator
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -48,8 +49,8 @@ def get_location_conditions(location):
                 logger.warning(f"⚠️ Location '{location}' not found in database")
                 return {'error': f'Location {location} not found'}, 404
 
-            # Calculate sunset info for this location
-            sunset_info = get_sunset_info(location, trigger_window_minutes=15)
+            # Calculate sunset info for this location (cached per location, expires every 24h)
+            sunset_info = get_sunset_info_cached(location, get_sunset_info, trigger_window_minutes=15)
 
             # Build public response (no user-specific data)
             conditions = {
