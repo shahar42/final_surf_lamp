@@ -1,0 +1,94 @@
+{# templates/partials/underlayer_control_panel.html #}
+<div id="underlayerControlPanel" class="fixed bottom-4 right-4 z-50 hidden">
+    <div class="bg-gray-900/95 backdrop-blur-lg rounded-xl shadow-2xl p-6 w-80 max-h-[80vh] overflow-y-auto border border-blue-500/30">
+        <div class="flex justify-between items-center mb-4 pb-3 border-b border-white/20">
+            <h3 class="text-white font-bold text-lg">Underlayer Config</h3>
+            <button onclick="toggleUnderlayerPanel()" class="text-white/70 hover:text-white">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Left Strip -->
+        <div class="mb-6 pb-4 border-b border-white/10">
+            <h4 class="text-yellow-400 font-semibold mb-3 text-sm">Left (Period)</h4>
+            <div class="space-y-3">
+                <div>
+                    <label class="text-white/70 text-xs">X: <span id="leftXVal">0</span>px</label>
+                    <input type="range" id="leftX" min="-50" max="50" value="0" class="w-full">
+                </div>
+                <div>
+                    <label class="text-white/70 text-xs">Y: <span id="leftYVal">0</span>px</label>
+                    <input type="range" id="leftY" min="-50" max="50" value="0" class="w-full">
+                </div>
+                <div>
+                    <label class="text-white/70 text-xs">Opacity: <span id="leftOpacityVal">0.13</span></label>
+                    <input type="range" id="leftOpacity" min="0" max="1" value="0.13" step="0.05" class="w-full">
+                </div>
+                <div>
+                    <label class="text-white/70 text-xs">Color</label>
+                    <input type="color" id="leftColor" value="#000000" class="w-full h-8 rounded cursor-pointer">
+                </div>
+            </div>
+        </div>
+
+        <!-- Center Strip -->
+        <div class="mb-6 pb-4 border-b border-white/10">
+            <h4 class="text-blue-400 font-semibold mb-3 text-sm">Center (Wind)</h4>
+            <div class="space-y-3">
+                <div>
+                    <label class="text-white/70 text-xs">X: <span id="centerXVal">0</span>px</label>
+                    <input type="range" id="centerX" min="-50" max="50" value="0" class="w-full">
+                </div>
+                <div>
+                    <label class="text-white/70 text-xs">Y: <span id="centerYVal">0</span>px</label>
+                    <input type="range" id="centerY" min="-50" max="50" value="0" class="w-full">
+                </div>
+                <div>
+                    <label class="text-white/70 text-xs">Opacity: <span id="centerOpacityVal">0.13</span></label>
+                    <input type="range" id="centerOpacity" min="0" max="1" value="0.13" step="0.05" class="w-full">
+                </div>
+                <div>
+                    <label class="text-white/70 text-xs">Color</label>
+                    <input type="color" id="centerColor" value="#000000" class="w-full h-8 rounded cursor-pointer">
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Strip -->
+        <div class="mb-4">
+            <h4 class="text-orange-400 font-semibold mb-3 text-sm">Right (Wave)</h4>
+            <div class="space-y-3">
+                <div>
+                    <label class="text-white/70 text-xs">X: <span id="rightXVal">0</span>px</label>
+                    <input type="range" id="rightX" min="-50" max="50" value="0" class="w-full">
+                </div>
+                <div>
+                    <label class="text-white/70 text-xs">Y: <span id="rightYVal">0</span>px</label>
+                    <input type="range" id="rightY" min="-50" max="50" value="0" class="w-full">
+                </div>
+                <div>
+                    <label class="text-white/70 text-xs">Opacity: <span id="rightOpacityVal">0.13</span></label>
+                    <input type="range" id="rightOpacity" min="0" max="1" value="0.13" step="0.05" class="w-full">
+                </div>
+                <div>
+                    <label class="text-white/70 text-xs">Color</label>
+                    <input type="color" id="rightColor" value="#000000" class="w-full h-8 rounded cursor-pointer">
+                </div>
+            </div>
+        </div>
+
+        <button onclick="exportUnderlayerConfig()" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-semibold text-sm transition-colors mt-4">
+            Export Config
+        </button>
+        <div id="configOutput" class="hidden mt-3 bg-black/50 p-3 rounded text-xs text-green-400 font-mono max-h-40 overflow-y-auto"></div>
+    </div>
+</div>
+
+<!-- Toggle Button for Control Panel (Hidden - Configuration Complete) -->
+<button id="underlayerToggleBtn" onclick="toggleUnderlayerPanel()" class="fixed bottom-4 right-4 z-40 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all hidden">
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+    </svg>
+</button>

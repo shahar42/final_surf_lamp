@@ -1,0 +1,12 @@
+{# templates/macros/brightness_buttons.html #}
+{% macro brightness_button_group(device_suffix='') %}
+{% set brightness_levels = {'LOW': 0.3, 'MEDIUM': 0.6, 'HIGH': 1.0} %}
+<div class="grid grid-cols-3 gap-2">
+    {% for level, value in brightness_levels.items() %}
+    <button data-brightness="{{ value }}"
+            class="brightness-btn flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-4 rounded-lg transition-all border border-white/20">
+        {{ level|capitalize }}
+    </button>
+    {% endfor %}
+</div>
+{% endmacro %}
