@@ -147,23 +147,11 @@ textarea:focus-visible {
    ================================== */
 
 #lampScaleContainer {
-    /* Drop shadow (gives weight) */
-    filter: drop-shadow(0 calc(20px * var(--surfboard-shadow)) calc(40px * var(--surfboard-shadow)) rgba(0, 0, 0, calc(0.6 * var(--surfboard-shadow))));
+    /* Very subtle drop shadow (suggests weight without announcing itself) */
+    filter: drop-shadow(0 calc(8px * var(--surfboard-shadow)) calc(16px * var(--surfboard-shadow)) rgba(0, 0, 0, calc(0.3 * var(--surfboard-shadow))));
 }
 
-#lampScaleContainer::before {
-    /* Ambient occlusion (darkens edges where object meets background) */
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    border-radius: 50%;
-    background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, var(--surfboard-ao)) 100%);
-    pointer-events: none;
-    z-index: -1;
-}
+/* Removed oval aura - too literal, creates visible halo */
 
 .led-strip-canvas {
     border-radius: 8px;

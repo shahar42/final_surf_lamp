@@ -69,19 +69,11 @@
         <!-- Shadow Strength -->
         <div class="mb-4">
             <label class="text-white/80 text-xs block mb-2">
-                Shadow: <span id="shadowValue" class="text-white font-semibold">0%</span>
+                Subtle Shadow: <span id="shadowValue" class="text-white font-semibold">0%</span>
             </label>
             <input type="range" id="shadowSlider" min="0" max="40" step="2" value="0"
                    class="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer">
-        </div>
-
-        <!-- Ambient Occlusion -->
-        <div class="mb-4">
-            <label class="text-white/80 text-xs block mb-2">
-                Ambient Occlusion: <span id="aoValue" class="text-white font-semibold">0%</span>
-            </label>
-            <input type="range" id="aoSlider" min="0" max="30" step="2" value="0"
-                   class="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer">
+            <p class="text-white/50 text-xs mt-1">Suggests weight without halos</p>
         </div>
     </div>
 
@@ -119,21 +111,18 @@ function applyAtmosphereValues() {
     const topDark = document.getElementById('topDarkSlider').value / 100;
     const bottomWarm = document.getElementById('bottomWarmSlider').value / 100;
     const shadow = document.getElementById('shadowSlider').value / 100;
-    const ao = document.getElementById('aoSlider').value / 100;
 
     root.style.setProperty('--grain-opacity', grain);
     root.style.setProperty('--vignette-intensity', vignette);
     root.style.setProperty('--top-darkness', topDark);
     root.style.setProperty('--bottom-warmth', bottomWarm);
     root.style.setProperty('--surfboard-shadow', shadow);
-    root.style.setProperty('--surfboard-ao', ao);
 
     document.getElementById('grainValue').textContent = (grain * 100).toFixed(1) + '%';
     document.getElementById('vignetteValue').textContent = (vignette * 100).toFixed(0) + '%';
     document.getElementById('topDarkValue').textContent = (topDark * 100).toFixed(0) + '%';
     document.getElementById('bottomWarmValue').textContent = (bottomWarm * 100).toFixed(0) + '%';
     document.getElementById('shadowValue').textContent = (shadow * 100).toFixed(0) + '%';
-    document.getElementById('aoValue').textContent = (ao * 100).toFixed(0) + '%';
 }
 
 // Event listeners
@@ -142,7 +131,6 @@ document.getElementById('vignetteSlider').addEventListener('input', applyAtmosph
 document.getElementById('topDarkSlider').addEventListener('input', applyAtmosphereValues);
 document.getElementById('bottomWarmSlider').addEventListener('input', applyAtmosphereValues);
 document.getElementById('shadowSlider').addEventListener('input', applyAtmosphereValues);
-document.getElementById('aoSlider').addEventListener('input', applyAtmosphereValues);
 
 function resetAtmosphere() {
     document.getElementById('grainSlider').value = 3;
@@ -150,7 +138,6 @@ function resetAtmosphere() {
     document.getElementById('topDarkSlider').value = 40;
     document.getElementById('bottomWarmSlider').value = 15;
     document.getElementById('shadowSlider').value = 0;
-    document.getElementById('aoSlider').value = 0;
     applyAtmosphereValues();
 }
 
@@ -160,15 +147,13 @@ function exportAtmosphereCSS() {
     const topDark = document.getElementById('topDarkSlider').value / 100;
     const bottomWarm = document.getElementById('bottomWarmSlider').value / 100;
     const shadow = document.getElementById('shadowSlider').value / 100;
-    const ao = document.getElementById('aoSlider').value / 100;
 
     const css = `/* Atmosphere Controls */
 --grain-opacity: ${grain};
 --vignette-intensity: ${vignette};
 --top-darkness: ${topDark};
 --bottom-warmth: ${bottomWarm};
---surfboard-shadow: ${shadow};
---surfboard-ao: ${ao};`;
+--surfboard-shadow: ${shadow};`;
 
     navigator.clipboard.writeText(css).then(() => {
         alert('CSS copied to clipboard!');

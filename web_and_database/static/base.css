@@ -25,9 +25,8 @@
     --top-darkness: 0.4;        /* Top darker zone (deeper water) */
     --bottom-warmth: 0.15;      /* Bottom warmer glow (sunlight) */
 
-    /* Surfboard spatial depth (gives weight and air) */
-    --surfboard-shadow: 0;      /* Drop shadow strength (0-40%) */
-    --surfboard-ao: 0;          /* Ambient occlusion (0-30%) */
+    /* Surfboard spatial depth (gives weight without halos) */
+    --surfboard-shadow: 0;      /* Very subtle drop shadow (0-40%) */
 
     /* Text colors - Beach Sand & Seafoam */
     --text-cream: #f5f5dc;      /* Warm beige (beach sand) */
