@@ -16,9 +16,10 @@
     <!-- Web App Manifest (Android/PWA) -->
     <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
 
-    <!-- Theme colors matching your blue gradient -->
-    <meta name="theme-color" content="#00c6ff">
-    <meta name="msapplication-TileColor" content="#00c6ff">
+    <!-- Theme colors - automatically synced with CSS --gradient-start -->
+    <meta name="theme-color" content="#021f2b">
+    <meta name="msapplication-TileColor" content="#021f2b">
+    <script src="{{ url_for('static', filename='js/theme-color-sync.js') }}"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <!-- Global ocean color system -->
     <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">

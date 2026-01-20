@@ -28,9 +28,10 @@
     <link rel="apple-touch-startup-image" media="screen and (device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="{{ url_for('static', filename='apple-splash-2048x2732.png') }}">
     <link rel="apple-touch-startup-image" media="screen and (device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="{{ url_for('static', filename='apple-splash-1668x2388.png') }}">
 
-    <!-- Theme colors matching your blue gradient -->
-    <meta name="theme-color" content="#00c6ff">
-    <meta name="msapplication-TileColor" content="#00c6ff">
+    <!-- Theme colors - automatically synced with CSS --gradient-start -->
+    <meta name="theme-color" content="#021f2b">
+    <meta name="msapplication-TileColor" content="#021f2b">
+    <script src="{{ url_for('static', filename='js/theme-color-sync.js') }}"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <!-- Global ocean color system -->
     <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
