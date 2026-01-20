@@ -19,6 +19,10 @@
     --gradient-end: #054d5c;    /* Deep turquoise (darker) */
     --gradient-angle: 135deg;
 
+    /* Underwater atmosphere controls */
+    --grain-opacity: 0.03;      /* Film grain texture (2-4%) */
+    --vignette-intensity: 0.06; /* Edge darkening (5-8%) */
+
     /* Text colors - Beach Sand & Seafoam */
     --text-cream: #f5f5dc;      /* Warm beige (beach sand) */
     --text-white: #ffffff;
@@ -44,12 +48,57 @@
     --card-border: rgba(255, 255, 255, 0.25);
 }
 
-/* Apply gradient to body */
+/* Underwater atmosphere background */
 body {
     font-family: 'Poppins', sans-serif;
-    background: linear-gradient(var(--gradient-angle), var(--gradient-start), var(--gradient-end));
-    background-attachment: fixed;
     min-height: 100vh;
+    position: relative;
+
+    /* Multi-layer gradient with depth (like underwater light falloff) */
+    background-image:
+        /* Layer 1: Vignette (darkens edges) */
+        radial-gradient(
+            ellipse at center,
+            rgba(0, 0, 0, 0) 0%,
+            rgba(0, 0, 0, 0) 50%,
+            rgba(0, 0, 0, var(--vignette-intensity)) 100%
+        ),
+        /* Layer 2: Top darker zone (deeper water) */
+        linear-gradient(
+            180deg,
+            rgba(1, 15, 20, 0.4) 0%,
+            rgba(1, 15, 20, 0) 30%
+        ),
+        /* Layer 3: Bottom warmer glow (sunlight from surface) */
+        linear-gradient(
+            0deg,
+            rgba(8, 83, 101, 0.15) 0%,
+            rgba(8, 83, 101, 0) 40%
+        ),
+        /* Layer 4: Main gradient */
+        linear-gradient(
+            var(--gradient-angle),
+            var(--gradient-start),
+            var(--gradient-end)
+        );
+
+    background-attachment: fixed;
+}
+
+/* Film grain texture (breaks digital flatness) */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: var(--grain-opacity);
+    pointer-events: none;
+    z-index: 9999;
+    background-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="noiseFilter"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noiseFilter)"/></svg>');
+    background-repeat: repeat;
+    background-size: 200px 200px;
 }
 
 /* Global text color override */
