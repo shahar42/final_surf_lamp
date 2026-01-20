@@ -26,6 +26,14 @@ const LocationUpdate = {
 
         const self = this;
         selects.forEach(select => {
+            // Add flicker effect on click/focus
+            select.addEventListener('click', function() {
+                this.classList.add('flicker-active');
+                setTimeout(() => {
+                    this.classList.remove('flicker-active');
+                }, 800);
+            });
+
             select.addEventListener('change', async function() {
                 const newLocation = this.value;
 
