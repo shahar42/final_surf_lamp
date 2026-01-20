@@ -20,7 +20,7 @@
     --gradient-angle: 135deg;
 
     /* Underwater atmosphere controls */
-    --grain-opacity: 0.03;      /* Film grain texture (2-4%) */
+    --grain-opacity: 0.045;     /* Film grain texture (4.5%) */
     --vignette-intensity: 0.06; /* Edge darkening (5-8%) */
     --top-darkness: 0.4;        /* Top darker zone (deeper water) */
     --bottom-warmth: 0.15;      /* Bottom warmer glow (sunlight) */
