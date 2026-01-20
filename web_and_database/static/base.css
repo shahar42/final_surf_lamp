@@ -15,8 +15,8 @@
 
 :root {
     /* Main background gradient - Deep Ocean to Tropical Shallows */
-    --gradient-start: #0a4d68;  /* Deep ocean blue */
-    --gradient-end: #088395;    /* Tropical turquoise */
+    --gradient-start: #021f2b;  /* Very deep ocean blue (darker) */
+    --gradient-end: #054d5c;    /* Deep turquoise (darker) */
     --gradient-angle: 135deg;
 
     /* Text colors - Beach Sand & Seafoam */

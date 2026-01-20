@@ -128,7 +128,7 @@ textarea:focus-visible {
 }
 
 #locationSelect option {
-    background-color: #0a4d68;  /* Deep ocean blue to match gradient */
+    background-color: #021f2b;  /* Very deep ocean blue to match gradient */
     color: #FFFCDE;
     padding: 4px 8px;
 }
@@ -136,7 +136,7 @@ textarea:focus-visible {
 /* Force option styling on all browsers including mobile */
 @supports (-webkit-appearance: none) {
     #locationSelect option {
-        background: #0a4d68;
+        background: #021f2b;
         color: #FFFCDE;
     }
 }
