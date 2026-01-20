@@ -45,9 +45,7 @@
     {% endwith %}
 
     <!-- LED Strip Visualization -->
-    <div class="card-enter card-enter-1">
-        {% include 'partials/led_visualization.html' %}
-    </div>
+    {% include 'partials/led_visualization.html' %}
 
     <!-- LED Underlayer Control Panel (Development Tool) -->
     {% include 'partials/underlayer_control_panel.html' %}
@@ -56,25 +54,23 @@
     <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
 
         <!-- Lamp Information Card (Surf Data Config) -->
-        <div class="order-2 lg:order-1 card-enter card-enter-2">
+        <div class="order-2 lg:order-1">
             {% include 'partials/lamp_configuration.html' %}
         </div>
 
         <!-- Current Surf Conditions Card -->
-        <div class="order-1 lg:order-2 card-enter card-enter-3">
+        <div class="order-1 lg:order-2">
             {% include 'partials/surf_conditions.html' %}
         </div>
     </div>
 
     <!-- Light Configuration -->
-    <div class="max-w-6xl mx-auto mt-8 card-enter card-enter-4">
+    <div class="max-w-6xl mx-auto mt-8">
         {% include 'partials/light_configuration.html' %}
     </div>
 
     <!-- Quick Actions -->
-    <div class="card-enter card-enter-5">
-        {% include 'partials/quick_actions.html' %}
-    </div>
+    {% include 'partials/quick_actions.html' %}
 
     <!-- Chat Modal -->
     {% include 'partials/chat_modal.html' %}
