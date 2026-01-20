@@ -225,3 +225,27 @@ textarea:focus-visible {
     from { transform: translateY(100%); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
 }
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Staggered entrance animations for dashboard cards */
+.card-enter {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.card-enter-1 { animation-delay: 0s; }
+.card-enter-2 { animation-delay: 0.1s; }
+.card-enter-3 { animation-delay: 0.2s; }
+.card-enter-4 { animation-delay: 0.3s; }
+.card-enter-5 { animation-delay: 0.4s; }
