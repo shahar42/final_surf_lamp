@@ -48,12 +48,12 @@ textarea:focus-visible {
 }
 
 .logout-btn {
-    background-color: var(--btn-red);
+    background-color: transparent;
     transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
 .logout-btn:hover {
-    background-color: var(--btn-red-hover);
+    background-color: rgba(184, 48, 58, 0.2);
     transform: translateY(-1px);
 }
 
