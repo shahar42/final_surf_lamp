@@ -22,6 +22,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <!-- Global ocean color system -->
     <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
+    <!-- Ripple effect styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
     <style>
         .form-container {
             background-color: var(--card-bg);
@@ -141,6 +143,7 @@
     {% include 'partials/legal_footer.html' %}
 
     <script src="{{ url_for('static', filename='js/flash-messages.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ripple-effect.js') }}"></script>
 
 </body>
 </html>
