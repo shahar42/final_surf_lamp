@@ -26,12 +26,25 @@ const LocationUpdate = {
 
         const self = this;
         selects.forEach(select => {
+            let flickerTimeout = null;
+
             // Add flicker effect on click/focus
             select.addEventListener('click', function() {
                 this.classList.add('flicker-active');
-                setTimeout(() => {
+                // Clear any existing timeout
+                if (flickerTimeout) clearTimeout(flickerTimeout);
+                flickerTimeout = setTimeout(() => {
                     this.classList.remove('flicker-active');
                 }, 800);
+            });
+
+            // Remove flicker when dropdown closes without change
+            select.addEventListener('blur', function() {
+                this.classList.remove('flicker-active');
+                if (flickerTimeout) {
+                    clearTimeout(flickerTimeout);
+                    flickerTimeout = null;
+                }
             });
 
             select.addEventListener('change', async function() {
