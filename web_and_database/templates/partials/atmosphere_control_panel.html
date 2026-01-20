@@ -1,0 +1,177 @@
+{# templates/partials/atmosphere_control_panel.html #}
+<!-- Atmosphere Control Panel (Development Tool) -->
+<div id="atmospherePanel" class="fixed top-4 right-4 z-50 bg-black/90 backdrop-blur-lg rounded-2xl p-4 shadow-2xl border border-white/20 hidden" style="width: 320px; max-height: 90vh; overflow-y: auto;">
+    <div class="flex justify-between items-center mb-4 pb-3 border-b border-white/20">
+        <h3 class="text-white font-bold text-lg">Atmosphere Controls</h3>
+        <button onclick="toggleAtmospherePanel()" class="text-white/70 hover:text-white">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Film Grain -->
+    <div class="mb-6">
+        <label class="text-white/80 text-sm block mb-2">
+            Film Grain: <span id="grainValue" class="text-white font-semibold">3%</span>
+        </label>
+        <input type="range" id="grainSlider" min="0" max="8" step="0.5" value="3"
+               class="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer">
+        <div class="flex justify-between text-xs text-white/50 mt-1">
+            <span>0%</span>
+            <span>8%</span>
+        </div>
+    </div>
+
+    <!-- Vignette -->
+    <div class="mb-6">
+        <label class="text-white/80 text-sm block mb-2">
+            Vignette: <span id="vignetteValue" class="text-white font-semibold">6%</span>
+        </label>
+        <input type="range" id="vignetteSlider" min="0" max="15" step="1" value="6"
+               class="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer">
+        <div class="flex justify-between text-xs text-white/50 mt-1">
+            <span>0%</span>
+            <span>15%</span>
+        </div>
+    </div>
+
+    <!-- Top Darkness -->
+    <div class="mb-6">
+        <label class="text-white/80 text-sm block mb-2">
+            Top Darkness: <span id="topDarkValue" class="text-white font-semibold">40%</span>
+        </label>
+        <input type="range" id="topDarkSlider" min="0" max="80" step="5" value="40"
+               class="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer">
+        <div class="flex justify-between text-xs text-white/50 mt-1">
+            <span>0%</span>
+            <span>80%</span>
+        </div>
+    </div>
+
+    <!-- Bottom Warmth -->
+    <div class="mb-6">
+        <label class="text-white/80 text-sm block mb-2">
+            Bottom Warmth: <span id="bottomWarmValue" class="text-white font-semibold">15%</span>
+        </label>
+        <input type="range" id="bottomWarmSlider" min="0" max="50" step="5" value="15"
+               class="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer">
+        <div class="flex justify-between text-xs text-white/50 mt-1">
+            <span>0%</span>
+            <span>50%</span>
+        </div>
+    </div>
+
+    <!-- Surfboard Spatial Depth -->
+    <div class="mb-6 pt-4 border-t border-white/20">
+        <h4 class="text-white/80 text-sm font-semibold mb-3">Surfboard Depth</h4>
+
+        <!-- Shadow Strength -->
+        <div class="mb-4">
+            <label class="text-white/80 text-xs block mb-2">
+                Shadow: <span id="shadowValue" class="text-white font-semibold">0%</span>
+            </label>
+            <input type="range" id="shadowSlider" min="0" max="40" step="2" value="0"
+                   class="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer">
+        </div>
+
+        <!-- Ambient Occlusion -->
+        <div class="mb-4">
+            <label class="text-white/80 text-xs block mb-2">
+                Ambient Occlusion: <span id="aoValue" class="text-white font-semibold">0%</span>
+            </label>
+            <input type="range" id="aoSlider" min="0" max="30" step="2" value="0"
+                   class="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer">
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex gap-2 pt-4 border-t border-white/20">
+        <button onclick="resetAtmosphere()" class="flex-1 bg-white/10 hover:bg-white/20 text-white py-2 rounded-lg text-sm font-semibold transition-colors">
+            Reset
+        </button>
+        <button onclick="exportAtmosphereCSS()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-semibold transition-colors">
+            Export CSS
+        </button>
+    </div>
+</div>
+
+<!-- Toggle Button -->
+<button id="atmosphereToggleBtn" onclick="toggleAtmospherePanel()"
+        class="fixed bottom-20 right-4 z-40 bg-purple-600 hover:bg-purple-700 text-white p-3 rounded-full shadow-lg transition-all">
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+    </svg>
+</button>
+
+<script>
+function toggleAtmospherePanel() {
+    const panel = document.getElementById('atmospherePanel');
+    panel.classList.toggle('hidden');
+}
+
+// Apply atmosphere values
+function applyAtmosphereValues() {
+    const root = document.documentElement;
+
+    const grain = document.getElementById('grainSlider').value / 100;
+    const vignette = document.getElementById('vignetteSlider').value / 100;
+    const topDark = document.getElementById('topDarkSlider').value / 100;
+    const bottomWarm = document.getElementById('bottomWarmSlider').value / 100;
+    const shadow = document.getElementById('shadowSlider').value / 100;
+    const ao = document.getElementById('aoSlider').value / 100;
+
+    root.style.setProperty('--grain-opacity', grain);
+    root.style.setProperty('--vignette-intensity', vignette);
+    root.style.setProperty('--top-darkness', topDark);
+    root.style.setProperty('--bottom-warmth', bottomWarm);
+    root.style.setProperty('--surfboard-shadow', shadow);
+    root.style.setProperty('--surfboard-ao', ao);
+
+    document.getElementById('grainValue').textContent = (grain * 100).toFixed(1) + '%';
+    document.getElementById('vignetteValue').textContent = (vignette * 100).toFixed(0) + '%';
+    document.getElementById('topDarkValue').textContent = (topDark * 100).toFixed(0) + '%';
+    document.getElementById('bottomWarmValue').textContent = (bottomWarm * 100).toFixed(0) + '%';
+    document.getElementById('shadowValue').textContent = (shadow * 100).toFixed(0) + '%';
+    document.getElementById('aoValue').textContent = (ao * 100).toFixed(0) + '%';
+}
+
+// Event listeners
+document.getElementById('grainSlider').addEventListener('input', applyAtmosphereValues);
+document.getElementById('vignetteSlider').addEventListener('input', applyAtmosphereValues);
+document.getElementById('topDarkSlider').addEventListener('input', applyAtmosphereValues);
+document.getElementById('bottomWarmSlider').addEventListener('input', applyAtmosphereValues);
+document.getElementById('shadowSlider').addEventListener('input', applyAtmosphereValues);
+document.getElementById('aoSlider').addEventListener('input', applyAtmosphereValues);
+
+function resetAtmosphere() {
+    document.getElementById('grainSlider').value = 3;
+    document.getElementById('vignetteSlider').value = 6;
+    document.getElementById('topDarkSlider').value = 40;
+    document.getElementById('bottomWarmSlider').value = 15;
+    document.getElementById('shadowSlider').value = 0;
+    document.getElementById('aoSlider').value = 0;
+    applyAtmosphereValues();
+}
+
+function exportAtmosphereCSS() {
+    const grain = document.getElementById('grainSlider').value / 100;
+    const vignette = document.getElementById('vignetteSlider').value / 100;
+    const topDark = document.getElementById('topDarkSlider').value / 100;
+    const bottomWarm = document.getElementById('bottomWarmSlider').value / 100;
+    const shadow = document.getElementById('shadowSlider').value / 100;
+    const ao = document.getElementById('aoSlider').value / 100;
+
+    const css = `/* Atmosphere Controls */
+--grain-opacity: ${grain};
+--vignette-intensity: ${vignette};
+--top-darkness: ${topDark};
+--bottom-warmth: ${bottomWarm};
+--surfboard-shadow: ${shadow};
+--surfboard-ao: ${ao};`;
+
+    navigator.clipboard.writeText(css).then(() => {
+        alert('CSS copied to clipboard!');
+    });
+}
+</script>

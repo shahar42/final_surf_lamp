@@ -143,13 +143,32 @@ textarea:focus-visible {
 
 
 /* ===================================
-   LED CANVAS
+   LED CANVAS - SPATIAL DEPTH
    ================================== */
+
+#lampScaleContainer {
+    /* Drop shadow (gives weight) */
+    filter: drop-shadow(0 calc(20px * var(--surfboard-shadow)) calc(40px * var(--surfboard-shadow)) rgba(0, 0, 0, calc(0.6 * var(--surfboard-shadow))));
+}
+
+#lampScaleContainer::before {
+    /* Ambient occlusion (darkens edges where object meets background) */
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, var(--surfboard-ao)) 100%);
+    pointer-events: none;
+    z-index: -1;
+}
 
 .led-strip-canvas {
     border-radius: 8px;
     background: transparent;
-    box-shadow: none; /* Removed box-shadow too since it would look like a floating box */
+    box-shadow: none;
 }
 
 .blinking {

@@ -22,6 +22,12 @@
     /* Underwater atmosphere controls */
     --grain-opacity: 0.03;      /* Film grain texture (2-4%) */
     --vignette-intensity: 0.06; /* Edge darkening (5-8%) */
+    --top-darkness: 0.4;        /* Top darker zone (deeper water) */
+    --bottom-warmth: 0.15;      /* Bottom warmer glow (sunlight) */
+
+    /* Surfboard spatial depth (gives weight and air) */
+    --surfboard-shadow: 0;      /* Drop shadow strength (0-40%) */
+    --surfboard-ao: 0;          /* Ambient occlusion (0-30%) */
 
     /* Text colors - Beach Sand & Seafoam */
     --text-cream: #f5f5dc;      /* Warm beige (beach sand) */
@@ -66,13 +72,13 @@ body {
         /* Layer 2: Top darker zone (deeper water) */
         linear-gradient(
             180deg,
-            rgba(1, 15, 20, 0.4) 0%,
+            rgba(1, 15, 20, var(--top-darkness)) 0%,
             rgba(1, 15, 20, 0) 30%
         ),
         /* Layer 3: Bottom warmer glow (sunlight from surface) */
         linear-gradient(
             0deg,
-            rgba(8, 83, 101, 0.15) 0%,
+            rgba(8, 83, 101, var(--bottom-warmth)) 0%,
             rgba(8, 83, 101, 0) 40%
         ),
         /* Layer 4: Main gradient */

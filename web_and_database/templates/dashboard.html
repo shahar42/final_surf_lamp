@@ -43,6 +43,13 @@
 </head>
 <body class="min-h-screen p-4">
 
+    <!-- Top-Left Logout -->
+    <div class="fixed top-4 left-4 z-50">
+        <a href="{{ url_for('auth.logout') }}" class="card rounded-lg px-4 py-2 text-white/80 hover:text-white text-sm font-semibold transition-colors shadow-lg">
+            Logout
+        </a>
+    </div>
+
     <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
@@ -84,6 +91,9 @@
 
     <!-- Quick Actions -->
     {% include 'partials/quick_actions.html' %}
+
+    <!-- Atmosphere Control Panel (Development Tool) -->
+    {% include 'partials/atmosphere_control_panel.html' %}
 
     <!-- Chat Modal -->
     {% include 'partials/chat_modal.html' %}
