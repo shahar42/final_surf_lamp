@@ -30,10 +30,21 @@ def get_private_key():
             pass
             
     if key:
-        # Fix formatting: Env vars often escape newlines (e.g. "Line1\nLine2")
-        # We need actual newline characters for the PEM parser.
-        if "\\n" in key:
-            key = key.replace("\\n", "\n")
+        # Normalize: Handle escaped newlines (\n) and physical newlines
+        key = key.replace("\\n", "\n")
+        
+        # Strip all headers, footers, and whitespace to get raw base64
+        raw_b64 = key.replace("-----BEGIN PRIVATE KEY-----", "")\
+                     .replace("-----END PRIVATE KEY-----", "")\
+                     .replace("\n", "")\
+                     .replace("\r", "")\
+                     .replace(" ", "")\
+                     .strip()
+        
+        # Re-wrap to standard PEM format (64 chars per line)
+        # This ensures the parser always gets exactly what it expects.
+        wrapped = "\n".join([raw_b64[i:i+64] for i in range(0, len(raw_b64), 64)])
+        return f"-----BEGIN PRIVATE KEY-----\n{wrapped}\n-----END PRIVATE KEY-----"
             
     return key
 
