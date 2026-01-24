@@ -28,6 +28,13 @@ def get_private_key():
                 key = f.read().strip()
         except Exception:
             pass
+            
+    if key:
+        # Fix formatting: Env vars often escape newlines (e.g. "Line1\nLine2")
+        # We need actual newline characters for the PEM parser.
+        if "\\n" in key:
+            key = key.replace("\\n", "\n")
+            
     return key
 
 def trigger_push_broadcast(message, target_location=None):
