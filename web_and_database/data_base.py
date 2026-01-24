@@ -142,6 +142,18 @@ class Location(Base):
 
     arduinos = relationship("Arduino", back_populates="location_data")
 
+class NotificationSubscription(Base):
+    __tablename__ = 'notification_subscriptions'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
+    endpoint = Column(Text, unique=True, nullable=False)
+    p256dh = Column(String(255), nullable=False)
+    auth = Column(String(255), nullable=False)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+
+    user = relationship("User", backref="subscriptions")
+
 
 # API Configuration
 USE_STORMGLASS = False  

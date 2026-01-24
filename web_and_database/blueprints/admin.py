@@ -9,6 +9,7 @@ from waitlist_db import get_all_waitlist_entries, get_recent_signups, get_waitli
 from forms import sanitize_input
 from data_base import SessionLocal, User, Broadcast, Arduino, Location
 from sqlalchemy.orm import joinedload
+from blueprints.notifications import trigger_push_broadcast
 
 logger = logging.getLogger(__name__)
 
@@ -110,6 +111,13 @@ def create_broadcast():
         )
         db.add(broadcast)
         db.commit()
+
+        # Trigger Push Notification
+        try:
+            pushed_count = trigger_push_broadcast(message, target_location=None if target_location == 'all' else target_location)
+            logger.info(f"🚀 Push notification sent to {pushed_count} devices")
+        except Exception as e:
+            logger.error(f"⚠️ Push notification failed: {e}")
 
         logger.info(f"📢 Admin {user.username} created broadcast: {message[:50]}... (location: {target_location})")
         return jsonify({'success': True, 'message': 'Broadcast sent!'})
