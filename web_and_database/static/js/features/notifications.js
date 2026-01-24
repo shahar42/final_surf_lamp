@@ -16,8 +16,8 @@ const Notifications = {
             this.swRegistration = await navigator.serviceWorker.register('/sw.js');
             console.log('SW Registered');
 
-            // Fetch Key
-            const response = await fetch('/notifications/vapid-public-key');
+            // Fetch Key (with cache busting)
+            const response = await fetch('/notifications/vapid-public-key?t=' + Date.now());
             if (!response.ok) throw new Error('Failed to fetch VAPID key');
             const data = await response.json();
             this.publicKey = data.publicKey;
