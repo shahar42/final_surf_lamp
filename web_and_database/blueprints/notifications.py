@@ -111,9 +111,12 @@ def trigger_push_broadcast(message, target_location=None):
                 )
                 sent_count += 1
             except WebPushException as ex:
-                if ex.response and ex.response.status_code == 410:
-                    # Subscription expired/gone - delete from DB
-                    logging.info(f"Deleting expired subscription for user {sub_record.user_id}")
+                if ex.response and ex.response.status_code in [403, 404, 410]:
+                    # Subscription expired/gone/invalid - delete from DB
+                    # 403: Forbidden (Key mismatch)
+                    # 404: Not Found
+                    # 410: Gone (Unsubscribed)
+                    logging.info(f"Deleting invalid subscription (Status {ex.response.status_code}) for user {sub_record.user_id}")
                     db.delete(sub_record)
                 else:
                     logging.warning(f"Push failed for user {sub_record.user_id}: {ex}")
