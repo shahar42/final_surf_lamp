@@ -7,9 +7,13 @@ from pywebpush import webpush, WebPushException
 bp = Blueprint('notifications', __name__, url_prefix='/notifications')
 
 SUBSCRIPTIONS_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'subscriptions.json')
+# Use Env Var for Private Key (Security Best Practice)
+VAPID_PRIVATE_KEY = os.getenv('VAPID_PRIVATE_KEY')
+# Fallback for local dev if file exists
 VAPID_PRIVATE_KEY_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'vapid_private_key.pem')
-# TODO: Move this to config
-VAPID_PUBLIC_KEY = 'BJPbuODneJG5bXvuRr9ZYnlA5EhrxSxq3AEkb6wfBvIqztLGa4ryhJs_JDU9ZlCyAU63_uMjGR5nQi8ZHEY5cp8'
+
+# NEW Public Key
+VAPID_PUBLIC_KEY = 'BIg41PcUdRtbt6wOO8CpOJKmbgH4PA_ULHRC_dWI2z65tDY1h_We6rOkbzW0Ime6eFxKVQGhn0XVAa0oOKLq7Y4'
 VAPID_CLAIMS = {
     "sub": "mailto:admin@surflamp.com"
 }
@@ -56,25 +60,24 @@ def send_test_notification():
     
     results = []
     
-    # Read private key
-    try:
-        with open(VAPID_PRIVATE_KEY_PATH, 'r') as f:
-            # Skip the first line (PEM header) if necessary or just read normally
-            # pywebpush expects the PEM content or path. simpler to pass path if library supports it, 
-            # but webpush() takes private_key param.
-            # let's try passing the path directly if supported, or read content.
-            # actually pywebpush usually takes the string content or file path.
-            # checking docs... it takes private_key as str.
-             private_key = f.read().strip()
-    except Exception as e:
-        return jsonify({'error': f'Could not read private key: {str(e)}'}), 500
+    # Determine Private Key source
+    private_key = VAPID_PRIVATE_KEY
+    if not private_key and os.path.exists(VAPID_PRIVATE_KEY_PATH):
+        try:
+            with open(VAPID_PRIVATE_KEY_PATH, 'r') as f:
+                private_key = f.read().strip()
+        except Exception as e:
+            return jsonify({'error': f'Could not read private key file: {str(e)}'}), 500
+            
+    if not private_key:
+        return jsonify({'error': 'VAPID Private Key is missing (Check Env Vars)'}), 500
 
     for sub_info in subs:
         try:
             webpush(
                 subscription_info=sub_info,
                 data=json.dumps({'title': 'Surf Lamp', 'body': message}),
-                vapid_private_key=VAPID_PRIVATE_KEY_PATH,
+                vapid_private_key=private_key,
                 vapid_claims=VAPID_CLAIMS
             )
             results.append({'status': 'success'})

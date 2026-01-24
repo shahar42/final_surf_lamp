@@ -274,6 +274,7 @@ def get_arduino_surf_data_v2(arduino_id):
                 'quiet_hours_active': quiet_hours_active,
                 'off_hours_active': off_hours_active,
                 'brightness_multiplier': brightness_value,
+                'fetch_interval_ms': (getattr(arduino, 'request_interval_minutes', 13) or 13) * 60 * 1000,
                 'last_updated': location.last_updated.isoformat() if location.last_updated else '1970-01-01T00:00:00Z',
                 'data_available': bool(location.wave_height_m or location.wind_speed_mps)
             }
@@ -399,6 +400,7 @@ def get_arduino_settings(arduino_id):
                 'quiet_hours_active': quiet_hours_active,
                 'off_hours_active': off_hours_active,
                 'brightness_multiplier': getattr(user, 'brightness_level', BRIGHTNESS_LEVELS['MID']),
+                'fetch_interval_ms': (getattr(arduino, 'request_interval_minutes', 13) or 13) * 60 * 1000,
                 'settings_version': int(arduino.last_poll_time.timestamp()) if arduino.last_poll_time else 0
             }
 

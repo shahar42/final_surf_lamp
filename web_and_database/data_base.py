@@ -124,6 +124,7 @@ class Arduino(Base):
     last_poll_time = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
     fallback_v2_count = Column(Integer, default=0)
     last_v2_fallback = Column(TIMESTAMP, nullable=True)
+    request_interval_minutes = Column(Integer, default=13, nullable=False)
 
     user = relationship("User", back_populates="arduinos")
     location_data = relationship("Location", back_populates="arduinos")
