@@ -1,11 +1,12 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, send_from_directory
 from werkzeug.middleware.proxy_fix import ProxyFix
 from config import configure_app
 from utils.helpers import convert_wind_direction
 from flask import redirect, url_for
 from blueprints import (
     auth, dashboard, api_user,
-    api_arduino, api_locations, api_chat, reports, admin, landing
+    api_arduino, api_locations, api_chat, reports, admin, landing,
+    notifications
 )
 
 def create_app():
@@ -30,6 +31,12 @@ def create_app():
     app.register_blueprint(api_chat.bp)
     app.register_blueprint(reports.bp)
     app.register_blueprint(admin.bp)
+    app.register_blueprint(notifications.bp)
+
+    # Service Worker for PWA
+    @app.route('/sw.js')
+    def service_worker():
+        return send_from_directory(app.static_folder, 'sw.js')
 
     # Root route redirects to dashboard (which auto-redirects to login if not logged in)
     @app.route('/')
