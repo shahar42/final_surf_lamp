@@ -15,7 +15,7 @@ VAPID_PRIVATE_KEY = os.getenv('VAPID_PRIVATE_KEY')
 VAPID_PRIVATE_KEY_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'vapid_private_key.pem')
 
 # Public Key
-VAPID_PUBLIC_KEY = 'BIg41PcUdRtbt6wOO8CpOJKmbgH4PA_ULHRC_dWI2z65tDY1h_We6rOkbzW0Ime6eFxKVQGhn0XVAa0oOKLq7Y4'
+VAPID_PUBLIC_KEY = 'BEbp72z3GNmxbrIyhvpCxnmUcA-g5NQG_eYLy_TuF8E-JnLI0u6K54hgLB0E7Uui8xSPV4xqYj1gz95bmk7E48g'
 VAPID_CLAIMS = {
     "sub": "mailto:admin@surflamp.com"
 }
