@@ -1,6 +1,7 @@
 import json
 import os
 import logging
+import tempfile
 from datetime import datetime
 from flask import Blueprint, request, jsonify, current_app, session
 from pywebpush import webpush, WebPushException
@@ -19,8 +20,8 @@ VAPID_CLAIMS = {
     "sub": "mailto:admin@surflamp.com"
 }
 
-def get_private_key():
-    """Retrieve VAPID private key from Env Var or File"""
+def get_private_key_content():
+    """Retrieve VAPID private key content from Env Var or File and normalize it"""
     key = VAPID_PRIVATE_KEY
     if not key and os.path.exists(VAPID_PRIVATE_KEY_PATH):
         try:
@@ -42,7 +43,6 @@ def get_private_key():
                      .strip()
         
         # Re-wrap to standard PEM format (64 chars per line)
-        # This ensures the parser always gets exactly what it expects.
         wrapped = "\n".join([raw_b64[i:i+64] for i in range(0, len(raw_b64), 64)])
         return f"-----BEGIN PRIVATE KEY-----\n{wrapped}\n-----END PRIVATE KEY-----"
             
@@ -54,9 +54,23 @@ def trigger_push_broadcast(message, target_location=None):
     Called by admin.py.
     Uses Database (Scott Meyers approved).
     """
-    private_key = get_private_key()
-    if not private_key:
+    private_key_content = get_private_key_content()
+    if not private_key_content:
         logging.error("Cannot send push: Missing Private Key")
+        return 0
+
+    # Write key to a temporary file to ensure pywebpush handles it correctly
+    # (Avoids string/bytes/DER confusion)
+    temp_pem_path = None
+    try:
+        with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.pem') as temp_pem:
+            temp_pem.write(private_key_content)
+            # Ensure a trailing newline just in case
+            if not private_key_content.endswith('\n'):
+                temp_pem.write('\n')
+            temp_pem_path = temp_pem.name
+    except Exception as e:
+        logging.error(f"Failed to create temp key file: {e}")
         return 0
 
     db = SessionLocal()
@@ -92,7 +106,7 @@ def trigger_push_broadcast(message, target_location=None):
                         'body': message,
                         'url': '/' 
                     }),
-                    vapid_private_key=private_key,
+                    vapid_private_key=temp_pem_path, # Pass the FILE PATH
                     vapid_claims=VAPID_CLAIMS
                 )
                 sent_count += 1
@@ -101,7 +115,6 @@ def trigger_push_broadcast(message, target_location=None):
                     # Subscription expired/gone - delete from DB
                     logging.info(f"Deleting expired subscription for user {sub_record.user_id}")
                     db.delete(sub_record)
-                    # We commit at the end or in batches
                 else:
                     logging.warning(f"Push failed for user {sub_record.user_id}: {ex}")
             except Exception as e:
@@ -114,6 +127,12 @@ def trigger_push_broadcast(message, target_location=None):
         db.rollback()
     finally:
         db.close()
+        # Clean up temp file
+        if temp_pem_path and os.path.exists(temp_pem_path):
+            try:
+                os.unlink(temp_pem_path)
+            except Exception:
+                pass
 
     logging.info(f"Push Broadcast Sent: {sent_count} messages (Target: {target_location})")
     return sent_count
