@@ -173,8 +173,9 @@ async def get_database_schema() -> str:
         return f"Database Schema:\n\n```json\n{json.dumps(schema_info, indent=2, default=str)}\n```"
 
     except Exception as e:
-        logger.error(f"Schema query failed: {e}")
-        return "Error: Failed to retrieve database schema. Check server logs for details."
+        error_msg = f"Schema query failed: {str(e)}"
+        logger.error(error_msg)
+        return f"Error: {error_msg}"
 
 @mcp.tool()
 async def query_table(table_name: str, limit: int = 10, where_clause: str = "") -> str:
@@ -205,8 +206,9 @@ async def query_table(table_name: str, limit: int = 10, where_clause: str = "") 
         return f"Table '{table_name}' Query Results ({len(data)} rows):\n\n```json\n{json.dumps(data, indent=2, default=serialize_for_json)}\n```"
 
     except Exception as e:
-        logger.error(f"Table query failed: {e}")
-        return "Error: Database query failed. Check server logs for details."
+        error_msg = f"Table query failed: {str(e)}"
+        logger.error(error_msg)
+        return f"Error: {error_msg}"
 
 @mcp.tool()
 async def execute_safe_query(query: str, limit: int = 10) -> str:
@@ -239,8 +241,9 @@ async def execute_safe_query(query: str, limit: int = 10) -> str:
         return f"Query Results ({len(data)} rows):\n\n```json\n{json.dumps(data, indent=2, default=serialize_for_json)}\n```"
 
     except Exception as e:
-        logger.error(f"Query execution failed: {e}")
-        return "Error: Database query failed. Check server logs for details."
+        error_msg = f"Query execution failed: {str(e)}"
+        logger.error(error_msg)
+        return f"Error: {error_msg}"
 
 @mcp.tool()
 async def get_table_stats(table_name: str) -> str:
@@ -271,8 +274,9 @@ async def get_table_stats(table_name: str) -> str:
         return f"Table '{table_name}' Statistics:\n\n```json\n{json.dumps(stats, indent=2, default=str)}\n```"
 
     except Exception as e:
-        logger.error(f"Stats query failed: {e}")
-        return "Error: Failed to retrieve table statistics. Check server logs for details."
+        error_msg = f"Stats query failed: {str(e)}"
+        logger.error(error_msg)
+        return f"Error: {error_msg}"
 
 @mcp.tool()
 async def check_database_health() -> str:
@@ -302,8 +306,9 @@ async def check_database_health() -> str:
         return f"Database Health Check:\n\n```json\n{json.dumps(health_info, indent=2)}\n```"
 
     except Exception as e:
-        logger.error(f"Health check failed: {e}")
-        return "Error: Database health check failed. Check server logs for details."
+        error_msg = f"Health check failed: {str(e)}"
+        logger.error(error_msg)
+        return f"Error: {error_msg}"
 
 @mcp.tool()
 async def get_user_dashboard_data(user_id: int) -> str:
@@ -332,8 +337,9 @@ async def get_user_dashboard_data(user_id: int) -> str:
         return f"User Dashboard Data (user_id: {user_id}):\n\n```json\n{json.dumps(data, indent=2, default=serialize_for_json)}\n```"
 
     except Exception as e:
-        logger.error(f"Dashboard query failed: {e}")
-        return "Error: Failed to retrieve user dashboard data. Check server logs for details."
+        error_msg = f"Dashboard query failed: {str(e)}"
+        logger.error(error_msg)
+        return f"Error: {error_msg}"
 
 @mcp.tool()
 async def get_surf_conditions_by_location(location: str) -> str:
@@ -355,8 +361,9 @@ async def get_surf_conditions_by_location(location: str) -> str:
         return f"Surf Conditions for '{location}' ({len(data)} results):\n\n```json\n{json.dumps(data, indent=2, default=serialize_for_json)}\n```"
 
     except Exception as e:
-        logger.error(f"Location conditions query failed: {e}")
-        return "Error: Failed to retrieve surf conditions. Check server logs for details."
+        error_msg = f"Location conditions query failed: {str(e)}"
+        logger.error(error_msg)
+        return f"Error: {error_msg}"
 
 @mcp.tool()
 async def get_location_configs() -> str:
@@ -375,8 +382,9 @@ async def get_location_configs() -> str:
         return f"Location Configurations ({len(data)} locations):\n\n```json\n{json.dumps(data, indent=2, default=serialize_for_json)}\n```"
 
     except Exception as e:
-        logger.error(f"Location config query failed: {e}")
-        return "Error: Failed to retrieve location configurations. Check server logs for details."
+        error_msg = f"Location config query failed: {str(e)}"
+        logger.error(error_msg)
+        return f"Error: {error_msg}"
 
 @mcp.tool()
 async def get_lamp_status_summary() -> str:
@@ -406,8 +414,9 @@ async def get_lamp_status_summary() -> str:
         return f"Lamp Status Summary ({len(data)} lamps):\n\n```json\n{json.dumps(data, indent=2, default=serialize_for_json)}\n```"
 
     except Exception as e:
-        logger.error(f"Lamp status query failed: {e}")
-        return "Error: Failed to retrieve lamp status. Check server logs for details."
+        error_msg = f"Lamp status query failed: {str(e)}"
+        logger.error(error_msg)
+        return f"Error: {error_msg}"
 
 @mcp.tool()
 async def search_users_and_locations(search_term: str) -> str:
@@ -429,8 +438,9 @@ async def search_users_and_locations(search_term: str) -> str:
         return f"Search Results for '{search_term}' ({len(data)} matches):\n\n```json\n{json.dumps(data, indent=2, default=serialize_for_json)}\n```"
 
     except Exception as e:
-        logger.error(f"Search query failed: {e}")
-        return "Error: Search failed. Check server logs for details."
+        error_msg = f"Search query failed: {str(e)}"
+        logger.error(error_msg)
+        return f"Error: {error_msg}"
 
 @mcp.tool()
 async def insert_record(table_name: str, data: Dict[str, Any]) -> str:
@@ -457,8 +467,9 @@ async def insert_record(table_name: str, data: Dict[str, Any]) -> str:
         return f"Successfully inserted into '{table_name}':\n\n```json\n{json.dumps(new_record, indent=2, default=serialize_for_json)}\n```"
 
     except Exception as e:
-        logger.error(f"Insert failed: {e}")
-        return "Error: Database insert failed. Check server logs for details."
+        error_msg = f"Insert failed: {str(e)}"
+        logger.error(error_msg)
+        return f"Error: {error_msg}"
 
 @mcp.tool()
 async def delete_record(table_name: str, where_clause: str) -> str:
@@ -492,8 +503,9 @@ async def delete_record(table_name: str, where_clause: str) -> str:
         return f"Successfully deleted {len(deleted_records)} record(s) from '{table_name}':\n\n```json\n{json.dumps(result_data, indent=2, default=serialize_for_json)}\n```"
 
     except Exception as e:
-        logger.error(f"Delete failed: {e}")
-        return "Error: Database delete failed. Check server logs for details."
+        error_msg = f"Delete failed: {str(e)}"
+        logger.error(error_msg)
+        return f"Error: {error_msg}"
 
 # Test database connection on startup
 async def test_connection():
