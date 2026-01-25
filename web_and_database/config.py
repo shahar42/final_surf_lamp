@@ -22,12 +22,13 @@ limiter = Limiter(
 # Constants
 SURF_LOCATIONS = [
     "Hadera, Israel",
-    "Tel Aviv, Israel", 
+    "Tel Aviv, Israel",
     "Ashdod, Israel",
     "Haifa, Israel",
     "Netanya, Israel",
     "Ashkelon, Israel",
-    "Nahariya, Israel"
+    "Nahariya, Israel",
+    "Eilat, Israel"
 ]
 
 BRIGHTNESS_LEVELS = {

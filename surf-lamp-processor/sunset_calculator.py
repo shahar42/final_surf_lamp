@@ -20,7 +20,8 @@ LOCATION_COORDS = {
     "Ashdod, Israel": {"latitude": 31.8044, "longitude": 34.6553, "timezone": "Asia/Jerusalem"},
     "Nahariya, Israel": {"latitude": 33.0050, "longitude": 35.0936, "timezone": "Asia/Jerusalem"},
     "Ashkelon, Israel": {"latitude": 31.6688, "longitude": 34.5742, "timezone": "Asia/Jerusalem"},
-    "Eilat": {"latitude": 29.5581, "longitude": 34.9482, "timezone": "Asia/Jerusalem"},
+    "Eilat": {"latitude": 29.5500, "longitude": 34.9519, "timezone": "Asia/Jerusalem"},
+    "Eilat, Israel": {"latitude": 29.5500, "longitude": 34.9519, "timezone": "Asia/Jerusalem"},
     "Herzliya": {"latitude": 32.1624, "longitude": 34.8080, "timezone": "Asia/Jerusalem"},
     # Add more locations as needed
 }

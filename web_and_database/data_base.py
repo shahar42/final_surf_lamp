@@ -178,6 +178,7 @@ LOCATION_TIMEZONES = {
     "Netanya, Israel": "Asia/Jerusalem",
     "Nahariya, Israel": "Asia/Jerusalem",
     "Ashkelon, Israel": "Asia/Jerusalem",
+    "Eilat, Israel": "Asia/Jerusalem",
     "San Diego, USA": "America/Los_Angeles",
     "Barcelona, Spain": "Europe/Madrid",
 }
@@ -210,6 +211,9 @@ MULTI_SOURCE_LOCATIONS = {
     "Ashkelon, Israel": [
         {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=31.6699&longitude=34.5738&hourly=wave_height,wave_period,wave_direction", "priority": 1, "type": "wave"},
         {"url": f"http://api.openweathermap.org/data/2.5/weather?q=Ashkelon&appid={OPENWEATHERMAP_API_KEY}", "priority": 2, "type": "wind"}
+    ],
+    "Eilat, Israel": [
+        {"url": "https://api.open-meteo.com/v1/forecast?latitude=29.5500&longitude=34.9519&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms", "priority": 1, "type": "wind"}
     ]
 }
 
