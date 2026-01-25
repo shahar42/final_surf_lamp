@@ -24,7 +24,7 @@ def update_location():
             return {'success': False, 'message': 'Invalid location selected'}, 400
 
         if not check_location_change_limit(user_id):
-            return {'success': False, 'message': "Maximum 5 location changes per day reached"}, 429
+            return {'success': False, 'message': "Maximum 10 location changes per day reached"}, 429
 
         record_location_change(user_id)
 
