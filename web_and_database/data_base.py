@@ -317,6 +317,12 @@ def update_user_location(user_id, new_location):
         user = db.query(User).filter(User.user_id == user_id).first()
         if not user: return False, "User not found"
         user.location = new_location
+
+        # CRITICAL: Also update all user's Arduino locations to match
+        arduinos = db.query(Arduino).filter(Arduino.user_id == user_id).all()
+        for arduino in arduinos:
+            arduino.location = new_location
+
         db.commit()
         return True, "Location updated"
     except Exception as e:

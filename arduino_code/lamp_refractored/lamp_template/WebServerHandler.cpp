@@ -127,10 +127,11 @@ void handleStatusRequest()
 
     // Fetch timing information
     unsigned long intervalMs = FETCH_INTERVAL_MS.load();  // Atomic read
-    statusDoc["fetch_info"]["last_fetch_ms"] = lastDataFetch;
+    unsigned long lastFetchMs = lastDataFetch.load();  // Atomic read
+    statusDoc["fetch_info"]["last_fetch_ms"] = lastFetchMs;
     statusDoc["fetch_info"]["fetch_interval_ms"] = intervalMs;
-    statusDoc["fetch_info"]["time_since_last_fetch_ms"] = millis() - lastDataFetch;
-    statusDoc["fetch_info"]["time_until_next_fetch_ms"] = intervalMs - (millis() - lastDataFetch);
+    statusDoc["fetch_info"]["time_since_last_fetch_ms"] = millis() - lastFetchMs;
+    statusDoc["fetch_info"]["time_until_next_fetch_ms"] = intervalMs - (millis() - lastFetchMs);
 
     // LED calculation debug info
     GetLedDebug(statusDoc);
@@ -246,7 +247,7 @@ void UpdateGlobalState(int wave_height_cm, float wave_period_s, int wind_speed_m
     lastSurfData.waveThreshold = wave_threshold_cm / 100.0;  // Convert cm to meters for consistent comparison
     lastSurfData.windSpeedThreshold = wind_speed_threshold_knots;
     lastSurfData.quietHoursActive = quiet_hours_active;
-    lastSurfData.off_hours_active = off_hours_active;
+    lastSurfData.offHoursActive = off_hours_active;
     lastSurfData.brightnessMultiplier = brightness_multiplier;
     
     // Thread-safe string copy
