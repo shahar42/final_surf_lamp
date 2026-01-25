@@ -178,7 +178,7 @@ async def get_database_schema() -> str:
 
 @mcp.tool()
 async def query_table(table_name: str, limit: int = 10, where_clause: str = "") -> str:
-    """READ: Query specific surf lamp tables with optional WHERE filtering. Available tables: users(user_id,username,email,location,theme,sport_type,wave_threshold_m,wind_threshold_knots), lamps(lamp_id,user_id,arduino_id,arduino_ip), current_conditions(lamp_id,wave_height_m,wave_period_s,wind_speed_mps,wind_direction_deg), daily_usage(usage_id,website_url), usage_lamps(usage_id,lamp_id,api_key,http_endpoint), location_websites(location,usage_id), password_reset_tokens(id,user_id,token_hash,expiration_time). Use for basic table queries with simple filtering."""
+    """READ: Query specific surf lamp tables with optional WHERE filtering. Available tables: users, arduinos, locations (with wave_calculation_method column), broadcasts, error_reports, password_reset_tokens. Use for basic table queries with simple filtering."""
     try:
         if table_name not in KNOWN_TABLES:
             return f"Error: table_name must be one of {KNOWN_TABLES}"
@@ -344,15 +344,10 @@ async def get_surf_conditions_by_location(location: str) -> str:
 
         async with DatabaseConnection() as conn:
             query = """
-            SELECT
-                u.username, u.location, l.lamp_id,
-                cc.wave_height_m, cc.wave_period_s, cc.wind_speed_mps, cc.wind_direction_deg,
-                cc.last_updated
-            FROM users u
-            JOIN lamps l ON u.user_id = l.user_id
-            JOIN current_conditions cc ON l.lamp_id = cc.lamp_id
-            WHERE u.location ILIKE $1
-            ORDER BY cc.last_updated DESC
+            SELECT location, wave_api_url, wind_api_url, wave_calculation_method,
+                   wave_height_m, wave_period_s, wind_speed_mps, wind_direction_deg, last_updated
+            FROM locations
+            WHERE location ILIKE $1
             """
             rows = await conn.fetch(query, f"%{location}%")
             data = [dict(row) for row in rows]
@@ -362,6 +357,26 @@ async def get_surf_conditions_by_location(location: str) -> str:
     except Exception as e:
         logger.error(f"Location conditions query failed: {e}")
         return "Error: Failed to retrieve surf conditions. Check server logs for details."
+
+@mcp.tool()
+async def get_location_configs() -> str:
+    """ADMIN: Get all location API configurations including wave calculation methods. Shows which locations use formula vs API-based wave calculation."""
+    try:
+        async with DatabaseConnection() as conn:
+            query = """
+            SELECT location, wave_calculation_method,
+                   wave_api_url, wind_api_url, last_updated
+            FROM locations
+            ORDER BY location
+            """
+            rows = await conn.fetch(query)
+            data = [dict(row) for row in rows]
+
+        return f"Location Configurations ({len(data)} locations):\n\n```json\n{json.dumps(data, indent=2, default=serialize_for_json)}\n```"
+
+    except Exception as e:
+        logger.error(f"Location config query failed: {e}")
+        return "Error: Failed to retrieve location configurations. Check server logs for details."
 
 @mcp.tool()
 async def get_lamp_status_summary() -> str:
