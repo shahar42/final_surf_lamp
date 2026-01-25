@@ -40,7 +40,7 @@ if not DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable is required")
 
 # Known tables from your surf lamp database
-KNOWN_TABLES = ['users', 'arduinos', 'locations', 'broadcasts', 'error_reports', 'password_reset_tokens']
+KNOWN_TABLES = ['users', 'arduinos', 'locations', 'broadcasts', 'error_reports', 'password_reset_tokens', 'notification_subscriptions']
 
 class DatabaseConnection:
     """Context manager for safe database connection handling"""
