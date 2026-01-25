@@ -20,7 +20,7 @@ Without this parameter:
 # In surf-lamp-processor/endpoint_configs.py
 
 FIELD_MAPPINGS = {
-    # OpenWeatherMap API 
+    # OpenWeatherMap API
     "openweathermap.org": {
         "wind_speed_mps": ["wind", "speed"],
         "wind_direction_deg": ["wind", "deg"],
@@ -63,6 +63,21 @@ FIELD_MAPPINGS = {
     },
 }
 
+# Wave calculation methods - configuration driven
+WAVE_CALCULATIONS = {
+    "api": {
+        "type": "api",
+        "description": "Use wave data from API (default for coastal areas)"
+    },
+    "formula": {
+        "type": "wind_formula",
+        "description": "Calculate wave height and period from wind speed",
+        "height_coefficient": 0.0399,  # 0.0163 * √6
+        "period_coefficient": 0.890,   # 0.54 * 6^0.3
+        "period_exponent": 0.4
+    }
+}
+
 def extract_isramar_data(raw_data):
     """
     CORRECTED: Custom extraction function for Isramar.
@@ -92,10 +107,10 @@ def extract_isramar_data(raw_data):
 def get_endpoint_config(endpoint_url):
     """
     Get the field mapping configuration for a given endpoint URL.
-    
+
     Args:
         endpoint_url (str): The API endpoint URL
-        
+
     Returns:
         dict: Field mapping configuration or None if not found
     """
@@ -103,6 +118,19 @@ def get_endpoint_config(endpoint_url):
         if endpoint_key in endpoint_url:
             return config
     return None
+
+
+def get_wave_calculation_config(method):
+    """
+    Get wave calculation configuration by method name.
+
+    Args:
+        method (str): Calculation method ('api' or 'formula')
+
+    Returns:
+        dict: Wave calculation configuration or default 'api' if not found
+    """
+    return WAVE_CALCULATIONS.get(method, WAVE_CALCULATIONS['api'])
 
 def list_supported_endpoints():
     """

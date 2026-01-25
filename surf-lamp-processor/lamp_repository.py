@@ -61,12 +61,12 @@ def test_database_connection(engine):
 def get_location_api_configs(engine):
     """
     Get API configurations from locations table.
-    Returns: {location: {'wave_api_url': ..., 'wind_api_url': ...}}
+    Returns: {location: {'wave_api_url': ..., 'wind_api_url': ..., 'wave_calculation_method': ...}}
     """
     logger.info("📡 Getting location API configurations from database...")
 
     query = text("""
-        SELECT location, wave_api_url, wind_api_url
+        SELECT location, wave_api_url, wind_api_url, COALESCE(wave_calculation_method, 'api') as wave_calculation_method
         FROM locations
         WHERE location IN (
             SELECT DISTINCT location FROM arduinos
@@ -80,9 +80,10 @@ def get_location_api_configs(engine):
             for row in result:
                 configs[row.location] = {
                     'wave_api_url': row.wave_api_url,
-                    'wind_api_url': row.wind_api_url
+                    'wind_api_url': row.wind_api_url,
+                    'wave_calculation_method': row.wave_calculation_method
                 }
-                logger.info(f"✅ {row.location}: wave={row.wave_api_url[:50]}..., wind={row.wind_api_url[:50]}...")
+                logger.info(f"✅ {row.location}: wave={row.wave_api_url[:50]}..., wind={row.wind_api_url[:50]}..., method={row.wave_calculation_method}")
 
         logger.info(f"✅ Loaded API configs for {len(configs)} locations")
         return configs

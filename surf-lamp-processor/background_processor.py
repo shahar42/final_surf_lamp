@@ -104,7 +104,7 @@ def process_all_lamps():
             # Fetch data from APIs
             total_api_calls += 2
             wave_data = fetch_surf_data(None, config['wave_api_url'])
-            wind_data = fetch_surf_data(None, config['wind_api_url'])
+            wind_data = fetch_surf_data(None, config['wind_api_url'], config['wave_calculation_method'])
 
             # Combine data
             combined_surf_data = {}

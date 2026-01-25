@@ -20,9 +20,16 @@ from surf_data_transformer import standardize_surf_data
 logger = logging.getLogger(__name__)
 
 
-def fetch_surf_data(api_key, endpoint):
-    """Fetch surf data from external API and standardize using config"""
-    logger.info(f"🌊 Fetching surf data from: {endpoint}")
+def fetch_surf_data(api_key, endpoint, wave_calculation_method='api'):
+    """
+    Fetch surf data from external API and standardize using config.
+
+    Args:
+        api_key: Optional API key for authentication
+        endpoint: API endpoint URL
+        wave_calculation_method: 'api' (default) or 'formula' for wind-based wave calculation
+    """
+    logger.info(f"🌊 Fetching surf data from: {endpoint} (method: {wave_calculation_method})")
 
     # Validate Open-Meteo wind unit (must be m/s)
     if "wind_speed_10m" in endpoint and "open-meteo.com" in endpoint:
@@ -65,7 +72,7 @@ def fetch_surf_data(api_key, endpoint):
         time.sleep(30)
 
         raw_data = response.json()
-        surf_data = standardize_surf_data(raw_data, endpoint)
+        surf_data = standardize_surf_data(raw_data, endpoint, wave_calculation_method)
 
         if surf_data:
             return surf_data

@@ -167,6 +167,5 @@ constumer_support/
 
 # MCP servers are now tracked in git to prevent disappearing
 # (removed from gitignore Jan 11, 2026)
-arduino_code/
 future_plan.txt
 web_and_database/vapid_private_key.pem

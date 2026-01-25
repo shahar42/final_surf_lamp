@@ -13,7 +13,7 @@ import json
 import time
 import logging
 from datetime import datetime
-from endpoint_configs import get_endpoint_config
+from endpoint_configs import get_endpoint_config, get_wave_calculation_config
 
 logger = logging.getLogger(__name__)
 
@@ -97,28 +97,62 @@ def apply_conversions(value, conversions, field_name):
 
     return value
 
+def calculate_wave_from_wind(wind_speed_mps, calc_config):
+    """
+    Calculate wave height and period from wind speed using location-specific formula.
+
+    Args:
+        wind_speed_mps: Wind speed in meters per second
+        calc_config: Configuration dict with coefficients and exponents
+
+    Returns:
+        dict: {'wave_height_m': float, 'wave_period_s': float}
+    """
+    if wind_speed_mps is None or wind_speed_mps <= 0:
+        return {}
+
+    try:
+        height = calc_config['height_coefficient'] * wind_speed_mps
+        period = calc_config['period_coefficient'] * (wind_speed_mps ** calc_config['period_exponent'])
+
+        logger.info(f"📊 Calculated wave from wind: U={wind_speed_mps}m/s -> H={height:.2f}m, T={period:.2f}s")
+
+        return {
+            'wave_height_m': height,
+            'wave_period_s': period
+        }
+    except Exception as e:
+        logger.error(f"❌ Wave calculation failed: {e}")
+        return {}
+
+
 def normalize_low_values(standardized):
 
     if 'wave_height_m' in standardized:
-        if 0.01 <= standardized['wave_height_m'] <= 0.9
+        if 0.01 <= standardized['wave_height_m'] <= 0.9:
             standardized['wave_height_m'] = 1.0
-    
+
     if 'wave_period_s' in standardized:
-        if 0.01 <= standardized['wave_period_s'] <= 0.9
+        if 0.01 <= standardized['wave_period_s'] <= 0.9:
             standardized['wave_period_s'] = 1.0
 
     if 'wind_speed_mps' in standardized:
-        if 0.01 <= standardized['wind_speed_mps'] <= 0.9
+        if 0.01 <= standardized['wind_speed_mps'] <= 0.9:
             standardized['wind_speed_mps'] = 1.0
 
 
-def standardize_surf_data(raw_data, endpoint_url):
+def standardize_surf_data(raw_data, endpoint_url, wave_calculation_method='api'):
     """
     Extract standardized fields using endpoint-specific configuration.
     when data is between 0.01 to 0.9 it rounds it up to 1 so the lamp doesnt recive 0 due to int rounding which will cause it to display partial data error
     Only returns fields that are actually found in the API response.
+
+    Args:
+        raw_data: Raw API response
+        endpoint_url: API endpoint URL
+        wave_calculation_method: 'api' (default) or 'formula' (for wind-based calculation)
     """
-    logger.info(f"🔧 Standardizing data from: {endpoint_url}")
+    logger.info(f"🔧 Standardizing data from: {endpoint_url} (method: {wave_calculation_method})")
 
     config = get_endpoint_config(endpoint_url)
     if not config:
@@ -163,6 +197,16 @@ def standardize_surf_data(raw_data, endpoint_url):
                 converted_value = apply_conversions(raw_value, conversions, standard_field)
                 standardized[standard_field] = converted_value
 
+    # Handle wave calculation method
+    if wave_calculation_method == 'formula':
+        calc_config = get_wave_calculation_config('formula')
+        wind_speed = standardized.get('wind_speed_mps')
+
+        # Only calculate if we don't have wave data from API but have wind data
+        if wind_speed and 'wave_height_m' not in standardized:
+            calculated_waves = calculate_wave_from_wind(wind_speed, calc_config)
+            standardized.update(calculated_waves)
+            logger.info(f"🌊 Wave data calculated from wind using formula method")
 
     # Only add metadata if some data was actually extracted
     if standardized:
