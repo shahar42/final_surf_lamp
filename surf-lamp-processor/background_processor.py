@@ -154,9 +154,15 @@ def main():
             import schedule
             schedule.every(15).minutes.do(process_all_lamps)
 
+            heartbeat_counter = 0
             while True:
                 schedule.run_pending()
                 time.sleep(60)
+
+                # Heartbeat every 5 minutes to prove process is alive
+                heartbeat_counter += 1
+                if heartbeat_counter % 5 == 0:
+                    logger.info(f"💓 Heartbeat: Process alive, waiting for next cycle...")
 
         finally:
             logger.info("Cleaning up database connections...")
