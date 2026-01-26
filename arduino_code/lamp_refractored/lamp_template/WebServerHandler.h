@@ -87,13 +87,7 @@ void handleWiFiDiagnostics();
 void handleDiscoveryTest();
 
 String urlEncode(const String& str);
-bool fetchSettingsFromServer();
-bool fetchConditionsFromServer();
-bool fetchSurfDataV3();
 bool sendHeartbeat();
-
-// Settings timing managed by CachedSettings struct
-// (no longer need extern declarations - use cachedSettings.needsRefresh())
 
 // ---------------- HTTPS CLIENT (RAII PATTERN) ----------------
 // Global WiFiClientSecure instance for reuse across all HTTPS requests

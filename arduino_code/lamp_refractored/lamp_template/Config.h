@@ -207,37 +207,4 @@ struct SurfDataDefaults {
     static constexpr float BRIGHTNESS_MULTIPLIER = 0.6;
     static constexpr const char* LED_THEME = "classic_surf";
 };
-
-// ---------------- CACHED SETTINGS STRUCT ----------------
-
-struct CachedSettings {
-    // Location data
-    String location = "";
-    float latitude = 0.0;
-    float longitude = 0.0;
-    int8_t tz_offset = 0;
-
-    // Thresholds
-    int wave_threshold_min_cm = 100;
-    int wave_threshold_max_cm = 99900;
-    int wind_speed_threshold_min_knots = 15;
-    int wind_speed_threshold_max_knots = 999;
-
-    // Display settings
-    String led_theme = "classic_surf";
-    float brightness_multiplier = 0.6;
-
-    // Hour modes
-    bool quiet_hours_active = false;
-    bool off_hours_active = false;
-
-    // Timing
-    unsigned long last_fetch_ms = 0;
-    static constexpr unsigned long FETCH_INTERVAL_MS = 3600000; // 60 minutes
-
-    bool needsRefresh() const {
-        return last_fetch_ms == 0 || millis() - last_fetch_ms > FETCH_INTERVAL_MS;
-    }
-};
-
 #endif // CONFIG_H

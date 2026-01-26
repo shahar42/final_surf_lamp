@@ -102,7 +102,7 @@ void networkSecretaryTask(void* parameter)
                 Serial.println("🔧 [Core 0] Starting surf data fetch...");
             }
 
-            if (fetchSurfDataV3()) {
+            if (fetchSurfDataFromServer()) {
                 handleFetchSuccess(now);
             } else {
                 Serial.println("❌ [Core 0] Fetch failed");

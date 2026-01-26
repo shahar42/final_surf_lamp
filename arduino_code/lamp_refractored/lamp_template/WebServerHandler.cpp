@@ -14,8 +14,6 @@ const unsigned long DATA_STALENESS_THRESHOLD = 1800000; // 30 minutes (2 missed 
 
 static WebServer* webServer = nullptr;
 
-static CachedSettings cachedSettings; // fetched every 60 min
-
 WiFiClientSecure globalHttpsClient;
 
 extern ServerDiscovery serverDiscovery;
@@ -303,6 +301,18 @@ bool processSurfData(const String& jsonData)
         sunsetCalc.updateCoordinates(latitude, longitude, tz_offset);
     }
 
+    // Extract fetch interval from server (dynamic polling configuration)
+    if (doc.containsKey("fetch_interval_ms")) {
+        unsigned long new_interval = doc["fetch_interval_ms"];
+        if (new_interval >= 60000 && new_interval <= 3600000) { // Safety: 1 min to 1 hour
+            unsigned long current_interval = FETCH_INTERVAL_MS.load();
+            if (current_interval != new_interval) {
+                FETCH_INTERVAL_MS.store(new_interval);
+                Serial.printf("⏱ Fetch interval updated to %lu ms\n", new_interval);
+            }
+        }
+    }
+
     // Validate data quality
     bool bothZero = (wave_height_cm == 0 && wind_speed_mps == 0 && wave_period_s == 0);
     bool partialZero = !is_data_valid || (wave_height_cm == 0 || wind_speed_mps == 0 || wave_period_s == 0) && !bothZero;
@@ -349,75 +359,6 @@ String urlEncode(const String& str) {
     return encoded;
 }
 
-void UpdateCachedSetting(const DynamicJsonDocument& doc)
-{
-    cachedSettings.location = doc["location"] | "";
-    cachedSettings.latitude = doc["latitude"] | 0.0;
-    cachedSettings.longitude = doc["longitude"] | 0.0;
-    cachedSettings.tz_offset = doc["tz_offset"] | 0;
-    cachedSettings.wave_threshold_min_cm = doc["wave_threshold_cm"] | 100;
-    cachedSettings.wave_threshold_max_cm = doc["wave_threshold_max_cm"] | 99900;
-    cachedSettings.wind_speed_threshold_min_knots = doc["wind_speed_threshold_knots"] | 15;
-    cachedSettings.wind_speed_threshold_max_knots = doc["wind_speed_threshold_max_knots"] | 999;
-    cachedSettings.led_theme = doc["led_theme"] | "classic_surf";
-    cachedSettings.brightness_multiplier = doc["brightness_multiplier"] | 0.6;
-    cachedSettings.quiet_hours_active = doc["quiet_hours_active"] | false;
-    cachedSettings.off_hours_active = doc["off_hours_active"] | false;
-
-    // Dynamically update fetch interval from settings
-    if (doc.containsKey("fetch_interval_ms")) {
-        unsigned long new_interval = doc["fetch_interval_ms"];
-        if (new_interval >= 60000 && new_interval <= 3600000) { // Safety sanity check (1 min to 1 hour)
-            unsigned long current_interval = FETCH_INTERVAL_MS.load();  // Atomic read
-            if (current_interval != new_interval) {
-                FETCH_INTERVAL_MS.store(new_interval);  // Atomic write
-                Serial.printf("⏱ Fetch interval updated to %lu ms (from settings)\n", new_interval);
-            }
-        }
-    }
-}
-
-bool fetchSettingsFromServer() {
-    String apiServer = serverDiscovery.getApiServer();
-    if (apiServer.length() == 0) return false;
-
-    // Close any previous connection and prepare for reuse
-    globalHttpsClient.stop();
-    globalHttpsClient.setInsecure();
-
-    HTTPClient http;
-    String url = "https://" + apiServer + "/api/arduino/" + String(ARDUINO_ID) + "/settings";
-    Serial.println("⚙️ Fetching settings: " + url);
-
-    http.begin(globalHttpsClient, url);
-    http.setTimeout(HTTP_TIMEOUT_MS);
-    int httpCode = http.GET();
-
-    if (httpCode == HTTP_CODE_OK) 
-    {
-        String payload = http.getString();
-        http.end();
-        globalHttpsClient.stop();  // Explicit cleanup after success
-
-        DynamicJsonDocument doc(1024);
-        if (deserializeJson(doc, payload)) return false;
-
-        UpdateCachedSetting(doc);
-
-        if (cachedSettings.latitude != 0.0 && cachedSettings.longitude != 0.0) 
-        {
-            sunsetCalc.updateCoordinates(cachedSettings.latitude, cachedSettings.longitude, cachedSettings.tz_offset);
-        }
-
-        Serial.printf("✅ Settings cached: %s\n", cachedSettings.location.c_str());
-        cachedSettings.last_fetch_ms = millis();
-        return true;
-    }
-
-    http.end();
-    globalHttpsClient.stop();  // Explicit cleanup after failure
-    return false;
-}
 
 bool sendHeartbeat() 
 {
@@ -458,98 +399,6 @@ bool sendHeartbeat()
     http.end();
     globalHttpsClient.stop();
     return success;
-}
-
-bool fetchConditionsFromServer() {
-    if (cachedSettings.location.length() == 0) {
-        Serial.println("❌ No location - fetch settings first");
-        return false;
-    }
-
-    String apiServer = serverDiscovery.getApiServer();
-    if (apiServer.length() == 0) return false;
-
-    // Close any previous connection and prepare for reuse
-    globalHttpsClient.stop();
-    globalHttpsClient.setInsecure();
-
-    HTTPClient http;
-    String encoded = urlEncode(cachedSettings.location);
-    String url = "https://" + apiServer + "/api/locations/" + encoded + "/conditions";
-    Serial.println("🌐 Fetching conditions: " + url);
-
-    http.begin(globalHttpsClient, url);
-    http.setTimeout(HTTP_TIMEOUT_MS);
-    int httpCode = http.GET();
-
-    if (httpCode == HTTP_CODE_OK) {
-        String payload = http.getString();
-        String dateHeader = http.header("Date");
-        http.end();
-        globalHttpsClient.stop();  // Explicit cleanup after success
-
-        if (dateHeader.length() > 0) {
-            if (sunsetCalc.parseAndUpdateTime(dateHeader)) {
-                sunsetCalc.calculateSunset();
-            }
-        }
-
-        // Parse conditions
-        DynamicJsonDocument condDoc(1024);
-        if (deserializeJson(condDoc, payload)) return false;
-
-        // Merge with cached settings
-        DynamicJsonDocument merged(2048);
-        merged["wave_height_cm"] = condDoc["wave_height_cm"] | 0;
-        merged["wave_period_s"] = condDoc["wave_period_s"] | 0.0;
-        merged["wind_speed_mps"] = condDoc["wind_speed_mps"] | 0;
-        merged["wind_direction_deg"] = condDoc["wind_direction_deg"] | 0;
-        merged["wave_threshold_cm"] = cachedSettings.wave_threshold_min_cm;
-        merged["wind_speed_threshold_knots"] = cachedSettings.wind_speed_threshold_min_knots;
-        merged["led_theme"] = cachedSettings.led_theme;
-        merged["quiet_hours_active"] = cachedSettings.quiet_hours_active;
-        merged["off_hours_active"] = cachedSettings.off_hours_active;
-        merged["brightness_multiplier"] = cachedSettings.brightness_multiplier;
-        merged["latitude"] = cachedSettings.latitude;
-        merged["longitude"] = cachedSettings.longitude;
-        merged["tz_offset"] = cachedSettings.tz_offset;
-
-        String mergedJson;
-        serializeJson(merged, mergedJson);
-        
-        bool processed = processSurfData(mergedJson);
-        
-        // V3 FIX: Send heartbeat to update server timestamp (since public endpoint doesn't)
-        if (processed) {
-            sendHeartbeat();
-        }
-        
-        return processed;
-    }
-
-    http.end();
-    globalHttpsClient.stop();  // Explicit cleanup after failure
-    return false;
-}
-
-bool fetchSurfDataV3() {
-    // Fetch settings every 60 min
-    if (cachedSettings.needsRefresh()) {
-        if (!fetchSettingsFromServer()) {
-            Serial.println("⚠️ Settings failed - fallback to V2");
-            return fetchSurfDataFromServer();
-        }
-    }
-
-    // Fetch conditions
-    if (fetchConditionsFromServer()) {
-        Serial.println("✅ V3 split fetch OK");
-        return true;
-    }
-
-    // Fallback to V2
-    Serial.println("⚠️ Conditions failed - fallback to V2");
-    return fetchSurfDataFromServer();
 }
 
 bool fetchSurfDataFromServer() {
