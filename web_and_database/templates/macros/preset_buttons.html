@@ -1,7 +1,7 @@
 {# templates/macros/preset_buttons.html #}
 {% macro preset_button(label, time_label, start, end, data, device_suffix='', full_width=False) %}
-{# Strip seconds from database time for comparison (01:00:00 -> 01:00) #}
-{% set user_start = data.user.off_time_start[:5] if data.user.off_time_start else '' %}
+{# Convert time object to HH:MM string for comparison #}
+{% set user_start = data.user.off_time_start.strftime('%H:%M') if data.user.off_time_start else '' %}
 <button data-preset="{{ label|lower }}" data-start="{{ start }}" data-end="{{ end }}"
         class="preset-btn text-sm py-3 px-2 rounded transition-all border leading-tight {% if full_width %}w-full{% endif %}
         {% if data.user.off_times_enabled and user_start == start %}
@@ -15,8 +15,8 @@
 {% endmacro %}
 
 {% macro preset_button_group(data, device_suffix='') %}
-{# Check if current times match any preset #}
-{% set user_start = data.user.off_time_start[:5] if data.user.off_time_start else '' %}
+{# Check if current times match any preset - convert time object to string #}
+{% set user_start = data.user.off_time_start.strftime('%H:%M') if data.user.off_time_start else '' %}
 {% set is_typical = user_start == '23:00' %}
 {% set is_late_night = user_start == '01:00' %}
 {% set is_early_bird = user_start == '21:00' %}
