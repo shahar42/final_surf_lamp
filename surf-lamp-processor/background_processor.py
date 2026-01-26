@@ -18,7 +18,8 @@ from lamp_repository import (
     test_database_connection,
     get_location_api_configs,
     get_arduinos_for_location,
-    update_location_conditions
+    update_location_conditions,
+    update_processor_heartbeat
 )
 from weather_api_client import fetch_surf_data
 
@@ -159,8 +160,9 @@ def main():
                 schedule.run_pending()
                 time.sleep(60)
 
-                # Heartbeat every 5 minutes to prove process is alive
+                # Heartbeat every minute - write to database (Watchdog pattern)
                 heartbeat_counter += 1
+                update_processor_heartbeat(engine)
                 if heartbeat_counter % 5 == 0:
                     logger.info(f"💓 Heartbeat: Process alive, waiting for next cycle...")
 

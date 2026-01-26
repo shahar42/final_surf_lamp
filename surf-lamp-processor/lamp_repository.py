@@ -208,3 +208,35 @@ def get_user_wind_threshold_for_arduino(engine, arduino_id):
     except Exception as e:
         logger.error(f"Failed to get wind threshold for Arduino {arduino_id}: {e}")
         return 22.0  # Safe default
+
+
+def update_processor_heartbeat(engine, service_name='surf-lamp-processor'):
+    """
+    Update processor heartbeat timestamp (Watchdog pattern)
+    Resets missed_count to 0 to signal the process is alive.
+
+    Args:
+        engine: SQLAlchemy engine
+        service_name: Service identifier
+
+    Returns:
+        bool: True if successful
+    """
+    query = text("""
+        INSERT INTO processor_heartbeat (service_name, last_alive_timestamp, missed_count, updated_at)
+        VALUES (:service_name, NOW(), 0, NOW())
+        ON CONFLICT (service_name)
+        DO UPDATE SET
+            last_alive_timestamp = NOW(),
+            missed_count = 0,
+            updated_at = NOW()
+    """)
+
+    try:
+        with engine.connect() as conn:
+            conn.execute(query, {"service_name": service_name})
+            conn.commit()
+        return True
+    except Exception as e:
+        logger.error(f"❌ Failed to update processor heartbeat: {e}")
+        return False
