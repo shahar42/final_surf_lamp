@@ -304,14 +304,14 @@ bool processSurfData(const String& jsonData)
     }
 
     // Validate data quality
-    bool bothZero = (wave_height_cm == 0 && wind_speed_mps == 0);
-    bool partialZero = !is_data_valid || (wave_height_cm == 0 || wind_speed_mps == 0) && !bothZero;
+    bool bothZero = (wave_height_cm == 0 && wind_speed_mps == 0 && wave_period_s == 0);
+    bool partialZero = !is_data_valid || (wave_height_cm == 0 || wind_speed_mps == 0 || wave_period_s == 0) && !bothZero;
 
     if (bothZero) {
-        Serial.println("⚠️ INVALID DATA: Both wave height and wind speed are zero");
+        Serial.println("⚠️ INVALID DATA: Wave height, wind speed, and wave period are all zero");
     } else if (partialZero) {
         Serial.println("⚠️ PARTIAL DATA FAILURE: One value is zero");
-        Serial.printf("   Wave: %d cm, Wind: %d m/s\n", wave_height_cm, wind_speed_mps);
+        Serial.printf("   Wave: %d cm, Wind: %d m/s, Period: %.1f s\n", wave_height_cm, wind_speed_mps, wave_period_s);
     }
 
     UpdateGlobalState(wave_height_cm, wave_period_s, wind_speed_mps, wind_direction_deg,

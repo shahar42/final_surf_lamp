@@ -6,6 +6,7 @@
 #define CONFIG_H
 
 #include <Arduino.h>
+#include <cmath>
 
 
 const int ARDUINO_ID = 6;
@@ -150,7 +151,7 @@ struct LEDMappingConfig {
 
     int calculateWindLEDs(float windSpeed_mps) const {
         return constrain(
-            static_cast<int>(windSpeed_mps * wind_scale_numerator / wind_scale_denominator),
+            static_cast<int>(ceil(windSpeed_mps * wind_scale_numerator / wind_scale_denominator)),
             1,
             WIND_SPEED_LENGTH - 2
         );
@@ -158,8 +159,8 @@ struct LEDMappingConfig {
 
     int calculateWaveLEDsFromCm(int waveHeight_cm) const {
         return constrain(
-            static_cast<int>((waveHeight_cm + wave_height_divisor / 2) / wave_height_divisor),
-            0,
+            static_cast<int>(ceil(static_cast<float>(waveHeight_cm) / wave_height_divisor)),
+            1,
             WAVE_HEIGHT_LENGTH
         );
     }
@@ -169,7 +170,7 @@ struct LEDMappingConfig {
     }
 
     int calculateWavePeriodLEDs(float wavePeriod_s) const {
-        return constrain(static_cast<int>(wavePeriod_s), 0, WAVE_PERIOD_LENGTH);
+        return constrain(static_cast<int>(ceil(wavePeriod_s)), 1, WAVE_PERIOD_LENGTH);
     }
 
     float windSpeedToKnots(float windSpeed_mps) const {

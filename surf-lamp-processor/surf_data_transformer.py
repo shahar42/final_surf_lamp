@@ -129,16 +129,16 @@ def calculate_wave_from_wind(wind_speed_mps, calc_config):
 def normalize_low_values(standardized):
 
     if 'wave_height_m' in standardized:
-        if 0.01 <= standardized['wave_height_m'] <= 0.9:
-            standardized['wave_height_m'] = 1.0
+        if 0.01 <= standardized['wave_height_m'] <= 0.09:
+            standardized['wave_height_m'] = 0.1
 
     if 'wave_period_s' in standardized:
-        if 0.01 <= standardized['wave_period_s'] <= 0.9:
+        if 0.01 <= standardized['wave_period_s'] <= 0.09:
             standardized['wave_period_s'] = 1.0
 
     if 'wind_speed_mps' in standardized:
-        if 0.01 <= standardized['wind_speed_mps'] <= 0.9:
-            standardized['wind_speed_mps'] = 1.0
+        if 0.01 <= standardized['wind_speed_mps'] <= 0.09:
+            standardized['wind_speed_mps'] = 0.1
 
 
 def standardize_surf_data(raw_data, endpoint_url, wave_calculation_method='api'):
