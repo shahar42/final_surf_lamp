@@ -304,17 +304,17 @@ bool processSurfData(const String& jsonData)
     // Extract fetch interval from server (dynamic polling configuration)
     if (doc.containsKey("fetch_interval_ms")) {
         unsigned long new_interval = doc["fetch_interval_ms"];
-        Serial.printf("📡 Received fetch_interval_ms: %lu ms\n", new_interval);
+        Serial.printf("📡 Received fetch_interval: %lu min\n", new_interval / 60000);
         if (new_interval >= 60000 && new_interval <= 3600000) { // Safety: 1 min to 1 hour
             unsigned long current_interval = FETCH_INTERVAL_MS.load();
             if (current_interval != new_interval) {
                 FETCH_INTERVAL_MS.store(new_interval);
-                Serial.printf("✅ Fetch interval updated: %lu ms → %lu ms\n", current_interval, new_interval);
+                Serial.printf("✅ Fetch interval updated: %lu min → %lu min\n", current_interval / 60000, new_interval / 60000);
             } else {
-                Serial.printf("ℹ️ Fetch interval unchanged: %lu ms\n", new_interval);
+                Serial.printf("ℹ️ Fetch interval unchanged: %lu min\n", new_interval / 60000);
             }
         } else {
-            Serial.printf("⚠️ Fetch interval out of range: %lu ms (ignoring)\n", new_interval);
+            Serial.printf("⚠️ Fetch interval out of range: %lu min (ignoring, valid: 1-60 min)\n", new_interval / 60000);
         }
     }
 
