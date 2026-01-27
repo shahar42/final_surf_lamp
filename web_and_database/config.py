@@ -1,3 +1,10 @@
+'''
+configutarion of locations
+and other app settings place holders
+author: shahar nitzan
+
+'''
+
 import os
 import logging
 from datetime import timedelta
