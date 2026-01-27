@@ -148,9 +148,22 @@ def main():
 
     else:
         logger.info("PRODUCTION MODE: Running every 15 minutes")
+
+        # WATCHDOG TEST: Simulate hang if env var is set
+        simulate_hang = os.environ.get('SIMULATE_HANG', 'false').lower() == 'true'
+        if simulate_hang:
+            logger.warning("🧪 WATCHDOG TEST MODE: Will hang after first cycle")
+
         try:
             # Run once immediately
             process_all_lamps()
+
+            # HANG BOMB: Simulate a deadlock/infinite loop for watchdog testing
+            if simulate_hang:
+                logger.error("💣 SIMULATING HANG: Entering infinite loop (process alive, heartbeat frozen)")
+                logger.error("💣 Watchdog should detect this and restart the service in ~9 minutes")
+                while True:
+                    time.sleep(3600)  # Sleep forever, simulating a hung process
 
             import schedule
             schedule.every(15).minutes.do(process_all_lamps)
