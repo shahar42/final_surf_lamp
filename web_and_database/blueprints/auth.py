@@ -1,3 +1,10 @@
+'''
+handles all user authinication
+register, login, and password reset
+
+author: shahar nitzan
+'''
+
 import logging
 import secrets
 import hashlib
@@ -7,6 +14,7 @@ from sqlalchemy import func
 from flask_limiter.util import get_remote_address
 
 from config import bcrypt, limiter, SURF_LOCATIONS
+from security_config import SecurityConfig
 from forms import RegistrationForm, LoginForm, ForgotPasswordForm, ResetPasswordForm
 from data_base import SessionLocal, User, PasswordResetToken, add_user_and_lamp
 from utils.mail import send_reset_email
@@ -15,8 +23,46 @@ logger = logging.getLogger(__name__)
 
 bp = Blueprint('auth', __name__)
 
+
+def _validate_arduino_id_from_qr(arduino_id_param):
+    """Extract and validate Arduino ID from QR code parameter.
+
+    Returns:
+        tuple: (arduino_id_int, error_message) or (None, error_message) if invalid
+    """
+    if not arduino_id_param:
+        return None, 'QR code required to register. Please scan the QR code on the card in your Surf Lamp box.'
+
+    try:
+        arduino_id_int = int(arduino_id_param)
+        if 1 <= arduino_id_int <= 999999:
+            return arduino_id_int, None
+        return None, 'Invalid QR code. Please scan the QR code from your Surf Lamp box.'
+    except (ValueError, TypeError):
+        logger.warning(f"Invalid Arduino ID in URL parameter: {arduino_id_param}")
+        return None, 'Invalid QR code. Please scan the QR code from your Surf Lamp box.'
+
+
+def _set_user_session(user, remember_me=False):
+    """Set session variables after successful login.
+
+    Args:
+        user: User object with email, user_id, username
+        remember_me: If True, enables persistent session (30 days)
+    """
+    session.permanent = remember_me
+    session['user_email'] = user.email
+    session['user_id'] = user.user_id
+    session['username'] = user.username
+
+    if remember_me:
+        logger.info(f"🔒 Remember me enabled for user: {user.username} (30 days)")
+    else:
+        logger.info(f"⏱️ Session-only login for user: {user.username}")
+
+
 @bp.route("/register", methods=['GET', 'POST'])
-@limiter.limit("10/minute")
+@limiter.limit(lambda: SecurityConfig.RATE_LIMITS['auth_register'])
 def register():
     """
     Handles user registration.
@@ -31,22 +77,14 @@ def register():
     # Arduino ID from QR code URL parameter is REQUIRED
     if request.method == 'GET':
         arduino_id_param = request.args.get('id', '')
-        if not arduino_id_param:
-            flash('QR code required to register. Please scan the QR code on the card in your Surf Lamp box.', 'error')
+        arduino_id_int, error_msg = _validate_arduino_id_from_qr(arduino_id_param)
+
+        if error_msg:
+            flash(error_msg, 'error')
             return render_template('register.html', form=form, locations=SURF_LOCATIONS, qr_required=True)
 
-        try:
-            arduino_id_int = int(arduino_id_param)
-            if 1 <= arduino_id_int <= 999999:
-                form.arduino_id.data = arduino_id_int
-                logger.info(f"Pre-filled Arduino ID from QR code: {arduino_id_int}")
-            else:
-                flash('Invalid QR code. Please scan the QR code from your Surf Lamp box.', 'error')
-                return render_template('register.html', form=form, locations=SURF_LOCATIONS, qr_required=True)
-        except (ValueError, TypeError):
-            logger.warning(f"Invalid Arduino ID in URL parameter: {arduino_id_param}")
-            flash('Invalid QR code. Please scan the QR code from your Surf Lamp box.', 'error')
-            return render_template('register.html', form=form, locations=SURF_LOCATIONS, qr_required=True)
+        form.arduino_id.data = arduino_id_int
+        logger.info(f"Pre-filled Arduino ID from QR code: {arduino_id_int}")
 
     if form.validate_on_submit():
         name = form.name.data
@@ -97,7 +135,7 @@ def register():
     return render_template('register.html', form=form, locations=SURF_LOCATIONS)
 
 @bp.route("/login", methods=['GET', 'POST'])
-@limiter.limit("10/minute")
+@limiter.limit(lambda: SecurityConfig.RATE_LIMITS['auth_login'])
 def login():
     """
     Handles user login.
@@ -123,19 +161,7 @@ def login():
 
             if bcrypt.check_password_hash(user.password_hash, password):
                 logger.info(f"✅ Login successful for user: {user.username} ({user.email})")
-
-                # Set session.permanent BEFORE setting session data (critical for cookie max-age)
-                if form.remember_me.data:
-                    session.permanent = True
-                    logger.info(f"🔒 Remember me enabled for user: {user.username} (30 days)")
-                else:
-                    session.permanent = False
-                    logger.info(f"⏱️ Session-only login for user: {user.username}")
-
-                session['user_email'] = user.email
-                session['user_id'] = user.user_id
-                session['username'] = user.username
-
+                _set_user_session(user, form.remember_me.data)
                 return redirect(url_for('dashboard.dashboard'))
             else:
                 logger.warning(f"❌ Login failed - invalid password for email: {email}")
@@ -153,7 +179,7 @@ def logout():
     return redirect(url_for('auth.login'))
 
 @bp.route("/forgot-password", methods=['GET', 'POST'])
-@limiter.limit("5 per hour")
+@limiter.limit(lambda: SecurityConfig.RATE_LIMITS['auth_forgot_password'])
 def forgot_password():
     form = ForgotPasswordForm()
     
@@ -192,7 +218,7 @@ def forgot_password():
     return render_template('forgot_password.html', form=form)
 
 @bp.route("/reset-password/<token>", methods=['GET', 'POST'])
-@limiter.limit("3 per 15 minutes")
+@limiter.limit(lambda: SecurityConfig.RATE_LIMITS['auth_reset_password'])
 def reset_password_form(token):
     form = ResetPasswordForm()
     

@@ -1,3 +1,8 @@
+'''
+defines the users dashboar page
+author: shahar nitzan
+'''
+
 import os
 import logging
 import markdown
@@ -9,6 +14,59 @@ from data_base import get_user_lamp_data, add_arduino_to_user
 logger = logging.getLogger(__name__)
 
 bp = Blueprint('dashboard', __name__)
+
+
+def _build_dashboard_data(user_email):
+    """Build dashboard data from user email.
+
+    Returns:
+        tuple: (dashboard_data dict, user object) or (None, None) on error
+    """
+    user, arduinos, location = get_user_lamp_data(user_email)
+
+    if not user:
+        return None, None
+
+    dashboard_data = {
+        'user': {
+            'username': user.username,
+            'email': user.email,
+            'location': user.location,
+            'theme': user.theme,
+            'preferred_output': user.preferred_output,
+            'wave_threshold_m': user.wave_threshold_m if user.wave_threshold_m is not None else 0.0,
+            'wave_threshold_max_m': user.wave_threshold_max_m,
+            'wind_threshold_knots': user.wind_threshold_knots or 22.0,
+            'wind_threshold_max_knots': user.wind_threshold_max_knots,
+            'is_admin': getattr(user, 'is_admin', False),
+            'brightness_level': getattr(user, 'brightness_level', 0.4),
+            'off_times_enabled': getattr(user, 'off_times_enabled', False),
+            'off_time_start': getattr(user, 'off_time_start', None),
+            'off_time_end': getattr(user, 'off_time_end', None),
+            'quiet_times_enabled': getattr(user, 'quiet_times_enabled', True)
+        },
+        'arduinos': [
+            {
+                'arduino_id': arduino.arduino_id,
+                'location': arduino.location,
+                'last_poll_time': arduino.last_poll_time
+            }
+            for arduino in arduinos
+        ],
+        'conditions': None
+    }
+
+    if location:
+        dashboard_data['conditions'] = {
+            'wave_height_m': location.wave_height_m or 0.0,
+            'wave_period_s': location.wave_period_s or 0.0,
+            'wind_speed_mps': location.wind_speed_mps or 0.0,
+            'wind_direction_deg': location.wind_direction_deg or 0,
+            'last_updated': location.last_updated
+        }
+
+    return dashboard_data, user
+
 
 @bp.route("/add-arduino", methods=['POST'])
 @login_required
@@ -42,55 +100,12 @@ def dashboard():
     Displays the user's personalized dashboard.
     """
     user_email = session.get('user_email')
+    dashboard_data, user = _build_dashboard_data(user_email)
 
-    # Get user, arduinos, and location data
-    user, arduinos, location = get_user_lamp_data(user_email)
-
-    if not user:
+    if not dashboard_data:
         flash('Error loading your data. Please contact support.', 'error')
         return redirect(url_for('auth.login'))
 
-    # Prepare data for template
-    dashboard_data = {
-        'user': {
-            'username': user.username,
-            'email': user.email,
-            'location': user.location,
-            'theme': user.theme,
-            'preferred_output': user.preferred_output,
-            'wave_threshold_m': user.wave_threshold_m if user.wave_threshold_m is not None else 0.0,
-            'wave_threshold_max_m': user.wave_threshold_max_m,
-            'wind_threshold_knots': user.wind_threshold_knots or 22.0,
-            'wind_threshold_max_knots': user.wind_threshold_max_knots,
-            'is_admin': getattr(user, 'is_admin', False),
-            'brightness_level': getattr(user, 'brightness_level', 0.4),
-            'off_times_enabled': getattr(user, 'off_times_enabled', False),
-            'off_time_start': getattr(user, 'off_time_start', None),
-            'off_time_end': getattr(user, 'off_time_end', None),
-            'quiet_times_enabled': getattr(user, 'quiet_times_enabled', True)
-        },
-        'arduinos': [
-            {
-                'arduino_id': arduino.arduino_id,
-                'location': arduino.location,
-                'last_poll_time': arduino.last_poll_time
-            }
-            for arduino in arduinos
-        ],
-        'conditions': None
-    }
-
-    # Add surf conditions for user's default location if available
-    if location:
-        dashboard_data['conditions'] = {
-            'wave_height_m': location.wave_height_m or 0.0,
-            'wave_period_s': location.wave_period_s or 0.0,
-            'wind_speed_mps': location.wind_speed_mps or 0.0,
-            'wind_direction_deg': location.wind_direction_deg or 0,
-            'last_updated': location.last_updated
-        }
-
-    # Check if off hours feature is enabled via env var
     off_hours_feature_enabled = os.getenv('OFF_HOURS_FEATURE_ENABLED', 'false').lower() == 'true'
 
     return render_template('dashboard.html', data=dashboard_data, locations=SURF_LOCATIONS, off_hours_feature_enabled=off_hours_feature_enabled, brightness_levels=BRIGHTNESS_LEVELS)
@@ -102,51 +117,12 @@ def dashboard_view(view_type):
     Displays the user's personalized dashboard with a specific view.
     """
     user_email = session.get('user_email')
+    dashboard_data, user = _build_dashboard_data(user_email)
 
-    user, arduinos, location = get_user_lamp_data(user_email)
-
-    if not user:
+    if not dashboard_data:
         flash('Error loading your data. Please contact support.', 'error')
         return redirect(url_for('auth.login'))
 
-    dashboard_data = {
-        'user': {
-            'username': user.username,
-            'email': user.email,
-            'location': user.location,
-            'theme': user.theme,
-            'preferred_output': user.preferred_output,
-            'wave_threshold_m': user.wave_threshold_m if user.wave_threshold_m is not None else 0.0,
-            'wave_threshold_max_m': user.wave_threshold_max_m,
-            'wind_threshold_knots': user.wind_threshold_knots or 22.0,
-            'wind_threshold_max_knots': user.wind_threshold_max_knots,
-            'is_admin': getattr(user, 'is_admin', False),
-            'brightness_level': getattr(user, 'brightness_level', 0.4),
-            'off_times_enabled': getattr(user, 'off_times_enabled', False),
-            'off_time_start': getattr(user, 'off_time_start', None),
-            'off_time_end': getattr(user, 'off_time_end', None),
-            'quiet_times_enabled': getattr(user, 'quiet_times_enabled', True)
-        },
-        'arduinos': [
-            {
-                'arduino_id': arduino.arduino_id,
-                'location': arduino.location,
-                'last_poll_time': arduino.last_poll_time
-            }
-            for arduino in arduinos
-        ],
-        'conditions': None
-    }
-
-    if location:
-        dashboard_data['conditions'] = {
-            'wave_height_m': location.wave_height_m or 0.0,
-            'wave_period_s': location.wave_period_s or 0.0,
-            'wind_speed_mps': location.wind_speed_mps or 0.0,
-            'wind_direction_deg': location.wind_direction_deg or 0,
-            'last_updated': location.last_updated
-        }
-    
     return render_template('dashboard.html', data=dashboard_data, locations=SURF_LOCATIONS, brightness_levels=BRIGHTNESS_LEVELS)
 
 @bp.route("/themes")
