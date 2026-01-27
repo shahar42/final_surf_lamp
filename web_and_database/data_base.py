@@ -1,3 +1,9 @@
+'''
+communication between the app
+and the database
+author: shahar nitzan
+'''
+
 import os
 import logging
 import uuid
@@ -156,19 +162,7 @@ class NotificationSubscription(Base):
 
 
 # API Configuration
-USE_STORMGLASS = False  
-STORMGLASS_API_KEY = os.environ.get('STORMGLASS_API_KEY', '')
 OPENWEATHERMAP_API_KEY = os.environ.get('OPENWEATHERMAP_API_KEY', '')
-
-STORMGLASS_LOCATIONS = {
-    "Tel Aviv, Israel": [{"url": "https://api.stormglass.io/v2/weather/point?lat=32.0853&lng=34.7818&params=waveHeight,wavePeriod,waveDirection,windSpeed,windDirection&source=sg", "priority": 1, "type": "unified", "api_key": STORMGLASS_API_KEY}],
-    "Hadera, Israel": [{"url": "https://api.stormglass.io/v2/weather/point?lat=32.4343&lng=34.9197&params=waveHeight,wavePeriod,waveDirection,windSpeed,windDirection&source=sg", "priority": 1, "type": "unified", "api_key": STORMGLASS_API_KEY}],
-    "Ashdod, Israel": [{"url": "https://api.stormglass.io/v2/weather/point?lat=31.7939&lng=34.6328&params=waveHeight,wavePeriod,waveDirection,windSpeed,windDirection&source=sg", "priority": 1, "type": "unified", "api_key": STORMGLASS_API_KEY}],
-    "Haifa, Israel": [{"url": "https://api.stormglass.io/v2/weather/point?lat=32.7940&lng=34.9896&params=waveHeight,wavePeriod,waveDirection,windSpeed,windDirection&source=sg", "priority": 1, "type": "unified", "api_key": STORMGLASS_API_KEY}],
-    "Netanya, Israel": [{"url": "https://api.stormglass.io/v2/weather/point?lat=32.3215&lng=34.8532&params=waveHeight,wavePeriod,waveDirection,windSpeed,windDirection&source=sg", "priority": 1, "type": "unified", "api_key": STORMGLASS_API_KEY}],
-    "Nahariya, Israel": [{"url": "https://api.stormglass.io/v2/weather/point?lat=33.006&lng=35.094&params=waveHeight,wavePeriod,waveDirection,windSpeed,windDirection&source=sg", "priority": 1, "type": "unified", "api_key": STORMGLASS_API_KEY}],
-    "Ashkelon, Israel": [{"url": "https://api.stormglass.io/v2/weather/point?lat=31.6699&lng=34.5738&params=waveHeight,wavePeriod,waveDirection,windSpeed,windDirection&source=sg", "priority": 1, "type": "unified", "api_key": STORMGLASS_API_KEY}]
-}
 
 LOCATION_TIMEZONES = {
     "Hadera, Israel": "Asia/Jerusalem",
@@ -218,11 +212,9 @@ MULTI_SOURCE_LOCATIONS = {
 }
 
 def get_active_location_config():
-    if USE_STORMGLASS:
-        return STORMGLASS_LOCATIONS
     return MULTI_SOURCE_LOCATIONS
 
-def add_user_and_lamp(name, email, password_hash, arduino_id, location, theme, units, sport_type='surfing'):
+def add_user_and_lamp(name, email, password_hash, arduino_id, location, theme, units, sport_type):
     db = SessionLocal()
     try:
         active_config = get_active_location_config()
