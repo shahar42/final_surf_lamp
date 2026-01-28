@@ -234,7 +234,7 @@ void print_data_info()
 void UpdateGlobalState(int wave_height_cm, float wave_period_s, int wind_speed_mps,
                        int wind_direction_deg, int wave_threshold_cm, int wind_speed_threshold_knots,
                        bool quiet_hours_active, bool off_hours_active, float brightness_multiplier,
-                       const String& led_theme)
+                       const String& led_theme, bool stale_data_warning)
 {
     LOCK_SURF_DATA();
     // Update global state (converting height and threshold to meters for consistency)
@@ -261,6 +261,9 @@ void UpdateGlobalState(int wave_height_cm, float wave_period_s, int wind_speed_m
     lastSurfData.jsonParseError = false;
     lastSurfData.partialDataError = false;
     lastSurfData.staleDataError = false;
+    
+    // Set server-side stale warning (only triggers visual alert if true)
+    lastSurfData.staleDataWarning = stale_data_warning;
     UNLOCK_SURF_DATA();
 } 
 
@@ -289,6 +292,7 @@ bool processSurfData(const String& jsonData)
     bool off_hours_active = doc["off_hours_active"] | SurfDataDefaults::OFF_HOURS_ACTIVE;
     float brightness_multiplier = doc["brightness_multiplier"] | SurfDataDefaults::BRIGHTNESS_MULTIPLIER;
     String led_theme = doc["led_theme"] | SurfDataDefaults::LED_THEME;
+    bool stale_data_warning = doc["stale_data_warning"] | false;
 
     // V2 API: Extract location coordinates for sunset calculation
     float latitude = doc["latitude"] | 0.0;
@@ -328,10 +332,14 @@ bool processSurfData(const String& jsonData)
         Serial.println("⚠️ PARTIAL DATA FAILURE: One value is zero");
         Serial.printf("   Wave: %d cm, Wind: %d m/s, Period: %.1f s\n", wave_height_cm, wind_speed_mps, wave_period_s);
     }
+    
+    if (stale_data_warning) {
+        Serial.println("⚠️ SERVER WARNING: Data is stale (unchanged for > 60 mins)");
+    }
 
     UpdateGlobalState(wave_height_cm, wave_period_s, wind_speed_mps, wind_direction_deg,
                       wave_threshold_cm, wind_speed_threshold_knots, quiet_hours_active,
-                      off_hours_active, brightness_multiplier, led_theme);
+                      off_hours_active, brightness_multiplier, led_theme, stale_data_warning);
 
     print_data_info();
 

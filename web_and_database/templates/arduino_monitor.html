@@ -274,7 +274,17 @@
                     return;
                 }
 
-                container.innerHTML = data.devices.map(device => `
+                container.innerHTML = data.devices.map(device => {
+                    let stalenessHtml = '';
+                    if (device.staleness_warning) {
+                        stalenessHtml = `<div class="meta" style="color: var(--clr-warning); font-weight: bold; margin-top: 0.5rem;">⚠️ ${device.staleness_text}</div>`;
+                    } else if (device.last_value_change) {
+                         // Simple date formatting
+                         const date = new Date(device.last_value_change);
+                         stalenessHtml = `<div class="meta">Values Changed: ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>`;
+                    }
+
+                    return `
                     <div class="device-card ${device.status}">
                         <div class="device-header">
                             <div class="status-dot ${device.status}"></div>
@@ -282,9 +292,10 @@
                         </div>
                         <div class="last-seen">${device.status_text}</div>
                         <div class="meta">User: ${device.username}</div>
-                        <div class="meta">Lamp ID: ${device.lamp_id}</div>
+                        <div class="meta">Location: ${device.location}</div>
+                        ${stalenessHtml}
                     </div>
-                `).join('');
+                `}).join('');
 
                 // Clear error if any
                 document.getElementById('error-container').innerHTML = '';

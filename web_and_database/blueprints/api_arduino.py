@@ -122,6 +122,9 @@ def get_arduino_with_location_and_user(db, arduino_id):
 
 def build_surf_data_v1_response(location, user, sunset_info, effective_wave_threshold_m, effective_wind_threshold_knots, quiet_hours_active, off_hours_active):
     """Build V1 response dict (server calculates sunset)."""
+    # Check for stale data (more than 3 identical updates = ~45-60 mins)
+    stale_warning = (getattr(location, 'consecutive_identical_updates', 0) or 0) > 3
+
     return {
         'wave_height_cm': int(round((location.wave_height_m or 0) * 100)),
         'wave_period_s': location.wave_period_s or 0.0,
@@ -136,12 +139,16 @@ def build_surf_data_v1_response(location, user, sunset_info, effective_wave_thre
         'day_of_year': sunset_info['day_of_year'],
         'brightness_multiplier': getattr(user, 'brightness_level', BRIGHTNESS_LEVELS['MID']),
         'last_updated': location.last_updated.isoformat() if location.last_updated else '1970-01-01T00:00:00Z',
-        'data_available': bool(location.wave_height_m or location.wind_speed_mps)
+        'data_available': bool(location.wave_height_m or location.wind_speed_mps),
+        'stale_data_warning': stale_warning
     }
 
 
 def build_surf_data_v2_response(location, location_data, tz_offset, arduino, user, effective_wave_threshold_m, effective_wind_threshold_knots, quiet_hours_active, off_hours_active, brightness_value):
     """Build V2 response dict (Arduino calculates sunset locally)."""
+    # Check for stale data (more than 3 identical updates = ~45-60 mins)
+    stale_warning = (getattr(location, 'consecutive_identical_updates', 0) or 0) > 3
+
     return {
         'latitude': location_data['latitude'],
         'longitude': location_data['longitude'],
@@ -158,7 +165,8 @@ def build_surf_data_v2_response(location, location_data, tz_offset, arduino, use
         'brightness_multiplier': brightness_value,
         'fetch_interval_ms': (getattr(arduino, 'request_interval_minutes', 13) or 13) * 60 * 1000,
         'last_updated': location.last_updated.isoformat() if location.last_updated else '1970-01-01T00:00:00Z',
-        'data_available': bool(location.wave_height_m or location.wind_speed_mps)
+        'data_available': bool(location.wave_height_m or location.wind_speed_mps),
+        'stale_data_warning': stale_warning
     }
 
 

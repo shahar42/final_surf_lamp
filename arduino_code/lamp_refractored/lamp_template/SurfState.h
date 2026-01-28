@@ -40,7 +40,8 @@ struct SurfData {
     bool serverUnreachableError = false; 
     bool jsonParseError = false;      
     bool partialDataError = false;    
-    bool staleDataError = false;      
+    bool staleDataError = false;      // Connection lost for > 30 mins
+    bool staleDataWarning = false;    // Server reports data is stale (> 60 mins same value)
 
     std::atomic<bool> needsDisplayUpdate{false};  // Thread-safe flag
 

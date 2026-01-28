@@ -74,6 +74,33 @@ signal.signal(signal.SIGTERM, cleanup_handler)
 signal.signal(signal.SIGINT, cleanup_handler)
 
 
+def is_data_identical(old_data, new_data):
+    """Check if surf data is essentially identical"""
+    if not old_data:
+        return False
+        
+    fields = ['wave_height_m', 'wave_period_s', 'wind_speed_mps', 'wind_direction_deg']
+    for field in fields:
+        old_val = old_data.get(field)
+        new_val = new_data.get(field)
+        
+        # If both are None, they match
+        if old_val is None and new_val is None:
+            continue
+        # If one is None, they don't match
+        if old_val is None or new_val is None:
+            return False
+            
+        # Float comparison with small tolerance
+        try:
+            if abs(float(old_val) - float(new_val)) > 0.001:
+                return False
+        except (ValueError, TypeError):
+            return False
+            
+    return True
+
+
 def process_all_lamps():
     """Main processing function - Location-based processing"""
     logger.info("🚀 Starting processing cycle")
@@ -116,8 +143,26 @@ def process_all_lamps():
                 logger.error(f"❌ No data obtained for location {location}")
                 continue
 
+            # Check for staleness
+            old_data = config.get('current_values', {})
+            current_consecutive = config.get('consecutive_identical_updates', 0)
+            
+            is_identical = is_data_identical(old_data, combined_surf_data)
+            
+            new_consecutive = current_consecutive + 1 if is_identical else 0
+            should_update_timestamp = not is_identical
+            
+            if is_identical:
+                 logger.warning(f"⚠️  Data is identical to previous fetch (Count: {new_consecutive})")
+
             # Update location table
-            location_updated = update_location_conditions(engine, location, combined_surf_data)
+            location_updated = update_location_conditions(
+                engine, 
+                location, 
+                combined_surf_data, 
+                consecutive_identical_updates=new_consecutive, 
+                update_timestamp=should_update_timestamp
+            )
 
             if location_updated:
                 total_arduinos_updated += len(arduinos)

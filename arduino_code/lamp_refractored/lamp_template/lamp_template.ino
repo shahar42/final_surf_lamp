@@ -193,6 +193,7 @@ void loop() {
     bool invalidDataError = lastSurfData.invalidDataError;
     bool partialDataError = lastSurfData.partialDataError;
     bool staleDataError = lastSurfData.staleDataError;
+    bool staleDataWarning = lastSurfData.staleDataWarning;
     bool isOffHours = lastSurfData.offHoursActive;
     UNLOCK_SURF_DATA();
 
@@ -214,8 +215,8 @@ void loop() {
         blinkOrangeLED();  // 🟠 Server/communication issues
     } else if (invalidDataError || partialDataError) {
         blinkRedLED();  // 🔴 Data quality errors
-    } else if (staleDataError) {
-        blinkOrangeLED();  // 🟠 Stale data
+    } else if (staleDataError || staleDataWarning) {
+        blinkOrangeLED();  // 🟠 Stale data (local timeout OR server warning)
     } else if (dataReceived && dataAge < DATA_STALENESS_THRESHOLD) {
         blinkGreenLED();   // ✅ Fresh data (< 30 min old)
     } else {

@@ -209,13 +209,26 @@ def arduino_status_api():
 
         for arduino, user, location in results:
             status, status_text, last_updated = get_device_status(arduino.last_poll_time, now)
+            
+            # Determine data staleness
+            staleness_warning = False
+            staleness_text = ""
+            consecutive = location.consecutive_identical_updates if hasattr(location, 'consecutive_identical_updates') else 0
+            if consecutive and consecutive > 2:
+                staleness_warning = True
+                staleness_text = f"Stale Data ({consecutive} identical fetches)"
+            
             devices.append({
                 'arduino_id': arduino.arduino_id,
                 'location': arduino.location,
                 'username': user.username,
                 'status': status,
                 'status_text': status_text,
-                'last_updated': last_updated
+                'last_updated': last_updated,
+                'staleness_warning': staleness_warning,
+                'staleness_text': staleness_text,
+                'consecutive_updates': consecutive,
+                'last_value_change': location.last_value_change.isoformat() if hasattr(location, 'last_value_change') and location.last_value_change else None
             })
 
         # Sort by status priority, then by arduino ID

@@ -60,13 +60,35 @@ def test_database_connection(engine):
 
 def get_location_api_configs(engine):
     """
-    Get API configurations from locations table.
-    Returns: {location: {'wave_api_url': ..., 'wind_api_url': ..., 'wave_calculation_method': ...}}
+    Get API configurations and current values from locations table.
+    Returns: {
+        location: {
+            'wave_api_url': ..., 
+            'wind_api_url': ..., 
+            'wave_calculation_method': ...,
+            'current_values': {
+                'wave_height_m': ...,
+                'wave_period_s': ...,
+                'wind_speed_mps': ...,
+                'wind_direction_deg': ...
+            },
+            'consecutive_identical_updates': ...
+        }
+    }
     """
     logger.info("📡 Getting location API configurations from database...")
 
     query = text("""
-        SELECT location, wave_api_url, wind_api_url, COALESCE(wave_calculation_method, 'api') as wave_calculation_method
+        SELECT 
+            location, 
+            wave_api_url, 
+            wind_api_url, 
+            COALESCE(wave_calculation_method, 'api') as wave_calculation_method,
+            wave_height_m,
+            wave_period_s,
+            wind_speed_mps,
+            wind_direction_deg,
+            COALESCE(consecutive_identical_updates, 0) as consecutive_identical_updates
         FROM locations
         WHERE location IN (
             SELECT DISTINCT location FROM arduinos
@@ -81,9 +103,16 @@ def get_location_api_configs(engine):
                 configs[row.location] = {
                     'wave_api_url': row.wave_api_url,
                     'wind_api_url': row.wind_api_url,
-                    'wave_calculation_method': row.wave_calculation_method
+                    'wave_calculation_method': row.wave_calculation_method,
+                    'consecutive_identical_updates': row.consecutive_identical_updates,
+                    'current_values': {
+                        'wave_height_m': row.wave_height_m,
+                        'wave_period_s': row.wave_period_s,
+                        'wind_speed_mps': row.wind_speed_mps,
+                        'wind_direction_deg': row.wind_direction_deg
+                    }
                 }
-                logger.info(f"✅ {row.location}: wave={row.wave_api_url[:50]}..., wind={row.wind_api_url[:50]}..., method={row.wave_calculation_method}")
+                logger.info(f"✅ {row.location}: wave={row.wave_api_url[:50]}..., method={row.wave_calculation_method}")
 
         logger.info(f"✅ Loaded API configs for {len(configs)} locations")
         return configs
@@ -122,30 +151,44 @@ def get_arduinos_for_location(engine, location):
         return []
 
 
-def update_location_conditions(engine, location, surf_data):
+def update_location_conditions(engine, location, surf_data, consecutive_identical_updates=0, update_timestamp=True):
     """
-    Update locations table with latest surf data (ONCE per location).
-    All arduinos at this location inherit this data.
-
+    Update locations table with latest surf data.
+    
     Args:
-        location: Location name (e.g., "Hadera, Israel")
-        surf_data: Dict with wave_height_m, wave_period_s, wind_speed_mps, wind_direction_deg
-
-    Returns:
-        bool: True if successful
+        location: Location name
+        surf_data: Dict with new surf conditions
+        consecutive_identical_updates: Count of identical updates
+        update_timestamp: Whether to update last_value_change timestamp (True if values changed)
     """
     logger.info(f"🌊 Updating conditions for location: {location}")
 
-    query = text("""
-        UPDATE locations
-        SET
-            wave_height_m = :wave_height,
-            wave_period_s = :wave_period,
-            wind_speed_mps = :wind_speed,
-            wind_direction_deg = :wind_direction,
-            last_updated = CURRENT_TIMESTAMP
-        WHERE location = :location
-    """)
+    # Prepare SQL - conditionally update last_value_change
+    if update_timestamp:
+        query = text("""
+            UPDATE locations
+            SET
+                wave_height_m = :wave_height,
+                wave_period_s = :wave_period,
+                wind_speed_mps = :wind_speed,
+                wind_direction_deg = :wind_direction,
+                last_updated = CURRENT_TIMESTAMP,
+                consecutive_identical_updates = :consecutive_identical_updates,
+                last_value_change = CURRENT_TIMESTAMP
+            WHERE location = :location
+        """)
+    else:
+        query = text("""
+            UPDATE locations
+            SET
+                wave_height_m = :wave_height,
+                wave_period_s = :wave_period,
+                wind_speed_mps = :wind_speed,
+                wind_direction_deg = :wind_direction,
+                last_updated = CURRENT_TIMESTAMP,
+                consecutive_identical_updates = :consecutive_identical_updates
+            WHERE location = :location
+        """)
 
     try:
         with engine.connect() as conn:
@@ -154,11 +197,12 @@ def update_location_conditions(engine, location, surf_data):
                 "wave_height": surf_data.get('wave_height_m', 0.0),
                 "wave_period": surf_data.get('wave_period_s', 0.0),
                 "wind_speed": surf_data.get('wind_speed_mps', 0.0),
-                "wind_direction": surf_data.get('wind_direction_deg', 0)
+                "wind_direction": surf_data.get('wind_direction_deg', 0),
+                "consecutive_identical_updates": consecutive_identical_updates
             })
             conn.commit()
 
-        logger.info(f"✅ Location conditions updated: {location} (wave={surf_data.get('wave_height_m')}m, wind={surf_data.get('wind_speed_mps')}m/s)")
+        logger.info(f"✅ Location updated: {location} (Identity Count: {consecutive_identical_updates})")
         return True
 
     except Exception as e:

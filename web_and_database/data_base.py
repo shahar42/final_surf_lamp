@@ -145,6 +145,9 @@ class Location(Base):
     wind_speed_mps = Column(Float, nullable=True)
     wind_direction_deg = Column(Integer, nullable=True)
     last_updated = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+    wave_calculation_method = Column(String(20), nullable=True, default='api')
+    consecutive_identical_updates = Column(Integer, default=0)
+    last_value_change = Column(TIMESTAMP, server_default=func.now())
 
     arduinos = relationship("Arduino", back_populates="location_data")
 
