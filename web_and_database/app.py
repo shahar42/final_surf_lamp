@@ -1,3 +1,11 @@
+'''
+creates the flask app
+applies configuration 
+
+author: shahar nitzan
+'''
+
+
 from flask import Flask, render_template, send_from_directory
 from werkzeug.middleware.proxy_fix import ProxyFix
 from config import configure_app

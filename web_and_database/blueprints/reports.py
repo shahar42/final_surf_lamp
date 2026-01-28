@@ -1,6 +1,7 @@
 import logging
 from flask import Blueprint, request, session
 from config import limiter
+from security_config import SecurityConfig
 from utils.decorators import login_required
 from data_base import SessionLocal, ErrorReport, get_user_lamp_data
 
@@ -10,7 +11,7 @@ bp = Blueprint('reports', __name__)
 
 @bp.route("/report-error", methods=['POST'])
 @login_required
-@limiter.limit("5 per hour")
+@limiter.limit(lambda: SecurityConfig.RATE_LIMITS['report_error'])
 def report_error():
     """User-submitted error reporting with auto-captured context"""
     try:
@@ -21,8 +22,8 @@ def report_error():
         if not error_description:
             return {'success': False, 'message': 'Error description is required'}, 400
 
-        if len(error_description) > 1000:
-            return {'success': False, 'message': 'Error description too long (max 1000 characters)'}, 400
+        if len(error_description) > SecurityConfig.MAX_INPUT_LENGTH:
+            return {'success': False, 'message': f'Error description too long (max {SecurityConfig.MAX_INPUT_LENGTH} characters)'}, 400
 
         user_email = session.get('user_email')
 

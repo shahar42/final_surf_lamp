@@ -1,11 +1,9 @@
 import logging
-import os
-import sys
 from datetime import datetime, timedelta
 from flask import Blueprint, render_template, request, flash, redirect, url_for, session, jsonify
 from config import limiter, SURF_LOCATIONS
+from security_config import SecurityConfig
 from utils.decorators import login_required, admin_required
-from waitlist_db import get_all_waitlist_entries, get_recent_signups, get_waitlist_count
 from forms import sanitize_input
 from data_base import SessionLocal, User, Broadcast, Arduino, Location
 from sqlalchemy.orm import joinedload
@@ -15,46 +13,113 @@ logger = logging.getLogger(__name__)
 
 bp = Blueprint('admin', __name__)
 
-@bp.route("/admin/waitlist")
-@login_required
-def admin_waitlist():
-    """Admin dashboard to view all waitlist entries. Requires login."""
-    if session.get('user_id') != 1:
-        flash('Unauthorized access.', 'error')
-        return redirect(url_for('dashboard.dashboard'))
+def get_broadcast_expiry(requested_duration):
+    """Calculate broadcast expiry time based on requested duration.
 
-    entries = get_all_waitlist_entries()
-    recent_24h = get_recent_signups(hours=24)
-    total_count = get_waitlist_count()
+    Args:
+        requested_duration: Duration in hours (2, 5, or 10)
 
-    return render_template('admin_waitlist.html',
-                          entries=entries,
-                          recent_24h=recent_24h,
-                          total_count=total_count)
+    Returns:
+        datetime: Expiry time in UTC
+    """
+    ALLOWED_DURATIONS = {
+        2: timedelta(hours=2),
+        5: timedelta(hours=5),
+        10: timedelta(hours=10)
+    }
 
-@bp.route("/admin/trigger-processor")
-@login_required
-def trigger_processor():
-    """Manually trigger the background processor once"""
     try:
-        root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        sys.path.append(os.path.join(root_dir, 'surf-lamp-processor'))
-        
-        try:
-            from background_processor import run_once
-            success = run_once()
-            
-            if success:
-                flash('Background processor completed successfully! Check your dashboard for updated data.', 'success')
-            else:
-                flash('Background processor encountered errors. Check logs for details.', 'error')
-        except ImportError:
-             flash('Background processor module not found.', 'error')
+        duration_hours = int(requested_duration) if requested_duration else 2
+    except (ValueError, TypeError):
+        duration_hours = 2
 
+    expiry_delta = ALLOWED_DURATIONS.get(duration_hours, timedelta(hours=2))
+    return datetime.utcnow() + expiry_delta
+
+
+def get_device_status(last_poll_time, now):
+    """Calculate device status and formatted status text based on last poll time.
+
+    Args:
+        last_poll_time: Datetime of last poll (may have timezone info)
+        now: Current UTC datetime
+
+    Returns:
+        tuple: (status: str, status_text: str, last_updated: str or None)
+    """
+    if not last_poll_time:
+        return 'never', 'Never connected', None
+
+    # Remove timezone info if present
+    if last_poll_time.tzinfo is not None:
+        last_poll_time = last_poll_time.replace(tzinfo=None)
+
+    # Calculate time difference
+    time_diff = (now - last_poll_time).total_seconds()
+    minutes_ago = int(time_diff / 60)
+
+    # Determine status
+    if minutes_ago < 15:
+        status = 'active'
+        status_text = f'{minutes_ago} min ago' if minutes_ago > 0 else 'Just now'
+    elif minutes_ago < 60:
+        status = 'stale'
+        status_text = f'{minutes_ago} min ago'
+    else:
+        status = 'offline'
+        hours_ago = int(minutes_ago / 60)
+        if hours_ago < 48:
+            status_text = f'{hours_ago} hour{"s" if hours_ago > 1 else ""} ago'
+        else:
+            days_ago = int(hours_ago / 24)
+            status_text = f'{days_ago} day{"s" if days_ago > 1 else ""} ago'
+
+    return status, status_text, last_poll_time.isoformat()
+
+
+def save_broadcast(user_id, username, message, target_location, expires_at):
+    """Save broadcast to database and trigger push notifications.
+
+    Args:
+        user_id: Admin user ID
+        username: Admin username
+        message: Broadcast message
+        target_location: Target location (None for all)
+        expires_at: Expiry datetime
+
+    Returns:
+        tuple: (success: bool, error_msg: str or None)
+    """
+    db = SessionLocal()
+    try:
+        # Deactivate all previous broadcasts
+        db.query(Broadcast).filter(Broadcast.is_active).update({'is_active': False})
+
+        # Create and save new broadcast
+        broadcast = Broadcast(
+            admin_user_id=user_id,
+            message=message,
+            target_location=target_location,
+            expires_at=expires_at
+        )
+        db.add(broadcast)
+        db.commit()
+
+        # Trigger push notifications
+        try:
+            pushed_count = trigger_push_broadcast(message, target_location=target_location)
+            logger.info(f"🚀 Push notification sent to {pushed_count} devices")
+        except Exception as e:
+            logger.error(f"⚠️ Push notification failed: {e}")
+
+        logger.info(f"📢 Admin {username} created broadcast: {message[:50]}... (location: {target_location})")
+        return True, None
     except Exception as e:
-        flash(f'Error running processor: {str(e)}', 'error')
-    
-    return redirect(url_for('dashboard.dashboard'))
+        db.rollback()
+        logger.error(f"❌ Failed to create broadcast: {e}")
+        return False, str(e)
+    finally:
+        db.close()
 
 @bp.route('/admin/broadcast', methods=['GET'])
 @admin_required
@@ -64,69 +129,37 @@ def admin_broadcast():
 
 @bp.route('/admin/broadcast/create', methods=['POST'])
 @admin_required
-@limiter.limit("10 per hour")
+@limiter.limit(lambda: SecurityConfig.RATE_LIMITS['admin_create_broadcast'])
 def create_broadcast():
     """Create a new broadcast message (admin only)"""
-
     message = request.json.get('message', '').strip()
     target_location = request.json.get('target_location')
 
     # Validation
-    if not message or len(message) > 500:
-        return jsonify({'success': False, 'message': 'Invalid message (max 500 characters)'}), 400
+    if not message or len(message) > SecurityConfig.MAX_BROADCAST_MESSAGE_LENGTH:
+        return jsonify({'success': False, 'message': f'Invalid message (max {SecurityConfig.MAX_BROADCAST_MESSAGE_LENGTH} characters)'}), 400
 
     if target_location and target_location != 'all' and target_location not in SURF_LOCATIONS:
         return jsonify({'success': False, 'message': 'Invalid location'}), 400
 
-    # Sanitize message
+    # Prepare data
     message = sanitize_input(message)
+    expires_at = get_broadcast_expiry(request.json.get('duration'))
+    target_location = None if target_location == 'all' else target_location
 
-    # Duration Policy
-    ALLOWED_DURATIONS = {
-        2: timedelta(hours=2),
-        5: timedelta(hours=5),
-        10: timedelta(hours=10)
-    }
-    
-    try:
-        requested_duration = int(request.json.get('duration', 2))
-    except (ValueError, TypeError):
-        requested_duration = 2
-
-    expiry_delta = ALLOWED_DURATIONS.get(requested_duration, timedelta(hours=2))
-    expires_at = datetime.utcnow() + expiry_delta
-
+    # Get user
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.email == session['user_email']).first()
-
-        # Deactivate all previous broadcasts
-        db.query(Broadcast).filter(Broadcast.is_active).update({'is_active': False})
-
-        broadcast = Broadcast(
-            admin_user_id=user.user_id,
-            message=message,
-            target_location=None if target_location == 'all' else target_location,
-            expires_at=expires_at
-        )
-        db.add(broadcast)
-        db.commit()
-
-        # Trigger Push Notification
-        try:
-            pushed_count = trigger_push_broadcast(message, target_location=None if target_location == 'all' else target_location)
-            logger.info(f"🚀 Push notification sent to {pushed_count} devices")
-        except Exception as e:
-            logger.error(f"⚠️ Push notification failed: {e}")
-
-        logger.info(f"📢 Admin {user.username} created broadcast: {message[:50]}... (location: {target_location})")
-        return jsonify({'success': True, 'message': 'Broadcast sent!'})
-    except Exception as e:
-        db.rollback()
-        logger.error(f"❌ Failed to create broadcast: {e}")
-        return jsonify({'success': False, 'message': 'Server error'}), 500
     finally:
         db.close()
+
+    # Save broadcast
+    success, error = save_broadcast(user.user_id, user.username, message, target_location, expires_at)
+    if success:
+        return jsonify({'success': True, 'message': 'Broadcast sent!'})
+    else:
+        return jsonify({'success': False, 'message': 'Server error'}), 500
 
 @bp.route('/api/broadcasts', methods=['GET'])
 @login_required
@@ -175,41 +208,9 @@ def arduino_status_api():
         devices = []
 
         for arduino, user, location in results:
-            arduino_id = arduino.arduino_id
-
-            if arduino.last_poll_time:
-                last_seen = arduino.last_poll_time
-
-                if last_seen.tzinfo is not None:
-                    last_seen = last_seen.replace(tzinfo=None)
-
-                time_diff = (now - last_seen).total_seconds()
-                minutes_ago = int(time_diff / 60)
-
-                if minutes_ago < 15:
-                    status = 'active'
-                    status_text = f'{minutes_ago} min ago' if minutes_ago > 0 else 'Just now'
-                elif minutes_ago < 60:
-                    status = 'stale'
-                    status_text = f'{minutes_ago} min ago'
-                else:
-                    hours_ago = int(minutes_ago / 60)
-                    if hours_ago < 48:
-                        status = 'offline'
-                        status_text = f'{hours_ago} hour{"s" if hours_ago > 1 else ""} ago'
-                    else:
-                        days_ago = int(hours_ago / 24)
-                        status = 'offline'
-                        status_text = f'{days_ago} day{"s" if days_ago > 1 else ""} ago'
-
-                last_updated = last_seen.isoformat()
-            else:
-                status = 'never'
-                status_text = 'Never connected'
-                last_updated = None
-
+            status, status_text, last_updated = get_device_status(arduino.last_poll_time, now)
             devices.append({
-                'arduino_id': arduino_id,
+                'arduino_id': arduino.arduino_id,
                 'location': arduino.location,
                 'username': user.username,
                 'status': status,
@@ -217,6 +218,7 @@ def arduino_status_api():
                 'last_updated': last_updated
             })
 
+        # Sort by status priority, then by arduino ID
         status_priority = {'active': 0, 'stale': 1, 'offline': 2, 'never': 3}
         devices.sort(key=lambda x: (status_priority[x['status']], -x['arduino_id']))
 

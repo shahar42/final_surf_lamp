@@ -1,3 +1,8 @@
+'''
+handles the data exchange between the flask app and the lamps
+author: shahar nitzan
+'''
+
 import logging
 import time
 import sys
@@ -20,94 +25,192 @@ logger = logging.getLogger(__name__)
 
 bp = Blueprint('api_arduino', __name__)
 
+
+def is_physical_device():
+    """Check if request is from physical ESP32 hardware (vs dashboard)."""
+    user_agent = request.headers.get('User-Agent', '')
+    return 'ESP32' in user_agent
+
+
+def update_arduino_timestamp(arduino_id, is_physical):
+    """Update Arduino's last poll timestamp if it's a physical device.
+
+    Args:
+        arduino_id: Arduino ID
+        is_physical: True if ESP32 hardware, False if dashboard
+
+    Returns:
+        tuple: (arduino: Arduino object or None, error: str or None)
+    """
+    db = SessionLocal()
+    try:
+        arduino = db.query(Arduino).filter(Arduino.arduino_id == arduino_id).first()
+
+        if not arduino:
+            return None, f'Arduino {arduino_id} not found'
+
+        if is_physical:
+            arduino.last_poll_time = datetime.now(timezone.utc)
+            logger.info(f"✅ Updated arduino {arduino_id} timestamp (physical device)")
+        else:
+            logger.info(f"📊 Dashboard callback for arduino {arduino_id} (no timestamp update)")
+
+        db.commit()
+        return arduino, None
+
+    except Exception as e:
+        db.rollback()
+        logger.error(f"❌ Database error: {e}")
+        return None, str(e)
+    finally:
+        db.close()
+
+
+def get_hours_status(location, user):
+    """Check quiet/off hours status for a user's location."""
+    quiet_hours_active = is_quiet_hours(
+        location,
+        getattr(user, 'quiet_times_enabled', True)
+    )
+    off_hours_active = is_off_hours(
+        location,
+        getattr(user, 'off_time_start', None),
+        getattr(user, 'off_time_end', None),
+        getattr(user, 'off_times_enabled', False)
+    )
+    return quiet_hours_active, off_hours_active
+
+
+def calculate_thresholds(location, user):
+    """Calculate effective wave and wind thresholds.
+
+    Uses a server-side shim to simulate range-based alerts without modifying Arduino firmware.
+    Arduino firmware has fixed logic: `if (current >= threshold) blink()`
+
+    We dynamically manipulate the threshold sent to Arduino based on user's [min, max] range:
+    - If current > max: Send threshold = 9999 (impossible value) → No blink
+    - If min <= current <= max: Send threshold = min → Blinks
+    - If current < min: Send threshold = min → No blink
+
+    This allows range alerts (e.g., "alert only if waves 1m-3m") on old devices without firmware changes.
+    """
+    current_wind_knots = (location.wind_speed_mps * 1.944) if location.wind_speed_mps else None
+
+    effective_wave_threshold_m = calculate_effective_threshold(
+        current_value=location.wave_height_m,
+        user_min=user.wave_threshold_m if user.wave_threshold_m is not None else 0.0,
+        user_max=getattr(user, 'wave_threshold_max_m', None)
+    )
+
+    effective_wind_threshold_knots = calculate_effective_threshold(
+        current_value=current_wind_knots,
+        user_min=user.wind_threshold_knots or 22.0,
+        user_max=getattr(user, 'wind_threshold_max_knots', None)
+    )
+
+    return effective_wave_threshold_m, effective_wind_threshold_knots
+
+
+def get_arduino_with_location_and_user(db, arduino_id):
+    """Query arduino with joined location and user data."""
+    return db.query(Arduino, Location, User).select_from(Arduino) \
+        .join(User, Arduino.user_id == User.user_id) \
+        .join(Location, Arduino.location == Location.location) \
+        .filter(Arduino.arduino_id == arduino_id) \
+        .first()
+
+
+def build_surf_data_v1_response(location, user, sunset_info, effective_wave_threshold_m, effective_wind_threshold_knots, quiet_hours_active, off_hours_active):
+    """Build V1 response dict (server calculates sunset)."""
+    return {
+        'wave_height_cm': int(round((location.wave_height_m or 0) * 100)),
+        'wave_period_s': location.wave_period_s or 0.0,
+        'wind_speed_mps': int(round(location.wind_speed_mps or 0)),
+        'wind_direction_deg': location.wind_direction_deg or 0,
+        'wave_threshold_cm': int(effective_wave_threshold_m * 100),
+        'wind_speed_threshold_knots': int(round(effective_wind_threshold_knots)),
+        'led_theme': user.theme or 'day',
+        'quiet_hours_active': quiet_hours_active,
+        'off_hours_active': off_hours_active,
+        'sunset_animation': sunset_info['sunset_trigger'],
+        'day_of_year': sunset_info['day_of_year'],
+        'brightness_multiplier': getattr(user, 'brightness_level', BRIGHTNESS_LEVELS['MID']),
+        'last_updated': location.last_updated.isoformat() if location.last_updated else '1970-01-01T00:00:00Z',
+        'data_available': bool(location.wave_height_m or location.wind_speed_mps)
+    }
+
+
+def build_surf_data_v2_response(location, location_data, tz_offset, arduino, user, effective_wave_threshold_m, effective_wind_threshold_knots, quiet_hours_active, off_hours_active, brightness_value):
+    """Build V2 response dict (Arduino calculates sunset locally)."""
+    return {
+        'latitude': location_data['latitude'],
+        'longitude': location_data['longitude'],
+        'tz_offset': tz_offset,
+        'wave_height_cm': int(round((location.wave_height_m or 0) * 100)),
+        'wave_period_s': location.wave_period_s or 0.0,
+        'wind_speed_mps': int(round(location.wind_speed_mps or 0)),
+        'wind_direction_deg': location.wind_direction_deg or 0,
+        'wave_threshold_cm': int(effective_wave_threshold_m * 100),
+        'wind_speed_threshold_knots': int(round(effective_wind_threshold_knots)),
+        'led_theme': user.theme or 'day',
+        'quiet_hours_active': quiet_hours_active,
+        'off_hours_active': off_hours_active,
+        'brightness_multiplier': brightness_value,
+        'fetch_interval_ms': (getattr(arduino, 'request_interval_minutes', 13) or 13) * 60 * 1000,
+        'last_updated': location.last_updated.isoformat() if location.last_updated else '1970-01-01T00:00:00Z',
+        'data_available': bool(location.wave_height_m or location.wind_speed_mps)
+    }
+
+
 @bp.route("/api/arduino/callback", methods=['POST'])
 def handle_arduino_callback():
-    """
-    Handle callbacks from Arduino devices confirming surf data receipt and processing.
-    """
+    """Handle callbacks from Arduino devices confirming surf data receipt."""
     try:
-        # Get JSON data from Arduino
+        # Validate input
         data = request.get_json()
-        
         if not data:
-            logger.error("No JSON data received in Arduino callback")
             return {'success': False, 'message': 'No JSON data provided'}, 400
-        
-        # Extract required fields
+
         arduino_id = data.get('arduino_id')
-        data_received = data.get('data_received', False)
-        
         if not arduino_id:
-            logger.error("Arduino callback missing arduino_id")
             return {'success': False, 'message': 'arduino_id is required'}, 400
-        
-        logger.info(f"📥 Arduino Callback - ID: {arduino_id}, Data Received: {data_received}")
-        logger.info(f"   Arduino IP: {data.get('local_ip', 'unknown')}")
-        
-        # Update database with confirmed delivery
-        db = SessionLocal()
-        try:
-            # Find the arduino
-            arduino = db.query(Arduino).filter(Arduino.arduino_id == arduino_id).first()
 
-            if not arduino:
-                logger.warning(f"⚠️  Arduino {arduino_id} not found in database")
-                return {'success': False, 'message': f'Arduino {arduino_id} not found'}, 404
+        # Log callback
+        data_received = data.get('data_received', False)
+        local_ip = data.get('local_ip', 'unknown')
+        logger.info(f"📥 Arduino Callback - ID: {arduino_id}, Data Received: {data_received}, IP: {local_ip}")
 
-            # Update arduino timestamp only for physical devices (not dashboard views)
-            user_agent = request.headers.get('User-Agent', '')
-            if 'ESP32' in user_agent:
-                arduino.last_poll_time = datetime.now(timezone.utc)
-                logger.info(f"✅ Updated arduino {arduino.arduino_id} timestamp (physical device)")
-            else:
-                logger.info(f"📊 Dashboard callback for arduino {arduino.arduino_id} (no timestamp update)")
+        # Update timestamp
+        is_physical = is_physical_device()
+        arduino, error = update_arduino_timestamp(arduino_id, is_physical)
 
-            # Commit all changes
-            db.commit()
+        if error:
+            logger.warning(f"⚠️ {error}")
+            status_code = 404 if 'not found' in error else 500
+            return {'success': False, 'message': error}, status_code
 
-            logger.info(f"✅ Database updated successfully for Arduino {arduino_id}")
-            logger.info(f"   Timestamp updated: {arduino.last_poll_time}")
+        logger.info(f"✅ Callback processed: Arduino {arduino_id}, Timestamp: {arduino.last_poll_time}")
 
-            # Return success response to Arduino
-            response_data = {
-                'success': True,
-                'message': 'Callback processed successfully',
-                'arduino_id': arduino_id,
-                'timestamp': datetime.now(timezone.utc).isoformat()
-            }
-            
-            return response_data, 200
-            
-        except Exception as db_error:
-            db.rollback()
-            logger.error(f"❌ Database error in Arduino callback: {db_error}")
-            return {'success': False, 'message': f'Database error: {str(db_error)}'}, 500
-            
-        finally:
-            db.close()
-            
+        return {
+            'success': True,
+            'message': 'Callback processed successfully',
+            'arduino_id': arduino_id,
+            'timestamp': datetime.now(timezone.utc).isoformat()
+        }, 200
+
     except Exception as e:
         logger.error(f"❌ Error processing Arduino callback: {e}")
-        return {'success': False, 'message': f'Server error: {str(e)}'}, 500
+        return {'success': False, 'message': 'Server error'}, 500
 
 @bp.route("/api/arduino/<int:arduino_id>/data", methods=['GET'])
-def get_arduino_surf_data(arduino_id):
-    """
-    New endpoint: Arduino pulls surf data from server
-    This doesn't break existing push functionality
-    """
+can
     logger.info(f"📥 Arduino {arduino_id} requesting surf data (PULL mode)")
-    
+
     try:
         # Get arduino data
         db = SessionLocal()
         try:
-            # Join to get location conditions for this Arduino
-            result = db.query(Arduino, Location, User).select_from(Arduino) \
-                .join(User, Arduino.user_id == User.user_id) \
-                .join(Location, Arduino.location == Location.location) \
-                .filter(Arduino.arduino_id == arduino_id) \
-                .first()
+            result = get_arduino_with_location_and_user(db, arduino_id)
 
             if not result:
                 logger.warning(f"⚠️ Arduino {arduino_id} not found in database")
@@ -115,19 +218,8 @@ def get_arduino_surf_data(arduino_id):
 
             arduino, location, user = result
 
-            # Check if current time is within quiet hours for this user's location
-            quiet_hours_active = is_quiet_hours(
-                user.location,
-                getattr(user, 'quiet_times_enabled', True)
-            )
-
-            # Check if current time is within user-defined off hours
-            off_hours_active = is_off_hours(
-                user.location,
-                getattr(user, 'off_time_start', None),
-                getattr(user, 'off_time_end', None),
-                getattr(user, 'off_times_enabled', False)
-            )
+            # Check quiet/off hours status
+            quiet_hours_active, off_hours_active = get_hours_status(user.location, user)
 
             if off_hours_active:
                 logger.info(f"🔴 Off hours active for {user.location} - lamp turned off")
@@ -138,43 +230,19 @@ def get_arduino_surf_data(arduino_id):
             sunset_info = get_sunset_info_cached(user.location, get_sunset_info, trigger_window_minutes=15)
             logger.info(f"🌅 Sunset info: trigger={sunset_info['sunset_trigger']}, day={sunset_info['day_of_year']}")
 
-            # Calculate effective thresholds using range logic (server-side shim for range alerts)
-            # Convert wind speed from m/s to knots for threshold comparison (1 m/s = 1.944 knots)
-            current_wind_knots = (location.wind_speed_mps * 1.944) if location.wind_speed_mps else None
+            # Calculate effective thresholds
+            effective_wave_threshold_m, effective_wind_threshold_knots = calculate_thresholds(location, user)
 
-            effective_wave_threshold_m = calculate_effective_threshold(
-                current_value=location.wave_height_m,
-                user_min=user.wave_threshold_m if user.wave_threshold_m is not None else 0.0,
-                user_max=getattr(user, 'wave_threshold_max_m', None)
+            # Build response
+            surf_data = build_surf_data_v1_response(
+                location, user, sunset_info,
+                effective_wave_threshold_m, effective_wind_threshold_knots,
+                quiet_hours_active, off_hours_active
             )
-
-            effective_wind_threshold_knots = calculate_effective_threshold(
-                current_value=current_wind_knots,
-                user_min=user.wind_threshold_knots or 22.0,
-                user_max=getattr(user, 'wind_threshold_max_knots', None)
-            )
-
-            # Return location conditions data
-            surf_data = {
-                'wave_height_cm': int(round((location.wave_height_m or 0) * 100)),
-                'wave_period_s': location.wave_period_s or 0.0,
-                'wind_speed_mps': int(round(location.wind_speed_mps or 0)),
-                'wind_direction_deg': location.wind_direction_deg or 0,
-                'wave_threshold_cm': int(effective_wave_threshold_m * 100),
-                'wind_speed_threshold_knots': int(round(effective_wind_threshold_knots)),
-                'led_theme': user.theme or 'day',
-                'quiet_hours_active': quiet_hours_active,
-                'off_hours_active': off_hours_active,
-                'sunset_animation': sunset_info['sunset_trigger'],
-                'day_of_year': sunset_info['day_of_year'],
-                'brightness_multiplier': getattr(user, 'brightness_level', BRIGHTNESS_LEVELS['MID']),
-                'last_updated': location.last_updated.isoformat() if location.last_updated else '1970-01-01T00:00:00Z',
-                'data_available': bool(location.wave_height_m or location.wind_speed_mps)
-            }
 
             # Update arduino timestamp only for physical devices (not dashboard views)
-            user_agent = request.headers.get('User-Agent', '')
-            if 'ESP32' in user_agent:
+            is_physical = is_physical_device()
+            if is_physical:
                 arduino.last_poll_time = datetime.now(timezone.utc)
                 logger.info(f"✅ Physical Arduino {arduino_id} pulled data (timestamp updated)")
             else:
@@ -203,12 +271,7 @@ def get_arduino_surf_data_v2(arduino_id):
     try:
         db = SessionLocal()
         try:
-            # Join to get location conditions for this Arduino
-            result = db.query(Arduino, Location, User).select_from(Arduino) \
-                .join(User, Arduino.user_id == User.user_id) \
-                .join(Location, Arduino.location == Location.location) \
-                .filter(Arduino.arduino_id == arduino_id) \
-                .first()
+            result = get_arduino_with_location_and_user(db, arduino_id)
 
             if not result:
                 logger.warning(f"⚠️ Arduino {arduino_id} not found in database")
@@ -222,17 +285,8 @@ def get_arduino_surf_data_v2(arduino_id):
             # Calculate current timezone offset (handles DST automatically)
             tz_offset = get_current_tz_offset(user.location)
 
-            # Check quiet/off hours
-            quiet_hours_active = is_quiet_hours(
-                user.location,
-                getattr(user, 'quiet_times_enabled', True)
-            )
-            off_hours_active = is_off_hours(
-                user.location,
-                getattr(user, 'off_time_start', None),
-                getattr(user, 'off_time_end', None),
-                getattr(user, 'off_times_enabled', False)
-            )
+            # Check quiet/off hours status
+            quiet_hours_active, off_hours_active = get_hours_status(user.location, user)
 
             if off_hours_active:
                 logger.info(f"🔴 Off hours active for {user.location} - lamp turned off")
@@ -243,45 +297,19 @@ def get_arduino_surf_data_v2(arduino_id):
             # During normal hours, respect user's brightness preference
             brightness_value = BRIGHTNESS_LEVELS['MID'] if quiet_hours_active else getattr(user, 'brightness_level', BRIGHTNESS_LEVELS['MID'])
 
-            # Calculate effective thresholds using range logic (server-side shim for range alerts)
-            # Convert wind speed from m/s to knots for threshold comparison (1 m/s = 1.944 knots)
-            current_wind_knots = (location.wind_speed_mps * 1.944) if location.wind_speed_mps else None
-
-            effective_wave_threshold_m = calculate_effective_threshold(
-                current_value=location.wave_height_m,
-                user_min=user.wave_threshold_m if user.wave_threshold_m is not None else 0.0,
-                user_max=getattr(user, 'wave_threshold_max_m', None)
-            )
-
-            effective_wind_threshold_knots = calculate_effective_threshold(
-                current_value=current_wind_knots,
-                user_min=user.wind_threshold_knots or 22.0,
-                user_max=getattr(user, 'wind_threshold_max_knots', None)
-            )
+            # Calculate effective thresholds
+            effective_wave_threshold_m, effective_wind_threshold_knots = calculate_thresholds(location, user)
 
             # Build response (NO sunset_animation or day_of_year - Arduino calculates locally)
-            surf_data = {
-                'latitude': location_data['latitude'],
-                'longitude': location_data['longitude'],
-                'tz_offset': tz_offset,
-                'wave_height_cm': int(round((location.wave_height_m or 0) * 100)),
-                'wave_period_s': location.wave_period_s or 0.0,
-                'wind_speed_mps': int(round(location.wind_speed_mps or 0)),
-                'wind_direction_deg': location.wind_direction_deg or 0,
-                'wave_threshold_cm': int(effective_wave_threshold_m * 100),
-                'wind_speed_threshold_knots': int(round(effective_wind_threshold_knots)),
-                'led_theme': user.theme or 'day',
-                'quiet_hours_active': quiet_hours_active,
-                'off_hours_active': off_hours_active,
-                'brightness_multiplier': brightness_value,
-                'fetch_interval_ms': (getattr(arduino, 'request_interval_minutes', 13) or 13) * 60 * 1000,
-                'last_updated': location.last_updated.isoformat() if location.last_updated else '1970-01-01T00:00:00Z',
-                'data_available': bool(location.wave_height_m or location.wind_speed_mps)
-            }
+            surf_data = build_surf_data_v2_response(
+                location, location_data, tz_offset, arduino, user,
+                effective_wave_threshold_m, effective_wind_threshold_knots,
+                quiet_hours_active, off_hours_active, brightness_value
+            )
 
             # Update arduino timestamp only for physical devices (not dashboard views)
-            user_agent = request.headers.get('User-Agent', '')
-            if 'ESP32' in user_agent:
+            is_physical = is_physical_device()
+            if is_physical:
                 arduino.last_poll_time = datetime.now(timezone.utc)
                 logger.info(f"✅ Physical Arduino {arduino_id} pulled V2 data (timestamp updated)")
             else:
@@ -327,7 +355,14 @@ def get_server_discovery():
 @bp.route("/api/arduino/<int:arduino_id>/settings", methods=['GET'])
 def get_arduino_settings(arduino_id):
     """
-    PRIVATE ENDPOINT - User-specific settings
+    PRIVATE ENDPOINT - User-specific settings (reserved for future scalability)
+
+    Currently unused - V2 endpoint returns all data in one call.
+    When scaling to many lamps, this endpoint will enable split caching:
+    - Settings cached 1 hour (user preferences rarely change)
+    - Conditions cached 13 min (fetched separately per location)
+    Reduces redundant DB queries: 1M lamps at same location = 1M queries → 1 settings + 1 conditions query.
+
     Returns user preferences and thresholds for a specific arduino.
 
     This data changes infrequently (only when user modifies settings).

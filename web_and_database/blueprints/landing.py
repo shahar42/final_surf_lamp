@@ -3,6 +3,7 @@ import logging
 from flask import Blueprint, render_template, request, flash, redirect, url_for, send_from_directory, session
 from flask_limiter.util import get_remote_address
 from config import limiter
+from security_config import SecurityConfig
 from waitlist_db import add_to_waitlist, get_waitlist_count
 
 logger = logging.getLogger(__name__)
@@ -50,7 +51,7 @@ def waitlist_form():
     return render_template('waitlist.html', total_signups=total_signups)
 
 @bp.route("/waitlist/submit", methods=['POST'])
-@limiter.limit("3 per hour")
+@limiter.limit(lambda: SecurityConfig.RATE_LIMITS['landing_waitlist_submit'])
 def waitlist_submit():
     """Handle waitlist form submission."""
     first_name = request.form.get('first_name', '').strip()

@@ -1,6 +1,14 @@
+'''
+handles all user preferences and setting
+these cant be cached on CDN
+
+author: shahar nitzan
+'''
+
 import logging
 from flask import Blueprint, request, session, jsonify
 from config import limiter, SURF_LOCATIONS, THRESHOLD_LIMITS
+from security_config import SecurityConfig
 from utils.decorators import login_required
 from utils.rate_limit import check_location_change_limit, record_location_change
 from utils.threshold_logic import validate_threshold_range
@@ -12,7 +20,7 @@ bp = Blueprint('api_user', __name__)
 
 @bp.route("/update-location", methods=['POST'])
 @login_required
-@limiter.limit("10/minute")
+@limiter.limit(lambda: SecurityConfig.RATE_LIMITS['user_update_location'])
 def update_location():
     """Update user's lamp location"""
     try:
@@ -44,7 +52,7 @@ def update_location():
 
 @bp.route("/update-threshold", methods=['POST'])
 @login_required
-@limiter.limit("30/minute")
+@limiter.limit(lambda: SecurityConfig.RATE_LIMITS['user_update_threshold'])
 def update_threshold():
     try:
         data = request.get_json()
@@ -89,7 +97,7 @@ def update_threshold():
 
 @bp.route("/update-wind-threshold", methods=['POST'])
 @login_required
-@limiter.limit("30/minute")
+@limiter.limit(lambda: SecurityConfig.RATE_LIMITS['user_update_wind_threshold'])
 def update_wind_threshold():
     try:
         data = request.get_json()
@@ -134,7 +142,7 @@ def update_wind_threshold():
 
 @bp.route("/update-off-times", methods=['POST'])
 @login_required
-@limiter.limit("30/minute")
+@limiter.limit(lambda: SecurityConfig.RATE_LIMITS['user_update_off_times'])
 def update_off_times():
     try:
         data = request.get_json()
@@ -164,7 +172,7 @@ def update_off_times():
 
 @bp.route("/update-theme", methods=['POST'])
 @login_required
-@limiter.limit("20/minute")
+@limiter.limit(lambda: SecurityConfig.RATE_LIMITS['user_update_theme'])
 def update_theme():
     """Update user's LED color theme preference"""
     try:
@@ -193,6 +201,7 @@ def update_theme():
 
 @bp.route("/update-led-theme", methods=['POST'])
 @login_required
+@limiter.limit(lambda: SecurityConfig.RATE_LIMITS['user_update_led_theme'])
 def update_led_theme():
     """Update user's LED color theme to one of the predefined themes"""
     try:
@@ -225,7 +234,7 @@ def update_led_theme():
 
 @bp.route("/update-brightness", methods=['POST'])
 @login_required
-@limiter.limit("30/minute")
+@limiter.limit(lambda: SecurityConfig.RATE_LIMITS['user_update_brightness'])
 def update_brightness():
     """Update user's global brightness multiplier"""
     try:
@@ -254,7 +263,7 @@ def update_brightness():
 
 @bp.route("/update-unit-preference", methods=['POST'])
 @login_required
-@limiter.limit("30/minute")
+@limiter.limit(lambda: SecurityConfig.RATE_LIMITS['user_update_unit_preference'])
 def update_unit_preference():
     """Update user's wave height unit preference (meters or feet)"""
     try:
@@ -283,7 +292,7 @@ def update_unit_preference():
 
 @bp.route("/toggle-quiet-hours", methods=['POST'])
 @login_required
-@limiter.limit("30/minute")
+@limiter.limit(lambda: SecurityConfig.RATE_LIMITS['user_toggle_quiet_hours'])
 def toggle_quiet_hours():
     """Toggle quiet hours feature on/off"""
     try:

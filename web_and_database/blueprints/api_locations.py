@@ -1,3 +1,14 @@
+'''
+future optimization:
+when there will be more than 50k lamps
+purpose: an api end point for fetching surf conditions by locations
+instead of lamps goidg every minute to the render service end point
+they will fetch it from a proxy server CDN that the render service will update that way 1500 lamps all get there
+data from the CDN and not from the render service
+only works cause the values for a certain location is the same for all the lmaps in that location 
+it doesnt work for personal settings or any personalized data
+'''
+
 import logging
 import sys
 import os

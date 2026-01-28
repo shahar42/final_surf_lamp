@@ -21,12 +21,34 @@ class SecurityConfig:
     # Rate Limiting Settings
     RATELIMIT_STORAGE_URL = os.environ.get('REDIS_URL', 'memory://')
     RATELIMIT_DEFAULT = "1000 per hour"
-    
-    # Rate limits by endpoint
+
+    # Rate limits by endpoint - SINGLE SOURCE OF TRUTH
     RATE_LIMITS = {
-        'login': "5 per minute, 20 per hour",
-        'register': "3 per minute, 10 per hour", 
-        'general': "100 per minute"
+        # Authentication endpoints
+        'auth_register': "10/minute",
+        'auth_login': "10/minute",
+        'auth_forgot_password': "5 per hour",
+        'auth_reset_password': "3 per 15 minutes",
+
+        # User settings endpoints
+        'user_update_location': "10/minute",
+        'user_update_threshold': "30/minute",
+        'user_update_wind_threshold': "30/minute",
+        'user_update_off_times': "30/minute",
+        'user_update_theme': "20/minute",
+        'user_update_led_theme': "30/minute",
+        'user_update_brightness': "30/minute",
+        'user_update_unit_preference': "30/minute",
+        'user_toggle_quiet_hours': "30/minute",
+
+        # Landing page
+        'landing_waitlist_submit': "3 per hour",
+
+        # Admin endpoints
+        'admin_create_broadcast': "10 per hour",
+
+        # Reporting
+        'report_error': "5 per hour"
     }
     
     # Password Requirements
@@ -39,6 +61,8 @@ class SecurityConfig:
     
     # Input Validation
     MAX_INPUT_LENGTH = 1000
+    MAX_BROADCAST_MESSAGE_LENGTH = 500
+    MAX_EMAIL_LENGTH = 255
     ALLOWED_TAGS = []  # No HTML tags allowed
     
     # Database Security

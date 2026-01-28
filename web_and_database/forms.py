@@ -1,9 +1,16 @@
+'''
+handles constraints on all user input (registration new password login)
+
+author: shahar nitzan
+'''
+
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SelectField, RadioField, IntegerField, BooleanField, SubmitField, HiddenField
 from wtforms.validators import DataRequired, Email, Length, NumberRange, Regexp, ValidationError, EqualTo
 from wtforms.widgets import HiddenInput
 import re
 import bleach
+from security_config import SecurityConfig
 
 class SanitizedStringField(StringField):
     """Custom field that sanitizes HTML content"""
@@ -23,7 +30,7 @@ class ForgotPasswordForm(FlaskForm):
 class ResetPasswordForm(FlaskForm):
     new_password = PasswordField('New Password', validators=[
         DataRequired(message="Password is required"),
-        Length(min=8, max=128, message="Password must be between 8 and 128 characters")
+        Length(min=SecurityConfig.PASSWORD_MIN_LENGTH, max=SecurityConfig.PASSWORD_MAX_LENGTH, message=f"Password must be between {SecurityConfig.PASSWORD_MIN_LENGTH} and {SecurityConfig.PASSWORD_MAX_LENGTH} characters")
     ])
     confirm_password = PasswordField('Confirm Password', validators=[
         DataRequired(message="Please confirm your password"),
@@ -43,13 +50,13 @@ class RegistrationForm(FlaskForm):
     email = SanitizedStringField('Email', validators=[
         DataRequired(message="Email is required"),
         Email(message="Please enter a valid email address"),
-        Length(max=255, message="Email must be less than 255 characters")
+        Length(max=SecurityConfig.MAX_EMAIL_LENGTH, message=f"Email must be less than {SecurityConfig.MAX_EMAIL_LENGTH} characters")
     ])
     
     # Strong password requirements
     password = PasswordField('Password', validators=[
         DataRequired(message="Password is required"),
-        Length(min=8, max=128, message="Password must be between 8 and 128 characters")
+        Length(min=SecurityConfig.PASSWORD_MIN_LENGTH, max=SecurityConfig.PASSWORD_MAX_LENGTH, message=f"Password must be between {SecurityConfig.PASSWORD_MIN_LENGTH} and {SecurityConfig.PASSWORD_MAX_LENGTH} characters")
     ])
 
     # Arduino ID - hidden field populated from QR code URL parameter
@@ -104,13 +111,13 @@ class LoginForm(FlaskForm):
     email = SanitizedStringField('Email', validators=[
         DataRequired(message="Email is required"),
         Email(message="Please enter a valid email address"),
-        Length(max=255, message="Email must be less than 255 characters")
+        Length(max=SecurityConfig.MAX_EMAIL_LENGTH, message=f"Email must be less than {SecurityConfig.MAX_EMAIL_LENGTH} characters")
     ])
 
     # Password field for login (less strict validation than registration)
     password = PasswordField('Password', validators=[
         DataRequired(message="Password is required"),
-        Length(max=128, message="Password is too long")
+        Length(max=SecurityConfig.PASSWORD_MAX_LENGTH, message="Password is too long")
     ])
 
     remember_me = BooleanField('Remember Me')
@@ -128,12 +135,12 @@ def sanitize_input(input_string):
     """General purpose input sanitization"""
     if not input_string:
         return ""
-    
+
     # Remove HTML tags
     sanitized = bleach.clean(input_string, tags=[], strip=True)
-    
+
     # Remove null bytes and control characters (except newline and tab)
     sanitized = ''.join(char for char in sanitized if ord(char) >= 32 or char in '\n\t')
-    
+
     # Limit length to prevent memory issues
-    return sanitized[:1000].strip()
+    return sanitized[:SecurityConfig.MAX_INPUT_LENGTH].strip()
