@@ -203,7 +203,7 @@ def handle_arduino_callback():
         return {'success': False, 'message': 'Server error'}, 500
 
 @bp.route("/api/arduino/<int:arduino_id>/data", methods=['GET'])
-can
+def get_arduino_data(arduino_id):
     logger.info(f"📥 Arduino {arduino_id} requesting surf data (PULL mode)")
 
     try:
