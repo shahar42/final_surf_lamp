@@ -16,12 +16,16 @@ from blueprints import (
     api_arduino, api_locations, api_chat, reports, admin, landing,
     notifications
 )
+from data_base import Base, engine
 
 def create_app():
     app = Flask(__name__)
 
     # Configure app
     configure_app(app)
+
+    # Ensure all database tables exist
+    Base.metadata.create_all(bind=engine)
 
     # Fix for Render's reverse proxy
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
