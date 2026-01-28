@@ -60,7 +60,11 @@ const Broadcasts = {
         // Create close button
         const closeBtn = document.createElement('button');
         closeBtn.className = 'absolute top-2 right-2 text-gray-700 hover:text-gray-900';
-        closeBtn.onclick = () => bubble.remove();
+        closeBtn.onclick = async (e) => {
+            e.preventDefault();
+            await this.dismissBroadcast(broadcast.id);
+            bubble.remove();
+        };
         closeBtn.innerHTML = `
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -78,6 +82,27 @@ const Broadcasts = {
         bubble.appendChild(closeBtn);
         bubble.appendChild(content);
         this.container.appendChild(bubble);
+    },
+
+    /**
+     * Send dismissal to server
+     * @param {number} broadcastId - Broadcast ID to dismiss
+     */
+    dismissBroadcast: async function(broadcastId) {
+        try {
+            const response = await fetch(`${DashboardConfig.API.BROADCASTS}/${broadcastId}/dismiss`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                console.error('Failed to dismiss broadcast');
+            }
+        } catch (error) {
+            console.error('Error dismissing broadcast:', error);
+        }
     },
 
     /**

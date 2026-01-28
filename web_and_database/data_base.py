@@ -115,12 +115,23 @@ class Broadcast(Base):
     broadcast_id = Column(Integer, primary_key=True, autoincrement=True)
     admin_user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
     message = Column(Text, nullable=False)
-    target_location = Column(String(255), nullable=True)  
+    target_location = Column(String(255), nullable=True)
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
     expires_at = Column(TIMESTAMP, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
 
     admin = relationship("User", backref="broadcasts")
+
+class BroadcastDismissal(Base):
+    __tablename__ = 'broadcast_dismissals'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
+    broadcast_id = Column(Integer, ForeignKey('broadcasts.broadcast_id'), nullable=False)
+    dismissed_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+
+    user = relationship("User", backref="broadcast_dismissals")
+    broadcast = relationship("Broadcast", backref="dismissals")
 
 class Arduino(Base):
     __tablename__ = 'arduinos'

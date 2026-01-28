@@ -5,7 +5,7 @@ from config import limiter, SURF_LOCATIONS
 from security_config import SecurityConfig
 from utils.decorators import login_required, admin_required
 from forms import sanitize_input
-from data_base import SessionLocal, User, Broadcast, Arduino, Location
+from data_base import SessionLocal, User, Broadcast, BroadcastDismissal, Arduino, Location
 from sqlalchemy.orm import joinedload
 from blueprints.notifications import trigger_push_broadcast
 
@@ -164,7 +164,7 @@ def create_broadcast():
 @bp.route('/api/broadcasts', methods=['GET'])
 @login_required
 def get_active_broadcasts():
-    """Fetch active broadcasts for current user's location"""
+    """Fetch active broadcasts for current user's location, excluding dismissed ones"""
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.email == session['user_email']).first()
@@ -173,10 +173,17 @@ def get_active_broadcasts():
 
         now = datetime.utcnow()
 
+        # Get dismissed broadcast IDs for this user
+        dismissed_ids = db.query(BroadcastDismissal.broadcast_id).filter(
+            BroadcastDismissal.user_id == user.user_id
+        ).all()
+        dismissed_ids = [d[0] for d in dismissed_ids]
+
         broadcasts = db.query(Broadcast).filter(
             Broadcast.is_active,
             Broadcast.expires_at > now,
-            (Broadcast.target_location.is_(None)) | (Broadcast.target_location == user.location)
+            (Broadcast.target_location.is_(None)) | (Broadcast.target_location == user.location),
+            ~Broadcast.broadcast_id.in_(dismissed_ids) if dismissed_ids else True
         ).order_by(Broadcast.created_at.desc()).all()
 
         return jsonify({
@@ -186,6 +193,43 @@ def get_active_broadcasts():
                 'created_at': b.created_at.isoformat()
             } for b in broadcasts]
         })
+    finally:
+        db.close()
+
+@bp.route('/api/broadcasts/<int:broadcast_id>/dismiss', methods=['POST'])
+@login_required
+def dismiss_broadcast(broadcast_id):
+    """Mark a broadcast as dismissed for the current user"""
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.email == session['user_email']).first()
+        if not user:
+            return jsonify({'success': False, 'message': 'User not found'}), 404
+
+        # Check if broadcast exists
+        broadcast = db.query(Broadcast).filter(Broadcast.broadcast_id == broadcast_id).first()
+        if not broadcast:
+            return jsonify({'success': False, 'message': 'Broadcast not found'}), 404
+
+        # Check if already dismissed
+        existing = db.query(BroadcastDismissal).filter(
+            BroadcastDismissal.user_id == user.user_id,
+            BroadcastDismissal.broadcast_id == broadcast_id
+        ).first()
+
+        if existing:
+            return jsonify({'success': True, 'message': 'Already dismissed'})
+
+        # Create dismissal record
+        dismissal = BroadcastDismissal(user_id=user.user_id, broadcast_id=broadcast_id)
+        db.add(dismissal)
+        db.commit()
+
+        return jsonify({'success': True, 'message': 'Broadcast dismissed'})
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error dismissing broadcast: {e}")
+        return jsonify({'success': False, 'message': 'Server error'}), 500
     finally:
         db.close()
 
