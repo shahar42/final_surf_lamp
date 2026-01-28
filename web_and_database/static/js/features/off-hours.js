@@ -4,9 +4,9 @@
  */
 
 const OffHours = {
-    // CSS classes for active/inactive button states
-    INACTIVE_CLASSES: ['bg-white/10', 'hover:bg-white/20', 'text-white/80', 'border-white/20'],
-    ACTIVE_CLASSES: ['bg-orange-600/80', 'border-orange-500', 'text-white', 'font-semibold', 'shadow-[0_0_15px_rgba(234,88,12,0.3)]'],
+    // CSS classes for active/inactive button states (Aligned with templates/macros/preset_buttons.html)
+    INACTIVE_CLASSES: ['bg-white/5', 'hover:bg-white/10', 'text-white/40', 'border-white/5'],
+    ACTIVE_CLASSES: ['bg-orange-600/20', 'border-orange-500/50', 'text-orange-400', 'font-bold', 'shadow-lg', 'shadow-orange-900/20'],
 
     /**
      * Initialize off hours feature
@@ -51,7 +51,7 @@ const OffHours = {
             btn.addEventListener('click', () => {
                 const startTime = btn.getAttribute('data-start');
                 const endTime = btn.getAttribute('data-end');
-                const isActive = btn.classList.contains('bg-orange-600/80');
+                const isActive = btn.classList.contains('bg-orange-600/20');
 
                 // Hide all custom input containers
                 inputContainers.forEach(container => {
@@ -69,7 +69,7 @@ const OffHours = {
      */
     setupCustomButton: function(btn, inputs) {
         btn.addEventListener('click', () => {
-            const isActive = btn.classList.contains('bg-orange-600/80');
+            const isActive = btn.classList.contains('bg-orange-600/20');
 
             if (isActive) {
                 // Already active → Disable
