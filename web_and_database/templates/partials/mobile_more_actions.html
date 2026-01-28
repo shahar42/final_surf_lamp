@@ -1,0 +1,115 @@
+{# templates/partials/mobile_more_actions.html #}
+{# Mobile-optimized more actions tab #}
+
+<div class="space-y-4">
+    <!-- My Lamps Section -->
+    <div class="card rounded-2xl p-5 shadow-2xl">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-white font-semibold">My Lamps</h3>
+            <button id="showAddArduinoBtnMobile" class="text-xs bg-blue-500 hover:bg-blue-600 px-3 py-1.5 rounded-lg text-white font-semibold transition-colors">
+                + Link New Lamp
+            </button>
+        </div>
+
+        <!-- Lamp List -->
+        <div id="arduinoListMobile" class="space-y-2">
+            {% for arduino in data.arduinos %}
+                <div class="flex justify-between items-center bg-white/10 rounded-lg px-4 py-3">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-3 h-3 bg-cyan-400 rounded-full animate-pulse"></div>
+                        <span class="text-white/60 text-sm">#{{ arduino.arduino_id }}</span>
+                    </div>
+                    <span class="font-medium text-white">{{ arduino.location.replace(', Israel', '') }}</span>
+                </div>
+            {% else %}
+                <p class="text-white/50 text-sm text-center py-4">No lamps linked yet</p>
+            {% endfor %}
+        </div>
+
+        <!-- Hidden Add Arduino Form -->
+        <div id="addArduinoFormMobile" class="hidden mt-4 p-4 bg-black/20 rounded-lg border border-white/10">
+            <div class="space-y-4">
+                <div>
+                    <label class="text-white/60 text-sm block mb-2">Arduino ID:</label>
+                    <input type="number" id="newArduinoIdMobile" placeholder="e.g. 123456"
+                           class="bg-white/10 text-white rounded-lg px-4 py-3 text-base border border-white/20 w-full">
+                </div>
+                <div>
+                    <label class="text-white/60 text-sm block mb-2">Location:</label>
+                    <select id="newArduinoLocationMobile" class="bg-gray-800 text-white rounded-lg px-4 py-3 text-base border border-white/20 w-full">
+                        {% for location in locations %}
+                            <option value="{{ location }}">{{ location }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button id="cancelAddArduinoMobile" class="flex-1 bg-white/10 hover:bg-white/20 py-3 rounded-lg text-sm text-white transition-colors">
+                        Cancel
+                    </button>
+                    <button id="submitAddArduinoMobile" class="flex-1 bg-blue-500 hover:bg-blue-600 py-3 rounded-lg text-sm text-white font-bold transition-colors">
+                        Link Lamp
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card rounded-2xl p-5 shadow-2xl space-y-3">
+        <h3 class="text-white font-semibold mb-4">Quick Actions</h3>
+
+        <a href="{{ url_for('dashboard.wifi_setup_guide') }}" class="flex items-center justify-between bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-5 rounded-xl shadow-lg transition-colors">
+            <span>WiFi Setup Guide</span>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+        </a>
+
+        <button id="reportErrorBtnMobile" class="w-full flex items-center justify-between bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-5 rounded-xl shadow-lg transition-colors">
+            <span>Report an Issue</span>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+        </button>
+
+        {% if data.user.is_admin %}
+        <!-- Admin Actions -->
+        <div class="pt-4 mt-4 border-t border-white/20">
+            <h4 class="text-white/60 text-xs uppercase tracking-wider mb-3">Admin Tools</h4>
+
+            <a href="{{ url_for('admin.arduino_monitor') }}" class="flex items-center justify-between bg-purple-600 hover:bg-purple-700 text-white font-semibold py-4 px-5 rounded-xl shadow-lg transition-colors mb-3">
+                <span>Arduino Monitor</span>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+            </a>
+
+            <a href="{{ url_for('admin.admin_broadcast') }}" class="flex items-center justify-between bg-purple-600 hover:bg-purple-700 text-white font-semibold py-4 px-5 rounded-xl shadow-lg transition-colors mb-3">
+                <span>Broadcast Message</span>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/>
+                </svg>
+            </a>
+
+            <button onclick="ModalManager.open('errorCodesDrawer')" class="w-full flex items-center justify-between bg-purple-600/50 hover:bg-purple-600 text-white font-semibold py-4 px-5 rounded-xl shadow-lg transition-colors">
+                <span>LED Error Codes</span>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- App Info -->
+    <div class="card rounded-2xl p-5 shadow-2xl">
+        <div class="text-center text-white/50 text-sm">
+            <p>Surf Lamp v1.0</p>
+            <p class="mt-1">
+                <a href="{{ url_for('legal.privacy_policy') }}" class="hover:text-white transition-colors">Privacy</a>
+                <span class="mx-2">|</span>
+                <a href="{{ url_for('legal.terms_of_service') }}" class="hover:text-white transition-colors">Terms</a>
+            </p>
+        </div>
+    </div>
+</div>

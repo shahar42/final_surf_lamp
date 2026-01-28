@@ -312,3 +312,137 @@ textarea:focus-visible {
 #locationSelect.flicker-active {
     animation: blue-flicker 0.8s ease-in-out;
 }
+
+
+/* ===================================
+   MOBILE BOTTOM TAB NAVIGATION
+   ================================== */
+
+/* Safe area for devices with home indicator (iPhone X+) */
+.safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* Add bottom padding to body on mobile to account for tab bar */
+@media (max-width: 1023px) {
+    body {
+        padding-bottom: 80px; /* Tab bar height + safe area buffer */
+    }
+}
+
+/* Tab button styling */
+.mobile-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    color: rgba(255, 255, 255, 0.5);
+    transition: color 0.2s ease, transform 0.15s ease;
+    position: relative;
+    min-width: 56px;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-tab:active {
+    transform: scale(0.92);
+}
+
+.mobile-tab svg {
+    transition: transform 0.2s ease;
+}
+
+.mobile-tab.active {
+    color: #00c6ff;
+}
+
+.mobile-tab.active svg {
+    transform: scale(1.1);
+}
+
+/* Tab indicator line */
+.tab-indicator {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%) scaleX(0);
+    width: 24px;
+    height: 3px;
+    background: #00c6ff;
+    border-radius: 3px 3px 0 0;
+    transition: transform 0.2s ease;
+}
+
+.mobile-tab.active .tab-indicator {
+    transform: translateX(-50%) scaleX(1);
+}
+
+/* Tab content panels */
+.tab-panel {
+    display: none;
+    animation: tabFadeIn 0.25s ease-out;
+}
+
+.tab-panel.active {
+    display: block;
+}
+
+@keyframes tabFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Slide animations for tab transitions */
+.tab-slide-left {
+    animation: tabSlideLeft 0.25s ease-out;
+}
+
+.tab-slide-right {
+    animation: tabSlideRight 0.25s ease-out;
+}
+
+@keyframes tabSlideLeft {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes tabSlideRight {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Mobile-specific: Hide desktop headers when using tabs */
+@media (max-width: 1023px) {
+    .tab-panel .card {
+        /* Remove card animation delays for tab content - instant show */
+        animation: none;
+        opacity: 1;
+        transform: none;
+    }
+
+    /* Full height lamp visualization on mobile */
+    .tab-panel[data-tab="lamp"] {
+        min-height: calc(100vh - 160px);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+}

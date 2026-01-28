@@ -83,15 +83,78 @@
       {% endif %}
     {% endwith %}
 
-    <!-- LED Strip Visualization -->
-    {% include 'partials/led_visualization.html' %}
-
     <!-- LED Underlayer Control Panel (Development Tool) -->
     {% include 'partials/underlayer_control_panel.html' %}
 
-    <!-- Main Dashboard Content -->
-    <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <!-- ============================================
+         MOBILE TAB PANELS (hidden on desktop lg+)
+         ============================================ -->
 
+    <!-- Tab 1: Lamp Visualization -->
+    <div class="tab-panel active lg:hidden" data-tab="lamp">
+        <div class="flex flex-col items-center justify-center min-h-[60vh] pt-12">
+            {% include 'partials/led_visualization.html' %}
+            <!-- Status indicator below lamp -->
+            {% if data.conditions %}
+            <div class="mt-4 text-center">
+                <span class="status-online text-sm font-semibold">
+                    Online
+                    {% if data.conditions.last_updated %}
+                        <span class="text-white/60 text-xs ml-1">(Updated <span id="statusUpdateTimeMobile" data-timestamp="{{ data.conditions.last_updated.isoformat() }}Z">--</span>)</span>
+                    {% endif %}
+                </span>
+            </div>
+            {% else %}
+            <div class="mt-4 text-center">
+                <span class="status-offline text-sm font-semibold">No Data</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Tab 2: Surf Conditions -->
+    <div class="tab-panel lg:hidden" data-tab="surf">
+        <div class="pt-16 px-2">
+            <h1 class="text-xl font-bold text-white mb-4 text-center">Current Conditions</h1>
+            {% include 'partials/surf_conditions.html' %}
+        </div>
+    </div>
+
+    <!-- Tab 3: Location & Thresholds -->
+    <div class="tab-panel lg:hidden" data-tab="location">
+        <div class="pt-16 px-2">
+            <h1 class="text-xl font-bold text-white mb-4 text-center">Location Settings</h1>
+            {% include 'partials/mobile_location_config.html' %}
+        </div>
+    </div>
+
+    <!-- Tab 4: Light Settings -->
+    <div class="tab-panel lg:hidden" data-tab="light">
+        <div class="pt-16 px-2">
+            <h1 class="text-xl font-bold text-white mb-4 text-center">Light Settings</h1>
+            {% include 'partials/mobile_light_config.html' %}
+        </div>
+    </div>
+
+    <!-- Tab 5: More Actions -->
+    <div class="tab-panel lg:hidden" data-tab="more">
+        <div class="pt-16 px-2">
+            <h1 class="text-xl font-bold text-white mb-4 text-center">More</h1>
+            {% include 'partials/mobile_more_actions.html' %}
+        </div>
+    </div>
+
+    <!-- ============================================
+         DESKTOP LAYOUT (hidden on mobile)
+         ============================================ -->
+
+    <!-- LED Strip Visualization (Desktop) -->
+    <div class="hidden lg:block">
+        {% include 'partials/led_visualization.html' %}
+    </div>
+
+    <!-- Main Dashboard Content (Desktop) -->
+    <div class="hidden lg:grid max-w-6xl mx-auto grid-cols-1 lg:grid-cols-2 gap-4">
         <!-- Lamp Information Card (Surf Data Config) -->
         <div class="order-2 lg:order-1">
             {% include 'partials/lamp_configuration.html' %}
@@ -103,13 +166,18 @@
         </div>
     </div>
 
-    <!-- Light Configuration -->
-    <div class="max-w-6xl mx-auto mt-4">
+    <!-- Light Configuration (Desktop) -->
+    <div class="hidden lg:block max-w-6xl mx-auto mt-4">
         {% include 'partials/light_configuration.html' %}
     </div>
 
-    <!-- Quick Actions -->
-    {% include 'partials/quick_actions.html' %}
+    <!-- Quick Actions (Desktop) -->
+    <div class="hidden lg:block">
+        {% include 'partials/quick_actions.html' %}
+    </div>
+
+    <!-- Mobile Bottom Tab Navigation -->
+    {% include 'partials/mobile_bottom_nav.html' %}
 
     <!-- Chat Modal -->
     {% include 'partials/chat_modal.html' %}
@@ -143,6 +211,7 @@
     <script src="{{ url_for('static', filename='js/features/chat-assistant.js') }}"></script>
     <script src="{{ url_for('static', filename='js/features/broadcasts.js') }}"></script>
     <script src="{{ url_for('static', filename='js/features/arduino-management.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/features/mobile-tabs.js') }}"></script>
 
     <!-- LED Visualization -->
     <script src="{{ url_for('static', filename='js/led-visualization/core.js') }}"></script>
