@@ -52,6 +52,9 @@ THRESHOLD_LIMITS = {
     'WIND_MAX': 40.0
 }
 
+# Stale data detection
+STALE_DATA_THRESHOLD = 3  # Consecutive identical updates before warning
+
 def configure_app(app):
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
     if not app.config['SECRET_KEY']:

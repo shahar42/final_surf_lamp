@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timedelta
 from flask import Blueprint, render_template, request, flash, redirect, url_for, session, jsonify
-from config import limiter, SURF_LOCATIONS
+from config import limiter, SURF_LOCATIONS, STALE_DATA_THRESHOLD
 from security_config import SecurityConfig
 from utils.decorators import login_required, admin_required
 from forms import sanitize_input
@@ -258,7 +258,7 @@ def arduino_status_api():
             staleness_warning = False
             staleness_text = ""
             consecutive = location.consecutive_identical_updates if hasattr(location, 'consecutive_identical_updates') else 0
-            if consecutive and consecutive > 2:
+            if consecutive and consecutive > STALE_DATA_THRESHOLD:
                 staleness_warning = True
                 staleness_text = f"Stale Data ({consecutive} identical fetches)"
             

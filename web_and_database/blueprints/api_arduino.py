@@ -12,7 +12,7 @@ from flask import Blueprint, request, jsonify, make_response
 from data_base import SessionLocal, Arduino, Location, User, ErrorReport
 from utils.helpers import is_quiet_hours, is_off_hours, get_current_tz_offset, get_sunset_info_cached, get_coordinates_cached
 from utils.threshold_logic import calculate_effective_threshold
-from config import BRIGHTNESS_LEVELS
+from config import BRIGHTNESS_LEVELS, STALE_DATA_THRESHOLD
 
 # Add processor path to import sunset calculator
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -123,7 +123,7 @@ def get_arduino_with_location_and_user(db, arduino_id):
 def build_surf_data_v1_response(location, user, sunset_info, effective_wave_threshold_m, effective_wind_threshold_knots, quiet_hours_active, off_hours_active):
     """Build V1 response dict (server calculates sunset)."""
     # Check for stale data (more than 3 identical updates = ~45-60 mins)
-    stale_warning = (getattr(location, 'consecutive_identical_updates', 0) or 0) > 3
+    stale_warning = (getattr(location, 'consecutive_identical_updates', 0) or 0) > STALE_DATA_THRESHOLD
 
     return {
         'wave_height_cm': int(round((location.wave_height_m or 0) * 100)),
@@ -147,7 +147,7 @@ def build_surf_data_v1_response(location, user, sunset_info, effective_wave_thre
 def build_surf_data_v2_response(location, location_data, tz_offset, arduino, user, effective_wave_threshold_m, effective_wind_threshold_knots, quiet_hours_active, off_hours_active, brightness_value):
     """Build V2 response dict (Arduino calculates sunset locally)."""
     # Check for stale data (more than 3 identical updates = ~45-60 mins)
-    stale_warning = (getattr(location, 'consecutive_identical_updates', 0) or 0) > 3
+    stale_warning = (getattr(location, 'consecutive_identical_updates', 0) or 0) > STALE_DATA_THRESHOLD
 
     return {
         'latitude': location_data['latitude'],
