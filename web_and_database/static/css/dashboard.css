@@ -425,18 +425,6 @@ textarea:focus-visible {
         padding-right: 0.5rem;
     }
 
-    /* Force accordion content visible on mobile (no accordions in tab view) */
-    .dashboard-section.tab-active #surf-lamp-content,
-    .dashboard-section.tab-active #light-config-content,
-    .dashboard-section.tab-active #quick-actions-content {
-        display: block !important;
-    }
-
-    /* Hide accordion headers on mobile (tab provides context) */
-    .dashboard-section.tab-active .block.lg\\:hidden {
-        display: none !important;
-    }
-
     /* Directional slide animations - GPU accelerated */
     .dashboard-section.tab-slide-left {
         animation: tabSlideLeft 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;

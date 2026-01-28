@@ -1,21 +1,15 @@
 {# templates/partials/light_configuration.html #}
 {% from 'macros/preset_buttons.html' import preset_button_group %}
 {% from 'macros/brightness_buttons.html' import brightness_button_group %}
-{% from 'macros/accordion_header.html' import accordion_header %}
 
 <div class="card rounded-2xl shadow-2xl overflow-hidden card-enter card-enter-4">
-    <!-- Desktop Header (Always visible on desktop) -->
+    <!-- Desktop Header -->
     <div class="hidden lg:block p-6 pb-0">
         <h2 class="text-xl font-bold text-white mb-4">Light Configuration</h2>
     </div>
 
-    <!-- Mobile Header (Accordion toggle) -->
-    <div class="block lg:hidden">
-        {{ accordion_header('Light Configuration', 'light-config-content') }}
-    </div>
-    
-    <!-- Content (Accordion body on mobile, always visible on desktop) -->
-    <div id="light-config-content" class="hidden lg:block border-t border-white/10 lg:border-t-0 p-6 pt-3 lg:pt-0">
+    <!-- Content -->
+    <div class="p-6 lg:pt-0">
         <div class="space-y-6">
             <!-- LED Theme Configuration -->
             <div class="space-y-3">

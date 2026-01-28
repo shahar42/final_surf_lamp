@@ -1,17 +1,10 @@
 {# templates/partials/quick_actions.html #}
-{% from 'macros/accordion_header.html' import accordion_header %}
 
 <div class="max-w-6xl mx-auto mt-4">
     <!-- Main Actions Container -->
-    <div class="card rounded-2xl shadow-2xl overflow-hidden lg:p-6 card-enter card-enter-5">
-        <!-- Mobile Header -->
-        <div class="block lg:hidden">
-             {{ accordion_header('Quick Actions', 'quick-actions-content') }}
-        </div>
-        
+    <div class="card rounded-2xl shadow-2xl overflow-hidden p-6 card-enter card-enter-5">
         <!-- Actions Content -->
-        <div id="quick-actions-content" class="hidden lg:block border-t border-white/10 lg:border-t-0 p-6 pt-3 lg:p-0">
-             <div class="flex flex-col lg:flex-row gap-3 lg:gap-2 justify-center">
+        <div class="flex flex-col lg:flex-row gap-3 lg:gap-2 justify-center">
                 {% if data.user.is_admin %}
                 <a href="{{ url_for('admin.arduino_monitor') }}" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors text-center">
                     Arduino Monitor
@@ -26,7 +19,6 @@
                 <button id="reportErrorBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors">
                     Report Error
                 </button>
-            </div>
         </div>
     </div>
 
