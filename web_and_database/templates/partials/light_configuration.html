@@ -5,7 +5,7 @@
 <div class="card rounded-2xl shadow-2xl overflow-hidden card-enter card-enter-4">
     <!-- Content -->
     <div class="p-6">
-        <div class="space-y-10">
+        <div class="space-y-6">
             <!-- LED Theme Configuration -->
             <div class="space-y-4">
                 <div class="flex justify-between items-center">
@@ -30,7 +30,7 @@
             </div>
 
             <!-- Quiet Hours Toggle -->
-            <div class="flex justify-between items-center pt-6 border-t border-white/10">
+            <div class="flex justify-between items-center pt-4 border-t border-white/10">
                 <div class="space-y-0.5">
                     <span class="text-sm font-semibold text-white/90">Quiet Hours</span>
                     <p class="text-[10px] text-white/40 uppercase font-bold tracking-tight">Dim Top LED Only</p>
@@ -48,7 +48,7 @@
 
             {% if off_hours_feature_enabled %}
             <!-- Off Hours Configuration -->
-            <div class="space-y-4 pt-6 border-t border-white/10">
+            <div class="space-y-4 pt-4 border-t border-white/10">
                 <div class="flex justify-between items-center">
                     <span class="text-sm font-semibold text-white/60 uppercase tracking-wider">Sleep Mode (Lamp Off)</span>
                     <span id="sleepModeStatus" class="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded border
@@ -92,8 +92,8 @@
             {% endif %}
 
             <!-- Global Brightness -->
-            <div class="space-y-4 pt-6 border-t border-white/10">
-                <span class="text-sm font-semibold text-white/60 uppercase tracking-wider block">Global Brightness</span>
+            <div class="space-y-4 pt-4 border-t border-white/10">
+                <span class="text-sm font-semibold text-white/60 uppercase tracking-wider block">Brightness</span>
                 <div class="bg-white/5 p-1 rounded-2xl border border-white/5">
                     {{ brightness_button_group() }}
                 </div>
