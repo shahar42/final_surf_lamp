@@ -3,19 +3,19 @@
 
 <div class="card rounded-2xl p-4 lg:p-6 shadow-2xl h-full card-enter card-enter-3">
     <!-- Desktop Header -->
-    <div class="hidden lg:block mb-4">
-        <h2 class="text-2xl font-bold text-white">Current Surf Conditions</h2>
+    <div class="hidden lg:block mb-6">
+        <h2 class="text-xl font-semibold text-white/90">Current Surf Conditions</h2>
     </div>
 
     {% if data.conditions %}
-        <div class="grid grid-cols-2 lg:grid-cols-2 gap-4">
+        <div class="grid grid-cols-4 lg:grid-cols-2 gap-2 lg:gap-6">
             <!-- Wave Height -->
             {{ condition_card(
                 'icons/wave_height_new.png',
                 (data.conditions.wave_height_m * 3.28084) if data.user.preferred_output == 'feet' else data.conditions.wave_height_m,
                 'ft' if data.user.preferred_output == 'feet' else 'm',
-                'Wave Height',
-                1.15
+                'Waves',
+                1.0
             ) }}
 
             <!-- Wave Period -->
@@ -23,16 +23,16 @@
                 'icons/wave_period_new.png',
                 data.conditions.wave_period_s,
                 's',
-                'Wave Period',
-                1.15
+                'Period',
+                1.0
             ) }}
 
             <!-- Wind Speed -->
             {{ condition_card(
                 'icons/wind_speed_new.png',
                 data.conditions.wind_speed_mps * 1.94384,
-                ' knots',
-                'Wind Speed'
+                'kts',
+                'Wind'
             ) }}
 
             <!-- Wind Direction -->
@@ -40,7 +40,7 @@
                 'icons/wind_direction_new.png',
                 data.conditions.wind_direction_deg,
                 '°',
-                'Wind Direction'
+                'Dir'
             ) }}
         </div>
     {% else %}

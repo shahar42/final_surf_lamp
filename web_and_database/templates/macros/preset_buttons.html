@@ -3,14 +3,14 @@
 {# Convert time object to HH:MM string for comparison #}
 {% set user_start = data.user.off_time_start.strftime('%H:%M') if data.user.off_time_start else '' %}
 <button data-preset="{{ label|lower }}" data-start="{{ start }}" data-end="{{ end }}"
-        class="preset-btn text-sm py-3 px-2 rounded transition-all border leading-tight {% if full_width %}w-full{% endif %}
+        class="preset-btn text-[10px] py-3 px-1 rounded-xl transition-all border leading-tight {% if full_width %}w-full{% endif %}
         {% if data.user.off_times_enabled and user_start == start %}
-            bg-orange-600/80 border-orange-500 text-white font-semibold shadow-[0_0_15px_rgba(234,88,12,0.3)]
+            bg-orange-600/20 border-orange-500/50 text-orange-400 font-bold shadow-lg shadow-orange-900/20
         {% else %}
-            bg-white/10 hover:bg-white/20 text-white/80 border-white/20
+            bg-white/5 hover:bg-white/10 text-white/40 border-white/5
         {% endif %}">
-    <span class="whitespace-nowrap block font-normal">{{ label }}</span>
-    <span class="opacity-60 text-base whitespace-nowrap block font-light">{{ time_label }}</span>
+    <span class="whitespace-nowrap block font-bold uppercase tracking-wider mb-1">{{ label }}</span>
+    <span class="opacity-80 text-xs whitespace-nowrap block font-semibold text-white">{{ time_label }}</span>
 </button>
 {% endmacro %}
 
@@ -30,14 +30,14 @@
     </div>
     <div class="w-full">
         <button data-preset="custom" data-start="" data-end="" id="customPresetBtn{{ device_suffix }}"
-                class="preset-btn text-sm py-3 px-2 rounded transition-all border leading-tight w-full
+                class="preset-btn text-[10px] py-3 px-2 rounded-xl transition-all border leading-tight w-full
                 {% if is_custom %}
-                    bg-orange-600/80 border-orange-500 text-white font-semibold shadow-[0_0_15px_rgba(234,88,12,0.3)]
+                    bg-orange-600/20 border-orange-500/50 text-orange-400 font-bold shadow-lg shadow-orange-900/20
                 {% else %}
-                    bg-white/10 hover:bg-white/20 text-white/80 border-white/20
+                    bg-white/5 hover:bg-white/10 text-white/40 border-white/5
                 {% endif %}">
-            <span class="whitespace-nowrap block font-normal">Custom</span>
-            <span class="opacity-60 text-base whitespace-nowrap block font-light">Set your own</span>
+            <span class="whitespace-nowrap block font-bold uppercase tracking-wider mb-1">Custom</span>
+            <span class="opacity-80 text-xs whitespace-nowrap block font-semibold text-white">Set your own</span>
         </button>
     </div>
 </div>

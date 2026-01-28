@@ -50,14 +50,14 @@
 
     <!-- Top-Left Logout -->
     <div class="fixed top-4 left-4 z-50">
-        <a href="{{ url_for('auth.logout') }}" class="card rounded-lg px-4 py-2 text-white/80 hover:text-white text-sm font-semibold transition-colors shadow-lg">
+        <a href="{{ url_for('auth.logout') }}" class="bg-white/10 backdrop-blur-md rounded-xl px-4 py-2 text-white/60 hover:text-white hover:bg-white/20 text-xs font-bold uppercase tracking-widest transition-all shadow-xl border border-white/10 active:scale-95">
             Logout
         </a>
     </div>
 
     <!-- Top-Right Notification Bell (Mobile Only) -->
     <div class="fixed top-4 right-4 z-50 lg:hidden">
-        <button id="notificationToggle" class="card rounded-full p-2 text-white/80 hover:text-white shadow-lg transition-colors" aria-label="Toggle Notifications">
+        <button id="notificationToggle" class="bg-white/10 backdrop-blur-md rounded-xl p-2.5 text-white/60 hover:text-white hover:bg-white/20 shadow-xl transition-all border border-white/10 active:scale-95" aria-label="Toggle Notifications">
             <!-- Outline Bell (Unsubscribed) -->
             <svg id="bellOutline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
               <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />

@@ -22,6 +22,17 @@ input, textarea, select {
 /* Ensure interactive elements show pointer */
 button, .btn, a, label {
     cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Tactile feedback for all buttons and interactive elements */
+button:active, .btn:active, a:active {
+    transform: scale(0.96);
+}
+
+/* Standardized border radius for a modern look */
+select, input, button, .btn, .card {
+    border-radius: 1rem !important; /* 16px - rounded-xl */
 }
 
 /* Keyboard navigation - focus-visible styles */
