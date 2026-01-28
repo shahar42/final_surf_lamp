@@ -15,15 +15,15 @@
 
 :root {
     /* Main background gradient - Deep Ocean to Tropical Shallows */
-    --gradient-start: #021f2b;  /* Very deep ocean blue (darker) */
-    --gradient-end: #054d5c;    /* Deep turquoise (darker) */
+    --gradient-start: #01151d;  /* Darker Deep Ocean */
+    --gradient-end: #022b36;    /* Darker/More Subtle Turquoise */
     --gradient-angle: 135deg;
 
     /* Underwater atmosphere controls */
     --grain-opacity: 0.045;     /* Film grain texture (4.5%) */
     --vignette-intensity: 0.06; /* Edge darkening (5-8%) */
-    --top-darkness: 0.4;        /* Top darker zone (deeper water) */
-    --bottom-warmth: 0.15;      /* Bottom warmer glow (sunlight) */
+    --top-darkness: 0.5;        /* Top darker zone (deeper water) */
+    --bottom-warmth: 0.1;       /* Bottom warmer glow (subtle) */
 
     /* Surfboard spatial depth (gives weight without halos) */
     --surfboard-shadow: 0;      /* Very subtle drop shadow (0-40%) */

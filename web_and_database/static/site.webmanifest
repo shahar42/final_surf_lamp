@@ -2,8 +2,8 @@
   "name": "Surf Lamp",
   "short_name": "SurfLamp",
   "description": "Real-time surf conditions on your desk",
-  "theme_color": "#021f2b",
-  "background_color": "#021f2b",
+  "theme_color": "#01151d",
+  "background_color": "#01151d",
   "display": "standalone",
   "icons": [
     {
