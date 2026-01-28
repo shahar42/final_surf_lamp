@@ -429,7 +429,7 @@ textarea:focus-visible {
     }
 }
 
-/* Mobile-specific: Hide desktop headers when using tabs */
+/* Mobile-specific: Override accordion behavior inside tab panels */
 @media (max-width: 1023px) {
     .tab-panel .card {
         /* Remove card animation delays for tab content - instant show */
@@ -444,5 +444,22 @@ textarea:focus-visible {
         display: flex;
         flex-direction: column;
         justify-content: center;
+    }
+
+    /* SMART WAY: Inside tab panels, always show content and hide accordion headers */
+    .tab-panel #surf-lamp-content,
+    .tab-panel #light-config-content,
+    .tab-panel #quick-actions-content {
+        display: block !important;
+    }
+
+    /* Hide accordion header wrappers inside tab panels (they're redundant - tab provides context) */
+    .tab-panel .block.lg\\:hidden {
+        display: none !important;
+    }
+
+    /* Also hide desktop-only headers inside tab panels */
+    .tab-panel .hidden.lg\\:block:not([id]) {
+        display: none !important;
     }
 }

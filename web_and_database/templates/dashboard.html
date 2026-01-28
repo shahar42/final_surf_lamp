@@ -120,27 +120,24 @@
         </div>
     </div>
 
-    <!-- Tab 3: Location & Thresholds -->
+    <!-- Tab 3: Location & Thresholds (reuses lamp_configuration partial) -->
     <div class="tab-panel lg:hidden" data-tab="location">
         <div class="pt-16 px-2">
-            <h1 class="text-xl font-bold text-white mb-4 text-center">Location Settings</h1>
-            {% include 'partials/mobile_location_config.html' %}
+            {% include 'partials/lamp_configuration.html' %}
         </div>
     </div>
 
-    <!-- Tab 4: Light Settings -->
+    <!-- Tab 4: Light Settings (reuses light_configuration partial) -->
     <div class="tab-panel lg:hidden" data-tab="light">
         <div class="pt-16 px-2">
-            <h1 class="text-xl font-bold text-white mb-4 text-center">Light Settings</h1>
-            {% include 'partials/mobile_light_config.html' %}
+            {% include 'partials/light_configuration.html' %}
         </div>
     </div>
 
-    <!-- Tab 5: More Actions -->
+    <!-- Tab 5: More Actions (reuses quick_actions partial) -->
     <div class="tab-panel lg:hidden" data-tab="more">
         <div class="pt-16 px-2">
-            <h1 class="text-xl font-bold text-white mb-4 text-center">More</h1>
-            {% include 'partials/mobile_more_actions.html' %}
+            {% include 'partials/quick_actions.html' %}
         </div>
     </div>
 
