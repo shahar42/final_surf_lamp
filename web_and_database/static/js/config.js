@@ -158,9 +158,9 @@ const DashboardConfig = {
             WIDTH: 6
         },
         LAYOUT: {
-            LAMP_SCALE: 1.15,
+            LAMP_SCALE: 1.35,
             ARROW_TOP_Y: 82,     // px
-            ARROW_SIZE: 63,      // px
+            ARROW_SIZE: 75,      // px
             LEGEND_MARGIN_TOP: 30, // px
             LEGEND_SPREAD: 22    // px (padding left/right)
         },
@@ -172,7 +172,7 @@ const DashboardConfig = {
             GROOVE_SHADOW_OPACITY: 0.75 // 0.0 to 1.0 (Darkness of the wood cut)
         },
         STRIP_LABELS: {
-            FONT_SIZE: 12,       // px
+            FONT_SIZE: 14,       // px
             TOP_Y: 448,          // px from top
             LEFT_LABEL_X: 140,   // px from left (P - Period)
             CENTER_LABEL_X: 169, // px from left (W - Wind)

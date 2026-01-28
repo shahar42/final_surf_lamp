@@ -1,20 +1,20 @@
 {# templates/macros/condition_card.html #}
 {% macro condition_card(icon_path, value, unit, label, scale=1.0) %}
 <div class="flex flex-col items-center">
-    <div class="mb-2 flex items-center justify-center h-10 sm:h-12">
+    <div class="mb-3 flex items-center justify-center h-12 sm:h-14">
         <img src="{{ url_for('static', filename=icon_path) }}"
              alt="{{ label }}"
-             class="max-h-full w-auto object-contain png-icon opacity-80"
+             class="max-h-full w-auto object-contain png-icon opacity-90"
              style="transform: scale({{ scale }});">
     </div>
-    <div class="text-white font-semibold text-sm sm:text-base">
+    <div class="text-white font-bold text-base sm:text-xl">
         {% if value %}
-            {{ "%.1f"|format(value) }}<span class="text-[10px] sm:text-xs opacity-60 ml-0.5">{{ unit }}</span>
+            {{ "%.1f"|format(value) }}<span class="text-[11px] sm:text-sm opacity-60 ml-0.5">{{ unit }}</span>
         {% else %}
             --
         {% endif %}
     </div>
-    <div class="text-[10px] uppercase tracking-wider text-white/40 font-bold mt-0.5">
+    <div class="text-[10px] uppercase tracking-[0.1em] text-white/40 font-black mt-1">
         {{ label }}
     </div>
 </div>
