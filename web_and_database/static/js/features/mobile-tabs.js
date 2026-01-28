@@ -8,7 +8,7 @@
  */
 const MobileTabs = (function() {
     let currentTab = 'lamp';
-    const tabOrder = ['lamp', 'surf', 'location', 'light', 'more'];
+    const tabOrder = ['lamp', 'location', 'light', 'more'];
 
     function init() {
         // Only initialize tab behavior on mobile

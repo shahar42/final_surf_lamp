@@ -92,22 +92,14 @@
          Desktop: CSS Grid shows everything
          ============================================ -->
 
-    <!-- Section: Lamp Visualization -->
+    <!-- Section: Lamp Visualization (+ Surf Conditions on mobile) -->
     <div class="dashboard-section" data-tab="lamp">
         <div class="mobile-tab-content">
             {% include 'partials/led_visualization.html' %}
-            <!-- Mobile-only status below lamp -->
-            <div class="lg:hidden mt-4 text-center">
-                {% if data.conditions %}
-                <span class="status-online text-sm font-semibold">
-                    Online
-                    {% if data.conditions.last_updated %}
-                        <span class="text-white/60 text-xs ml-1">(Updated <span id="statusUpdateTime" data-timestamp="{{ data.conditions.last_updated.isoformat() }}Z">--</span>)</span>
-                    {% endif %}
-                </span>
-                {% else %}
-                <span class="status-offline text-sm font-semibold">No Data</span>
-                {% endif %}
+
+            <!-- Mobile: Surf conditions below lamp -->
+            <div class="lg:hidden mt-6 px-2">
+                {% include 'partials/surf_conditions.html' %}
             </div>
         </div>
     </div>
@@ -119,8 +111,8 @@
             {% include 'partials/lamp_configuration.html' %}
         </div>
 
-        <!-- Section: Surf Conditions -->
-        <div class="dashboard-section order-1 lg:order-2" data-tab="surf">
+        <!-- Desktop only: Surf Conditions in grid -->
+        <div class="hidden lg:block order-1 lg:order-2">
             {% include 'partials/surf_conditions.html' %}
         </div>
     </div>

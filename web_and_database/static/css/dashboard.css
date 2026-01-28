@@ -392,29 +392,31 @@ textarea:focus-visible {
 @media (max-width: 1023px) {
     .dashboard-section {
         display: none;
+        /* Prepare for smooth animations */
+        will-change: transform, opacity;
     }
 
     .dashboard-section.tab-active {
         display: block;
-        animation: tabFadeIn 0.25s ease-out;
+        animation: tabFadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
     }
 
-    /* Full height lamp visualization on mobile */
+    /* Lamp tab - full height with scrollable content */
     .dashboard-section[data-tab="lamp"].tab-active {
-        min-height: calc(100vh - 160px);
-        padding-top: 3rem;
+        min-height: calc(100vh - 140px);
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+        overflow-y: auto;
     }
 
     .dashboard-section[data-tab="lamp"] .mobile-tab-content {
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
-        min-height: 60vh;
+        gap: 1.5rem;
     }
 
     /* Other tabs need top padding for header clearance */
-    .dashboard-section[data-tab="surf"].tab-active,
     .dashboard-section[data-tab="location"].tab-active,
     .dashboard-section[data-tab="light"].tab-active,
     .dashboard-section[data-tab="more"].tab-active {
@@ -435,27 +437,48 @@ textarea:focus-visible {
         display: none !important;
     }
 
-    /* Slide animations for directional tab transitions */
+    /* Directional slide animations - GPU accelerated */
     .dashboard-section.tab-slide-left {
-        animation: tabSlideLeft 0.25s ease-out;
+        animation: tabSlideLeft 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
     }
 
     .dashboard-section.tab-slide-right {
-        animation: tabSlideRight 0.25s ease-out;
+        animation: tabSlideRight 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
     }
 }
 
+/* Smooth, fast fade-in */
 @keyframes tabFadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
+/* Smooth slide from right */
 @keyframes tabSlideLeft {
-    from { opacity: 0; transform: translateX(30px); }
-    to { opacity: 1; transform: translateX(0); }
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
 
+/* Smooth slide from left */
 @keyframes tabSlideRight {
-    from { opacity: 0; transform: translateX(-30px); }
-    to { opacity: 1; transform: translateX(0); }
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
