@@ -1,41 +1,41 @@
 /**
  * Mobile Bottom Tab Navigation
- * Handles tab switching with smooth animations
  *
- * SMART APPROACH: Reuses existing partials via CSS overrides.
- * No element duplication, no syncing needed.
+ * SINGLE DOM APPROACH:
+ * - Same elements for mobile and desktop (no duplicate IDs)
+ * - Desktop: CSS shows all .dashboard-section
+ * - Mobile: JS toggles .tab-active class on .dashboard-section[data-tab]
  */
 const MobileTabs = (function() {
     let currentTab = 'lamp';
     const tabOrder = ['lamp', 'surf', 'location', 'light', 'more'];
 
     function init() {
-        // Only initialize on mobile (< 1024px)
-        if (window.innerWidth >= 1024) {
-            showAllPanelsDesktop();
-            return;
-        }
+        // Only initialize tab behavior on mobile
+        if (window.innerWidth >= 1024) return;
 
-        // Set initial state
+        // Set initial active tab
         setActiveTab('lamp');
 
-        // Add click handlers to tabs
+        // Tab click handlers
         document.querySelectorAll('.mobile-tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                switchTab(tab.dataset.tab);
-            });
+            tab.addEventListener('click', () => switchTab(tab.dataset.tab));
         });
 
-        // Handle resize - show all panels on desktop
+        // Handle viewport resize
         window.addEventListener('resize', debounce(() => {
             if (window.innerWidth >= 1024) {
-                showAllPanelsDesktop();
+                // Desktop: remove all tab-active classes (CSS shows all)
+                document.querySelectorAll('.dashboard-section').forEach(s => {
+                    s.classList.remove('tab-active', 'tab-slide-left', 'tab-slide-right');
+                });
             } else {
+                // Mobile: ensure current tab is active
                 setActiveTab(currentTab);
             }
         }, 150));
 
-        // Swipe gestures for tab navigation
+        // Swipe gestures
         setupSwipeGestures();
     }
 
@@ -49,10 +49,8 @@ const MobileTabs = (function() {
         currentTab = tabName;
         setActiveTab(tabName, direction);
 
-        // Haptic feedback on supported devices
-        if (navigator.vibrate) {
-            navigator.vibrate(10);
-        }
+        // Haptic feedback
+        if (navigator.vibrate) navigator.vibrate(10);
     }
 
     function setActiveTab(tabName, direction = null) {
@@ -61,63 +59,56 @@ const MobileTabs = (function() {
             tab.classList.toggle('active', tab.dataset.tab === tabName);
         });
 
-        // Update panels
-        document.querySelectorAll('.tab-panel').forEach(panel => {
-            const isActive = panel.dataset.tab === tabName;
-            panel.classList.toggle('active', isActive);
+        // Update sections
+        document.querySelectorAll('.dashboard-section[data-tab]').forEach(section => {
+            const isActive = section.dataset.tab === tabName;
 
-            if (isActive && direction) {
-                panel.classList.remove('tab-slide-left', 'tab-slide-right');
-                panel.classList.add(direction === 'left' ? 'tab-slide-left' : 'tab-slide-right');
-                setTimeout(() => {
-                    panel.classList.remove('tab-slide-left', 'tab-slide-right');
-                }, 250);
+            section.classList.remove('tab-active', 'tab-slide-left', 'tab-slide-right');
+
+            if (isActive) {
+                section.classList.add('tab-active');
+                if (direction) {
+                    section.classList.add(direction === 'left' ? 'tab-slide-left' : 'tab-slide-right');
+                    setTimeout(() => {
+                        section.classList.remove('tab-slide-left', 'tab-slide-right');
+                    }, 250);
+                }
             }
         });
 
         currentTab = tabName;
     }
 
-    function showAllPanelsDesktop() {
-        document.querySelectorAll('.tab-panel').forEach(panel => {
-            panel.classList.add('active');
-        });
-    }
-
     function setupSwipeGestures() {
-        let touchStartX = 0;
-        const minSwipeDistance = 50;
+        let startX = 0;
+        const minDistance = 50;
 
-        document.body.addEventListener('touchstart', (e) => {
-            touchStartX = e.changedTouches[0].screenX;
+        document.body.addEventListener('touchstart', e => {
+            startX = e.changedTouches[0].screenX;
         }, { passive: true });
 
-        document.body.addEventListener('touchend', (e) => {
-            const distance = e.changedTouches[0].screenX - touchStartX;
-            if (Math.abs(distance) < minSwipeDistance) return;
+        document.body.addEventListener('touchend', e => {
+            const distance = e.changedTouches[0].screenX - startX;
+            if (Math.abs(distance) < minDistance) return;
 
-            const currentIndex = tabOrder.indexOf(currentTab);
-            if (distance < 0 && currentIndex < tabOrder.length - 1) {
-                switchTab(tabOrder[currentIndex + 1]);
-            } else if (distance > 0 && currentIndex > 0) {
-                switchTab(tabOrder[currentIndex - 1]);
+            const idx = tabOrder.indexOf(currentTab);
+            if (distance < 0 && idx < tabOrder.length - 1) {
+                switchTab(tabOrder[idx + 1]);
+            } else if (distance > 0 && idx > 0) {
+                switchTab(tabOrder[idx - 1]);
             }
         }, { passive: true });
     }
 
-    function debounce(func, wait) {
+    function debounce(fn, wait) {
         let timeout;
         return (...args) => {
             clearTimeout(timeout);
-            timeout = setTimeout(() => func(...args), wait);
+            timeout = setTimeout(() => fn(...args), wait);
         };
     }
 
-    return {
-        init,
-        switchTab,
-        getCurrentTab: () => currentTab
-    };
+    return { init, switchTab, getCurrentTab: () => currentTab };
 })();
 
 document.addEventListener('DOMContentLoaded', MobileTabs.init);

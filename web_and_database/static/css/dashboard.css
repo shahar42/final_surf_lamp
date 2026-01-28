@@ -377,89 +377,85 @@ textarea:focus-visible {
     transform: translateX(-50%) scaleX(1);
 }
 
-/* Tab content panels */
-.tab-panel {
-    display: none;
-    animation: tabFadeIn 0.25s ease-out;
-}
+/* ===================================
+   DASHBOARD SECTIONS (Single DOM approach)
+   Desktop: all visible
+   Mobile: JS toggles visibility by data-tab
+   =================================== */
 
-.tab-panel.active {
+/* Desktop: all sections visible */
+.dashboard-section {
     display: block;
 }
 
-@keyframes tabFadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* Slide animations for tab transitions */
-.tab-slide-left {
-    animation: tabSlideLeft 0.25s ease-out;
-}
-
-.tab-slide-right {
-    animation: tabSlideRight 0.25s ease-out;
-}
-
-@keyframes tabSlideLeft {
-    from {
-        opacity: 0;
-        transform: translateX(30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-@keyframes tabSlideRight {
-    from {
-        opacity: 0;
-        transform: translateX(-30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-/* Mobile-specific: Override accordion behavior inside tab panels */
+/* Mobile: sections hidden by default, shown when active */
 @media (max-width: 1023px) {
-    .tab-panel .card {
-        /* Remove card animation delays for tab content - instant show */
-        animation: none;
-        opacity: 1;
-        transform: none;
+    .dashboard-section {
+        display: none;
+    }
+
+    .dashboard-section.tab-active {
+        display: block;
+        animation: tabFadeIn 0.25s ease-out;
     }
 
     /* Full height lamp visualization on mobile */
-    .tab-panel[data-tab="lamp"] {
+    .dashboard-section[data-tab="lamp"].tab-active {
         min-height: calc(100vh - 160px);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
+        padding-top: 3rem;
     }
 
-    /* SMART WAY: Inside tab panels, always show content and hide accordion headers */
-    .tab-panel #surf-lamp-content,
-    .tab-panel #light-config-content,
-    .tab-panel #quick-actions-content {
+    .dashboard-section[data-tab="lamp"] .mobile-tab-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 60vh;
+    }
+
+    /* Other tabs need top padding for header clearance */
+    .dashboard-section[data-tab="surf"].tab-active,
+    .dashboard-section[data-tab="location"].tab-active,
+    .dashboard-section[data-tab="light"].tab-active,
+    .dashboard-section[data-tab="more"].tab-active {
+        padding-top: 4rem;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+
+    /* Force accordion content visible on mobile (no accordions in tab view) */
+    .dashboard-section.tab-active #surf-lamp-content,
+    .dashboard-section.tab-active #light-config-content,
+    .dashboard-section.tab-active #quick-actions-content {
         display: block !important;
     }
 
-    /* Hide accordion header wrappers inside tab panels (they're redundant - tab provides context) */
-    .tab-panel .block.lg\\:hidden {
+    /* Hide accordion headers on mobile (tab provides context) */
+    .dashboard-section.tab-active .block.lg\\:hidden {
         display: none !important;
     }
 
-    /* Also hide desktop-only headers inside tab panels */
-    .tab-panel .hidden.lg\\:block:not([id]) {
-        display: none !important;
+    /* Slide animations for directional tab transitions */
+    .dashboard-section.tab-slide-left {
+        animation: tabSlideLeft 0.25s ease-out;
     }
+
+    .dashboard-section.tab-slide-right {
+        animation: tabSlideRight 0.25s ease-out;
+    }
+}
+
+@keyframes tabFadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes tabSlideLeft {
+    from { opacity: 0; transform: translateX(30px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes tabSlideRight {
+    from { opacity: 0; transform: translateX(-30px); }
+    to { opacity: 1; transform: translateX(0); }
 }

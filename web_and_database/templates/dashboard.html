@@ -87,89 +87,51 @@
     {% include 'partials/underlayer_control_panel.html' %}
 
     <!-- ============================================
-         MOBILE TAB PANELS (hidden on desktop lg+)
+         SINGLE DOM - CSS handles layout per viewport
+         Mobile: JS toggles visibility by data-tab
+         Desktop: CSS Grid shows everything
          ============================================ -->
 
-    <!-- Tab 1: Lamp Visualization -->
-    <div class="tab-panel active lg:hidden" data-tab="lamp">
-        <div class="flex flex-col items-center justify-center min-h-[60vh] pt-12">
+    <!-- Section: Lamp Visualization -->
+    <div class="dashboard-section" data-tab="lamp">
+        <div class="mobile-tab-content">
             {% include 'partials/led_visualization.html' %}
-            <!-- Status indicator below lamp -->
-            {% if data.conditions %}
-            <div class="mt-4 text-center">
+            <!-- Mobile-only status below lamp -->
+            <div class="lg:hidden mt-4 text-center">
+                {% if data.conditions %}
                 <span class="status-online text-sm font-semibold">
                     Online
                     {% if data.conditions.last_updated %}
-                        <span class="text-white/60 text-xs ml-1">(Updated <span id="statusUpdateTimeMobile" data-timestamp="{{ data.conditions.last_updated.isoformat() }}Z">--</span>)</span>
+                        <span class="text-white/60 text-xs ml-1">(Updated <span id="statusUpdateTime" data-timestamp="{{ data.conditions.last_updated.isoformat() }}Z">--</span>)</span>
                     {% endif %}
                 </span>
-            </div>
-            {% else %}
-            <div class="mt-4 text-center">
+                {% else %}
                 <span class="status-offline text-sm font-semibold">No Data</span>
+                {% endif %}
             </div>
-            {% endif %}
         </div>
     </div>
 
-    <!-- Tab 2: Surf Conditions -->
-    <div class="tab-panel lg:hidden" data-tab="surf">
-        <div class="pt-16 px-2">
-            <h1 class="text-xl font-bold text-white mb-4 text-center">Current Conditions</h1>
+    <!-- Desktop Grid: Lamp Config + Surf Conditions side by side -->
+    <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <!-- Section: Lamp Configuration (Location tab on mobile) -->
+        <div class="dashboard-section order-2 lg:order-1" data-tab="location">
+            {% include 'partials/lamp_configuration.html' %}
+        </div>
+
+        <!-- Section: Surf Conditions -->
+        <div class="dashboard-section order-1 lg:order-2" data-tab="surf">
             {% include 'partials/surf_conditions.html' %}
         </div>
     </div>
 
-    <!-- Tab 3: Location & Thresholds (reuses lamp_configuration partial) -->
-    <div class="tab-panel lg:hidden" data-tab="location">
-        <div class="pt-16 px-2">
-            {% include 'partials/lamp_configuration.html' %}
-        </div>
-    </div>
-
-    <!-- Tab 4: Light Settings (reuses light_configuration partial) -->
-    <div class="tab-panel lg:hidden" data-tab="light">
-        <div class="pt-16 px-2">
-            {% include 'partials/light_configuration.html' %}
-        </div>
-    </div>
-
-    <!-- Tab 5: More Actions (reuses quick_actions partial) -->
-    <div class="tab-panel lg:hidden" data-tab="more">
-        <div class="pt-16 px-2">
-            {% include 'partials/quick_actions.html' %}
-        </div>
-    </div>
-
-    <!-- ============================================
-         DESKTOP LAYOUT (hidden on mobile)
-         ============================================ -->
-
-    <!-- LED Strip Visualization (Desktop) -->
-    <div class="hidden lg:block">
-        {% include 'partials/led_visualization.html' %}
-    </div>
-
-    <!-- Main Dashboard Content (Desktop) -->
-    <div class="hidden lg:grid max-w-6xl mx-auto grid-cols-1 lg:grid-cols-2 gap-4">
-        <!-- Lamp Information Card (Surf Data Config) -->
-        <div class="order-2 lg:order-1">
-            {% include 'partials/lamp_configuration.html' %}
-        </div>
-
-        <!-- Current Surf Conditions Card -->
-        <div class="order-1 lg:order-2">
-            {% include 'partials/surf_conditions.html' %}
-        </div>
-    </div>
-
-    <!-- Light Configuration (Desktop) -->
-    <div class="hidden lg:block max-w-6xl mx-auto mt-4">
+    <!-- Section: Light Configuration -->
+    <div class="dashboard-section max-w-6xl mx-auto mt-4" data-tab="light">
         {% include 'partials/light_configuration.html' %}
     </div>
 
-    <!-- Quick Actions (Desktop) -->
-    <div class="hidden lg:block">
+    <!-- Section: Quick Actions (More tab on mobile) -->
+    <div class="dashboard-section" data-tab="more">
         {% include 'partials/quick_actions.html' %}
     </div>
 
@@ -320,18 +282,9 @@
     }
 
     function updateStatusTime() {
-        // Update desktop element
         const elem = document.getElementById('statusUpdateTime');
-        const timestamp = elem?.dataset.timestamp;
-        if (timestamp) {
-            elem.textContent = formatTimeAgo(timestamp);
-        }
-
-        // Update mobile element
-        const elemMobile = document.getElementById('statusUpdateTimeMobile');
-        const timestampMobile = elemMobile?.dataset.timestamp;
-        if (timestampMobile) {
-            elemMobile.textContent = formatTimeAgo(timestampMobile);
+        if (elem?.dataset.timestamp) {
+            elem.textContent = formatTimeAgo(elem.dataset.timestamp);
         }
     }
 
