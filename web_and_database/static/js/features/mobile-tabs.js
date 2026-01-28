@@ -44,16 +44,28 @@ const MobileTabs = (function() {
 
         const prevIndex = tabOrder.indexOf(currentTab);
         const newIndex = tabOrder.indexOf(tabName);
-        const direction = newIndex > prevIndex ? 'left' : 'right';
+        const direction = newIndex > prevIndex ? 'next' : 'prev';
 
-        currentTab = tabName;
-        setActiveTab(tabName, direction);
+        // 1. Set Transition Direction for CSS
+        document.documentElement.dataset.transition = direction;
+
+        // 2. Perform Transition
+        if (document.startViewTransition) {
+            document.startViewTransition(() => {
+                updateDOM(tabName);
+            });
+        } else {
+            // Fallback for older browsers (instant switch)
+            updateDOM(tabName);
+        }
 
         // Haptic feedback
         if (navigator.vibrate) navigator.vibrate(10);
     }
 
-    function setActiveTab(tabName, direction = null) {
+    function updateDOM(tabName) {
+        currentTab = tabName;
+        
         // Update tab buttons
         document.querySelectorAll('.mobile-tab').forEach(tab => {
             tab.classList.toggle('active', tab.dataset.tab === tabName);
@@ -61,22 +73,13 @@ const MobileTabs = (function() {
 
         // Update sections
         document.querySelectorAll('.dashboard-section[data-tab]').forEach(section => {
-            const isActive = section.dataset.tab === tabName;
-
-            section.classList.remove('tab-active', 'tab-slide-left', 'tab-slide-right');
-
-            if (isActive) {
-                section.classList.add('tab-active');
-                if (direction) {
-                    section.classList.add(direction === 'left' ? 'tab-slide-left' : 'tab-slide-right');
-                    setTimeout(() => {
-                        section.classList.remove('tab-slide-left', 'tab-slide-right');
-                    }, 250);
-                }
-            }
+            section.classList.toggle('tab-active', section.dataset.tab === tabName);
         });
+    }
 
-        currentTab = tabName;
+    // Helper for initial load & resize
+    function setActiveTab(tabName) {
+        updateDOM(tabName);
     }
 
     function setupSwipeGestures() {

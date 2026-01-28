@@ -295,9 +295,57 @@ select {
 
 
 /* ===================================
+   VIEW TRANSITIONS (Mobile)
+   Native, hardware-accelerated state transitions
+   ================================== */
+
+@media (max-width: 1023px) {
+    /* Isolate the bottom nav so it doesn't slide with the content */
+    #mobileBottomNav {
+        view-transition-name: bottom-nav;
+    }
+
+    /* Standardize animation timing */
+    ::view-transition-group(root) {
+        animation-duration: 0.3s;
+        animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Forward (Next) Animations */
+    :root[data-transition="next"]::view-transition-old(root) {
+        animation-name: slideOutLeft;
+    }
+    :root[data-transition="next"]::view-transition-new(root) {
+        animation-name: slideInRight;
+        mix-blend-mode: normal; /* Fix for dark mode artifacts */
+    }
+
+    /* Backward (Prev) Animations */
+    :root[data-transition="prev"]::view-transition-old(root) {
+        animation-name: slideOutRight;
+    }
+    :root[data-transition="prev"]::view-transition-new(root) {
+        animation-name: slideInLeft;
+        mix-blend-mode: normal;
+    }
+}
+
+/* Keyframes - optimized for GPU */
+@keyframes slideOutLeft {
+    to { transform: translateX(-25%); opacity: 0; }
+}
+@keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+}
+@keyframes slideOutRight {
+    to { transform: translateX(25%); opacity: 0; }
+}
+@keyframes slideInLeft {
+    from { transform: translateX(-100%); opacity: 0; }
+}
+
+/* ===================================
    DASHBOARD SECTIONS (Single DOM approach)
-   Desktop: all visible
-   Mobile: JS toggles visibility by data-tab
    =================================== */
 
 /* Desktop: all sections visible */
@@ -309,13 +357,10 @@ select {
 @media (max-width: 1023px) {
     .dashboard-section {
         display: none;
-        /* Prepare for smooth animations */
-        will-change: transform, opacity;
     }
 
     .dashboard-section.tab-active {
         display: block;
-        animation: tabFadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
     }
 
     /* Lamp tab - full height with scrollable content */
@@ -380,38 +425,5 @@ select {
     /* Make dividers more subtle but visible */
     .border-white\/20 {
         border-color: rgba(255, 255, 255, 0.1);
-    }
-}
-
-/* Smooth, fast fade-in */
-@keyframes tabFadeIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
-}
-
-/* Slide animations */
-@keyframes tabSlideLeft {
-    from {
-        opacity: 0;
-        transform: translateX(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-@keyframes tabSlideRight {
-    from {
-        opacity: 0;
-        transform: translateX(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
     }
 }
