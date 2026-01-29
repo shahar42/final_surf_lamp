@@ -48,9 +48,13 @@ const OffHours = {
      */
     setupPresetButtons: function(inputContainers) {
         document.querySelectorAll('.preset-btn').forEach(btn => {
+            const startTime = btn.getAttribute('data-start');
+            const endTime = btn.getAttribute('data-end');
+
+            // Skip custom button (has empty data-start/data-end)
+            if (!startTime || !endTime) return;
+
             btn.addEventListener('click', () => {
-                const startTime = btn.getAttribute('data-start');
-                const endTime = btn.getAttribute('data-end');
                 const isActive = btn.classList.contains('bg-orange-600/20');
 
                 // Hide all custom input containers
