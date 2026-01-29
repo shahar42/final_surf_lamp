@@ -20,6 +20,7 @@ parent_dir = os.path.dirname(current_dir)
 processor_path = os.path.join(os.path.dirname(parent_dir), 'surf-lamp-processor')
 sys.path.insert(0, processor_path)
 from sunset_calculator import get_sunset_info, LOCATION_COORDS
+from binary_protocol import encode_v3_response
 
 logger = logging.getLogger(__name__)
 
@@ -333,6 +334,104 @@ def get_arduino_surf_data_v2(arduino_id):
 
     except Exception as e:
         logger.error(f"❌ Error getting V2 surf data for Arduino {arduino_id}: {e}")
+        return {'error': 'Server error'}, 500
+
+@bp.route("/api/arduino/v3/<int:arduino_id>/data", methods=['GET'])
+def get_arduino_surf_data_v3(arduino_id):
+    """
+    V3 endpoint: Returns BINARY protocol data for new Arduinos (94% smaller than JSON)
+
+    Backward compatible: Old Arduinos continue using v2 (JSON)
+    New Arduinos use v3 (binary protocol with CRC-8 error detection)
+
+    Response format:
+    - 9 bytes: SurfData (8 data + 1 CRC)
+    - 17 bytes: SettingsData (16 data + 1 CRC)
+    Total: 26 bytes (vs ~450 bytes JSON)
+    """
+    logger.info(f"📥 Arduino {arduino_id} requesting surf data (V3 - Binary Protocol)")
+
+    try:
+        db = SessionLocal()
+        try:
+            result = get_arduino_with_location_and_user(db, arduino_id)
+
+            if not result:
+                logger.warning(f"⚠️ Arduino {arduino_id} not found in database")
+                return {'error': 'Arduino not found'}, 404
+
+            arduino, location, user = result
+
+            # Get coordinates for user's location
+            location_data = get_coordinates_cached(user.user_id, user.location, LOCATION_COORDS)
+
+            # Calculate current timezone offset
+            tz_offset = get_current_tz_offset(user.location)
+
+            # Check quiet/off hours status
+            quiet_hours_active, off_hours_active = get_hours_status(user.location, user)
+
+            if off_hours_active:
+                logger.info(f"🔴 Off hours active for {user.location} - lamp turned off")
+            elif quiet_hours_active:
+                logger.info(f"🌙 Quiet hours active for {user.location} - threshold alerts disabled")
+
+            # Brightness handling
+            brightness_value = BRIGHTNESS_LEVELS['MID'] if quiet_hours_active else getattr(user, 'brightness_level', BRIGHTNESS_LEVELS['MID'])
+
+            # Calculate effective thresholds
+            effective_wave_threshold_m, effective_wind_threshold_knots = calculate_thresholds(location, user)
+
+            # Build surf data dict (for binary encoding)
+            surf_data = {
+                'wave_period_s': int(location.wave_period_s or 0),
+                'wave_height_cm': int(round((location.wave_height_m or 0) * 100)),
+                'wave_threshold_cm': int(effective_wave_threshold_m * 100),
+                'wind_speed_mps': int(round(location.wind_speed_mps or 0)),
+                'wind_speed_threshold_knots': int(round(effective_wind_threshold_knots)),
+                'wind_direction_deg': location.wind_direction_deg or 0,
+                'stale_data_warning': (getattr(location, 'consecutive_identical_updates', 0) or 0) > STALE_DATA_THRESHOLD,
+                'data_available': bool(location.wave_height_m or location.wind_speed_mps),
+                'quiet_hours_active': quiet_hours_active,
+                'off_hours_active': off_hours_active
+            }
+
+            # Build settings data dict (for binary encoding)
+            settings_data = {
+                'led_theme': user.theme or 'classic_surf',
+                'brightness_multiplier': brightness_value,
+                'fetch_interval_ms': (getattr(arduino, 'request_interval_minutes', 13) or 13) * 60 * 1000,
+                'latitude': location_data['latitude'],
+                'longitude': location_data['longitude'],
+                'tz_offset': tz_offset
+            }
+
+            # Encode to binary protocol (26 bytes total)
+            binary_data = encode_v3_response(surf_data, settings_data)
+
+            # Update arduino timestamp only for physical devices
+            is_physical = is_physical_device()
+            if is_physical:
+                arduino.last_poll_time = datetime.now(timezone.utc)
+                logger.info(f"✅ Physical Arduino {arduino_id} pulled V3 binary data (timestamp updated)")
+            else:
+                logger.info(f"📊 Dashboard view for Arduino {arduino_id} V3 endpoint (no timestamp update)")
+
+            db.commit()
+
+            logger.info(f"✅ V3 binary data for Arduino {arduino_id}: {len(binary_data)} bytes (wave={surf_data['wave_height_cm']}cm)")
+
+            # Return binary data with correct Content-Type
+            response = make_response(binary_data)
+            response.headers['Content-Type'] = 'application/octet-stream'
+            response.headers['Content-Length'] = len(binary_data)
+            return response
+
+        finally:
+            db.close()
+
+    except Exception as e:
+        logger.error(f"❌ Error getting V3 binary surf data for Arduino {arduino_id}: {e}")
         return {'error': 'Server error'}, 500
 
 @bp.route("/api/discovery/server", methods=['GET'])
