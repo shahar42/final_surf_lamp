@@ -32,7 +32,7 @@ void initializeLEDs()
     UNLOCK_SURF_DATA();
 
     FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, TOTAL_LEDS);
-    FastLED.setBrightness(BRIGHTNESS * multiplier);
+    FastLED.setBrightness(GLOBAL_BRIGHTNESS_LIMIT * multiplier);
     FastLED.clear();
     FastLED.show();
     Serial.println("💡 LEDs initialized");
@@ -630,7 +630,7 @@ bool handleQuietHours() {
 
 
 
-    FastLED.setBrightness(BRIGHTNESS * brightnessMult);
+    FastLED.setBrightness(GLOBAL_BRIGHTNESS_LIMIT * brightnessMult);
 
 
 
@@ -716,7 +716,7 @@ void handleNormalMode() {
 
     FastLED.clear();
 
-    FastLED.setBrightness(BRIGHTNESS * brightnessMult);
+    FastLED.setBrightness(GLOBAL_BRIGHTNESS_LIMIT * brightnessMult);
 
 
 

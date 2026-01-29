@@ -17,7 +17,7 @@ const int ARDUINO_ID = 6;
 #define TOTAL_LEDS 57          
 #define LED_TYPE WS2812B       
 #define COLOR_ORDER GRB        
-#define BRIGHTNESS 75          // Global brightness effects all leds
+#define GLOBAL_BRIGHTNESS_LIMIT 75          // Global brightness effects all leds
 
 // ---------------- LED STRIP MAPPING ----------------
 // Direction is auto-detected: if bottom < top = FORWARD, if bottom > top = REVERSE
@@ -95,7 +95,7 @@ const int ARDUINO_ID = 6;
 
 static_assert(TOTAL_LEDS > 0, "TOTAL_LEDS must be positive");
 static_assert(TOTAL_LEDS <= 300, "TOTAL_LEDS exceeds reasonable limit (300)");
-static_assert(BRIGHTNESS >= 0 && BRIGHTNESS <= 255, "BRIGHTNESS must be 0-255");
+static_assert(GLOBAL_BRIGHTNESS_LIMIT >= 0 && GLOBAL_BRIGHTNESS_LIMIT <= 255, "GLOBAL_BRIGHTNESS_LIMIT must be 0-255");
 
 static_assert(WAVE_HEIGHT_LENGTH > 0, "Wave height strip is empty");
 static_assert(WAVE_PERIOD_LENGTH > 0, "Wave period strip is empty");

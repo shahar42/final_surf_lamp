@@ -8,6 +8,7 @@
 #include "LedController.h"
 #include "ServerDiscovery.h"
 #include "SunsetCalculator.h"
+#include "esp_Server_encoding.hpp"
 
 // Global timing variables declared header
 const unsigned long DATA_STALENESS_THRESHOLD = 1800000; // 30 minutes (2 missed fetches) used in lamp_template.ino
@@ -355,6 +356,118 @@ bool processSurfData(const String& jsonData)
     return true;
 }
 
+bool processBinarySurfData(const uint8_t* binaryData, size_t length) {
+    if (length != 26) {
+        Serial.printf("❌ Binary protocol error: Expected 26 bytes, got %d\n", length);
+        lastSurfData.jsonParseError = true;
+        lastSurfData.needsDisplayUpdate.store(true);
+        return false;
+    }
+
+    // Parse SurfData (first 9 bytes: 8 data + 1 CRC)
+    uint64_t surf_packed = 0;
+    for (int i = 0; i < 8; i++) {
+        surf_packed = (surf_packed << 8) | binaryData[i];
+    }
+    SurfDataPacket surf(surf_packed);
+
+    // Validate surf CRC
+    uint8_t surf_crc = binaryData[8];
+    if (!surf.ValidateCRC(surf_crc)) {
+        Serial.println("❌ Surf data CRC validation FAILED - packet corrupted!");
+        lastSurfData.jsonParseError = true;  // Reuse error flag
+        lastSurfData.needsDisplayUpdate.store(true);
+        return false;
+    }
+
+    // Parse SettingsData (bytes 9-25: 16 data + 1 CRC)
+    uint64_t settings_data1 = 0, settings_data2 = 0;
+    for (int i = 0; i < 8; i++) {
+        settings_data1 = (settings_data1 << 8) | binaryData[9 + i];
+        settings_data2 = (settings_data2 << 8) | binaryData[17 + i];
+    }
+    SettingsData settings(settings_data1, settings_data2);
+
+    // Validate settings CRC
+    uint8_t settings_crc = binaryData[25];
+    if (!settings.ValidateCRC(settings_crc)) {
+        Serial.println("❌ Settings data CRC validation FAILED - packet corrupted!");
+        lastSurfData.jsonParseError = true;
+        lastSurfData.needsDisplayUpdate.store(true);
+        return false;
+    }
+
+    Serial.println("✅ Binary protocol: CRC validation PASSED");
+
+    // Extract surf conditions
+    int wave_height_cm = surf.GetWaveHeight();
+    float wave_period_s = surf.GetWavePeriod();
+    int wind_speed_mps = surf.GetWindSpeed();
+    int wind_direction_deg = surf.GetWindDirection();
+    int wave_threshold_cm = surf.GetWaveThreshold();
+    int wind_speed_threshold_knots = surf.GetWindThreshold();
+    bool quiet_hours_active = surf.GetQuietHours();
+    bool off_hours_active = surf.GetOffHours();
+    bool stale_data_warning = surf.GetStaleData();
+    bool is_data_valid = surf.GetDataAvailable();
+
+    // Extract settings
+    float brightness_multiplier = settings.GetBrightness() / 100.0f;
+    float latitude = settings.GetLatitude();
+    float longitude = settings.GetLongitude();
+    int32_t tz_offset = settings.GetTzOffset();
+
+    // Map LED theme enum to string
+    LEDTheme theme_enum = settings.GetLEDTheme();
+    String led_theme = "classic_surf";  // Default
+    switch (theme_enum) {
+        case LEDTheme::CLASSIC_SURF: led_theme = "classic_surf"; break;
+        case LEDTheme::VIBRANT_MIX: led_theme = "vibrant_mix"; break;
+        case LEDTheme::TROPICAL_PARADISE: led_theme = "tropical_paradise"; break;
+        case LEDTheme::OCEAN_SUNSET: led_theme = "ocean_sunset"; break;
+        case LEDTheme::ELECTRIC_VIBES: led_theme = "electric_vibes"; break;
+    }
+
+    // Update coordinates in sunset calculator
+    if (latitude != 0.0 && longitude != 0.0) {
+        sunsetCalc.updateCoordinates(latitude, longitude, tz_offset);
+    }
+
+    // Extract fetch interval
+    unsigned long new_interval = settings.GetFetchIntervalMs();
+    if (new_interval >= 60000 && new_interval <= 3600000) {
+        unsigned long current_interval = FETCH_INTERVAL_MS.load();
+        if (current_interval != new_interval) {
+            FETCH_INTERVAL_MS.store(new_interval);
+            Serial.printf("✅ Fetch interval updated: %lu min → %lu min\n", current_interval / 60000, new_interval / 60000);
+        }
+    }
+
+    // Update global state (same as JSON version)
+    UpdateGlobalState(wave_height_cm, wave_period_s, wind_speed_mps, wind_direction_deg,
+                      wave_threshold_cm, wind_speed_threshold_knots, quiet_hours_active,
+                      off_hours_active, brightness_multiplier, led_theme, stale_data_warning);
+
+    print_data_info();
+
+    // Set error flags based on validation
+    bool bothZero = (wave_height_cm == 0 && wind_speed_mps == 0);
+    bool partialZero = (wave_height_cm == 0) != (wind_speed_mps == 0);
+
+    if (bothZero) {
+        lastSurfData.invalidDataError = true;
+    } else if (partialZero) {
+        lastSurfData.partialDataError = true;
+    }
+
+    lastSurfData.needsDisplayUpdate.store(true);
+
+    Serial.printf("📊 Binary packet decoded: wave=%dcm, wind=%dm/s, brightness=%.0f%%\n",
+                  wave_height_cm, wind_speed_mps, brightness_multiplier * 100);
+
+    return true;
+}
+
 String urlEncode(const String& str) {
     String encoded = "";
     for (int i = 0; i < str.length(); i++) {
@@ -426,8 +539,8 @@ bool fetchSurfDataFromServer() {
     globalHttpsClient.setInsecure();
 
     HTTPClient http;
-    String url = "https://" + apiServer + "/api/arduino/v2/" + String(ARDUINO_ID) + "/data";
-    Serial.println("🌐 Fetching surf data from: " + url);
+    String url = "https://" + apiServer + "/api/arduino/v3/" + String(ARDUINO_ID) + "/data";
+    Serial.println("🌐 Fetching surf data (V3 Binary Protocol): " + url);
 
     http.begin(globalHttpsClient, url);
     http.setTimeout(HTTP_TIMEOUT_MS);
@@ -435,24 +548,41 @@ bool fetchSurfDataFromServer() {
     int httpCode = http.GET();
 
     if (httpCode == HTTP_CODE_OK) {
-        String payload = http.getString();
-
         // Extract Date header for time synchronization
         String dateHeader = http.header("Date");
-        http.end();
-        globalHttpsClient.stop();  // Explicit cleanup after success
 
-        if (dateHeader.length() > 0) {
-            Serial.println("📅 HTTP Date: " + dateHeader);
-            if (sunsetCalc.parseAndUpdateTime(dateHeader)) {
-                sunsetCalc.calculateSunset();
-            } else {
-                Serial.println("⚠️ Failed to parse Date header");
+        // Get binary payload size
+        int payloadSize = http.getSize();
+        Serial.printf("📦 Received %d bytes from server\n", payloadSize);
+
+        // Read binary data
+        uint8_t binaryBuffer[26];  // Fixed size for v3 protocol
+        WiFiClient* stream = http.getStreamPtr();
+
+        if (payloadSize == 26 && stream->readBytes(binaryBuffer, 26) == 26) {
+            http.end();
+            globalHttpsClient.stop();
+
+            // Process Date header
+            if (dateHeader.length() > 0) {
+                Serial.println("📅 HTTP Date: " + dateHeader);
+                if (sunsetCalc.parseAndUpdateTime(dateHeader)) {
+                    sunsetCalc.calculateSunset();
+                } else {
+                    Serial.println("⚠️ Failed to parse Date header");
+                }
             }
-        }
 
-        Serial.println("📥 Received surf data from server");
-        return processSurfData(payload);
+            Serial.println("📥 Processing binary surf data (26 bytes)");
+            return processBinarySurfData(binaryBuffer, 26);
+        } else {
+            Serial.printf("❌ Invalid payload size: expected 26 bytes, got %d\n", payloadSize);
+            http.end();
+            globalHttpsClient.stop();
+            lastSurfData.jsonParseError = true;
+            lastSurfData.needsDisplayUpdate.store(true);
+            return false;
+        }
     } else {
         Serial.printf("❌ HTTP error fetching surf data: %d (%s)\n", httpCode, http.errorToString(httpCode).c_str());
         http.end();
