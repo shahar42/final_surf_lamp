@@ -52,7 +52,7 @@
 
     <!-- Admin Only: LED Error Codes (Shared) -->
     {% if data.user.is_admin %}
-    <button onclick="ModalManager.open('errorCodesDrawer')" class="card rounded-3xl shadow-2xl p-6 w-full bg-white/5 hover:bg-white/10 transition-all text-left mt-6 border border-white/5 active:scale-[0.99]">
+    <button id="errorCodesBtn" onclick="ModalManager.open('errorCodesDrawer')" class="card rounded-3xl shadow-2xl p-6 w-full bg-white/5 hover:bg-white/10 transition-all text-left mt-6 border border-white/5 active:scale-[0.99]">
         <div class="flex justify-between items-center">
             <div>
                 <h2 class="text-lg font-bold text-white">LED Error Codes</h2>

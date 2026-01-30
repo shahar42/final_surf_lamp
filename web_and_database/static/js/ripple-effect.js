@@ -5,7 +5,8 @@
 
 class RippleEffect {
     constructor() {
-        this.excludedIds = ['sendChatBtn']; // Exclude chat send button
+        // Exclude buttons that have their own visual feedback (modals, navigation, etc.)
+        this.excludedIds = ['sendChatBtn', 'reportErrorBtn', 'errorCodesBtn'];
         this.init();
     }
 
