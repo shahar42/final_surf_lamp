@@ -169,6 +169,18 @@ const LEDDataFetcher = {
     },
 
     /**
+     * Update theme without reinitializing
+     * @param {string} themeName - New theme name
+     */
+    updateTheme: function(themeName) {
+        this.currentTheme = themeName;
+        // Force redraw with new theme colors
+        if (this.cachedData) {
+            this.updateLEDVisualization(this.cachedData);
+        }
+    },
+
+    /**
      * Stop all intervals (cleanup)
      */
     destroy: function() {

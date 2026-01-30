@@ -286,14 +286,28 @@
 
     // Check for pending theme update from themes page
     function checkThemeUpdate() {
-        const pendingTheme = localStorage.getItem('pendingThemeUpdate');
-        if (pendingTheme) {
-            const themeNameElement = document.getElementById('currentThemeName');
-            if (themeNameElement) {
-                themeNameElement.textContent = pendingTheme;
+        const pendingThemeJson = localStorage.getItem('pendingThemeUpdate');
+        if (pendingThemeJson) {
+            try {
+                const pendingTheme = JSON.parse(pendingThemeJson);
+
+                // Update theme name display
+                const themeNameElement = document.getElementById('currentThemeName');
+                if (themeNameElement) {
+                    themeNameElement.textContent = pendingTheme.name;
+                }
+
+                // Update LED visualization colors
+                if (window.LEDDataFetcher) {
+                    LEDDataFetcher.updateTheme(pendingTheme.id);
+                }
+
+                // Clear the pending update
+                localStorage.removeItem('pendingThemeUpdate');
+            } catch (e) {
+                console.error('Failed to parse theme update:', e);
+                localStorage.removeItem('pendingThemeUpdate');
             }
-            // Clear the pending update
-            localStorage.removeItem('pendingThemeUpdate');
         }
     }
     checkThemeUpdate();

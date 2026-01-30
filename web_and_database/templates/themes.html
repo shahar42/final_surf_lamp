@@ -365,10 +365,13 @@
                         }
                     });
 
-                    // Store selected theme name for dashboard update
+                    // Store selected theme for dashboard update (both ID and name)
                     const theme = ledThemes.find(t => t.id === selectedTheme);
                     if (theme) {
-                        localStorage.setItem('pendingThemeUpdate', theme.name);
+                        localStorage.setItem('pendingThemeUpdate', JSON.stringify({
+                            id: theme.id,
+                            name: theme.name
+                        }));
                     }
                 } else {
                     statusDiv.textContent = body.message || 'Theme update failed. Please try again.';
