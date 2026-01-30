@@ -291,16 +291,18 @@
             try {
                 const pendingTheme = JSON.parse(pendingThemeJson);
 
-                // Update theme name display
+                // Update theme name display immediately
                 const themeNameElement = document.getElementById('currentThemeName');
                 if (themeNameElement) {
                     themeNameElement.textContent = pendingTheme.name;
                 }
 
-                // Update LED visualization colors
-                if (window.LEDDataFetcher) {
-                    LEDDataFetcher.updateTheme(pendingTheme.id);
-                }
+                // Update LED visualization colors with slight delay to ensure initialization
+                setTimeout(() => {
+                    if (window.LEDDataFetcher) {
+                        LEDDataFetcher.updateTheme(pendingTheme.id);
+                    }
+                }, 100);
 
                 // Clear the pending update
                 localStorage.removeItem('pendingThemeUpdate');
