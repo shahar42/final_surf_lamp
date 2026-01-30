@@ -4,9 +4,9 @@
  */
 
 const BrightnessControl = {
-    // CSS classes matching the sleep mode pattern (blue theme)
+    // CSS classes matching the sleep mode pattern (orange theme)
     INACTIVE_CLASSES: ['bg-white/5', 'hover:bg-white/10', 'text-white/40', 'border-white/5'],
-    ACTIVE_CLASSES: ['bg-blue-600/20', 'border-blue-500/50', 'text-blue-400', 'font-bold', 'shadow-lg', 'shadow-blue-900/20'],
+    ACTIVE_CLASSES: ['bg-orange-600/20', 'border-orange-500/50', 'text-orange-400', 'font-bold', 'shadow-lg', 'shadow-orange-900/20'],
 
     /**
      * Initialize brightness control
