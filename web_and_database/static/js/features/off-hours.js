@@ -130,10 +130,14 @@ const OffHours = {
             if (status) {
                 if (!enabled) {
                     status.textContent = 'OFF';
-                    status.className = 'text-xs font-bold uppercase tracking-wider text-white/50';
+                    // Preserve border classes, only update color classes
+                    status.classList.remove('text-orange-400', 'text-orange-500');
+                    status.classList.add('text-white/30');
                 } else {
                     status.textContent = 'ON';
-                    status.className = 'text-xs font-bold uppercase tracking-wider text-orange-500';
+                    // Preserve border classes, only update color classes
+                    status.classList.remove('text-white/30');
+                    status.classList.add('text-orange-400');
                 }
             }
         });
