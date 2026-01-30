@@ -297,14 +297,14 @@
                     themeNameElement.textContent = pendingTheme.name;
                 }
 
-                // Update LED visualization colors with slight delay to ensure initialization
-                setTimeout(() => {
+                // Update LED visualization colors on next animation frame (syncs with animation loop)
+                requestAnimationFrame(() => {
                     if (window.LEDDataFetcher) {
                         LEDDataFetcher.updateTheme(pendingTheme.id);
                     }
-                }, 100);
+                });
 
-                // Clear the pending update
+                // Clear the pending update (non-blocking)
                 localStorage.removeItem('pendingThemeUpdate');
             } catch (e) {
                 console.error('Failed to parse theme update:', e);
