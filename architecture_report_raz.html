@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surf Lamp Architecture Report</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --secondary: #475569;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --code-bg: #f1f5f9;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Header */
+        header {
+            margin-bottom: 50px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0 0 10px 0;
+        }
+
+        .subtitle {
+            color: var(--text-light);
+            font-size: 1.1rem;
+        }
+
+        .meta-badge {
+            display: inline-block;
+            background: #e0e7ff;
+            color: #3730a3;
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 15px;
+        }
+
+        /* Cards & Sections */
+        .section {
+            background: var(--surface);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid var(--border);
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            color: #0f172a;
+            margin-top: 0;
+            border-bottom: 2px solid var(--bg);
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        h3 {
+            font-size: 1.1rem;
+            color: var(--primary-dark);
+            margin-top: 35px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Diagrams */
+        .mermaid {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            overflow-x: auto;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background-color: var(--bg);
+            font-weight: 600;
+            color: var(--secondary);
+        }
+
+        tr:last-child td { border-bottom: none; }
+
+        /* API Badge */
+        .method {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.8em;
+        }
+        .method.get { background: #dcfce7; color: #166534; }
+        .method.post { background: #dbeafe; color: #1e40af; }
+
+        /* Findings Dashboard */
+        .finding-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .finding-card {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            background: #fff;
+        }
+        
+        .finding-card.high { border-left: 5px solid var(--danger); }
+        .finding-card.medium { border-left: 5px solid var(--warning); }
+
+        code {
+            background: var(--code-bg);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9em;
+            color: #d63384;
+        }
+
+        .endpoint-url {
+            font-family: 'JetBrains Mono', monospace;
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <span class="meta-badge">CONFIDENTIAL</span>
+        <h1>Surf Lamp System</h1>
+        <div class="subtitle">Deep Dive Architecture & API Reference</div>
+        <p style="margin-top: 10px; color: var(--text-light);">Generated for Raz • January 30, 2026</p>
+    </header>
+
+    <!-- Executive Summary -->
+    <div class="section">
+        <h2>1. System Architecture Overview</h2>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px;">
+            <div style="padding: 15px; background: #f1f5f9; border-radius: 8px;">
+                <strong>1. Data Ingestion</strong>
+                <p style="font-size: 0.9rem; margin-top: 5px;">A specialized Python "Worker" polls 3 external APIs (Isramar, OpenMeteo, OpenWeather) every 15 mins to fetch wave/wind data for all active locations.</p>
+            </div>
+            <div style="padding: 15px; background: #e0f2fe; border-radius: 8px;">
+                <strong>2. Data Storage</strong>
+                <p style="font-size: 0.9rem; margin-top: 5px;">PostgreSQL Database acts as the "Source of Truth". It stores normalized weather data, user preferences, and device configurations.</p>
+            </div>
+            <div style="padding: 15px; background: #dcfce7; border-radius: 8px;">
+                <strong>3. Data Delivery</strong>
+                <p style="font-size: 0.9rem; margin-top: 5px;">Lamps (ESP32) wake up every 13 mins, identifying themselves to the Flask API, which queries the DB and returns a 26-byte binary payload.</p>
+            </div>
+        </div>
+        
+        <div class="mermaid">
+        graph LR
+            subgraph "Background Processing"
+                W[Worker Service] -->|1. Fetch Weather| EXT[External APIs]
+                W -->|2. Write Normalized Data| DB[(PostgreSQL)]
+            end
+            
+            subgraph "On-Demand Delivery"
+                L[Lamp ESP32] -->|3. GET Request| API[Flask API]
+                API -->|4. Complex Join| DB
+                DB -->|5. User Config + Weather| API
+                API -->|6. Binary Response| L
+            end
+        </div>
+    </div>
+
+    <!-- API Deep Dive -->
+    <div class="section">
+        <h2>2. API & Communication Deep Dive</h2>
+        
+        <h3>The Core Endpoint: Lamp Data</h3>
+        <p>This is the primary lifeline for all 150+ deployed units.</p>
+        
+        <div class="endpoint-url">
+            <span class="method get">GET</span> /api/arduino/v3/&lt;arduino_id&gt;/data
+        </div>
+
+        <table>
+            <tr>
+                <th style="width: 150px;">Component</th>
+                <th>Details</th>
+            </tr>
+            <tr>
+                <td><strong>Trigger</strong></td>
+                <td>Called by ESP32 every 13 minutes (hardcoded sleep cycle).</td>
+            </tr>
+            <tr>
+                <td><strong>Security</strong></td>
+                <td>
+                    <code>User-Agent: ESP32</code> header is checked to identify physical devices vs dashboards.
+                    <br><em>Risk: Spoofable.</em>
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Database Action</strong></td>
+                <td>
+                    1. <strong>READ:</strong> Joins <code>Arduinos</code> table (for ownership) + <code>Users</code> (for settings) + <code>Locations</code> (for cached weather).
+                    <br>2. <strong>WRITE:</strong> Updates <code>arduinos.last_poll_time = NOW()</code> for monitoring.
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Response</strong></td>
+                <td>
+                    <strong>Content-Type:</strong> <code>application/octet-stream</code>
+                    <br><strong>Size:</strong> Fixed 26 Bytes (Binary V3 Protocol)
+                </td>
+            </tr>
+        </table>
+
+        <h3>Binary Protocol Structure (V3)</h3>
+        <p>To save bandwidth and processing on the microcontroller, we send raw bytes, not JSON.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Byte Range</th>
+                    <th>Name</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>0 - 3</code></td>
+                    <td><strong>Wave Height</strong></td>
+                    <td>Float (Little Endian) - Represents height in meters.</td>
+                </tr>
+                <tr>
+                    <td><code>4 - 7</code></td>
+                    <td><strong>Wave Period</strong></td>
+                    <td>Float (Little Endian) - Seconds between waves.</td>
+                </tr>
+                <tr>
+                    <td><code>8</code></td>
+                    <td><strong>Wind Speed</strong></td>
+                    <td>Integer (0-255 km/h).</td>
+                </tr>
+                <tr>
+                    <td><code>9 - 16</code></td>
+                    <td><strong>Colors</strong></td>
+                    <td>User's custom RGB theme settings (Top/Bottom colors).</td>
+                </tr>
+                <tr>
+                    <td><code>25</code></td>
+                    <td><strong>CRC-8</strong></td>
+                    <td>Checksum to validate data integrity (Lamp discards packet if mismatch).</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Database Logic -->
+    <div class="section">
+        <h2>3. Database & Server Logic</h2>
+        
+        <h3>Entity Relationship Flow</h3>
+        <p>The server must "assemble" the lamp's state from three different sources in real-time.</p>
+        
+        <div class="mermaid">
+        erDiagram
+            USERS ||--o{ ARDUINOS : owns
+            LOCATIONS ||--o{ ARDUINOS : assigned_to
+            
+            USERS {
+                int id
+                string preferences "Quiet Hours, Brightness"
+            }
+            
+            ARDUINOS {
+                int id
+                string location_id
+                datetime last_poll_time
+            }
+            
+            LOCATIONS {
+                string id
+                float wave_height "Cached from Worker"
+                float wind_speed "Cached from Worker"
+                datetime last_updated
+            }
+        </div>
+
+        <h3>Critical Logic: "Staleness" Handling</h3>
+        <p>The server has intelligent logic to protect the user experience if the background worker fails.</p>
+        <ul>
+            <li><strong>Happy Path:</strong> Server sees <code>last_updated</code> < 60 mins. Sends fresh data.</li>
+            <li><strong>Stale Path:</strong> If <code>last_updated</code> > 60 mins, server sets the <code>stale_flag</code> bit in the binary response.</li>
+            <li><strong>Device Behavior:</strong> When the lamp receives the <code>stale_flag</code>, it blinks <strong>ORANGE</strong> to warn the user the data might be old, instead of showing incorrect "flat" conditions.</li>
+        </ul>
+    </div>
+
+    <!-- Visual Indicators -->
+    <div class="section">
+        <h2>4. Visual Status Indicators</h2>
+        <p>The lamp uses a dedicated <strong>Status LED</strong> (located at the bottom of the center strip) to communicate system health to the user.</p>
+        
+        <table style="margin-top: 10px;">
+            <thead>
+                <tr>
+                    <th style="width: 200px;">Pattern</th>
+                    <th>System State</th>
+                    <th>Meaning / Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><span style="color: #10b981; font-weight: bold;">● Breathing Green</span></td>
+                    <td><strong>Healthy</strong></td>
+                    <td>System is online, data is fresh (updated < 30 mins ago).</td>
+                </tr>
+                <tr>
+                    <td><span style="color: #f59e0b; font-weight: bold;">● Breathing Orange</span></td>
+                    <td><strong>Warning (Stale)</strong></td>
+                    <td>
+                        <strong>Data Staleness:</strong> Either the lamp hasn't reached the server for 30+ mins, 
+                        OR the server has flagged the weather data as "frozen" (unchanged for > 60 mins).
+                    </td>
+                </tr>
+                <tr>
+                    <td><span style="color: #ef4444; font-weight: bold;">● Breathing Red</span></td>
+                    <td><strong>Data Error</strong></td>
+                    <td>The server returned invalid data (e.g., all values are zero). Indicates an upstream provider failure.</td>
+                </tr>
+                <tr>
+                    <td><span style="color: #2563eb; font-weight: bold;">● Half Green / Blue</span></td>
+                    <td><strong>Offline</strong></td>
+                    <td>The lamp cannot reach the API server. Check WiFi or server status.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Findings -->
+    <div class="section">
+        <h2>5. Critical Technical Findings</h2>
+        <div class="finding-grid">
+            <div class="finding-card high">
+                <div class="finding-title" style="color: #ef4444;">⚠️ Security Vulnerability</div>
+                <p><strong>Device Impersonation:</strong> The API trusts any request with <code>User-Agent: ESP32</code>. A malicious user could flood the server with fake device IDs, potentially polluting the <code>last_poll_time</code> metrics or scraping our weather cache.</p>
+            </div>
+            
+            <div class="finding-card medium">
+                <div class="finding-title" style="color: #f59e0b;">⚡ "Hang Bomb" Risk</div>
+                <p><strong>Leftover Debug Code:</strong> The background processor contains a <code>while True: sleep</code> loop designed to test the system watchdog. While currently disabled via ENV var, its presence in the production codebase is a risk.</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+</script>
+
+</body>
+</html>
