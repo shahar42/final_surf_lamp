@@ -129,10 +129,10 @@ const OffHours = {
         elements.forEach(({ status }) => {
             if (status) {
                 if (!enabled) {
-                    status.textContent = 'DISABLED';
+                    status.textContent = 'OFF';
                     status.className = 'text-xs font-bold uppercase tracking-wider text-white/50';
                 } else {
-                    status.textContent = 'ACTIVE';
+                    status.textContent = 'ON';
                     status.className = 'text-xs font-bold uppercase tracking-wider text-orange-500';
                 }
             }
