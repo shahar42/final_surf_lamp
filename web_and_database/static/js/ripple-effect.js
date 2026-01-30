@@ -42,11 +42,18 @@ class RippleEffect {
                 return;
             }
 
-            // Add ripple container class
+            // Add ripple container class and ensure positioning
             element.classList.add('ripple-container');
+            element.style.position = 'relative';
+            element.style.overflow = 'hidden';
 
-            // Add click event listener
-            element.addEventListener('click', (e) => this.createRipple(e, element));
+            // Add click event listener with deduplication
+            element.addEventListener('click', (e) => {
+                // Only create ripple if the click happened directly on this element
+                if (e.target === element || element.contains(e.target)) {
+                    this.createRipple(e, element);
+                }
+            });
         });
     }
 
@@ -69,10 +76,11 @@ class RippleEffect {
         // Add to element
         element.appendChild(ripple);
 
-        // Remove ripple after animation completes
-        setTimeout(() => {
+        // Self-cleaning via animation lifecycle
+        // { once: true } ensures listener fires exactly once per ripple animation
+        ripple.addEventListener('animationend', () => {
             ripple.remove();
-        }, 600);
+        }, { once: true });
     }
 }
 

@@ -76,12 +76,18 @@ const OffHours = {
             const isActive = btn.classList.contains('bg-orange-600/20');
 
             if (isActive) {
-                // Already active → Disable
+                // Already active → Close drawer and disable
                 this.updateOffHours(null, null, false);
                 inputs.classList.add('hidden');
+                // Remove active styling
+                btn.classList.remove(...this.ACTIVE_CLASSES);
+                btn.classList.add(...this.INACTIVE_CLASSES);
             } else {
                 // Inactive → Open drawer for custom times
                 inputs.classList.remove('hidden');
+                // Add active styling to indicate drawer is open
+                btn.classList.remove(...this.INACTIVE_CLASSES);
+                btn.classList.add(...this.ACTIVE_CLASSES);
             }
         });
     },

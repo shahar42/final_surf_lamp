@@ -4,6 +4,10 @@
  */
 
 const BrightnessControl = {
+    // CSS classes matching the sleep mode pattern (blue theme)
+    INACTIVE_CLASSES: ['bg-white/5', 'hover:bg-white/10', 'text-white/40', 'border-white/5'],
+    ACTIVE_CLASSES: ['bg-blue-600/20', 'border-blue-500/50', 'text-blue-400', 'font-bold', 'shadow-lg', 'shadow-blue-900/20'],
+
     /**
      * Initialize brightness control
      * @param {number} currentBrightness - Current brightness level (0.0-1.0)
@@ -20,20 +24,13 @@ const BrightnessControl = {
             return;
         }
 
-        // Clear all active states first
-        buttons.forEach(btn => btn.classList.remove('brightness-active'));
-
         // Set initial active state based on current brightness
+        this.setActiveButton(buttons, currentBrightness);
+
+        // Add click handler to each button
         buttons.forEach(btn => {
-            const brightness = parseFloat(btn.getAttribute('data-brightness'));
-
-            // Set active state if matches current brightness (with tolerance)
-            if (Math.abs(brightness - currentBrightness) < 0.01) {
-                btn.classList.add('brightness-active');
-            }
-
-            // Add click handler
-            btn.addEventListener('click', async function() {
+            btn.addEventListener('click', async function(e) {
+                e.stopPropagation(); // Prevent event bubbling
                 const selectedBrightness = parseFloat(this.getAttribute('data-brightness'));
 
                 statusDivs.forEach(d => StatusMessage.loading(d));
@@ -46,20 +43,33 @@ const BrightnessControl = {
 
                 if (result.ok) {
                     // Update active state across all buttons (syncs desktop/mobile buttons)
-                    buttons.forEach(b => {
-                        const bVal = parseFloat(b.getAttribute('data-brightness'));
-                        if (Math.abs(bVal - selectedBrightness) < 0.01) {
-                            b.classList.add('brightness-active');
-                        } else {
-                            b.classList.remove('brightness-active');
-                        }
-                    });
-
+                    BrightnessControl.setActiveButton(buttons, selectedBrightness);
                     statusDivs.forEach(d => StatusMessage.success(d, result.data.message));
                 } else {
                     statusDivs.forEach(d => StatusMessage.error(d, 'Error: ' + result.data.message));
                 }
             });
+        });
+    },
+
+    /**
+     * Set the active button based on brightness value
+     * @param {NodeList} buttons - All brightness buttons
+     * @param {number} brightness - Current brightness level
+     */
+    setActiveButton: function(buttons, brightness) {
+        buttons.forEach(btn => {
+            const btnBrightness = parseFloat(btn.getAttribute('data-brightness'));
+
+            if (Math.abs(btnBrightness - brightness) < 0.01) {
+                // Active button - apply blue theme
+                btn.classList.remove(...this.INACTIVE_CLASSES);
+                btn.classList.add(...this.ACTIVE_CLASSES);
+            } else {
+                // Inactive button
+                btn.classList.remove(...this.ACTIVE_CLASSES);
+                btn.classList.add(...this.INACTIVE_CLASSES);
+            }
         });
     }
 };
