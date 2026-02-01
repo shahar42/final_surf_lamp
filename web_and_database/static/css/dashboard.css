@@ -227,6 +227,11 @@ select {
 
 .mobile-tab {
     position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: visible;
+    white-space: nowrap;
     color: rgba(255, 255, 255, 0.5);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
