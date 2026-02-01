@@ -233,7 +233,7 @@ select {
     flex-shrink: 0;
     min-width: fit-content;
     overflow: visible;
-    padding-top: 8px;
+    padding: 6px 8px;
     white-space: nowrap;
     color: rgba(255, 255, 255, 0.5);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -272,6 +272,7 @@ select {
 }
 
 .nav-label {
+    line-height: 1.2;
     opacity: 0.8;
     transition: opacity 0.3s ease;
 }
