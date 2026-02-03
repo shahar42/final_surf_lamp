@@ -54,7 +54,7 @@ sequenceDiagram
     participant Processor as Background Processor<br/>(Render)
     participant WeatherAPI as Weather APIs<br/>(Stormglass/OpenMeteo)
 
-    rect rgb(240, 248, 255)
+    rect rgb(30, 60, 90)
         Note over Processor,WeatherAPI: Background Processor Loop (every 15 min)
         Processor->>DB: Get location API configs
         DB-->>Processor: Location configs with API URLs
@@ -71,7 +71,7 @@ sequenceDiagram
         Processor->>DB: UPDATE processor_heartbeat
     end
 
-    rect rgb(255, 250, 240)
+    rect rgb(60, 45, 30)
         Note over Core0,Redis: Arduino Polling Loop (every 13 min)
         Core0->>Server: GET /api/arduino/{id}/surf-data-v3
         
