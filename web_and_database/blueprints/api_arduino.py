@@ -13,6 +13,7 @@ from data_base import SessionLocal, Arduino, Location, User, ErrorReport
 from utils.helpers import is_quiet_hours, is_off_hours, get_current_tz_offset, get_sunset_info_cached, get_coordinates_cached
 from utils.threshold_logic import calculate_effective_threshold
 from config import BRIGHTNESS_LEVELS, STALE_DATA_THRESHOLD
+from redis_manager import get_redis_client
 
 # Add processor path to import sunset calculator
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -27,10 +28,41 @@ logger = logging.getLogger(__name__)
 bp = Blueprint('api_arduino', __name__)
 
 
+def get_clamped_fetch_interval_ms(arduino):
+    """Get fetch interval in milliseconds, enforcing 7-minute minimum."""
+    interval_minutes = (getattr(arduino, 'request_interval_minutes', 13) or 13)
+    interval_minutes = max(interval_minutes, 7)  # Enforce 7-minute minimum
+    return interval_minutes * 60 * 1000
+
+
 def is_physical_device():
     """Check if request is from physical ESP32 hardware (vs dashboard)."""
     user_agent = request.headers.get('User-Agent', '')
     return 'ESP32' in user_agent
+
+
+def record_heartbeat(arduino_id):
+    """
+    Records heartbeat in Redis (High Performance) or DB (Fallback).
+    
+    Strategy:
+    1. Try Redis HSET (fast, O(1), cheap)
+    2. Try Redis SETBIT (even faster, effectively 1 bit)
+    3. If Redis unavailable, return False (caller may choose to update DB)
+    """
+    redis = get_redis_client()
+    if redis:
+        try:
+            timestamp = datetime.now(timezone.utc).timestamp()
+            # 1. Store exact timestamp in Hash
+            redis.hset('arduino:last_seen', arduino_id, timestamp)
+            # 2. Set bit in bitmap (The "One Bit" Optimization)
+            # This allows checking 1M lamps in ~120KB of RAM
+            redis.setbit('arduino:online_bitmap', arduino_id, 1)
+            return True
+        except Exception as e:
+            logger.error(f"❌ Redis heartbeat failed for {arduino_id}: {e}")
+    return False
 
 
 def update_arduino_timestamp(arduino_id, is_physical):
@@ -51,12 +83,15 @@ def update_arduino_timestamp(arduino_id, is_physical):
             return None, f'Arduino {arduino_id} not found'
 
         if is_physical:
-            arduino.last_poll_time = datetime.now(timezone.utc)
-            logger.info(f"✅ Updated arduino {arduino_id} timestamp (physical device)")
+            # OPTIMIZATION: Use Redis for heartbeat if available
+            if record_heartbeat(arduino_id):
+                logger.info(f"⚡ Heartbeat recorded in Redis for {arduino_id}")
+            else:
+                # Redis unavailable: Log error but DO NOT write to DB to protect it
+                logger.error(f"❌ Redis unavailable for heartbeat {arduino_id} - skipping DB update to prevent overload")
         else:
             logger.info(f"📊 Dashboard callback for arduino {arduino_id} (no timestamp update)")
 
-        db.commit()
         return arduino, None
 
     except Exception as e:
@@ -164,7 +199,7 @@ def build_surf_data_v2_response(location, location_data, tz_offset, arduino, use
         'quiet_hours_active': quiet_hours_active,
         'off_hours_active': off_hours_active,
         'brightness_multiplier': brightness_value,
-        'fetch_interval_ms': (getattr(arduino, 'request_interval_minutes', 13) or 13) * 60 * 1000,
+        'fetch_interval_ms': get_clamped_fetch_interval_ms(arduino),
         'last_updated': location.last_updated.isoformat() if location.last_updated else '1970-01-01T00:00:00Z',
         'data_available': bool(location.wave_height_m or location.wind_speed_mps),
         'stale_data_warning': stale_warning
@@ -252,12 +287,12 @@ def get_arduino_data(arduino_id):
             # Update arduino timestamp only for physical devices (not dashboard views)
             is_physical = is_physical_device()
             if is_physical:
-                arduino.last_poll_time = datetime.now(timezone.utc)
-                logger.info(f"✅ Physical Arduino {arduino_id} pulled data (timestamp updated)")
+                if record_heartbeat(arduino_id):
+                    logger.info(f"⚡ Heartbeat recorded in Redis for {arduino_id}")
+                else:
+                    logger.error(f"❌ Redis heartbeat failed for {arduino_id} (PULL V1)")
             else:
                 logger.info(f"📊 Dashboard view for Arduino {arduino_id} (no timestamp update)")
-
-            db.commit()
 
             logger.info(f"✅ Returning surf data for Arduino {arduino_id}: wave={surf_data['wave_height_cm']}cm")
             return surf_data, 200
@@ -319,12 +354,12 @@ def get_arduino_surf_data_v2(arduino_id):
             # Update arduino timestamp only for physical devices (not dashboard views)
             is_physical = is_physical_device()
             if is_physical:
-                arduino.last_poll_time = datetime.now(timezone.utc)
-                logger.info(f"✅ Physical Arduino {arduino_id} pulled V2 data (timestamp updated)")
+                if record_heartbeat(arduino_id):
+                    logger.info(f"⚡ Heartbeat recorded in Redis for {arduino_id} (V2)")
+                else:
+                    logger.error(f"❌ Redis heartbeat failed for {arduino_id} (PULL V2)")
             else:
                 logger.info(f"📊 Dashboard view for Arduino {arduino_id} V2 endpoint (no timestamp update)")
-
-            db.commit()
 
             logger.info(f"✅ V2 data for Arduino {arduino_id}: lat={surf_data['latitude']}, lon={surf_data['longitude']}, tz_offset={tz_offset}")
             return surf_data, 200
@@ -400,7 +435,7 @@ def get_arduino_surf_data_v3(arduino_id):
             settings_data = {
                 'led_theme': user.theme or 'classic_surf',
                 'brightness_multiplier': brightness_value,
-                'fetch_interval_ms': (getattr(arduino, 'request_interval_minutes', 13) or 13) * 60 * 1000,
+                'fetch_interval_ms': get_clamped_fetch_interval_ms(arduino),
                 'latitude': location_data['latitude'],
                 'longitude': location_data['longitude'],
                 'tz_offset': tz_offset
@@ -412,12 +447,12 @@ def get_arduino_surf_data_v3(arduino_id):
             # Update arduino timestamp only for physical devices
             is_physical = is_physical_device()
             if is_physical:
-                arduino.last_poll_time = datetime.now(timezone.utc)
-                logger.info(f"✅ Physical Arduino {arduino_id} pulled V3 binary data (timestamp updated)")
+                if record_heartbeat(arduino_id):
+                    logger.info(f"⚡ Heartbeat recorded in Redis for {arduino_id} (V3)")
+                else:
+                    logger.error(f"❌ Redis heartbeat failed for {arduino_id} (PULL V3)")
             else:
                 logger.info(f"📊 Dashboard view for Arduino {arduino_id} V3 endpoint (no timestamp update)")
-
-            db.commit()
 
             logger.info(f"✅ V3 binary data for Arduino {arduino_id}: {len(binary_data)} bytes (wave={surf_data['wave_height_cm']}cm)")
 
@@ -542,7 +577,7 @@ def get_arduino_settings(arduino_id):
                 'quiet_hours_active': quiet_hours_active,
                 'off_hours_active': off_hours_active,
                 'brightness_multiplier': getattr(user, 'brightness_level', BRIGHTNESS_LEVELS['MID']),
-                'fetch_interval_ms': (getattr(arduino, 'request_interval_minutes', 13) or 13) * 60 * 1000,
+                'fetch_interval_ms': get_clamped_fetch_interval_ms(arduino),
                 'settings_version': int(arduino.last_poll_time.timestamp()) if arduino.last_poll_time else 0
             }
 
@@ -566,6 +601,7 @@ def get_arduino_settings(arduino_id):
 def arduino_status_overview():
     """
     Optional: Get overview of all Arduino devices and their last callback times.
+    Merges data from DB and Redis (hot storage).
     """
     try:
         db = SessionLocal()
@@ -575,12 +611,37 @@ def arduino_status_overview():
                 Location, Arduino.location == Location.location
             ).all()
 
+            # Fetch hot timestamps from Redis
+            redis = get_redis_client()
+            redis_timestamps = {}
+            if redis:
+                try:
+                    # Returns dict {arduino_id: timestamp_str}
+                    redis_timestamps = redis.hgetall('arduino:last_seen')
+                except Exception as e:
+                    logger.error(f"Failed to fetch Redis status: {e}")
+
             arduino_status = []
             for arduino, location in results:
+                # Determine effective last poll time
+                last_poll = arduino.last_poll_time
+                
+                # Check Redis for newer timestamp
+                aid_str = str(arduino.arduino_id)
+                if aid_str in redis_timestamps:
+                    try:
+                        ts = float(redis_timestamps[aid_str])
+                        redis_dt = datetime.fromtimestamp(ts, timezone.utc)
+                        # Use Redis time if it's newer or if DB is None
+                        if last_poll is None or redis_dt > last_poll:
+                            last_poll = redis_dt
+                    except ValueError:
+                        pass
+
                 status_info = {
                     'arduino_id': arduino.arduino_id,
                     'location': arduino.location,
-                    'last_poll_time': arduino.last_poll_time.isoformat() if arduino.last_poll_time else None,
+                    'last_poll_time': last_poll.isoformat() if last_poll else None,
                     'location_updated': location.last_updated.isoformat() if location.last_updated else None,
                     'wave_height_m': location.wave_height_m,
                     'wave_period_s': location.wave_period_s,
