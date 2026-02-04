@@ -20,6 +20,41 @@ from surf_data_transformer import standardize_surf_data
 logger = logging.getLogger(__name__)
 
 
+def fetch_surf_data_with_fallback(api_key, endpoints, wave_calculation_method='api'):
+    """
+    Fetch surf data from multiple endpoints with priority-based fallback.
+    Scott Meyers pattern: Smart abstraction over naive single-URL fetch.
+
+    Args:
+        api_key: Optional API key for authentication
+        endpoints: List of URLs in priority order (try first to last)
+        wave_calculation_method: 'api' (default) or 'formula' for wind-based wave calculation
+
+    Returns:
+        Standardized surf data dict or None if all endpoints fail
+    """
+    if not endpoints:
+        logger.error("❌ No endpoints provided")
+        return None
+
+    for idx, endpoint in enumerate(endpoints, 1):
+        priority = f"[{idx}/{len(endpoints)}]"
+        logger.info(f"📡 Trying endpoint {priority}: {endpoint[:70]}...")
+
+        result = fetch_surf_data(api_key, endpoint, wave_calculation_method)
+        if result:
+            if idx > 1:
+                logger.info(f"✅ Fallback successful - used endpoint {priority}")
+            return result
+        else:
+            if idx < len(endpoints):
+                logger.warning(f"⚠️ Endpoint {priority} failed, trying next...")
+            else:
+                logger.error(f"❌ All {len(endpoints)} endpoints failed")
+
+    return None
+
+
 def fetch_surf_data(api_key, endpoint, wave_calculation_method='api'):
     """
     Fetch surf data from external API and standardize using config.

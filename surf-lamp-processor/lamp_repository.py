@@ -122,6 +122,40 @@ def get_location_api_configs(engine):
         return {}
 
 
+def get_current_location_values(engine, location):
+    """
+    Get current surf data values for a location from the database.
+
+    Args:
+        engine: Database engine
+        location: Location name
+
+    Returns:
+        Dict with current values or None if location not found
+    """
+    query = text("""
+        SELECT
+            wave_height_m,
+            wave_period_s,
+            wind_speed_mps,
+            wind_direction_deg,
+            COALESCE(consecutive_identical_updates, 0) as consecutive_identical_updates
+        FROM locations
+        WHERE location = :location
+    """)
+
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(query, {"location": location})
+            row = result.fetchone()
+            if row:
+                return dict(row._mapping)
+            return None
+    except Exception as e:
+        logger.error(f"❌ Failed to get current values for {location}: {e}")
+        return None
+
+
 def get_arduinos_for_location(engine, location):
     """
     Get all arduinos in a specific location.
