@@ -109,10 +109,6 @@ assert MONITOR_CHECK_INTERVAL_SECONDS <= LAMP_ONLINE_THRESHOLD_SECONDS, \
 # API ENDPOINTS (Multi-source with priority-based fallback)
 # ============================================================================
 
-import os
-
-OPENWEATHERMAP_API_KEY = os.environ.get('OPENWEATHERMAP_API_KEY', '')
-
 # Multi-source location configuration with priority-based fallback
 # Each location has a list of API sources with:
 # - url: API endpoint
@@ -120,33 +116,26 @@ OPENWEATHERMAP_API_KEY = os.environ.get('OPENWEATHERMAP_API_KEY', '')
 # - type: 'wave' or 'wind'
 MULTI_SOURCE_LOCATIONS = {
     "Tel Aviv, Israel": [
-        {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.0853&longitude=34.7818&hourly=wave_height,wave_period,wave_direction", "priority": 1, "type": "wave"},
-        {"url": f"http://api.openweathermap.org/data/2.5/weather?q=Tel Aviv&appid={OPENWEATHERMAP_API_KEY}", "priority": 2, "type": "wind"}
+        {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.0853&longitude=34.7818&hourly=wave_height,wave_period,wave_direction", "priority": 1, "type": "wave"}
     ],
     "Hadera, Israel": [
         {"url": "https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json", "priority": 1, "type": "wave"},
-        {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.4500&longitude=34.9100&hourly=wave_height,wave_period,wave_direction", "priority": 2, "type": "wave"},
-        {"url": f"http://api.openweathermap.org/data/2.5/weather?q=Hadera&appid={OPENWEATHERMAP_API_KEY}", "priority": 3, "type": "wind"}
+        {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.4500&longitude=34.9100&hourly=wave_height,wave_period,wave_direction", "priority": 2, "type": "wave"}
     ],
     "Ashdod, Israel": [
-        {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=31.7939&longitude=34.6328&hourly=wave_height,wave_period,wave_direction", "priority": 1, "type": "wave"},
-        {"url": f"http://api.openweathermap.org/data/2.5/weather?q=Ashdod&appid={OPENWEATHERMAP_API_KEY}", "priority": 2, "type": "wind"}
+        {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=31.7939&longitude=34.6328&hourly=wave_height,wave_period,wave_direction", "priority": 1, "type": "wave"}
     ],
     "Haifa, Israel": [
-        {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.7940&longitude=34.9896&hourly=wave_height,wave_period,wave_direction", "priority": 1, "type": "wave"},
-        {"url": f"http://api.openweathermap.org/data/2.5/weather?q=Haifa&appid={OPENWEATHERMAP_API_KEY}", "priority": 2, "type": "wind"}
+        {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.7940&longitude=34.9896&hourly=wave_height,wave_period,wave_direction", "priority": 1, "type": "wave"}
     ],
     "Netanya, Israel": [
-        {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.3215&longitude=34.8532&hourly=wave_height,wave_period,wave_direction", "priority": 1, "type": "wave"},
-        {"url": f"http://api.openweathermap.org/data/2.5/weather?q=Netanya&appid={OPENWEATHERMAP_API_KEY}", "priority": 2, "type": "wind"}
+        {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.3215&longitude=34.8532&hourly=wave_height,wave_period,wave_direction", "priority": 1, "type": "wave"}
     ],
     "Nahariya, Israel": [
-        {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=33.006&longitude=35.094&hourly=wave_height,wave_period,wave_direction", "priority": 1, "type": "wave"},
-        {"url": f"http://api.openweathermap.org/data/2.5/weather?q=Nahariya&appid={OPENWEATHERMAP_API_KEY}", "priority": 2, "type": "wind"}
+        {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=33.006&longitude=35.094&hourly=wave_height,wave_period,wave_direction", "priority": 1, "type": "wave"}
     ],
     "Ashkelon, Israel": [
-        {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=31.6699&longitude=34.5738&hourly=wave_height,wave_period,wave_direction", "priority": 1, "type": "wave"},
-        {"url": f"http://api.openweathermap.org/data/2.5/weather?q=Ashkelon&appid={OPENWEATHERMAP_API_KEY}", "priority": 2, "type": "wind"}
+        {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=31.6699&longitude=34.5738&hourly=wave_height,wave_period,wave_direction", "priority": 1, "type": "wave"}
     ],
     "Eilat, Israel": [
         {"url": "https://api.open-meteo.com/v1/forecast?latitude=29.5500&longitude=34.9519&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms", "priority": 1, "type": "wind"}
