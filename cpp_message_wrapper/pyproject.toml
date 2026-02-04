@@ -1,0 +1,10 @@
+[build-system]
+requires = ["setuptools>=42", "wheel", "pybind11>=2.7.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "message_wrapper"
+version = "1.0.0"
+description = "C++ message parser with shared_ptr for Surf Lamp"
+requires-python = ">=3.8"
+dependencies = ["pybind11>=2.7.0"]

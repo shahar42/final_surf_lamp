@@ -17,3 +17,4 @@ google-generativeai
 markdown
 pywebpush
 py-vapid
+pybind11>=2.7.0

@@ -19,9 +19,11 @@ from redis_manager import get_redis_client
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 processor_path = os.path.join(os.path.dirname(parent_dir), 'surf-lamp-processor')
+cpp_wrapper_path = os.path.join(os.path.dirname(parent_dir), 'cpp_message_wrapper')
 sys.path.insert(0, processor_path)
+sys.path.insert(0, cpp_wrapper_path)
 from sunset_calculator import get_sunset_info, LOCATION_COORDS
-from binary_protocol import encode_v3_response
+from cpp_encoder import encode_v3_response_cpp as encode_v3_response
 
 logger = logging.getLogger(__name__)
 
