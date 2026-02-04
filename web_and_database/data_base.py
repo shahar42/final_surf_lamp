@@ -5,6 +5,7 @@ author: shahar nitzan
 '''
 
 import os
+import sys
 import logging
 import uuid
 from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, TIMESTAMP, Float, Boolean, Time
@@ -12,6 +13,9 @@ from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import func
 from config import BRIGHTNESS_LEVELS
+
+# Add parent directory to path to import shared_config
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from shared_config import MULTI_SOURCE_LOCATIONS
 
 # Set up logging
