@@ -9,9 +9,11 @@ and one for network handling handling
 #include "SunsetCalculator.h"
 #include "WiFiHandler.h"
 #include "JitterManager.h"
+#include "my_linear_buffer.hpp"
 
 // External references (global scope)
 extern SunsetCalculator sunsetCalc;
+extern AsyncSerialLogger asyncLogger;
 
 namespace DualCore 
 {
@@ -60,7 +62,7 @@ void checkAndResetSunsetFlag() {
     int prevDay = lastDayOfYear.load();
 
     if (dayOfYear != prevDay) {
-        Serial.println("🌅 [Core 0] New day detected, resetting sunset flag");
+        asyncLogger.Log("[Core 0] New day detected, resetting sunset flag");
         sunsetPlayedToday.store(false);
         lastDayOfYear.store(dayOfYear);
     }
@@ -73,7 +75,7 @@ void updateCoordinatesIfReady() {
 }
 
 void handleFetchSuccess(unsigned long now) {
-    Serial.println("✅ [Core 0] Fetch successful");
+    asyncLogger.Log("[Core 0] Fetch successful");
     lastSuccessfulFetch.store(now);
     updateTimeVariables();
     checkAndResetSunsetFlag();
@@ -84,7 +86,7 @@ void handleFetchSuccess(unsigned long now) {
 
 void networkSecretaryTask(void* parameter)
 {
-    Serial.println("🔧 [Core 0] Network Secretary started");
+    asyncLogger.Log("[Core 0] Network Secretary started");
     networkTaskRunning.store(true);
 
     delay(5000);  // Wait for WiFi to be ready
@@ -96,16 +98,16 @@ void networkSecretaryTask(void* parameter)
 
         if (shouldFetchNow(now, lastFetch)) {
             if (wifiJustReconnected) {
-                Serial.println("🔧 [Core 0] WiFi reconnected - fetching data immediately...");
+                asyncLogger.Log("[Core 0] WiFi reconnected - fetching immediately");
                 wifiJustReconnected = false;
             } else {
-                Serial.println("🔧 [Core 0] Starting surf data fetch...");
+                asyncLogger.Log("[Core 0] Starting surf data fetch");
             }
 
             if (fetchSurfDataFromServer()) {
                 handleFetchSuccess(now);
             } else {
-                Serial.println("❌ [Core 0] Fetch failed");
+                asyncLogger.Log("[Core 0] Fetch failed");
             }
 
             lastFetch = now;
@@ -135,7 +137,7 @@ bool isSunsetTimeNow()
 void markSunsetPlayed() {
     sunsetPlayedToday.store(true);
     sunsetCalc.markSunsetPlayed(); 
-    Serial.println("🌅 [Core 1] Sunset animation completed, flag set");
+    asyncLogger.Log("[Core 1] Sunset animation completed, flag set");
 }
 
 String getCurrentTimeString() {
@@ -153,7 +155,7 @@ String getCurrentTimeString() {
 // ==================== TASK STARTUP ====================
 
 void startDualCoreTasks() {
-    Serial.println("🚀 Starting dual-core architecture...");
+    asyncLogger.Log("Starting dual-core architecture");
 
     // Create Core 0 task (Network Secretary)
     xTaskCreatePinnedToCore(
@@ -166,8 +168,8 @@ void startDualCoreTasks() {
         0                       // Core 0
     );
 
-    Serial.println("✅ Core 0 task created (Network Secretary)");
-    Serial.println("✅ Core 1 running main loop (LED Artist)");
+    asyncLogger.Log("Core 0 task created (Network Secretary)");
+    asyncLogger.Log("Core 1 running main loop (LED Artist)");
 }
 
 } // namespace DualCore

@@ -8,8 +8,13 @@
 
 class ServerDiscovery {
 private:
-    // Discovery URL (raw GitHub - reliable and free)
-    const char* discovery_url = "https://raw.githubusercontent.com/shahar42/final_surf_lamp/master/discovery-config/config.json";
+    // Discovery URLs: Vercel (primary) → GitHub (fallback)
+    // New flashes hit Vercel first. Already-flashed lamps still use the old single-URL build.
+    static constexpr const char* DISCOVERY_URLS[] = {
+        "https://surf-lamp-discovery.vercel.app/config.json",
+        "https://raw.githubusercontent.com/shahar42/final_surf_lamp/master/discovery-config/config.json"
+    };
+    static constexpr int PRIMARY_ATTEMPTS = 3; // Attempts on Vercel before falling back to GitHub
 
     String current_server = "";
     unsigned long last_discovery_attempt = 0;
@@ -72,16 +77,25 @@ private:
     
     String attemptDiscovery() {
         Serial.println("🔍 Attempting server discovery...");
-        Serial.println("   URL: " + String(discovery_url));
 
         const int MAX_ATTEMPTS = 7;
         const int BASE_DELAY_MS = 1000;      // 1 second initial
         const int MAX_DELAY_MS = 60000;      // Cap at 60 seconds
 
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-            Serial.printf("   Attempt %d/%d\n", attempt, MAX_ATTEMPTS);
+            // Attempts 1-3: Vercel (primary). Attempts 4-7: GitHub (fallback).
+            bool usingPrimary = (attempt <= PRIMARY_ATTEMPTS);
+            const char* url = usingPrimary ? DISCOVERY_URLS[0] : DISCOVERY_URLS[1];
 
-            String result = fetchDiscoveryConfig(discovery_url);
+            // Log the source switch on the boundary
+            if (attempt == PRIMARY_ATTEMPTS + 1) {
+                Serial.println("   ⚡ Vercel failed, switching to GitHub fallback");
+            }
+
+            Serial.printf("   Attempt %d/%d [%s]\n", attempt, MAX_ATTEMPTS,
+                          usingPrimary ? "Vercel" : "GitHub");
+
+            String result = fetchDiscoveryConfig(url);
             if (result.length() > 0) {
                 Serial.println("   ✅ Discovery successful");
                 return result;

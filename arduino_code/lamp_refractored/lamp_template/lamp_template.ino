@@ -27,11 +27,13 @@
 
 #include "Config.h"              // Lamp-specific configuration (EDIT THIS FOR NEW LAMPS)
 #include "SurfState.h"           // Data structures for surf data
+#include "MutexGuard.h"          // RAII mutex guard for thread safety
 #include "LedController.h"       // LED display functions
 #include "Themes.h"              // Color theme management
 #include "WebServerHandler.h"    // HTTP endpoint handlers
 #include "WiFiHandler.h"         // WiFi connection and diagnostics
 #include "JitterManager.h"       // Thundering herd prevention
+#include "my_linear_buffer.hpp"  // Async serial logging
 
 // ==================== REUSABLE MODULES ====================
 // These modules are shared across all lamp types
@@ -62,6 +64,8 @@ SemaphoreHandle_t surfDataMutex = nullptr;
 std::atomic<bool> wifiJustReconnected(false);
 std::atomic<unsigned long> lastDataFetch(0);
 std::atomic<unsigned long> FETCH_INTERVAL_MS(780000); // 13 minutes (default, thread-safe)
+
+AsyncSerialLogger asyncLogger;
 
 // ==================== SETUP FUNCTION ====================
 
@@ -128,6 +132,9 @@ void setup() {
 // ==================== MAIN LOOP ====================
 
 void loop() {
+    // Drain async serial buffer
+    asyncLogger.Flush();
+
     // Handle WiFi reset button
     handleWiFiResetButton(wifiManager);
 
@@ -142,14 +149,14 @@ void loop() {
 
     // Update display if state changed (decoupled architecture)
     if (lastSurfData.needsDisplayUpdate.load()) {
-        Serial.println("🔄 [Core 1] Detected state change, updating display...");
+        asyncLogger.Log("[Core 1] Detected state change, updating display...");
         updateSurfDisplay();
         lastSurfData.needsDisplayUpdate.store(false);
     }
 
     // Autonomous sunset animation (V2 - calculated locally, checked on Core 1)
     if (DualCore::isSunsetTimeNow()) {
-        Serial.println("🌅 [Core 1] Sunset detected - playing animation (autonomous mode)");
+        asyncLogger.Log("[Core 1] Sunset detected - playing animation");
 
         // Create strip configurations from constants
         Animation::StripConfig waveHeight = {
@@ -185,28 +192,35 @@ void loop() {
     updateBlinkingAnimation();
 
     // Update status LED and check for stale data
-    LOCK_SURF_DATA();
-    unsigned long lastUpdate = lastSurfData.lastUpdate;
-    bool dataReceived = lastSurfData.dataReceived;
-    bool serverUnreachable = lastSurfData.serverUnreachableError;
-    bool jsonParseError = lastSurfData.jsonParseError;
-    bool invalidDataError = lastSurfData.invalidDataError;
-    bool partialDataError = lastSurfData.partialDataError;
-    bool staleDataError = lastSurfData.staleDataError;
-    bool staleDataWarning = lastSurfData.staleDataWarning;
-    bool isOffHours = lastSurfData.offHoursActive;
-    UNLOCK_SURF_DATA();
+    unsigned long lastUpdate, dataAge;
+    bool dataReceived, serverUnreachable, jsonParseError, invalidDataError;
+    bool partialDataError, staleDataError, staleDataWarning, isOffHours;
+    {
+        MutexGuard lock(surfDataMutex);
+        lastUpdate = lastSurfData.lastUpdate;
+        dataReceived = lastSurfData.dataReceived;
+        serverUnreachable = lastSurfData.serverUnreachableError;
+        jsonParseError = lastSurfData.jsonParseError;
+        invalidDataError = lastSurfData.invalidDataError;
+        partialDataError = lastSurfData.partialDataError;
+        staleDataError = lastSurfData.staleDataError;
+        staleDataWarning = lastSurfData.staleDataWarning;
+        isOffHours = lastSurfData.offHoursActive;
+    }
 
-    unsigned long dataAge = millis() - lastUpdate;
+    dataAge = millis() - lastUpdate;
 
     // Detect stale data (>30min old)
     if (dataReceived && dataAge >= DATA_STALENESS_THRESHOLD) {
         if (!staleDataError) {
-            LOCK_SURF_DATA();
-            lastSurfData.staleDataError = true;
-            UNLOCK_SURF_DATA();
+            {
+                MutexGuard lock(surfDataMutex);
+                lastSurfData.staleDataError = true;
+            }
             lastSurfData.needsDisplayUpdate.store(true);
-            Serial.printf("⚠️ Data became stale (%lu min old)\n", dataAge / 60000);
+            char staleBuf[64];
+            sprintf(staleBuf, "Data became stale (%lu min old)", dataAge / 60000);
+            asyncLogger.Log(staleBuf);
         }
     }
 

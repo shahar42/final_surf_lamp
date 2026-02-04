@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from flask import Blueprint, render_template, request, flash, redirect, url_for, session, jsonify
 from config import limiter, SURF_LOCATIONS, STALE_DATA_THRESHOLD
 from security_config import SecurityConfig
@@ -8,6 +8,7 @@ from forms import sanitize_input
 from data_base import SessionLocal, User, Broadcast, BroadcastDismissal, Arduino, Location
 from sqlalchemy.orm import joinedload
 from blueprints.notifications import trigger_push_broadcast
+from redis_manager import get_redis_client
 
 logger = logging.getLogger(__name__)
 
@@ -243,16 +244,37 @@ def arduino_monitor():
 @bp.route('/api/admin/arduino-status')
 @login_required
 def arduino_status_api():
-    """API endpoint returning Arduino device status based on arduino.last_poll_time timestamps"""
+    """API endpoint returning Arduino device status merging DB and Redis (hot) timestamps"""
     db = SessionLocal()
     try:
         results = db.query(Arduino, User, Location).join(User, Arduino.user_id == User.user_id).join(Location, Arduino.location == Location.location).all()
+
+        # Fetch hot timestamps from Redis
+        redis = get_redis_client()
+        redis_timestamps = {}
+        if redis:
+            try:
+                redis_timestamps = redis.hgetall('arduino:last_seen')
+            except Exception as e:
+                logger.error(f"Failed to fetch Redis status for admin: {e}")
 
         now = datetime.utcnow()
         devices = []
 
         for arduino, user, location in results:
-            status, status_text, last_updated = get_device_status(arduino.last_poll_time, now)
+            # Determine effective last poll time (Hot source: Redis > Cold source: DB)
+            last_poll = arduino.last_poll_time
+            aid_str = str(arduino.arduino_id)
+            if aid_str in redis_timestamps:
+                try:
+                    ts = float(redis_timestamps[aid_str])
+                    redis_dt = datetime.fromtimestamp(ts, timezone.utc).replace(tzinfo=None) # Keep naive for DB comparison
+                    if last_poll is None or redis_dt > last_poll:
+                        last_poll = redis_dt
+                except (ValueError, TypeError):
+                    pass
+
+            status, status_text, last_updated = get_device_status(last_poll, now)
             
             # Determine data staleness
             staleness_warning = False

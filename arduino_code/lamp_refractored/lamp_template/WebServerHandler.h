@@ -26,6 +26,7 @@
 #include <ArduinoJson.h>
 #include "Config.h"
 #include "SurfState.h"
+#include "MutexGuard.h"
 
 // ---------------- SERVER SETUP ----------------
 

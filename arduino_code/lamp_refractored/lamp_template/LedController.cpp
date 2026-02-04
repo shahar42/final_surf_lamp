@@ -7,6 +7,9 @@
 #include "LedController.h"
 #include "Themes.h"
 #include "animation.h"
+#include "my_linear_buffer.hpp"
+
+extern AsyncSerialLogger asyncLogger;
 
 // Global LED array (defined here, declared extern in header)
 CRGB leds[TOTAL_LEDS];
@@ -15,33 +18,33 @@ static unsigned long lastBlinkUpdate = 0;
 static float blinkPhase = 0.0;
 
 // Single point of truth for LED suppression logic during off hours
-static inline bool shouldSuppressAllLEDs() 
+static inline bool shouldSuppressAllLEDs()
 {
-    LOCK_SURF_DATA();
-    bool suppressed = lastSurfData.offHoursActive;
-    UNLOCK_SURF_DATA();
-    return suppressed;
+    MutexGuard lock(surfDataMutex);
+    return lastSurfData.offHoursActive;
 }
 
 // ---------------- INITIALIZATION ----------------
 
-void initializeLEDs() 
+void initializeLEDs()
 {
-    LOCK_SURF_DATA();
-    float multiplier = lastSurfData.brightnessMultiplier;
-    UNLOCK_SURF_DATA();
+    float multiplier;
+    {
+        MutexGuard lock(surfDataMutex);
+        multiplier = lastSurfData.brightnessMultiplier;
+    }
 
     FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, TOTAL_LEDS);
     FastLED.setBrightness(GLOBAL_BRIGHTNESS_LIMIT * multiplier);
     FastLED.clear();
     FastLED.show();
-    Serial.println("💡 LEDs initialized");
+    asyncLogger.Log("LEDs initialized");
 }
 
 
 void playStartupAnimation() 
 {
-    Serial.println("Starting 'The Rising Tide' animation...");
+    asyncLogger.Log("Starting 'The Rising Tide' animation");
 
     //strip configurations from Config.h
     Animation::StripConfig waveHeight = {
@@ -395,21 +398,15 @@ void updateBlinkingWindSpeedLEDs(int numActiveLeds, CHSV baseColor) {
 }
 
 void applyWaveHeightThreshold(int waveHeightLEDs, int waveHeight_cm, int waveThreshold_cm) {
-
-    LOCK_SURF_DATA();
-
-    bool quietHours = lastSurfData.quietHoursActive;
-
+    bool quietHours;
     char currentTheme[32];
-
-    strncpy(currentTheme, lastSurfData.theme, sizeof(currentTheme));
-
-    UNLOCK_SURF_DATA();
-
-
+    {
+        MutexGuard lock(surfDataMutex);
+        quietHours = lastSurfData.quietHoursActive;
+        strncpy(currentTheme, lastSurfData.theme, sizeof(currentTheme));
+    }
 
     // Skip all LED updates during quiet hours - quiet hours mode already set the display
-
     if (quietHours) return;
 
 
@@ -435,21 +432,15 @@ void applyWaveHeightThreshold(int waveHeightLEDs, int waveHeight_cm, int waveThr
 
 
 void applyWindSpeedThreshold(int windSpeedLEDs, int windSpeed_mps, int windSpeedThreshold_knots) {
-
-    LOCK_SURF_DATA();
-
-    bool quietHours = lastSurfData.quietHoursActive;
-
+    bool quietHours;
     char currentTheme[32];
-
-    strncpy(currentTheme, lastSurfData.theme, sizeof(currentTheme));
-
-    UNLOCK_SURF_DATA();
-
-
+    {
+        MutexGuard lock(surfDataMutex);
+        quietHours = lastSurfData.quietHoursActive;
+        strncpy(currentTheme, lastSurfData.theme, sizeof(currentTheme));
+    }
 
     // Skip all LED updates during quiet hours - quiet hours mode already set the display
-
     if (quietHours) return;
 
 
@@ -485,83 +476,46 @@ void applyWindSpeedThreshold(int windSpeedLEDs, int windSpeed_mps, int windSpeed
 
 
 bool handleErrorStates() {
-
-    LOCK_SURF_DATA();
-
-    bool unreachable = lastSurfData.serverUnreachableError;
-
-    bool parseErr = lastSurfData.jsonParseError;
-
-    bool invalidData = lastSurfData.invalidDataError;
-
-    bool partialErr = lastSurfData.partialDataError;
-
-    bool staleErr = lastSurfData.staleDataError;
-
-    UNLOCK_SURF_DATA();
-
-
+    bool unreachable, parseErr, invalidData, partialErr, staleErr;
+    {
+        MutexGuard lock(surfDataMutex);
+        unreachable = lastSurfData.serverUnreachableError;
+        parseErr = lastSurfData.jsonParseError;
+        invalidData = lastSurfData.invalidDataError;
+        partialErr = lastSurfData.partialDataError;
+        staleErr = lastSurfData.staleDataError;
+    }
 
     // Priority 1: Server/Communication Errors
-
     if (unreachable) {
-
         showServerUnreachableError();
-
-        Serial.println("❌ Server unreachable - displaying GREEN/BLUE on left strip");
-
+        asyncLogger.Log("Server unreachable - GREEN/BLUE on left strip");
         return true;
-
     }
-
-
 
     if (parseErr) {
-
         showJsonParseError();
-
-        Serial.println("❌ JSON parse error - displaying GREEN/YELLOW on left strip");
-
+        asyncLogger.Log("JSON parse error - GREEN/YELLOW on left strip");
         return true;
-
     }
-
-
 
     // Priority 2: Data Quality Errors
-
     if (invalidData) {
-
         showInvalidDataError();
-
-        Serial.println("❌ Invalid data (both zero) - displaying RED on left strip");
-
+        asyncLogger.Log("Invalid data (both zero) - RED on left strip");
         return true;
-
     }
-
-
 
     if (partialErr) {
-
         showPartialDataError();
-
-        Serial.println("❌ Partial data failure - displaying PURPLE on left strip");
-
+        asyncLogger.Log("Partial data failure - PURPLE on left strip");
         return true;
-
     }
 
-
-
     if (staleErr) {
-
         showStaleDataError();
-
-        Serial.println("❌ Stale data - displaying RED/BLUE on left strip");
-
+        asyncLogger.Log("Stale data - RED/BLUE on left strip");
         return true;
-
     }
 
 
@@ -573,14 +527,11 @@ bool handleErrorStates() {
 
 
 bool handleOffHours() {
-
-    LOCK_SURF_DATA();
-
-    bool offHours = lastSurfData.offHoursActive;
-
-    UNLOCK_SURF_DATA();
-
-
+    bool offHours;
+    {
+        MutexGuard lock(surfDataMutex);
+        offHours = lastSurfData.offHoursActive;
+    }
 
     if (!offHours) return false;
 
@@ -590,7 +541,7 @@ bool handleOffHours() {
 
     FastLED.show();
 
-    Serial.println("🔴 Off hours active - lamp turned OFF");
+    asyncLogger.Log("Off hours active - lamp turned OFF");
 
     return true;
 
@@ -599,34 +550,19 @@ bool handleOffHours() {
 
 
 bool handleQuietHours() {
-
-    LOCK_SURF_DATA();
+    MutexGuard lock(surfDataMutex);
 
     if (!lastSurfData.quietHoursActive) {
-
-        UNLOCK_SURF_DATA();
-
-        return false;
-
+        return false;  // Auto-unlock on early return
     }
 
-
-
     float brightnessMult = lastSurfData.brightnessMultiplier;
-
     int waveHeight_cm = static_cast<int>(lastSurfData.waveHeight * 100);
-
     int windSpeed = static_cast<int>(lastSurfData.windSpeed);
-
     int windDirection = lastSurfData.windDirection;
-
     float wavePeriod = lastSurfData.wavePeriod;
-
     char currentTheme[32];
-
     strncpy(currentTheme, lastSurfData.theme, sizeof(currentTheme));
-
-    UNLOCK_SURF_DATA();
 
 
 
@@ -680,7 +616,7 @@ bool handleQuietHours() {
 
     FastLED.show();
 
-    Serial.println("🌙 Quiet hours: Only top LEDs active + wind direction");
+    asyncLogger.Log("Quiet hours: Only top LEDs active + wind direction");
 
     return true;
 
@@ -689,28 +625,21 @@ bool handleQuietHours() {
 
 
 void handleNormalMode() {
-
-    LOCK_SURF_DATA();
-
-    int waveHeight_cm = static_cast<int>(lastSurfData.waveHeight * 100);
-
-    float wavePeriod = lastSurfData.wavePeriod;
-
-    int windSpeed = static_cast<int>(lastSurfData.windSpeed);
-
-    int windDirection = lastSurfData.windDirection;
-
-    int waveThreshold_cm = static_cast<int>(lastSurfData.waveThreshold * 100);
-
-    int windSpeedThreshold_knots = lastSurfData.windSpeedThreshold;
-
-    float brightnessMult = lastSurfData.brightnessMultiplier;
-
+    int waveHeight_cm, windSpeed, windDirection;
+    int waveThreshold_cm, windSpeedThreshold_knots;
+    float wavePeriod, brightnessMult;
     char currentTheme[32];
-
-    strncpy(currentTheme, lastSurfData.theme, sizeof(currentTheme));
-
-    UNLOCK_SURF_DATA();
+    {
+        MutexGuard lock(surfDataMutex);
+        waveHeight_cm = static_cast<int>(lastSurfData.waveHeight * 100);
+        wavePeriod = lastSurfData.wavePeriod;
+        windSpeed = static_cast<int>(lastSurfData.windSpeed);
+        windDirection = lastSurfData.windDirection;
+        waveThreshold_cm = static_cast<int>(lastSurfData.waveThreshold * 100);
+        windSpeedThreshold_knots = lastSurfData.windSpeedThreshold;
+        brightnessMult = lastSurfData.brightnessMultiplier;
+        strncpy(currentTheme, lastSurfData.theme, sizeof(currentTheme));
+    }
 
 
 
@@ -752,29 +681,26 @@ void handleNormalMode() {
 
     FastLED.show();
 
-    Serial.printf("🎨 LEDs Updated - Wind: %d, Wave: %d, Period: %d, Direction: %d° [Wave Threshold: %dcm, Wind Threshold: %dkts]\n",
-
-                  windSpeedLEDs, waveHeightLEDs, wavePeriodLEDs, windDirection, waveThreshold_cm, windSpeedThreshold_knots);
+    char buf[128];
+    sprintf(buf, "LEDs Updated - Wind: %d, Wave: %d, Period: %d, Dir: %d [WaveThresh: %dcm, WindThresh: %dkts]",
+            windSpeedLEDs, waveHeightLEDs, wavePeriodLEDs, windDirection, waveThreshold_cm, windSpeedThreshold_knots);
+    asyncLogger.Log(buf);
 
 }
 
 
 
 void updateSurfDisplay() {
-
-    LOCK_SURF_DATA();
-
-    bool dataReceived = lastSurfData.dataReceived;
-
-    UNLOCK_SURF_DATA();
-
-
+    bool dataReceived;
+    {
+        MutexGuard lock(surfDataMutex);
+        dataReceived = lastSurfData.dataReceived;
+    }
 
     // Check if we have valid surf data
-
     if (!dataReceived) {
 
-        Serial.println("⚠️ No surf data available to display");
+        asyncLogger.Log("No surf data available to display");
 
         return;
 
@@ -797,32 +723,18 @@ void updateSurfDisplay() {
 
 
 void updateBlinkingAnimation() {
-
-    LOCK_SURF_DATA();
+    MutexGuard lock(surfDataMutex);
 
     if (!lastSurfData.dataReceived || lastSurfData.offHoursActive || lastSurfData.quietHoursActive) {
-
-        UNLOCK_SURF_DATA();
-
-        return;
-
+        return;  // Auto-unlock on early return
     }
 
-
-
     float windSpeed = lastSurfData.windSpeed;
-
     int windThreshold = lastSurfData.windSpeedThreshold;
-
     float waveHeight = lastSurfData.waveHeight;
-
     float waveThreshold = lastSurfData.waveThreshold;
-
     char currentTheme[32];
-
     strncpy(currentTheme, lastSurfData.theme, sizeof(currentTheme));
-
-    UNLOCK_SURF_DATA();
 
 
 

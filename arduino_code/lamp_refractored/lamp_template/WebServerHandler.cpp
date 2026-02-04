@@ -21,6 +21,9 @@ extern ServerDiscovery serverDiscovery;
 
 extern SunsetCalculator sunsetCalc;
 
+#include "my_linear_buffer.hpp"
+extern AsyncSerialLogger asyncLogger;
+
 extern String lastWiFiError;
 extern uint8_t lastDisconnectReason;
 
@@ -42,37 +45,37 @@ void setupHTTPEndpoints(WebServer& server) {
     server.on("/api/wifi-diagnostics", HTTP_GET, handleWiFiDiagnostics);
 
     server.begin();
-    Serial.println("🌐 HTTP server started");
+    asyncLogger.Log("HTTP server started");
 }
 
 // ---------------- ENDPOINT HANDLERS ----------------
 
 void handleSurfDataUpdate() {
-    Serial.println("Received surf data request");
+    asyncLogger.Log("Received surf data request");
 
-    if (!webServer->hasArg("plain")) 
+    if (!webServer->hasArg("plain"))
     {
         webServer->send(400, "application/json", "{\"ok\":false}");
-        Serial.println("No JSON data in request");
+        asyncLogger.Log("No JSON data in request");
         return;
     }
 
     String jsonData = webServer->arg("plain");
-    Serial.println("📋 Raw JSON data:");
-    Serial.println(jsonData);
+    asyncLogger.Log("Raw JSON data:");
+    asyncLogger.Log(jsonData.c_str());
 
     if (processSurfData(jsonData)) {
         webServer->send(200, "application/json", "{\"ok\":true}");
-        Serial.println("✅ Surf data processed successfully");
+        asyncLogger.Log("Surf data processed successfully");
     } else {
         webServer->send(400, "application/json", "{\"ok\":false}");
-        Serial.println("❌ Failed to process surf data");
+        asyncLogger.Log("Failed to process surf data");
     }
 }
 
 void GetLastSurfData(DynamicJsonDocument& statusDoc)
 {
-    LOCK_SURF_DATA();
+    MutexGuard lock(surfDataMutex);
     statusDoc["last_surf_data"]["received"] = lastSurfData.dataReceived;
     statusDoc["last_surf_data"]["wave_height_m"] = lastSurfData.waveHeight;
     statusDoc["last_surf_data"]["wave_period_s"] = lastSurfData.wavePeriod;
@@ -83,12 +86,11 @@ void GetLastSurfData(DynamicJsonDocument& statusDoc)
     statusDoc["last_surf_data"]["quiet_hours_active"] = lastSurfData.quietHoursActive;
     statusDoc["last_surf_data"]["off_hours_active"] = lastSurfData.offHoursActive;
     statusDoc["last_surf_data"]["last_update_ms"] = lastSurfData.lastUpdate;
-    UNLOCK_SURF_DATA();
 }
 
 void GetLedDebug(DynamicJsonDocument& statusDoc)
 {
-    LOCK_SURF_DATA();
+    MutexGuard lock(surfDataMutex);
     if (lastSurfData.dataReceived)
     {
         int windSpeedLEDs = ledMapping.calculateWindLEDs(lastSurfData.windSpeed);
@@ -103,7 +105,6 @@ void GetLedDebug(DynamicJsonDocument& statusDoc)
         statusDoc["led_calculations"]["wind_speed_knots"] = ledMapping.windSpeedToKnots(lastSurfData.windSpeed);
         statusDoc["led_calculations"]["wind_threshold_exceeded"] = ledMapping.windSpeedToKnots(lastSurfData.windSpeed) >= lastSurfData.windSpeedThreshold;
     }
-    UNLOCK_SURF_DATA();
 }
 
 void handleStatusRequest() 
@@ -139,7 +140,7 @@ void handleStatusRequest()
     serializeJson(statusDoc, statusJson);
 
     webServer->send(200, "application/json", statusJson);
-    Serial.println("📊 Status request served");
+    asyncLogger.Log("Status request served");
 }
 
 
@@ -163,7 +164,7 @@ void handleDeviceInfoRequest() {
     serializeJson(infoDoc, infoJson);
 
     webServer->send(200, "application/json", infoJson);
-    Serial.println("ℹ️ Device info request served");
+    asyncLogger.Log("Device info request served");
 }
 
 
@@ -197,7 +198,7 @@ void handleWiFiDiagnostics() {
     serializeJson(doc, response);
 
     webServer->send(200, "application/json", response);
-    Serial.println("🔍 WiFi diagnostics request served");
+    asyncLogger.Log("WiFi diagnostics request served");
 }
 
 
@@ -210,26 +211,37 @@ void handleWiFiDiagnostics() {
 
 void print_data_info()
 {
-    LOCK_SURF_DATA();
-    // Calculate LED counts for logging
+    MutexGuard lock(surfDataMutex);
     int windSpeedLEDs = ledMapping.calculateWindLEDs(lastSurfData.windSpeed);
     int waveHeightLEDs = ledMapping.calculateWaveLEDsFromMeters(lastSurfData.waveHeight);
     int wavePeriodLEDs = ledMapping.calculateWavePeriodLEDs(lastSurfData.wavePeriod);
-    Serial.println("🌊 Surf Data Received:");
-    Serial.printf("   Wave Height: %d cm\n", lastSurfData.waveHeightCm());
-    Serial.printf("   Wave Period: %.1f s\n", lastSurfData.wavePeriod);
-    Serial.printf("   Wind Speed: %.1f m/s\n", lastSurfData.windSpeed);
-    Serial.printf("   Wind Direction: %d°\n", lastSurfData.windDirection);
-    Serial.printf("   Wave Threshold: %d cm\n", lastSurfData.waveThresholdCm());
-    Serial.printf("   Wind Speed Threshold: %d knots\n", lastSurfData.windSpeedThreshold);
-    Serial.printf("   Quiet Hours Active: %s\n", lastSurfData.quietHoursActive ? "true" : "false");
-    Serial.printf("   Off Hours Active: %s\n", lastSurfData.offHoursActive ? "true" : "false");
-    Serial.printf("   Brightness Multiplier: %.1f\n", lastSurfData.brightnessMultiplier);
-    Serial.printf("   LED Theme: %s\n", lastSurfData.theme);
-    // Log timestamp and LED counts
-    Serial.printf("⏰ Timestamp: %lu ms (uptime)\n", lastSurfData.lastUpdate);
-    Serial.printf("💡 LEDs Active - Wind: %d, Wave: %d, Period: %d\n", windSpeedLEDs, waveHeightLEDs, wavePeriodLEDs);
-    UNLOCK_SURF_DATA();
+
+    char buf[128];
+    asyncLogger.Log("Surf Data Received:");
+    sprintf(buf, "   Wave Height: %d cm", lastSurfData.waveHeightCm());
+    asyncLogger.Log(buf);
+    sprintf(buf, "   Wave Period: %.1f s", lastSurfData.wavePeriod);
+    asyncLogger.Log(buf);
+    sprintf(buf, "   Wind Speed: %.1f m/s", lastSurfData.windSpeed);
+    asyncLogger.Log(buf);
+    sprintf(buf, "   Wind Direction: %d deg", lastSurfData.windDirection);
+    asyncLogger.Log(buf);
+    sprintf(buf, "   Wave Threshold: %d cm", lastSurfData.waveThresholdCm());
+    asyncLogger.Log(buf);
+    sprintf(buf, "   Wind Threshold: %d knots", lastSurfData.windSpeedThreshold);
+    asyncLogger.Log(buf);
+    sprintf(buf, "   Quiet Hours: %s", lastSurfData.quietHoursActive ? "true" : "false");
+    asyncLogger.Log(buf);
+    sprintf(buf, "   Off Hours: %s", lastSurfData.offHoursActive ? "true" : "false");
+    asyncLogger.Log(buf);
+    sprintf(buf, "   Brightness: %.1f", lastSurfData.brightnessMultiplier);
+    asyncLogger.Log(buf);
+    sprintf(buf, "   LED Theme: %s", lastSurfData.theme);
+    asyncLogger.Log(buf);
+    sprintf(buf, "Timestamp: %lu ms (uptime)", lastSurfData.lastUpdate);
+    asyncLogger.Log(buf);
+    sprintf(buf, "LEDs Active - Wind: %d, Wave: %d, Period: %d", windSpeedLEDs, waveHeightLEDs, wavePeriodLEDs);
+    asyncLogger.Log(buf);
 }
 
 void UpdateGlobalState(int wave_height_cm, float wave_period_s, int wind_speed_mps,
@@ -237,7 +249,7 @@ void UpdateGlobalState(int wave_height_cm, float wave_period_s, int wind_speed_m
                        bool quiet_hours_active, bool off_hours_active, float brightness_multiplier,
                        const String& led_theme, bool stale_data_warning)
 {
-    LOCK_SURF_DATA();
+    MutexGuard lock(surfDataMutex);
     // Update global state (converting height and threshold to meters for consistency)
     lastSurfData.waveHeight = wave_height_cm / 100.0;
     lastSurfData.wavePeriod = wave_period_s;
@@ -248,11 +260,11 @@ void UpdateGlobalState(int wave_height_cm, float wave_period_s, int wind_speed_m
     lastSurfData.quietHoursActive = quiet_hours_active;
     lastSurfData.offHoursActive = off_hours_active;
     lastSurfData.brightnessMultiplier = brightness_multiplier;
-    
+
     // Thread-safe string copy
     strncpy(lastSurfData.theme, led_theme.c_str(), sizeof(lastSurfData.theme) - 1);
     lastSurfData.theme[sizeof(lastSurfData.theme) - 1] = '\0';
-    
+
     lastSurfData.lastUpdate = millis();
     lastSurfData.dataReceived = true;
 
@@ -262,10 +274,9 @@ void UpdateGlobalState(int wave_height_cm, float wave_period_s, int wind_speed_m
     lastSurfData.jsonParseError = false;
     lastSurfData.partialDataError = false;
     lastSurfData.staleDataError = false;
-    
+
     // Set server-side stale warning (only triggers visual alert if true)
     lastSurfData.staleDataWarning = stale_data_warning;
-    UNLOCK_SURF_DATA();
 } 
 
 bool processSurfData(const String& jsonData) 
@@ -276,7 +287,9 @@ bool processSurfData(const String& jsonData)
     bool is_data_valid = doc["data_available"] | true;
 
     if (error) {
-        Serial.printf("❌ JSON parsing failed: %s\n", error.c_str());
+        char buf[128];
+        sprintf(buf, "JSON parsing failed: %s", error.c_str());
+        asyncLogger.Log(buf);
         lastSurfData.jsonParseError = true;
         lastSurfData.needsDisplayUpdate.store(true);
         return false;
@@ -309,17 +322,22 @@ bool processSurfData(const String& jsonData)
     // Extract fetch interval from server (dynamic polling configuration)
     if (doc.containsKey("fetch_interval_ms")) {
         unsigned long new_interval = doc["fetch_interval_ms"];
-        Serial.printf("📡 Received fetch_interval: %lu min\n", new_interval / 60000);
+        char buf[128];
+        sprintf(buf, "Received fetch_interval: %lu min", new_interval / 60000);
+        asyncLogger.Log(buf);
         if (new_interval >= 60000 && new_interval <= 3600000) { // Safety: 1 min to 1 hour
             unsigned long current_interval = FETCH_INTERVAL_MS.load();
             if (current_interval != new_interval) {
                 FETCH_INTERVAL_MS.store(new_interval);
-                Serial.printf("✅ Fetch interval updated: %lu min → %lu min\n", current_interval / 60000, new_interval / 60000);
+                sprintf(buf, "Fetch interval updated: %lu min -> %lu min", current_interval / 60000, new_interval / 60000);
+                asyncLogger.Log(buf);
             } else {
-                Serial.printf("ℹ️ Fetch interval unchanged: %lu min\n", new_interval / 60000);
+                sprintf(buf, "Fetch interval unchanged: %lu min", new_interval / 60000);
+                asyncLogger.Log(buf);
             }
         } else {
-            Serial.printf("⚠️ Fetch interval out of range: %lu min (ignoring, valid: 1-60 min)\n", new_interval / 60000);
+            sprintf(buf, "Fetch interval out of range: %lu min (ignoring, valid: 1-60 min)", new_interval / 60000);
+            asyncLogger.Log(buf);
         }
     }
 
@@ -328,14 +346,16 @@ bool processSurfData(const String& jsonData)
     bool partialZero = !is_data_valid || (wave_height_cm == 0 || wind_speed_mps == 0 || wave_period_s == 0) && !bothZero;
 
     if (bothZero) {
-        Serial.println("⚠️ INVALID DATA: Wave height, wind speed, and wave period are all zero");
+        asyncLogger.Log("INVALID DATA: Wave height, wind speed, and wave period are all zero");
     } else if (partialZero) {
-        Serial.println("⚠️ PARTIAL DATA FAILURE: One value is zero");
-        Serial.printf("   Wave: %d cm, Wind: %d m/s, Period: %.1f s\n", wave_height_cm, wind_speed_mps, wave_period_s);
+        asyncLogger.Log("PARTIAL DATA FAILURE: One value is zero");
+        char buf[128];
+        sprintf(buf, "   Wave: %d cm, Wind: %d m/s, Period: %.1f s", wave_height_cm, wind_speed_mps, wave_period_s);
+        asyncLogger.Log(buf);
     }
-    
+
     if (stale_data_warning) {
-        Serial.println("⚠️ SERVER WARNING: Data is stale (unchanged for > 60 mins)");
+        asyncLogger.Log("SERVER WARNING: Data is stale (unchanged for > 60 mins)");
     }
 
     UpdateGlobalState(wave_height_cm, wave_period_s, wind_speed_mps, wind_direction_deg,
@@ -358,7 +378,9 @@ bool processSurfData(const String& jsonData)
 
 bool processBinarySurfData(const uint8_t* binaryData, size_t length) {
     if (length != 26) {
-        Serial.printf("❌ Binary protocol error: Expected 26 bytes, got %d\n", length);
+        char buf[64];
+        sprintf(buf, "Binary protocol error: Expected 26 bytes, got %d", length);
+        asyncLogger.Log(buf);
         lastSurfData.jsonParseError = true;
         lastSurfData.needsDisplayUpdate.store(true);
         return false;
@@ -374,7 +396,7 @@ bool processBinarySurfData(const uint8_t* binaryData, size_t length) {
     // Validate surf CRC
     uint8_t surf_crc = binaryData[8];
     if (!surf.ValidateCRC(surf_crc)) {
-        Serial.println("❌ Surf data CRC validation FAILED - packet corrupted!");
+        asyncLogger.Log("Surf data CRC validation FAILED - packet corrupted!");
         lastSurfData.jsonParseError = true;  // Reuse error flag
         lastSurfData.needsDisplayUpdate.store(true);
         return false;
@@ -391,13 +413,13 @@ bool processBinarySurfData(const uint8_t* binaryData, size_t length) {
     // Validate settings CRC
     uint8_t settings_crc = binaryData[25];
     if (!settings.ValidateCRC(settings_crc)) {
-        Serial.println("❌ Settings data CRC validation FAILED - packet corrupted!");
+        asyncLogger.Log("Settings data CRC validation FAILED - packet corrupted!");
         lastSurfData.jsonParseError = true;
         lastSurfData.needsDisplayUpdate.store(true);
         return false;
     }
 
-    Serial.println("✅ Binary protocol: CRC validation PASSED");
+    asyncLogger.Log("Binary protocol: CRC validation PASSED");
 
     // Extract surf conditions
     int wave_height_cm = surf.GetWaveHeight();
@@ -439,7 +461,9 @@ bool processBinarySurfData(const uint8_t* binaryData, size_t length) {
         unsigned long current_interval = FETCH_INTERVAL_MS.load();
         if (current_interval != new_interval) {
             FETCH_INTERVAL_MS.store(new_interval);
-            Serial.printf("✅ Fetch interval updated: %lu min → %lu min\n", current_interval / 60000, new_interval / 60000);
+            char buf[128];
+            sprintf(buf, "Fetch interval updated: %lu min -> %lu min", current_interval / 60000, new_interval / 60000);
+            asyncLogger.Log(buf);
         }
     }
 
@@ -462,8 +486,10 @@ bool processBinarySurfData(const uint8_t* binaryData, size_t length) {
 
     lastSurfData.needsDisplayUpdate.store(true);
 
-    Serial.printf("📊 Binary packet decoded: wave=%dcm, wind=%dm/s, brightness=%.0f%%\n",
-                  wave_height_cm, wind_speed_mps, brightness_multiplier * 100);
+    char buf[128];
+    sprintf(buf, "Binary packet decoded: wave=%dcm, wind=%dm/s, brightness=%.0f%%",
+            wave_height_cm, wind_speed_mps, brightness_multiplier * 100);
+    asyncLogger.Log(buf);
 
     return true;
 }
@@ -511,15 +537,17 @@ bool sendHeartbeat()
     String jsonPayload;
     serializeJson(doc, jsonPayload);
     
-    Serial.println("💓 Sending heartbeat: " + url);
+    asyncLogger.Log(("Sending heartbeat: " + url).c_str());
     int httpCode = http.POST(jsonPayload);
-    
+
     bool success = false;
     if (httpCode == HTTP_CODE_OK) {
-        Serial.println("✅ Heartbeat acknowledged");
+        asyncLogger.Log("Heartbeat acknowledged");
         success = true;
     } else {
-        Serial.printf("❌ Heartbeat failed: %d\n", httpCode);
+        char buf[64];
+        sprintf(buf, "Heartbeat failed: %d", httpCode);
+        asyncLogger.Log(buf);
     }
     
     http.end();
@@ -530,7 +558,7 @@ bool sendHeartbeat()
 bool fetchSurfDataFromServer() {
     String apiServer = serverDiscovery.getApiServer();
     if (apiServer.length() == 0) {
-        Serial.println("❌ No API server available for fetching data");
+        asyncLogger.Log("No API server available for fetching data");
         return false;
     }
 
@@ -540,7 +568,7 @@ bool fetchSurfDataFromServer() {
 
     HTTPClient http;
     String url = "https://" + apiServer + "/api/arduino/v3/" + String(ARDUINO_ID) + "/data";
-    Serial.println("🌐 Fetching surf data (V3 Binary Protocol): " + url);
+    asyncLogger.Log(("Fetching surf data (V3 Binary Protocol): " + url).c_str());
 
     http.begin(globalHttpsClient, url);
     http.setTimeout(HTTP_TIMEOUT_MS);
@@ -553,7 +581,9 @@ bool fetchSurfDataFromServer() {
 
         // Get binary payload size
         int payloadSize = http.getSize();
-        Serial.printf("📦 Received %d bytes from server\n", payloadSize);
+        char buf[128];
+        sprintf(buf, "Received %d bytes from server", payloadSize);
+        asyncLogger.Log(buf);
 
         // Read binary data
         uint8_t binaryBuffer[26];  // Fixed size for v3 protocol
@@ -565,18 +595,19 @@ bool fetchSurfDataFromServer() {
 
             // Process Date header
             if (dateHeader.length() > 0) {
-                Serial.println("📅 HTTP Date: " + dateHeader);
+                asyncLogger.Log(("HTTP Date: " + dateHeader).c_str());
                 if (sunsetCalc.parseAndUpdateTime(dateHeader)) {
                     sunsetCalc.calculateSunset();
                 } else {
-                    Serial.println("⚠️ Failed to parse Date header");
+                    asyncLogger.Log("Failed to parse Date header");
                 }
             }
 
-            Serial.println("📥 Processing binary surf data (26 bytes)");
+            asyncLogger.Log("Processing binary surf data (26 bytes)");
             return processBinarySurfData(binaryBuffer, 26);
         } else {
-            Serial.printf("❌ Invalid payload size: expected 26 bytes, got %d\n", payloadSize);
+            sprintf(buf, "Invalid payload size: expected 26 bytes, got %d", payloadSize);
+            asyncLogger.Log(buf);
             http.end();
             globalHttpsClient.stop();
             lastSurfData.jsonParseError = true;
@@ -584,7 +615,9 @@ bool fetchSurfDataFromServer() {
             return false;
         }
     } else {
-        Serial.printf("❌ HTTP error fetching surf data: %d (%s)\n", httpCode, http.errorToString(httpCode).c_str());
+        char buf[128];
+        sprintf(buf, "HTTP error fetching surf data: %d (%s)", httpCode, http.errorToString(httpCode).c_str());
+        asyncLogger.Log(buf);
         http.end();
         globalHttpsClient.stop();  // Explicit cleanup after failure
 

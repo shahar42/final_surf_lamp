@@ -11,6 +11,7 @@
 #include <FastLED.h>
 #include "Config.h"
 #include "SurfState.h"
+#include "MutexGuard.h"
 
 // ---------------- LED ARRAY ----------------
 // Global LED array (managed by this module)

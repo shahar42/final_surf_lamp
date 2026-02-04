@@ -132,15 +132,26 @@ def process_all_lamps():
             # Fetch data from APIs
             total_api_calls += 2
             wave_data = fetch_surf_data(None, config['wave_api_url'])
-            wind_data = fetch_surf_data(None, config['wind_api_url'], config['wave_calculation_method'])
 
-            # Combine data
+            # Only use wave_calculation_method for wind if location is explicitly set to 'formula' (Eilat only)
+            use_wind_calculation = config['wave_calculation_method'] == 'formula'
+            wind_data = fetch_surf_data(None, config['wind_api_url'], wave_calculation_method='formula' if use_wind_calculation else 'api')
+
+            # Combine data - for non-formula locations, wind-based wave calculation is NOT a fallback
             combined_surf_data = {}
-            if wave_data: combined_surf_data.update(wave_data)
-            if wind_data: combined_surf_data.update(wind_data)
+            if wave_data:
+                combined_surf_data.update(wave_data)
+            if wind_data:
+                # Only use wind data if it contains actual wind values or if location uses formula method
+                if use_wind_calculation:
+                    combined_surf_data.update(wind_data)
+                else:
+                    # For API-based locations, only keep wind values, never wind-calculated waves
+                    combined_surf_data['wind_speed_mps'] = wind_data.get('wind_speed_mps')
+                    combined_surf_data['wind_direction_deg'] = wind_data.get('wind_direction_deg')
 
-            if not combined_surf_data:
-                logger.error(f"❌ No data obtained for location {location}")
+            if not combined_surf_data or not wave_data:
+                logger.error(f"❌ No wave data obtained for location {location} (wave_api_url failed)")
                 continue
 
             # Check for staleness
