@@ -169,6 +169,29 @@ const LEDDataFetcher = {
     },
 
     /**
+     * Update theme without reinitializing
+     * @param {string} themeName - New theme name
+     */
+    updateTheme: function(themeName) {
+        this.currentTheme = themeName;
+
+        // Force immediate redraw - animation loop will continue from here
+        if (this.cachedData) {
+            this.updateLEDVisualization(this.cachedData);
+        } else if (this.imageLoaded) {
+            // Even without data, redraw the board with new theme colors
+            LEDVisualizationCore.drawSurfboard(
+                this.ctx, this.canvas,
+                0, 0, 0,
+                ThemeManager.getTheme(this.currentTheme),
+                null,
+                this.lampImage,
+                this.time
+            );
+        }
+    },
+
+    /**
      * Stop all intervals (cleanup)
      */
     destroy: function() {

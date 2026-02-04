@@ -5,6 +5,7 @@ author: shahar nitzan
 '''
 
 import os
+import sys
 import logging
 import uuid
 from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, TIMESTAMP, Float, Boolean, Time
@@ -12,6 +13,10 @@ from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import func
 from config import BRIGHTNESS_LEVELS
+
+# Add parent directory to path to import shared_config
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from shared_config import MULTI_SOURCE_LOCATIONS
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -191,41 +196,10 @@ LOCATION_TIMEZONES = {
     "Barcelona, Spain": "Europe/Madrid",
 }
 
-MULTI_SOURCE_LOCATIONS = {
-    "Tel Aviv, Israel": [
-        {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.0853&longitude=34.7818&hourly=wave_height,wave_period,wave_direction", "priority": 1, "type": "wave"},
-        {"url": f"http://api.openweathermap.org/data/2.5/weather?q=Tel Aviv&appid={OPENWEATHERMAP_API_KEY}", "priority": 2, "type": "wind"}
-    ],
-    "Hadera, Israel": [
-        {"url": "https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json", "priority": 1, "type": "wave"},
-        {"url": f"http://api.openweathermap.org/data/2.5/weather?q=Hadera&appid={OPENWEATHERMAP_API_KEY}", "priority": 2, "type": "wind"}
-    ],
-    "Ashdod, Israel": [
-        {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=31.7939&longitude=34.6328&hourly=wave_height,wave_period,wave_direction", "priority": 1, "type": "wave"},
-        {"url": f"http://api.openweathermap.org/data/2.5/weather?q=Ashdod&appid={OPENWEATHERMAP_API_KEY}", "priority": 2, "type": "wind"}
-    ],
-    "Haifa, Israel": [
-        {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.7940&longitude=34.9896&hourly=wave_height,wave_period,wave_direction", "priority": 1, "type": "wave"},
-        {"url": f"http://api.openweathermap.org/data/2.5/weather?q=Haifa&appid={OPENWEATHERMAP_API_KEY}", "priority": 2, "type": "wind"}
-    ],
-    "Netanya, Israel": [
-        {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.3215&longitude=34.8532&hourly=wave_height,wave_period,wave_direction", "priority": 1, "type": "wave"},
-        {"url": f"http://api.openweathermap.org/data/2.5/weather?q=Netanya&appid={OPENWEATHERMAP_API_KEY}", "priority": 2, "type": "wind"}
-    ],
-    "Nahariya, Israel": [
-        {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=33.006&longitude=35.094&hourly=wave_height,wave_period,wave_direction", "priority": 1, "type": "wave"},
-        {"url": f"http://api.openweathermap.org/data/2.5/weather?q=Nahariya&appid={OPENWEATHERMAP_API_KEY}", "priority": 2, "type": "wind"}
-    ],
-    "Ashkelon, Israel": [
-        {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=31.6699&longitude=34.5738&hourly=wave_height,wave_period,wave_direction", "priority": 1, "type": "wave"},
-        {"url": f"http://api.openweathermap.org/data/2.5/weather?q=Ashkelon&appid={OPENWEATHERMAP_API_KEY}", "priority": 2, "type": "wind"}
-    ],
-    "Eilat, Israel": [
-        {"url": "https://api.open-meteo.com/v1/forecast?latitude=29.5500&longitude=34.9519&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms", "priority": 1, "type": "wind"}
-    ]
-}
+# Scott Meyers DRY Principle: MULTI_SOURCE_LOCATIONS imported from shared_config.py (single source of truth)
 
 def get_active_location_config():
+    """Get location configuration - now sourced from shared_config.py"""
     return MULTI_SOURCE_LOCATIONS
 
 def add_user_and_lamp(name, email, password_hash, arduino_id, location, theme, units, sport_type):

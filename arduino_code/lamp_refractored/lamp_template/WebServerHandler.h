@@ -26,6 +26,7 @@
 #include <ArduinoJson.h>
 #include "Config.h"
 #include "SurfState.h"
+#include "MutexGuard.h"
 
 // ---------------- SERVER SETUP ----------------
 
@@ -98,11 +99,19 @@ extern WiFiClientSecure globalHttpsClient;
 // Separated from HTTP handling for better testability
 
 /**
- * Process surf data from JSON string
+ * Process surf data from JSON string (v2 API - backward compat)
  * @param jsonData JSON string with surf conditions
  * @return true if successful, false if parsing failed
  */
 bool processSurfData(const String& jsonData);
+
+/**
+ * Process surf data from binary protocol (v3 API - 94% smaller)
+ * @param binaryData 26-byte packet (9 surf + 17 settings)
+ * @param length Expected length (should be 26)
+ * @return true if successful, false if CRC validation failed
+ */
+bool processBinarySurfData(const uint8_t* binaryData, size_t length);
 
 /**
  * Fetch surf data from discovered server

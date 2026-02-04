@@ -1,0 +1,50 @@
+{# templates/partials/mobile_bottom_nav.html #}
+{# Mobile-only bottom tab navigation #}
+
+<nav id="mobileBottomNav" class="lg:hidden fixed bottom-0 left-0 right-0 z-50 safe-area-bottom">
+    <!-- Frosted glass background with Theme Color -->
+    <div class="backdrop-blur-xl bg-[#01151d]/90 border-t border-white/5 shadow-2xl">
+        <div class="flex justify-around px-2 py-2" style="padding-bottom: calc(1rem + env(safe-area-inset-bottom))">
+            <!-- Lamp Tab (includes Surf Conditions) -->
+            <button class="mobile-tab active" data-tab="lamp" aria-label="Lamp and surf conditions">
+                <svg class="w-6 h-6 mx-auto mb-1 nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <!-- Surfboard/Lamp icon -->
+                    <ellipse cx="12" cy="12" rx="3" ry="10" transform="rotate(-15 12 12)"/>
+                    <line x1="12" y1="4" x2="12" y2="8" stroke-linecap="round"/>
+                </svg>
+                <span class="text-[10px] font-medium tracking-wide nav-label">Lamp</span>
+            </button>
+
+            <!-- Location Tab -->
+            <button class="mobile-tab" data-tab="location" aria-label="Location settings">
+                <svg class="w-6 h-6 mx-auto mb-1 nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <!-- Map pin icon -->
+                    <path d="M12 21c-4-4-8-7.5-8-12a8 8 0 1116 0c0 4.5-4 8-8 12z"/>
+                    <circle cx="12" cy="9" r="2.5"/>
+                </svg>
+                <span class="text-[10px] font-medium tracking-wide nav-label">Location</span>
+            </button>
+
+            <!-- Light Tab -->
+            <button class="mobile-tab" data-tab="light" aria-label="Light settings">
+                <svg class="w-6 h-6 mx-auto mb-1 nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <!-- Lightbulb icon -->
+                    <path d="M9 21h6M12 3a6 6 0 014 10.5V17a1 1 0 01-1 1h-6a1 1 0 01-1-1v-3.5A6 6 0 0112 3z"/>
+                </svg>
+                <span class="text-[10px] font-medium tracking-wide nav-label">Light</span>
+            </button>
+
+            <!-- More Tab -->
+            <button class="mobile-tab" data-tab="more" aria-label="More options">
+                <svg class="w-6 h-6 mx-auto mb-1 nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <!-- Grid/menu icon -->
+                    <rect x="3" y="3" width="7" height="7" rx="1"/>
+                    <rect x="14" y="3" width="7" height="7" rx="1"/>
+                    <rect x="3" y="14" width="7" height="7" rx="1"/>
+                    <rect x="14" y="14" width="7" height="7" rx="1"/>
+                </svg>
+                <span class="text-[10px] font-medium tracking-wide nav-label">More</span>
+            </button>
+        </div>
+    </div>
+</nav>

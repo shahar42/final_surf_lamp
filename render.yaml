@@ -32,7 +32,7 @@ services:
       - key: EMAIL_FROM
         value: shaharisn1@gmail.com
       - key: EMAIL_TO
-        value: shaharisn1@gmail.com
+        value: shaharisn1@gmail.com,nitzanraz@gmail.com
       - key: ALERT_ERROR_THRESHOLD
         value: 5
       - key: ALERT_RESPONSE_TIME_MS

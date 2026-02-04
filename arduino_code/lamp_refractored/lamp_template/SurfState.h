@@ -64,7 +64,8 @@ struct SurfData {
 extern SurfData lastSurfData;
 extern SemaphoreHandle_t surfDataMutex;
 
-// Helper macros for easier mutex usage
+// DEPRECATED: Use MutexGuard instead of manual LOCK/UNLOCK macros
+// These are kept for backwards compatibility only - do not use in new code
 #define LOCK_SURF_DATA() xSemaphoreTake(surfDataMutex, portMAX_DELAY)
 #define UNLOCK_SURF_DATA() xSemaphoreGive(surfDataMutex)
 

@@ -22,6 +22,17 @@ input, textarea, select {
 /* Ensure interactive elements show pointer */
 button, .btn, a, label {
     cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Tactile feedback for all buttons and interactive elements */
+button:active, .btn:active, a:active {
+    transform: scale(0.96);
+}
+
+/* Standardized border radius for a modern look */
+select, input, button, .btn, .card {
+    border-radius: 1rem !important; /* 16px - rounded-xl */
 }
 
 /* Keyboard navigation - focus-visible styles */
@@ -100,108 +111,19 @@ textarea:focus-visible {
    FORM CONTROLS
    ================================== */
 
-.brightness-btn, .preset-btn {
-    transition: all 0.3s ease;
-}
-
-.brightness-active {
-    background-color: rgba(234, 88, 12, 0.8) !important;
-    border-color: #f97316 !important;
-    box-shadow: 0 0 15px rgba(234, 88, 12, 0.3);
-    color: white !important;
-    font-weight: 600;
-}
-
-.preset-btn:active {
-    transform: scale(0.95);
-}
-
-#locationSelect {
-    background-color: rgba(10, 77, 104, 0.3);  /* Deep ocean blue with transparency */
-    -webkit-appearance: none;
-    -moz-appearance: none;
+/* Custom Select Dropdown Arrow */
+select {
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23FFFCDE' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
     background-repeat: no-repeat;
-    background-position: right 8px center;
-    padding-right: 28px;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
 }
 
-#locationSelect option {
-    background-color: #021f2b;  /* Very deep ocean blue to match gradient */
-    color: #FFFCDE;
-    padding: 4px 8px;
-}
-
-/* Force option styling on all browsers including mobile */
-@supports (-webkit-appearance: none) {
-    #locationSelect option {
-        background: #021f2b;
-        color: #FFFCDE;
-    }
-}
-
-
-/* ===================================
-   LED CANVAS - SPATIAL DEPTH
-   ================================== */
-
-#lampScaleContainer {
-    /* Very subtle drop shadow (suggests weight without announcing itself) */
-    filter: drop-shadow(0 calc(8px * var(--surfboard-shadow)) calc(16px * var(--surfboard-shadow)) rgba(0, 0, 0, calc(0.3 * var(--surfboard-shadow))));
-}
-
-/* Removed oval aura - too literal, creates visible halo */
-
-.led-strip-canvas {
-    border-radius: 8px;
-    background: transparent;
-    box-shadow: none;
-}
-
-.blinking {
-    animation: blink 0.8s ease-in-out infinite;
-}
-
-
-/* ===================================
-   MODALS
-   ================================== */
-
-/* Modal styles use Tailwind classes - no custom styles needed */
-
-
-/* ===================================
-   FOOTER
-   ================================== */
-
-.legal-footer {
-    background: transparent;
-    padding: 20px;
-    text-align: center;
-    margin-top: 40px;
-    border-top: 1px solid rgba(255, 252, 222, 0.2);
-}
-
-.legal-footer a {
-    color: #FFFCDE;
-    text-decoration: none;
-    margin: 0 15px;
-    font-size: 14px;
-    opacity: 0.9;
-    transition: opacity 0.2s;
-}
-
-.legal-footer a:hover {
-    opacity: 1;
-    text-decoration: underline;
-}
-
-.legal-footer p {
-    color: #FFFCDE;
-    margin: 10px 0 0 0;
-    font-size: 12px;
-    opacity: 0.8;
+/* Remove default focus outline for custom styles */
+*:focus {
+    outline: none;
 }
 
 
@@ -209,28 +131,10 @@ textarea:focus-visible {
    ANIMATIONS
    ================================== */
 
-.animate-slide-in {
-    animation: slide-in 0.3s ease-out;
-}
-
 @keyframes softPulse {
-    0%, 100% { opacity: 0.7; }
-    50% { opacity: 1; }
-}
-
-@keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-}
-
-@keyframes slide-in {
-    from { transform: translateX(-100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-}
-
-@keyframes slideUp {
-    from { transform: translateY(100%); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+    0% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 rgba(0, 198, 255, 0.7); }
+    50% { transform: scale(1.1); opacity: 0.8; box-shadow: 0 0 10px 5px rgba(0, 198, 255, 0); }
+    100% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 rgba(0, 198, 255, 0); }
 }
 
 @keyframes fadeInUp {
@@ -258,57 +162,273 @@ textarea:focus-visible {
 .card-enter-5 { animation-delay: 0.4s; }
 
 /* ===================================
-   RIPPLE EFFECT (Material Design)
+   LED VISUALIZATION
    ================================== */
 
-.ripple-container {
-    position: relative;
-    overflow: hidden;
+#led-strip-container {
+    perspective: 1000px;
+    transform-style: preserve-3d;
 }
 
-.ripple {
+.led-strip-glass {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow:
+        0 4px 6px -1px rgba(0, 0, 0, 0.1),
+        0 2px 4px -1px rgba(0, 0, 0, 0.06),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transform: translateZ(0);
+    transition: all 0.3s ease;
+}
+
+.led-strip-glass::before {
+    content: '';
     position: absolute;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.5);
-    transform: scale(0);
-    animation: ripple-animation 0.6s ease-out;
+    inset: 0;
+    background: linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0.1) 0%,
+        rgba(255, 255, 255, 0.05) 20%,
+        rgba(255, 255, 255, 0) 100%
+    );
     pointer-events: none;
 }
 
-@keyframes ripple-animation {
+/* Individual LED glow effects */
+.led-pixel {
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.led-pixel::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    background: inherit;
+    filter: blur(8px);
+    opacity: 0.6;
+    z-index: -1;
+}
+
+/* ===================================
+   MOBILE BOTTOM NAVIGATION
+   ================================== */
+
+.mobile-nav-glass {
+    background: rgba(2, 31, 43, 0.95); /* Deep ocean color */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.mobile-tab {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+    min-width: fit-content;
+    overflow: visible;
+    padding: 6px 8px;
+    white-space: nowrap;
+    color: rgba(255, 255, 255, 0.5);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mobile-tab.active {
+    color: #fff;
+}
+
+.mobile-tab::before {
+    content: '';
+    position: absolute;
+    top: -12px; /* Position at very top of nav bar */
+    left: 50%;
+    transform: translateX(-50%) scaleX(0);
+    width: 40px;
+    height: 3px;
+    background: #00c6ff;
+    border-radius: 0 0 4px 4px;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(0, 198, 255, 0.6);
+}
+
+.mobile-tab.active::before {
+    transform: translateX(-50%) scaleX(1);
+}
+
+.nav-icon {
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); /* Bouncy spring */
+}
+
+.mobile-tab.active .nav-icon {
+    transform: translateY(-4px);
+    color: #00c6ff;
+    filter: drop-shadow(0 0 8px rgba(0, 198, 255, 0.5));
+}
+
+.nav-label {
+    line-height: 1.2;
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+}
+
+.mobile-tab.active .nav-label {
+    opacity: 1;
+}
+
+/* Ripple effect for touch feedback */
+.ripple {
+    position: absolute;
+    border-radius: 50%;
+    transform: scale(0);
+    animation: ripple 0.6s linear;
+    background-color: rgba(255, 255, 255, 0.2);
+    pointer-events: none;
+}
+
+@keyframes ripple {
     to {
         transform: scale(4);
         opacity: 0;
     }
 }
 
+
 /* ===================================
-   LOCATION SELECT FLICKER
+   VIEW TRANSITIONS (Mobile)
+   Native, hardware-accelerated state transitions
    ================================== */
 
-@keyframes blue-flicker {
-    0% {
-        box-shadow: 0 0 0 0 rgba(0, 198, 255, 0);
-        border-color: rgba(255, 255, 255, 0.3);
+@media (max-width: 1023px) {
+    /* Isolate the bottom nav so it doesn't slide with the content */
+    #mobileBottomNav {
+        view-transition-name: bottom-nav;
     }
-    25% {
-        box-shadow: 0 0 8px 2px rgba(0, 198, 255, 0.6);
-        border-color: #00c6ff;
+
+    /* Standardize animation timing */
+    ::view-transition-group(root) {
+        animation-duration: 0.3s;
+        animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     }
-    50% {
-        box-shadow: 0 0 12px 3px rgba(0, 198, 255, 0.4);
-        border-color: #00c6ff;
+
+    /* Forward (Next) Animations */
+    :root[data-transition="next"]::view-transition-old(root) {
+        animation-name: slideOutLeft;
     }
-    75% {
-        box-shadow: 0 0 8px 2px rgba(0, 198, 255, 0.6);
-        border-color: #00c6ff;
+    :root[data-transition="next"]::view-transition-new(root) {
+        animation-name: slideInRight;
+        mix-blend-mode: normal; /* Fix for dark mode artifacts */
     }
-    100% {
-        box-shadow: 0 0 0 0 rgba(0, 198, 255, 0);
-        border-color: rgba(255, 255, 255, 0.3);
+
+    /* Backward (Prev) Animations */
+    :root[data-transition="prev"]::view-transition-old(root) {
+        animation-name: slideOutRight;
+    }
+    :root[data-transition="prev"]::view-transition-new(root) {
+        animation-name: slideInLeft;
+        mix-blend-mode: normal;
     }
 }
 
-#locationSelect.flicker-active {
-    animation: blue-flicker 0.8s ease-in-out;
+/* Keyframes - optimized for GPU */
+@keyframes slideOutLeft {
+    to { transform: translateX(-25%); opacity: 0; }
+}
+@keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+}
+@keyframes slideOutRight {
+    to { transform: translateX(25%); opacity: 0; }
+}
+@keyframes slideInLeft {
+    from { transform: translateX(-100%); opacity: 0; }
+}
+
+/* ===================================
+   DASHBOARD SECTIONS (Single DOM approach)
+   =================================== */
+
+/* Desktop: all sections visible */
+.dashboard-section {
+    display: block;
+}
+
+/* Mobile: sections hidden by default, shown when active */
+@media (max-width: 1023px) {
+    .dashboard-section {
+        display: none;
+    }
+
+    .dashboard-section.tab-active {
+        display: block;
+    }
+
+    /* Lamp tab - full height with scrollable content */
+    .dashboard-section[data-tab="lamp"].tab-active {
+        min-height: calc(100vh - 140px);
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+        overflow-y: auto;
+    }
+
+    .dashboard-section[data-tab="lamp"] .mobile-tab-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.5rem;
+    }
+
+    /* Other tabs need top padding for header clearance */
+    .dashboard-section[data-tab="location"].tab-active,
+    .dashboard-section[data-tab="light"].tab-active,
+    .dashboard-section[data-tab="more"].tab-active {
+        padding-top: 4rem;
+        padding-left: 1.25rem;
+        padding-right: 1.25rem;
+        padding-bottom: 7rem; /* Space for bottom nav */
+    }
+
+    /* Directional slide animations - GPU accelerated */
+    .dashboard-section.tab-slide-left {
+        animation: tabSlideLeft 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    .dashboard-section.tab-slide-right {
+        animation: tabSlideRight 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    /* ===================================
+       OPTION 1: CLEAN SLATE (No Cards on Mobile)
+       ================================== */
+    /* Remove card styling inside dashboard sections on mobile */
+    .dashboard-section .card {
+        background-color: transparent !important;
+        backdrop-filter: none !important;
+        border: none !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        padding: 0 !important; /* Let content breathe full width */
+        overflow: visible !important;
+    }
+
+    /* Add separators to compensate for lack of card grouping */
+    /* We target the direct children of the content div usually */
+    .dashboard-section .card > div {
+        padding: 0 !important; /* Remove inner padding */
+    }
+
+    /* Add spacing between elements since the card padding is gone */
+    .dashboard-section .space-y-3 > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 1.5rem; /* Increase vertical spacing for better touch targets */
+    }
+
+    /* Make dividers more subtle but visible */
+    .border-white\/20 {
+        border-color: rgba(255, 255, 255, 0.1);
+    }
 }

@@ -16,12 +16,14 @@ from dotenv import load_dotenv
 # Import from refactored modules
 from lamp_repository import (
     test_database_connection,
-    get_location_api_configs,
     get_arduinos_for_location,
     update_location_conditions,
     update_processor_heartbeat
 )
-from weather_api_client import fetch_surf_data
+from weather_api_client import fetch_surf_data_with_fallback
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from shared_config import get_api_sources_for_location, get_wave_calculation_method, MULTI_SOURCE_LOCATIONS
 
 load_dotenv()
 
@@ -111,17 +113,23 @@ def process_all_lamps():
             logger.error("❌ Database connection failed")
             return False
 
-        location_configs = get_location_api_configs(engine)
-        if not location_configs:
-            logger.error("❌ No location configurations found")
+        # Get all locations with active arduinos
+        active_locations = []
+        for location in MULTI_SOURCE_LOCATIONS.keys():
+            arduinos = get_arduinos_for_location(engine, location)
+            if arduinos:
+                active_locations.append(location)
+
+        if not active_locations:
+            logger.error("❌ No active locations found")
             return False
 
-        logger.info(f"📊 Processing {len(location_configs)} locations...")
+        logger.info(f"📊 Processing {len(active_locations)} locations...")
 
         total_arduinos_updated = 0
         total_api_calls = 0
 
-        for location, config in location_configs.items():
+        for location in active_locations:
             logger.info(f"Processing Location: {location}")
 
             arduinos = get_arduinos_for_location(engine, location)
@@ -129,23 +137,39 @@ def process_all_lamps():
                 logger.warning(f"⚠️  No arduinos found for location: {location}")
                 continue
 
-            # Fetch data from APIs
+            # Get API sources with priority fallback from shared config
+            api_sources = get_api_sources_for_location(location)
+            wave_calculation_method = get_wave_calculation_method(location)
+
+            # Fetch data from APIs with fallback
             total_api_calls += 2
-            wave_data = fetch_surf_data(None, config['wave_api_url'])
-            wind_data = fetch_surf_data(None, config['wind_api_url'], config['wave_calculation_method'])
+            wave_data = fetch_surf_data_with_fallback(None, api_sources['wave'], wave_calculation_method)
 
-            # Combine data
+            # Only use wave_calculation_method for wind if location is explicitly set to 'formula' (Eilat only)
+            use_wind_calculation = wave_calculation_method == 'formula'
+            wind_data = fetch_surf_data_with_fallback(None, api_sources['wind'], wave_calculation_method='formula' if use_wind_calculation else 'api')
+
+            # Combine data - for non-formula locations, wind-based wave calculation is NOT a fallback
             combined_surf_data = {}
-            if wave_data: combined_surf_data.update(wave_data)
-            if wind_data: combined_surf_data.update(wind_data)
+            if wave_data:
+                combined_surf_data.update(wave_data)
+            if wind_data:
+                # Only use wind data if it contains actual wind values or if location uses formula method
+                if use_wind_calculation:
+                    combined_surf_data.update(wind_data)
+                else:
+                    # For API-based locations, only keep wind values, never wind-calculated waves
+                    combined_surf_data['wind_speed_mps'] = wind_data.get('wind_speed_mps')
+                    combined_surf_data['wind_direction_deg'] = wind_data.get('wind_direction_deg')
 
-            if not combined_surf_data:
-                logger.error(f"❌ No data obtained for location {location}")
+            if not combined_surf_data or not wave_data:
+                logger.error(f"❌ No wave data obtained for location {location} (all wave endpoints failed)")
                 continue
 
-            # Check for staleness
-            old_data = config.get('current_values', {})
-            current_consecutive = config.get('consecutive_identical_updates', 0)
+            # Check for staleness - get current values from database
+            from lamp_repository import get_current_location_values
+            old_data = get_current_location_values(engine, location)
+            current_consecutive = old_data.get('consecutive_identical_updates', 0) if old_data else 0
             
             is_identical = is_data_identical(old_data, combined_surf_data)
             

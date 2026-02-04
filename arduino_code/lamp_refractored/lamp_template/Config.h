@@ -9,29 +9,29 @@
 #include <cmath>
 
 
-const int ARDUINO_ID = 6;
+const int ARDUINO_ID = 13;
 
 // ---------------- HARDWARE SETUP ----------------
 #define LED_PIN 2              // pin connected to LED strip
 // NOTE: TOTAL_LEDS should be set to the highest LED index + 1.
-#define TOTAL_LEDS 57          
+#define TOTAL_LEDS 128          
 #define LED_TYPE WS2812B       
 #define COLOR_ORDER GRB        
-#define BRIGHTNESS 75          // Global brightness effects all leds
+#define GLOBAL_BRIGHTNESS_LIMIT 75          // Global brightness effects all leds
 
 // ---------------- LED STRIP MAPPING ----------------
 // Direction is auto-detected: if bottom < top = FORWARD, if bottom > top = REVERSE
 
-#define WAVE_HEIGHT_BOTTOM 2  
-#define WAVE_HEIGHT_TOP 16     
+#define WAVE_HEIGHT_BOTTOM 4  
+#define WAVE_HEIGHT_TOP 38     
 
-#define WAVE_PERIOD_BOTTOM 41  
-#define WAVE_PERIOD_TOP 55     
+#define WAVE_PERIOD_BOTTOM 93  
+#define WAVE_PERIOD_TOP 127     
 
 // Note: Wind strip is REVERSED (BOTTOM > TOP)
 // Bottom LED serves as status indicator, Top LED shows wind direction
-#define WIND_SPEED_BOTTOM 38  
-#define WIND_SPEED_TOP 21      
+#define WIND_SPEED_BOTTOM 83  
+#define WIND_SPEED_TOP 47      
 
 // ---------------- SURF DATA SCALING ----------------
 // These values determine the maximum range displayed on each strip
@@ -95,7 +95,7 @@ const int ARDUINO_ID = 6;
 
 static_assert(TOTAL_LEDS > 0, "TOTAL_LEDS must be positive");
 static_assert(TOTAL_LEDS <= 300, "TOTAL_LEDS exceeds reasonable limit (300)");
-static_assert(BRIGHTNESS >= 0 && BRIGHTNESS <= 255, "BRIGHTNESS must be 0-255");
+static_assert(GLOBAL_BRIGHTNESS_LIMIT >= 0 && GLOBAL_BRIGHTNESS_LIMIT <= 255, "GLOBAL_BRIGHTNESS_LIMIT must be 0-255");
 
 static_assert(WAVE_HEIGHT_LENGTH > 0, "Wave height strip is empty");
 static_assert(WAVE_PERIOD_LENGTH > 0, "Wave period strip is empty");

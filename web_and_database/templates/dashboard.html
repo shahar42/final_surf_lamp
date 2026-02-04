@@ -34,8 +34,8 @@
     <link rel="apple-touch-startup-image" media="screen and (device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="{{ url_for('static', filename='apple-splash-1668x2388.png') }}">
 
     <!-- Theme colors - automatically synced with CSS --gradient-start -->
-    <meta name="theme-color" content="#021f2b">
-    <meta name="msapplication-TileColor" content="#021f2b">
+    <meta name="theme-color" content="#01151d">
+    <meta name="msapplication-TileColor" content="#01151d">
     <script src="{{ url_for('static', filename='js/theme-color-sync.js') }}"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <!-- Global ocean color system -->
@@ -50,14 +50,14 @@
 
     <!-- Top-Left Logout -->
     <div class="fixed top-4 left-4 z-50">
-        <a href="{{ url_for('auth.logout') }}" class="card rounded-lg px-4 py-2 text-white/80 hover:text-white text-sm font-semibold transition-colors shadow-lg">
+        <a href="{{ url_for('auth.logout') }}" class="bg-white/10 backdrop-blur-md rounded-xl px-4 py-2 text-white/60 hover:text-white hover:bg-white/20 text-xs font-bold uppercase tracking-widest transition-all shadow-xl border border-white/10 active:scale-95">
             Logout
         </a>
     </div>
 
     <!-- Top-Right Notification Bell (Mobile Only) -->
     <div class="fixed top-4 right-4 z-50 lg:hidden">
-        <button id="notificationToggle" class="card rounded-full p-2 text-white/80 hover:text-white shadow-lg transition-colors" aria-label="Toggle Notifications">
+        <button id="notificationToggle" class="bg-white/10 backdrop-blur-md rounded-xl p-2.5 text-white/60 hover:text-white hover:bg-white/20 shadow-xl transition-all border border-white/10 active:scale-95" aria-label="Toggle Notifications">
             <!-- Outline Bell (Unsubscribed) -->
             <svg id="bellOutline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
               <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
@@ -83,33 +83,52 @@
       {% endif %}
     {% endwith %}
 
-    <!-- LED Strip Visualization -->
-    {% include 'partials/led_visualization.html' %}
-
     <!-- LED Underlayer Control Panel (Development Tool) -->
     {% include 'partials/underlayer_control_panel.html' %}
 
-    <!-- Main Dashboard Content -->
-    <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <!-- ============================================
+         SINGLE DOM - CSS handles layout per viewport
+         Mobile: JS toggles visibility by data-tab
+         Desktop: CSS Grid shows everything
+         ============================================ -->
 
-        <!-- Lamp Information Card (Surf Data Config) -->
-        <div class="order-2 lg:order-1">
+    <!-- Section: Lamp Visualization (+ Surf Conditions on mobile) -->
+    <div class="dashboard-section" data-tab="lamp">
+        <div class="mobile-tab-content">
+            {% include 'partials/led_visualization.html' %}
+
+            <!-- Mobile: Surf conditions below lamp -->
+            <div class="lg:hidden mt-6 px-2">
+                {% include 'partials/surf_conditions.html' %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Desktop Grid: Lamp Config + Surf Conditions side by side -->
+    <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <!-- Section: Lamp Configuration (Location tab on mobile) -->
+        <div class="dashboard-section order-2 lg:order-1" data-tab="location">
             {% include 'partials/lamp_configuration.html' %}
         </div>
 
-        <!-- Current Surf Conditions Card -->
-        <div class="order-1 lg:order-2">
+        <!-- Desktop only: Surf Conditions in grid -->
+        <div class="hidden lg:block order-1 lg:order-2">
             {% include 'partials/surf_conditions.html' %}
         </div>
     </div>
 
-    <!-- Light Configuration -->
-    <div class="max-w-6xl mx-auto mt-4">
+    <!-- Section: Light Configuration -->
+    <div class="dashboard-section max-w-6xl mx-auto mt-4" data-tab="light">
         {% include 'partials/light_configuration.html' %}
     </div>
 
-    <!-- Quick Actions -->
-    {% include 'partials/quick_actions.html' %}
+    <!-- Section: Quick Actions (More tab on mobile) -->
+    <div class="dashboard-section" data-tab="more">
+        {% include 'partials/quick_actions.html' %}
+    </div>
+
+    <!-- Mobile Bottom Tab Navigation -->
+    {% include 'partials/mobile_bottom_nav.html' %}
 
     <!-- Chat Modal -->
     {% include 'partials/chat_modal.html' %}
@@ -143,6 +162,7 @@
     <script src="{{ url_for('static', filename='js/features/chat-assistant.js') }}"></script>
     <script src="{{ url_for('static', filename='js/features/broadcasts.js') }}"></script>
     <script src="{{ url_for('static', filename='js/features/arduino-management.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/features/mobile-tabs.js') }}"></script>
 
     <!-- LED Visualization -->
     <script src="{{ url_for('static', filename='js/led-visualization/core.js') }}"></script>
@@ -254,24 +274,45 @@
     }
 
     function updateStatusTime() {
-        // Update desktop element
         const elem = document.getElementById('statusUpdateTime');
-        const timestamp = elem?.dataset.timestamp;
-        if (timestamp) {
-            elem.textContent = formatTimeAgo(timestamp);
-        }
-
-        // Update mobile element
-        const elemMobile = document.getElementById('statusUpdateTimeMobile');
-        const timestampMobile = elemMobile?.dataset.timestamp;
-        if (timestampMobile) {
-            elemMobile.textContent = formatTimeAgo(timestampMobile);
+        if (elem?.dataset.timestamp) {
+            elem.textContent = formatTimeAgo(elem.dataset.timestamp);
         }
     }
 
     // Update status time on page load and every minute
     updateStatusTime();
     setInterval(updateStatusTime, 60000);
+
+    // Check for pending theme update from themes page
+    function checkThemeUpdate() {
+        const pendingThemeJson = localStorage.getItem('pendingThemeUpdate');
+        if (pendingThemeJson) {
+            try {
+                const pendingTheme = JSON.parse(pendingThemeJson);
+
+                // Update theme name display immediately
+                const themeNameElement = document.getElementById('currentThemeName');
+                if (themeNameElement) {
+                    themeNameElement.textContent = pendingTheme.name;
+                }
+
+                // Update LED visualization colors on next animation frame (syncs with animation loop)
+                requestAnimationFrame(() => {
+                    if (window.LEDDataFetcher) {
+                        LEDDataFetcher.updateTheme(pendingTheme.id);
+                    }
+                });
+
+                // Clear the pending update (non-blocking)
+                localStorage.removeItem('pendingThemeUpdate');
+            } catch (e) {
+                console.error('Failed to parse theme update:', e);
+                localStorage.removeItem('pendingThemeUpdate');
+            }
+        }
+    }
+    checkThemeUpdate();
 
     </script>
     <script src="{{ url_for('static', filename='js/flash-messages.js') }}"></script>

@@ -364,6 +364,15 @@
                             card.innerHTML += '<div class="text-center mt-4"><span class="text-green-400 font-semibold text-sm">● ACTIVE</span></div>';
                         }
                     });
+
+                    // Store selected theme for dashboard update (both ID and name)
+                    const theme = ledThemes.find(t => t.id === selectedTheme);
+                    if (theme) {
+                        localStorage.setItem('pendingThemeUpdate', JSON.stringify({
+                            id: theme.id,
+                            name: theme.name
+                        }));
+                    }
                 } else {
                     statusDiv.textContent = body.message || 'Theme update failed. Please try again.';
                     statusDiv.style.color = '#ef4444';

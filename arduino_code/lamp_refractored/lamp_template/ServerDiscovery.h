@@ -8,23 +8,24 @@
 
 class ServerDiscovery {
 private:
-    // Discovery URLs (static files - free and reliable)
-    const char* discovery_urls[2] = {
-        "https://shahar42.github.io/final_surf_lamp/discovery-config/config.json",
+    // Discovery URLs: Vercel (primary) → GitHub (fallback)
+    // New flashes hit Vercel first. Already-flashed lamps still use the old single-URL build.
+    static constexpr const char* DISCOVERY_URLS[] = {
+        "https://surf-lamp-discovery.vercel.app/config.json",
         "https://raw.githubusercontent.com/shahar42/final_surf_lamp/master/discovery-config/config.json"
     };
+    static constexpr int PRIMARY_ATTEMPTS = 3; // Attempts on Vercel before falling back to GitHub
 
-    String current_server = "";  // MUST be discovered from GitHub, no fallback
+    String current_server = "";
     unsigned long last_discovery_attempt = 0;
     const unsigned long DISCOVERY_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
     bool discovery_enabled = true;
 
 public:
     ServerDiscovery() {
-        // No fallback - server MUST be discovered from GitHub
         current_server = "";
     }
-    
+
     // Main method - gets current API server
     String getApiServer() {
         // CRITICAL: If no server available, MUST attempt discovery (ignore interval)
@@ -35,12 +36,12 @@ public:
                 current_server = discovered;
                 last_discovery_attempt = millis();
             } else {
-                Serial.println("⚠️ Discovery failed - NO FALLBACK, will return empty");
-                last_discovery_attempt = millis(); // Don't retry immediately
+                Serial.println("⚠️ Discovery failed - no fallback, will retry later");
+                last_discovery_attempt = millis();
             }
         }
 
-        return current_server;  // Empty if discovery never succeeded
+        return current_server;
     }
     
     // Force discovery attempt (for testing)
@@ -77,29 +78,44 @@ private:
     String attemptDiscovery() {
         Serial.println("🔍 Attempting server discovery...");
 
-        const int MAX_ATTEMPTS = 5;
+        const int MAX_ATTEMPTS = 7;
+        const int BASE_DELAY_MS = 1000;      // 1 second initial
+        const int MAX_DELAY_MS = 60000;      // Cap at 60 seconds
 
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-            // Alternate between the two discovery URLs
-            int urlIndex = (attempt - 1) % 2;
-            Serial.printf("   Attempt %d/%d - Trying discovery URL %d: %s\n",
-                         attempt, MAX_ATTEMPTS, urlIndex + 1, discovery_urls[urlIndex]);
+            // Attempts 1-3: Vercel (primary). Attempts 4-7: GitHub (fallback).
+            bool usingPrimary = (attempt <= PRIMARY_ATTEMPTS);
+            const char* url = usingPrimary ? DISCOVERY_URLS[0] : DISCOVERY_URLS[1];
 
-            String result = fetchDiscoveryConfig(discovery_urls[urlIndex]);
+            // Log the source switch on the boundary
+            if (attempt == PRIMARY_ATTEMPTS + 1) {
+                Serial.println("   ⚡ Vercel failed, switching to GitHub fallback");
+            }
+
+            Serial.printf("   Attempt %d/%d [%s]\n", attempt, MAX_ATTEMPTS,
+                          usingPrimary ? "Vercel" : "GitHub");
+
+            String result = fetchDiscoveryConfig(url);
             if (result.length() > 0) {
-                Serial.println("   ✅ Discovery successful from URL " + String(urlIndex + 1));
+                Serial.println("   ✅ Discovery successful");
                 return result;
             }
 
             if (attempt < MAX_ATTEMPTS) {
-                // Exponential backoff: 5s, 10s, 20s, 40s
-                int delaySeconds = min(5 * (int)pow(2, attempt - 1), 40);
-                Serial.printf("   ⏳ Waiting %d seconds before next attempt...\n", delaySeconds);
-                delay(delaySeconds * 1000);
+                // Exponential backoff: 1s, 2s, 4s, 8s, 16s, 32s (capped at 60s)
+                int baseDelay = BASE_DELAY_MS * (1 << (attempt - 1));
+                baseDelay = min(baseDelay, MAX_DELAY_MS);
+
+                // Add jitter: random 0-50% of delay to prevent thundering herd
+                int jitter = random(0, baseDelay / 2);
+                int totalDelay = baseDelay + jitter;
+
+                Serial.printf("   ⏳ Retry in %d ms (base=%d, jitter=%d)\n", totalDelay, baseDelay, jitter);
+                delay(totalDelay);
             }
         }
 
-        Serial.println("   ❌ All discovery attempts failed");
+        Serial.println("   ❌ Discovery failed after all attempts");
         return "";
     }
     
