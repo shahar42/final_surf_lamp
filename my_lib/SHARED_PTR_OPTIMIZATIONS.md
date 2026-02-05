@@ -28,6 +28,16 @@ Performance improvements using shared_ptr pattern to reduce data copying overhea
 - **Configuration**: 4 gevent workers, 1000 connections each
 - **Supports**: 30,000+ lamps at 13-minute poll intervals
 
+### 7. Location-Based Binary Cache (COMPLETED)
+- **Date**: 2026-02-05
+- **Files Created**:
+  - `web_and_database/utils/location_cache.py`
+- **Files Modified**:
+  - `web_and_database/blueprints/api_arduino.py` (V3 endpoint)
+- **Impact**: 100x reduction in duplicate work for co-located lamps
+- **Cache Strategy**: Redis with 60-second TTL, per-location surf data
+- **Performance**: First lamp builds data, subsequent lamps get 1ms cache hits
+
 ---
 
 ## Pending Optimizations

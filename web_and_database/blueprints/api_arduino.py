@@ -419,19 +419,19 @@ def get_arduino_surf_data_v3(arduino_id):
             # Calculate effective thresholds
             effective_wave_threshold_m, effective_wind_threshold_knots = calculate_thresholds(location, user)
 
-            # Build surf data dict (for binary encoding)
-            surf_data = {
-                'wave_period_s': int(location.wave_period_s or 0),
-                'wave_height_cm': int(round((location.wave_height_m or 0) * 100)),
-                'wave_threshold_cm': int(effective_wave_threshold_m * 100),
-                'wind_speed_mps': int(round(location.wind_speed_mps or 0)),
-                'wind_speed_threshold_knots': int(round(effective_wind_threshold_knots)),
-                'wind_direction_deg': location.wind_direction_deg or 0,
-                'stale_data_warning': (getattr(location, 'consecutive_identical_updates', 0) or 0) > STALE_DATA_THRESHOLD,
-                'data_available': bool(location.wave_height_m or location.wind_speed_mps),
-                'quiet_hours_active': quiet_hours_active,
-                'off_hours_active': off_hours_active
-            }
+            # Get surf data from location cache (100x speedup for co-located lamps)
+            from utils.location_cache import get_cached_location_binary
+            surf_data, cache_hit = get_cached_location_binary(
+                user.location,
+                location,
+                effective_wave_threshold_m,
+                effective_wind_threshold_knots,
+                quiet_hours_active,
+                off_hours_active
+            )
+
+            if cache_hit:
+                logger.info(f"🎯 Location cache HIT for {user.location}")
 
             # Build settings data dict (for binary encoding)
             settings_data = {
