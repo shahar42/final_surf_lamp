@@ -14,6 +14,7 @@ from utils.helpers import is_quiet_hours, is_off_hours, get_current_tz_offset, g
 from utils.threshold_logic import calculate_effective_threshold
 from config import BRIGHTNESS_LEVELS, STALE_DATA_THRESHOLD
 from redis_manager import get_redis_client
+from models.query_result import ArduinoQueryResult
 
 # Add processor path to import sunset calculator
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -104,22 +105,22 @@ def update_arduino_timestamp(arduino_id, is_physical):
         db.close()
 
 
-def get_hours_status(location, user):
+def get_hours_status(qr: ArduinoQueryResult):
     """Check quiet/off hours status for a user's location."""
     quiet_hours_active = is_quiet_hours(
-        location,
-        getattr(user, 'quiet_times_enabled', True)
+        qr.user_location,
+        getattr(qr.user, 'quiet_times_enabled', True)
     )
     off_hours_active = is_off_hours(
-        location,
-        getattr(user, 'off_time_start', None),
-        getattr(user, 'off_time_end', None),
-        getattr(user, 'off_times_enabled', False)
+        qr.user_location,
+        getattr(qr.user, 'off_time_start', None),
+        getattr(qr.user, 'off_time_end', None),
+        getattr(qr.user, 'off_times_enabled', False)
     )
     return quiet_hours_active, off_hours_active
 
 
-def calculate_thresholds(location, user):
+def calculate_thresholds(qr: ArduinoQueryResult):
     """Calculate effective wave and wind thresholds.
 
     Uses a server-side shim to simulate range-based alerts without modifying Arduino firmware.
@@ -132,79 +133,79 @@ def calculate_thresholds(location, user):
 
     This allows range alerts (e.g., "alert only if waves 1m-3m") on old devices without firmware changes.
     """
-    current_wind_knots = (location.wind_speed_mps * 1.944) if location.wind_speed_mps else None
+    current_wind_knots = (qr.wind_speed_mps * 1.944) if qr.location.wind_speed_mps else None
 
     effective_wave_threshold_m = calculate_effective_threshold(
-        current_value=location.wave_height_m,
-        user_min=user.wave_threshold_m if user.wave_threshold_m is not None else 0.0,
-        user_max=getattr(user, 'wave_threshold_max_m', None)
+        current_value=qr.location.wave_height_m,
+        user_min=qr.user.wave_threshold_m if qr.user.wave_threshold_m is not None else 0.0,
+        user_max=getattr(qr.user, 'wave_threshold_max_m', None)
     )
 
     effective_wind_threshold_knots = calculate_effective_threshold(
         current_value=current_wind_knots,
-        user_min=user.wind_threshold_knots or 22.0,
-        user_max=getattr(user, 'wind_threshold_max_knots', None)
+        user_min=qr.user.wind_threshold_knots or 22.0,
+        user_max=getattr(qr.user, 'wind_threshold_max_knots', None)
     )
 
     return effective_wave_threshold_m, effective_wind_threshold_knots
 
 
 def get_arduino_with_location_and_user(db, arduino_id):
-    """Query arduino with joined location and user data."""
-    return db.query(Arduino, Location, User).select_from(Arduino) \
+    """Query arduino with joined location and user data. Returns ArduinoQueryResult or None."""
+    result = db.query(Arduino, Location, User).select_from(Arduino) \
         .join(User, Arduino.user_id == User.user_id) \
         .join(Location, Arduino.location == Location.location) \
         .filter(Arduino.arduino_id == arduino_id) \
         .first()
 
+    if not result:
+        return None
 
-def build_surf_data_v1_response(location, user, sunset_info, effective_wave_threshold_m, effective_wind_threshold_knots, quiet_hours_active, off_hours_active):
+    arduino, location, user = result
+    return ArduinoQueryResult(arduino=arduino, location=location, user=user)
+
+
+def build_surf_data_v1_response(qr: ArduinoQueryResult, sunset_info, effective_wave_threshold_m, effective_wind_threshold_knots, quiet_hours_active, off_hours_active):
     """Build V1 response dict (server calculates sunset)."""
-    # Check for stale data (more than 3 identical updates = ~45-60 mins)
-    stale_warning = (getattr(location, 'consecutive_identical_updates', 0) or 0) > STALE_DATA_THRESHOLD
-
     return {
-        'wave_height_cm': int(round((location.wave_height_m or 0) * 100)),
-        'wave_period_s': location.wave_period_s or 0.0,
-        'wind_speed_mps': int(round(location.wind_speed_mps or 0)),
-        'wind_direction_deg': location.wind_direction_deg or 0,
+        'wave_height_cm': int(round(qr.wave_height_m * 100)),
+        'wave_period_s': qr.wave_period_s,
+        'wind_speed_mps': int(round(qr.wind_speed_mps)),
+        'wind_direction_deg': qr.wind_direction_deg,
         'wave_threshold_cm': int(effective_wave_threshold_m * 100),
         'wind_speed_threshold_knots': int(round(effective_wind_threshold_knots)),
-        'led_theme': user.theme or 'day',
+        'led_theme': qr.user.theme or 'day',
         'quiet_hours_active': quiet_hours_active,
         'off_hours_active': off_hours_active,
         'sunset_animation': sunset_info['sunset_trigger'],
         'day_of_year': sunset_info['day_of_year'],
-        'brightness_multiplier': getattr(user, 'brightness_level', BRIGHTNESS_LEVELS['MID']),
-        'last_updated': location.last_updated.isoformat() if location.last_updated else '1970-01-01T00:00:00Z',
-        'data_available': bool(location.wave_height_m or location.wind_speed_mps),
-        'stale_data_warning': stale_warning
+        'brightness_multiplier': getattr(qr.user, 'brightness_level', BRIGHTNESS_LEVELS['MID']),
+        'last_updated': qr.location.last_updated.isoformat() if qr.location.last_updated else '1970-01-01T00:00:00Z',
+        'data_available': bool(qr.location.wave_height_m or qr.location.wind_speed_mps),
+        'stale_data_warning': qr.is_stale
     }
 
 
-def build_surf_data_v2_response(location, location_data, tz_offset, arduino, user, effective_wave_threshold_m, effective_wind_threshold_knots, quiet_hours_active, off_hours_active, brightness_value):
+def build_surf_data_v2_response(qr: ArduinoQueryResult, location_data, tz_offset, effective_wave_threshold_m, effective_wind_threshold_knots, quiet_hours_active, off_hours_active, brightness_value):
     """Build V2 response dict (Arduino calculates sunset locally)."""
-    # Check for stale data (more than 3 identical updates = ~45-60 mins)
-    stale_warning = (getattr(location, 'consecutive_identical_updates', 0) or 0) > STALE_DATA_THRESHOLD
-
     return {
         'latitude': location_data['latitude'],
         'longitude': location_data['longitude'],
         'tz_offset': tz_offset,
-        'wave_height_cm': int(round((location.wave_height_m or 0) * 100)),
-        'wave_period_s': location.wave_period_s or 0.0,
-        'wind_speed_mps': int(round(location.wind_speed_mps or 0)),
-        'wind_direction_deg': location.wind_direction_deg or 0,
+        'wave_height_cm': int(round(qr.wave_height_m * 100)),
+        'wave_period_s': qr.wave_period_s,
+        'wind_speed_mps': int(round(qr.wind_speed_mps)),
+        'wind_direction_deg': qr.wind_direction_deg,
         'wave_threshold_cm': int(effective_wave_threshold_m * 100),
         'wind_speed_threshold_knots': int(round(effective_wind_threshold_knots)),
-        'led_theme': user.theme or 'day',
+        'led_theme': qr.user.theme or 'day',
         'quiet_hours_active': quiet_hours_active,
         'off_hours_active': off_hours_active,
         'brightness_multiplier': brightness_value,
-        'fetch_interval_ms': get_clamped_fetch_interval_ms(arduino),
-        'last_updated': location.last_updated.isoformat() if location.last_updated else '1970-01-01T00:00:00Z',
-        'data_available': bool(location.wave_height_m or location.wind_speed_mps),
-        'stale_data_warning': stale_warning
+        'fetch_interval_ms': get_clamped_fetch_interval_ms(qr.arduino),
+        'last_updated': qr.location.last_updated.isoformat() if qr.location.last_updated else '1970-01-01T00:00:00Z',
+        'data_available': bool(qr.location.wave_height_m or qr.location.wind_speed_mps),
+        'stale_data_warning': qr.is_stale
     }
 
 
@@ -256,32 +257,30 @@ def get_arduino_data(arduino_id):
         # Get arduino data
         db = SessionLocal()
         try:
-            result = get_arduino_with_location_and_user(db, arduino_id)
+            qr = get_arduino_with_location_and_user(db, arduino_id)
 
-            if not result:
+            if not qr:
                 logger.warning(f"⚠️ Arduino {arduino_id} not found in database")
                 return {'error': 'Arduino not found'}, 404
 
-            arduino, location, user = result
-
             # Check quiet/off hours status
-            quiet_hours_active, off_hours_active = get_hours_status(user.location, user)
+            quiet_hours_active, off_hours_active = get_hours_status(qr)
 
             if off_hours_active:
-                logger.info(f"🔴 Off hours active for {user.location} - lamp turned off")
+                logger.info(f"🔴 Off hours active for {qr.user_location} - lamp turned off")
             elif quiet_hours_active:
-                logger.info(f"🌙 Quiet hours active for {user.location} - threshold alerts disabled")
+                logger.info(f"🌙 Quiet hours active for {qr.user_location} - threshold alerts disabled")
 
             # Calculate sunset info for user's location (cached per location, expires every 24h)
-            sunset_info = get_sunset_info_cached(user.location, get_sunset_info, trigger_window_minutes=15)
+            sunset_info = get_sunset_info_cached(qr.user_location, get_sunset_info, trigger_window_minutes=15)
             logger.info(f"🌅 Sunset info: trigger={sunset_info['sunset_trigger']}, day={sunset_info['day_of_year']}")
 
             # Calculate effective thresholds
-            effective_wave_threshold_m, effective_wind_threshold_knots = calculate_thresholds(location, user)
+            effective_wave_threshold_m, effective_wind_threshold_knots = calculate_thresholds(qr)
 
             # Build response
             surf_data = build_surf_data_v1_response(
-                location, user, sunset_info,
+                qr, sunset_info,
                 effective_wave_threshold_m, effective_wind_threshold_knots,
                 quiet_hours_active, off_hours_active
             )
@@ -317,38 +316,36 @@ def get_arduino_surf_data_v2(arduino_id):
     try:
         db = SessionLocal()
         try:
-            result = get_arduino_with_location_and_user(db, arduino_id)
+            qr = get_arduino_with_location_and_user(db, arduino_id)
 
-            if not result:
+            if not qr:
                 logger.warning(f"⚠️ Arduino {arduino_id} not found in database")
                 return {'error': 'Arduino not found'}, 404
 
-            arduino, location, user = result
-
             # Get coordinates for user's location (cached per user, expires every 1 hour)
-            location_data = get_coordinates_cached(user.user_id, user.location, LOCATION_COORDS)
+            location_data = get_coordinates_cached(qr.user.user_id, qr.user_location, LOCATION_COORDS)
 
             # Calculate current timezone offset (handles DST automatically)
-            tz_offset = get_current_tz_offset(user.location)
+            tz_offset = get_current_tz_offset(qr.user_location)
 
             # Check quiet/off hours status
-            quiet_hours_active, off_hours_active = get_hours_status(user.location, user)
+            quiet_hours_active, off_hours_active = get_hours_status(qr)
 
             if off_hours_active:
-                logger.info(f"🔴 Off hours active for {user.location} - lamp turned off")
+                logger.info(f"🔴 Off hours active for {qr.user_location} - lamp turned off")
             elif quiet_hours_active:
-                logger.info(f"🌙 Quiet hours active for {user.location} - threshold alerts disabled")
+                logger.info(f"🌙 Quiet hours active for {qr.user_location} - threshold alerts disabled")
 
             # Quiet hours uses fixed safe brightness to avoid power supply minimum load issues
             # During normal hours, respect user's brightness preference
-            brightness_value = BRIGHTNESS_LEVELS['MID'] if quiet_hours_active else getattr(user, 'brightness_level', BRIGHTNESS_LEVELS['MID'])
+            brightness_value = BRIGHTNESS_LEVELS['MID'] if quiet_hours_active else getattr(qr.user, 'brightness_level', BRIGHTNESS_LEVELS['MID'])
 
             # Calculate effective thresholds
-            effective_wave_threshold_m, effective_wind_threshold_knots = calculate_thresholds(location, user)
+            effective_wave_threshold_m, effective_wind_threshold_knots = calculate_thresholds(qr)
 
             # Build response (NO sunset_animation or day_of_year - Arduino calculates locally)
             surf_data = build_surf_data_v2_response(
-                location, location_data, tz_offset, arduino, user,
+                qr, location_data, tz_offset,
                 effective_wave_threshold_m, effective_wind_threshold_knots,
                 quiet_hours_active, off_hours_active, brightness_value
             )
@@ -391,39 +388,37 @@ def get_arduino_surf_data_v3(arduino_id):
     try:
         db = SessionLocal()
         try:
-            result = get_arduino_with_location_and_user(db, arduino_id)
+            qr = get_arduino_with_location_and_user(db, arduino_id)
 
-            if not result:
+            if not qr:
                 logger.warning(f"⚠️ Arduino {arduino_id} not found in database")
                 return {'error': 'Arduino not found'}, 404
 
-            arduino, location, user = result
-
             # Get coordinates for user's location
-            location_data = get_coordinates_cached(user.user_id, user.location, LOCATION_COORDS)
+            location_data = get_coordinates_cached(qr.user.user_id, qr.user_location, LOCATION_COORDS)
 
             # Calculate current timezone offset
-            tz_offset = get_current_tz_offset(user.location)
+            tz_offset = get_current_tz_offset(qr.user_location)
 
             # Check quiet/off hours status
-            quiet_hours_active, off_hours_active = get_hours_status(user.location, user)
+            quiet_hours_active, off_hours_active = get_hours_status(qr)
 
             if off_hours_active:
-                logger.info(f"🔴 Off hours active for {user.location} - lamp turned off")
+                logger.info(f"🔴 Off hours active for {qr.user_location} - lamp turned off")
             elif quiet_hours_active:
-                logger.info(f"🌙 Quiet hours active for {user.location} - threshold alerts disabled")
+                logger.info(f"🌙 Quiet hours active for {qr.user_location} - threshold alerts disabled")
 
             # Brightness handling
-            brightness_value = BRIGHTNESS_LEVELS['MID'] if quiet_hours_active else getattr(user, 'brightness_level', BRIGHTNESS_LEVELS['MID'])
+            brightness_value = BRIGHTNESS_LEVELS['MID'] if quiet_hours_active else getattr(qr.user, 'brightness_level', BRIGHTNESS_LEVELS['MID'])
 
             # Calculate effective thresholds
-            effective_wave_threshold_m, effective_wind_threshold_knots = calculate_thresholds(location, user)
+            effective_wave_threshold_m, effective_wind_threshold_knots = calculate_thresholds(qr)
 
             # Get surf data from location cache (100x speedup for co-located lamps)
             from utils.location_cache import get_cached_location_binary
             surf_data, cache_hit = get_cached_location_binary(
-                user.location,
-                location,
+                qr.user_location,
+                qr.location,
                 effective_wave_threshold_m,
                 effective_wind_threshold_knots,
                 quiet_hours_active,
@@ -431,13 +426,13 @@ def get_arduino_surf_data_v3(arduino_id):
             )
 
             if cache_hit:
-                logger.info(f"🎯 Location cache HIT for {user.location}")
+                logger.info(f"🎯 Location cache HIT for {qr.user_location}")
 
             # Build settings data dict (for binary encoding)
             settings_data = {
-                'led_theme': user.theme or 'classic_surf',
+                'led_theme': qr.user.theme or 'classic_surf',
                 'brightness_multiplier': brightness_value,
-                'fetch_interval_ms': get_clamped_fetch_interval_ms(arduino),
+                'fetch_interval_ms': get_clamped_fetch_interval_ms(qr.arduino),
                 'latitude': location_data['latitude'],
                 'longitude': location_data['longitude'],
                 'tz_offset': tz_offset
