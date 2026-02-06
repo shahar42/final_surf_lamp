@@ -10,10 +10,12 @@ and one for network handling handling
 #include "WiFiHandler.h"
 #include "JitterManager.h"
 #include "my_linear_buffer.hpp"
+#include "Watchdog.h"
 
 // External references (global scope)
 extern SunsetCalculator sunsetCalc;
 extern AsyncSerialLogger asyncLogger;
+extern Watchdog watchdog;
 
 namespace DualCore 
 {
@@ -113,6 +115,9 @@ void networkSecretaryTask(void* parameter)
             lastFetch = now;
             lastDataFetch = now;  // Update global for compatibility
         }
+
+        // Pet the watchdog to signal Core 0 is alive
+        watchdog.pet();
 
         delay(1000);  // Check every second
     }

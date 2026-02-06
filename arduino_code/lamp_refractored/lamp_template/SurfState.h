@@ -1,6 +1,7 @@
 /*
  * SURF STATE DATA STRUCTURES
- *
+ *author: shahar
+ *date: 6/2/2026
  * Centralized data structures for surf lamp state management.
  * Single source of truth for all runtime data.
  */

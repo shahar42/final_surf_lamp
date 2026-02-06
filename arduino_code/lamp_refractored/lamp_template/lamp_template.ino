@@ -34,6 +34,7 @@
 #include "WiFiHandler.h"         // WiFi connection and diagnostics
 #include "JitterManager.h"       // Thundering herd prevention
 #include "my_linear_buffer.hpp"  // Async serial logging
+#include "Watchdog.h"            // Core 0 health monitoring
 
 // ==================== REUSABLE MODULES ====================
 // These modules are shared across all lamp types
@@ -66,12 +67,17 @@ std::atomic<unsigned long> lastDataFetch(0);
 std::atomic<unsigned long> FETCH_INTERVAL_MS(780000); // 13 minutes (default, thread-safe)
 
 AsyncSerialLogger asyncLogger;
+Watchdog watchdog;
 
 // ==================== SETUP FUNCTION ====================
 
 void setup() {
     Serial.begin(115200);
     delay(1000);
+
+    // Initialize watchdog early (loads NVS restart history for boot-loop detection)
+    Watchdog::setLogger(&asyncLogger);
+    watchdog.begin();
 
     // Initialize mutex
     surfDataMutex = xSemaphoreCreateMutex();
@@ -92,7 +98,14 @@ void setup() {
 
     // Setup WiFi with event handlers
     WiFi.onEvent(WiFiEvent);
-    bool connected = setupWiFi(wifiManager, fingerprinting);
+
+    // Check if watchdog detected repeated boot failures - fallback to AP mode
+    bool forceAP = watchdog.shouldFallbackToAP();
+    if (forceAP) {
+        Serial.println("⚠️ Watchdog detected boot loop - forcing AP config mode");
+    }
+
+    bool connected = forceAP ? false : setupWiFi(wifiManager, fingerprinting);
 
     if (!connected) {
         Serial.println("🔄 Restarting to config portal...");
@@ -124,6 +137,10 @@ void setup() {
     } else {
         Serial.println("⚠️ Initial surf data fetch failed, will retry later");
     }
+
+    // Reset watchdog timer AFTER all long delays complete
+    // This prevents false "Core 0 unresponsive" triggers during startup
+    watchdog.pet();
 
     // Start dual-core architecture (Core 0 = Network, Core 1 = LEDs)
     DualCore::startDualCoreTasks();
@@ -235,6 +252,15 @@ void loop() {
         blinkGreenLED();   // ✅ Fresh data (< 30 min old)
     } else {
         showNoDataConnected();  // Left strip green - waiting for first data
+    }
+
+    // Core 1 monitors Core 0 health
+    if (!watchdog.isAlive()) {
+        asyncLogger.Log("[Watchdog] Core 0 unresponsive - restarting");
+        asyncLogger.Flush();
+        watchdog.onRestart();
+        delay(100);
+        ESP.restart();
     }
 
     delay(5); // Small delay to prevent excessive CPU usage

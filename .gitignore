@@ -135,9 +135,10 @@ surf-lamp-processor/thread_safe_background_processor.py
 
 # Setup scripts
 *.sh
-# But track MCP server start scripts
+# But track MCP server start scripts and deployment scripts
 !mcp-supabase-server/start_server.sh
 !render-mcp-server/start_server.sh
+!web_and_database/build.sh
 runtime.txt
 
 # Settings & config

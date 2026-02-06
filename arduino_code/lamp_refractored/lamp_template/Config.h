@@ -9,12 +9,12 @@
 #include <cmath>
 
 
-const int ARDUINO_ID = 13;
+const int ARDUINO_ID = 6;
 
 // ---------------- HARDWARE SETUP ----------------
 #define LED_PIN 2              // pin connected to LED strip
 // NOTE: TOTAL_LEDS should be set to the highest LED index + 1.
-#define TOTAL_LEDS 128          
+#define TOTAL_LEDS 57          
 #define LED_TYPE WS2812B       
 #define COLOR_ORDER GRB        
 #define GLOBAL_BRIGHTNESS_LIMIT 75          // Global brightness effects all leds
@@ -22,16 +22,16 @@ const int ARDUINO_ID = 13;
 // ---------------- LED STRIP MAPPING ----------------
 // Direction is auto-detected: if bottom < top = FORWARD, if bottom > top = REVERSE
 
-#define WAVE_HEIGHT_BOTTOM 4  
-#define WAVE_HEIGHT_TOP 38     
+#define WAVE_HEIGHT_BOTTOM 2  
+#define WAVE_HEIGHT_TOP 16     
 
-#define WAVE_PERIOD_BOTTOM 93  
-#define WAVE_PERIOD_TOP 127     
+#define WAVE_PERIOD_BOTTOM 41  
+#define WAVE_PERIOD_TOP 55     
 
 // Note: Wind strip is REVERSED (BOTTOM > TOP)
 // Bottom LED serves as status indicator, Top LED shows wind direction
-#define WIND_SPEED_BOTTOM 83  
-#define WIND_SPEED_TOP 47      
+#define WIND_SPEED_BOTTOM 38  
+#define WIND_SPEED_TOP 21      
 
 // ---------------- SURF DATA SCALING ----------------
 // These values determine the maximum range displayed on each strip

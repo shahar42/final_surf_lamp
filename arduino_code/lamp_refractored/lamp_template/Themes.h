@@ -1,16 +1,8 @@
 /*
  * LED COLOR THEMES
- *
+ *author: Shahar
+ *date: 6/2/2026
  * Color theme management for surf lamp LED displays.
- * Supports 5 distinct themes plus legacy themes.
- *
- * Design principles:
- * - Pure functions (no global state, no side effects)
- * - Const references prevent accidental modification
- * - Inline accessors = zero overhead (eliminated by compiler)
- * - Easy to extend (add themes in one place)
- *
- * Scott Meyers Item 23: Prefer non-member functions for better encapsulation
  */
 
 #ifndef THEMES_H

@@ -11,8 +11,6 @@
 // Static member initialization
 AsyncSerialLogger* Watchdog::s_logger = nullptr;
 
-Watchdog::Watchdog() : lastPetTime(0), recentRestartCount(0) {
-}
 
 void Watchdog::begin() {
     // Initialize NVS

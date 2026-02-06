@@ -8,6 +8,7 @@
 #include "Themes.h"
 #include "animation.h"
 #include "my_linear_buffer.hpp"
+#include "FastSin.h"
 
 extern AsyncSerialLogger asyncLogger;
 
@@ -99,8 +100,8 @@ void blinkStatusLED(CRGB color) {
         lastStatusUpdate = millis();
     }
 
-    // Gentler breathing pattern
-    float brightnessFactor = 0.7 + 0.3 * sin(statusPhase);
+    // Gentler breathing pattern using fast LUT
+    float brightnessFactor = 0.7f + 0.3f * FastMath::fastSin(statusPhase);
     int adjustedBrightness = min(MAX_BRIGHTNESS, (int)(MAX_BRIGHTNESS * brightnessFactor));
 
     // Convert RGB to HSV
@@ -150,7 +151,7 @@ void showTryingToConnect()
     }
 
     
-    float brightnessFactor = 0.8 + 0.2 * sin(phase);
+    float brightnessFactor = 0.8f + 0.2f * FastMath::fastSin(phase);
     int brightness = (int)(255 * brightnessFactor);
 
     fill_solid(leds, TOTAL_LEDS, CHSV(96, 255, brightness));  // Green
@@ -170,7 +171,7 @@ void showCheckingLocation()
         lastUpdate = millis();
     }
 
-    float brightnessFactor = 0.5 + 0.5 * sin(phase);
+    float brightnessFactor = 0.5f + 0.5f * FastMath::fastSin(phase);
     int brightness = (int)(255 * brightnessFactor);
 
     fill_solid(leds, TOTAL_LEDS, CHSV(192, 255, brightness));  // Purple
@@ -359,8 +360,8 @@ void updateBlinkingWaveHeightLEDs(int numActiveLeds, CHSV baseColor) {
 
         if (i < numActiveLeds) {
             // Calculate wave position
-            float wavePhase = blinkPhase * waveConfig.wave_speed - (i * 2.0 * PI / waveConfig.wave_length_side);
-            float brightnessFactor = minBrightness + ((sin(wavePhase) + 1.0) / 2.0) * (maxBrightness - minBrightness);
+            float wavePhase = blinkPhase * waveConfig.wave_speed - (i * 2.0f * PI / waveConfig.wave_length_side);
+            float brightnessFactor = minBrightness + FastMath::fastSin01(wavePhase) * (maxBrightness - minBrightness);
             int adjustedBrightness = min(MAX_BRIGHTNESS, (int)(baseColor.val * brightnessFactor));
 
             leds[index] = CHSV(baseColor.hue, baseColor.sat, adjustedBrightness);
@@ -386,8 +387,8 @@ void updateBlinkingWindSpeedLEDs(int numActiveLeds, CHSV baseColor) {
 
         if (ledPosition < numActiveLeds) {
             // Calculate wave position
-            float wavePhase = blinkPhase * waveConfig.wave_speed - (ledPosition * 2.0 * PI / waveConfig.wave_length_center);
-            float brightnessFactor = minBrightness + ((sin(wavePhase) + 1.0) / 2.0) * (maxBrightness - minBrightness);
+            float wavePhase = blinkPhase * waveConfig.wave_speed - (ledPosition * 2.0f * PI / waveConfig.wave_length_center);
+            float brightnessFactor = minBrightness + FastMath::fastSin01(wavePhase) * (maxBrightness - minBrightness);
             int adjustedBrightness = min(MAX_BRIGHTNESS, (int)(baseColor.val * brightnessFactor));
 
             leds[index] = CHSV(baseColor.hue, baseColor.sat, adjustedBrightness);
