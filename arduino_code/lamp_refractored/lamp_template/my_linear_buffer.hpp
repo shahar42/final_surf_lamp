@@ -1,6 +1,8 @@
 #ifndef MY_LINEAR_BUFFER_HPP
 #define MY_LINEAR_BUFFER_HPP
 
+#include <Arduino.h>
+#include <cstring>
 #include "MutexGuard.h"
 
 template<typename T, size_t Size>

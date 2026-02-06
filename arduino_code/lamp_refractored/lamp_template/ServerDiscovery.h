@@ -1,6 +1,12 @@
+/*
+author: shahar
+about:
+*/
+
 #ifndef SERVER_DISCOVERY_H
 #define SERVER_DISCOVERY_H
 
+#include <Arduino.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
