@@ -1,16 +1,24 @@
 /**
- * Location Search Feature
- * Handles beach search autocomplete and location updates
+ * Location Search Feature - Premium Autocomplete
+ * 
+ * Design principles:
+ * - Dropdown feels attached, not floating
+ * - Clear information hierarchy
+ * - Smooth hover/keyboard navigation
+ * - Loading and empty states
  */
 
 const LocationUpdate = {
     currentLocation: null,
     searchInput: null,
     dropdown: null,
+    container: null,
     hiddenInput: null,
     statusDiv: null,
     debounceTimer: null,
     selectedIndex: -1,
+    isLoading: false,
+    beaches: [],
 
     /**
      * Initialize location search handler
@@ -20,11 +28,12 @@ const LocationUpdate = {
         this.currentLocation = currentLocation;
         this.searchInput = document.getElementById('locationSearch');
         this.dropdown = document.getElementById('locationDropdown');
+        this.container = document.getElementById('locationSearchContainer');
         this.hiddenInput = document.getElementById('locationValue');
         this.statusDiv = document.getElementById('location-status');
 
-        if (!this.searchInput) {
-            console.error('LocationUpdate: Search input not found');
+        if (!this.searchInput || !this.dropdown) {
+            console.error('LocationUpdate: Required elements not found');
             return;
         }
 
@@ -37,6 +46,7 @@ const LocationUpdate = {
         // Input handler with debounce
         this.searchInput.addEventListener('input', function (e) {
             clearTimeout(self.debounceTimer);
+            self.showLoading();
             self.debounceTimer = setTimeout(() => {
                 self.search(e.target.value);
             }, 200);
@@ -44,11 +54,8 @@ const LocationUpdate = {
 
         // Focus shows dropdown
         this.searchInput.addEventListener('focus', function () {
-            if (this.value.length > 0) {
-                self.search(this.value);
-            } else {
-                self.search(''); // Show all beaches
-            }
+            self.showLoading();
+            self.search(this.value || '');
         });
 
         // Keyboard navigation
@@ -58,48 +65,96 @@ const LocationUpdate = {
 
         // Click outside closes dropdown
         document.addEventListener('click', function (e) {
-            if (!self.searchInput.contains(e.target) && !self.dropdown.contains(e.target)) {
+            if (!self.container?.contains(e.target)) {
                 self.hideDropdown();
             }
         });
     },
 
+    showLoading: function () {
+        this.isLoading = true;
+        this.dropdown.innerHTML = `
+            <div class="location-skeleton">
+                <div class="location-skeleton-line primary"></div>
+                <div class="location-skeleton-line secondary"></div>
+            </div>
+            <div class="location-skeleton">
+                <div class="location-skeleton-line primary"></div>
+                <div class="location-skeleton-line secondary"></div>
+            </div>
+            <div class="location-skeleton">
+                <div class="location-skeleton-line primary"></div>
+                <div class="location-skeleton-line secondary"></div>
+            </div>
+        `;
+        this.showDropdown();
+    },
+
     async search(query) {
         try {
-            const response = await fetch(`/api/beaches/search?q=${encodeURIComponent(query)}&limit=10`);
+            const response = await fetch(`/api/beaches/search?q=${encodeURIComponent(query)}&limit=8`);
             const data = await response.json();
 
+            this.isLoading = false;
+
             if (data.success) {
+                this.beaches = data.beaches;
                 this.renderDropdown(data.beaches);
             }
         } catch (error) {
             console.error('Beach search failed:', error);
+            this.isLoading = false;
+            this.renderEmpty('Search unavailable');
         }
     },
 
     renderDropdown: function (beaches) {
         if (beaches.length === 0) {
-            this.dropdown.innerHTML = '<div class="px-4 py-3 text-white/50 text-sm">No beaches found</div>';
-        } else {
-            this.dropdown.innerHTML = beaches.map((beach, index) => `
-                <div class="location-option px-4 py-3 cursor-pointer hover:bg-white/10 transition-colors ${beach.name === this.currentLocation ? 'bg-blue-500/20' : ''}" 
-                     data-value="${beach.name}"
-                     data-index="${index}">
-                    <div class="text-white font-medium">${beach.name}</div>
-                    <div class="text-white/40 text-xs">${beach.hebrew_name}</div>
-                </div>
-            `).join('');
-
-            // Bind click handlers
-            const self = this;
-            this.dropdown.querySelectorAll('.location-option').forEach(option => {
-                option.addEventListener('click', function () {
-                    self.selectLocation(this.dataset.value);
-                });
-            });
+            this.renderEmpty('No beaches found');
+            return;
         }
 
+        this.dropdown.innerHTML = beaches.map((beach, index) => {
+            const isCurrent = beach.name === this.currentLocation;
+            // Extract region from name (e.g., "Tel Aviv" from "Hilton Beach (Tel Aviv)")
+            const regionMatch = beach.name.match(/\(([^)]+)\)/);
+            const displayName = beach.name.replace(/\s*\([^)]*\)/, '');
+            const region = regionMatch ? regionMatch[1] : 'Israel';
+
+            return `
+                <div class="location-option ${isCurrent ? 'current' : ''}" 
+                     data-value="${beach.name}"
+                     data-index="${index}">
+                    <div class="location-option-primary">${displayName}</div>
+                    <div class="location-option-secondary">${region} · ${beach.hebrew_name}</div>
+                </div>
+            `;
+        }).join('');
+
+        // Bind click handlers
+        const self = this;
+        this.dropdown.querySelectorAll('.location-option').forEach(option => {
+            option.addEventListener('click', function () {
+                self.selectLocation(this.dataset.value);
+            });
+
+            option.addEventListener('mouseenter', function () {
+                self.selectedIndex = parseInt(this.dataset.index);
+                self.updateHighlight();
+            });
+        });
+
         this.selectedIndex = -1;
+        this.showDropdown();
+    },
+
+    renderEmpty: function (message) {
+        this.dropdown.innerHTML = `
+            <div class="location-empty-state">
+                <div class="location-empty-state-icon">🏖️</div>
+                <div class="location-empty-state-text">${message}</div>
+            </div>
+        `;
         this.showDropdown();
     },
 
@@ -110,12 +165,12 @@ const LocationUpdate = {
             case 'ArrowDown':
                 e.preventDefault();
                 this.selectedIndex = Math.min(this.selectedIndex + 1, options.length - 1);
-                this.highlightOption(options);
+                this.updateHighlight();
                 break;
             case 'ArrowUp':
                 e.preventDefault();
                 this.selectedIndex = Math.max(this.selectedIndex - 1, 0);
-                this.highlightOption(options);
+                this.updateHighlight();
                 break;
             case 'Enter':
                 e.preventDefault();
@@ -126,17 +181,26 @@ const LocationUpdate = {
             case 'Escape':
                 this.hideDropdown();
                 this.searchInput.value = this.currentLocation;
+                this.searchInput.blur();
+                break;
+            case 'Tab':
+                this.hideDropdown();
                 break;
         }
     },
 
-    highlightOption: function (options) {
+    updateHighlight: function () {
+        const options = this.dropdown.querySelectorAll('.location-option');
+
         options.forEach((opt, i) => {
-            opt.classList.toggle('bg-white/20', i === this.selectedIndex);
+            opt.classList.toggle('highlighted', i === this.selectedIndex);
         });
 
         if (options[this.selectedIndex]) {
-            options[this.selectedIndex].scrollIntoView({ block: 'nearest' });
+            options[this.selectedIndex].scrollIntoView({
+                block: 'nearest',
+                behavior: 'smooth'
+            });
         }
     },
 
@@ -185,11 +249,13 @@ const LocationUpdate = {
     },
 
     showDropdown: function () {
-        this.dropdown.classList.remove('hidden');
+        this.dropdown.classList.add('visible');
+        this.container?.classList.add('dropdown-open');
     },
 
     hideDropdown: function () {
-        this.dropdown.classList.add('hidden');
+        this.dropdown.classList.remove('visible');
+        this.container?.classList.remove('dropdown-open');
         this.selectedIndex = -1;
     }
 };

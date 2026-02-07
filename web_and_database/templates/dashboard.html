@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -22,16 +23,36 @@
     <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
 
     <!-- iOS Splash Screens -->
-    <link rel="apple-touch-startup-image" media="screen and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="{{ url_for('static', filename='apple-splash-1290x2796.png') }}">
-    <link rel="apple-touch-startup-image" media="screen and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="{{ url_for('static', filename='apple-splash-1170x2532.png') }}">
-    <link rel="apple-touch-startup-image" media="screen and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="{{ url_for('static', filename='apple-splash-1242x2688.png') }}">
-    <link rel="apple-touch-startup-image" media="screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="{{ url_for('static', filename='apple-splash-1170x2532.png') }}">
-    <link rel="apple-touch-startup-image" media="screen and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="{{ url_for('static', filename='apple-splash-1125x2436.png') }}">
-    <link rel="apple-touch-startup-image" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="{{ url_for('static', filename='apple-splash-828x1792.png') }}">
-    <link rel="apple-touch-startup-image" media="screen and (device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="{{ url_for('static', filename='apple-splash-1242x2208.png') }}">
-    <link rel="apple-touch-startup-image" media="screen and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="{{ url_for('static', filename='apple-splash-750x1334.png') }}">
-    <link rel="apple-touch-startup-image" media="screen and (device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="{{ url_for('static', filename='apple-splash-2048x2732.png') }}">
-    <link rel="apple-touch-startup-image" media="screen and (device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="{{ url_for('static', filename='apple-splash-1668x2388.png') }}">
+    <link rel="apple-touch-startup-image"
+        media="screen and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+        href="{{ url_for('static', filename='apple-splash-1290x2796.png') }}">
+    <link rel="apple-touch-startup-image"
+        media="screen and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+        href="{{ url_for('static', filename='apple-splash-1170x2532.png') }}">
+    <link rel="apple-touch-startup-image"
+        media="screen and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+        href="{{ url_for('static', filename='apple-splash-1242x2688.png') }}">
+    <link rel="apple-touch-startup-image"
+        media="screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+        href="{{ url_for('static', filename='apple-splash-1170x2532.png') }}">
+    <link rel="apple-touch-startup-image"
+        media="screen and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+        href="{{ url_for('static', filename='apple-splash-1125x2436.png') }}">
+    <link rel="apple-touch-startup-image"
+        media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+        href="{{ url_for('static', filename='apple-splash-828x1792.png') }}">
+    <link rel="apple-touch-startup-image"
+        media="screen and (device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+        href="{{ url_for('static', filename='apple-splash-1242x2208.png') }}">
+    <link rel="apple-touch-startup-image"
+        media="screen and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+        href="{{ url_for('static', filename='apple-splash-750x1334.png') }}">
+    <link rel="apple-touch-startup-image"
+        media="screen and (device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+        href="{{ url_for('static', filename='apple-splash-2048x2732.png') }}">
+    <link rel="apple-touch-startup-image"
+        media="screen and (device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+        href="{{ url_for('static', filename='apple-splash-1668x2388.png') }}">
 
     <!-- Theme colors - automatically synced with CSS --gradient-start -->
     <meta name="theme-color" content="#01151d">
@@ -45,42 +66,53 @@
     <!-- noUiSlider for range sliders -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/range-slider.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/location-search.css') }}">
 </head>
+
 <body class="min-h-screen p-4">
 
     <!-- Top-Left Logout -->
     <div class="fixed top-4 left-4 z-50">
-        <a href="{{ url_for('auth.logout') }}" class="bg-white/10 backdrop-blur-md rounded-xl px-4 py-2 text-white/60 hover:text-white hover:bg-white/20 text-xs font-bold uppercase tracking-widest transition-all shadow-xl border border-white/10 active:scale-95">
+        <a href="{{ url_for('auth.logout') }}"
+            class="bg-white/10 backdrop-blur-md rounded-xl px-4 py-2 text-white/60 hover:text-white hover:bg-white/20 text-xs font-bold uppercase tracking-widest transition-all shadow-xl border border-white/10 active:scale-95">
             Logout
         </a>
     </div>
 
     <!-- Top-Right Notification Bell (Mobile Only) -->
     <div class="fixed top-4 right-4 z-50 lg:hidden">
-        <button id="notificationToggle" class="bg-white/10 backdrop-blur-md rounded-xl p-2.5 text-white/60 hover:text-white hover:bg-white/20 shadow-xl transition-all border border-white/10 active:scale-95" aria-label="Toggle Notifications">
+        <button id="notificationToggle"
+            class="bg-white/10 backdrop-blur-md rounded-xl p-2.5 text-white/60 hover:text-white hover:bg-white/20 shadow-xl transition-all border border-white/10 active:scale-95"
+            aria-label="Toggle Notifications">
             <!-- Outline Bell (Unsubscribed) -->
-            <svg id="bellOutline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+            <svg id="bellOutline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                stroke="currentColor" class="w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
             </svg>
             <!-- Solid Bell (Subscribed) -->
-            <svg id="bellSolid" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 hidden">
-              <path fill-rule="evenodd" d="M5.25 9a6.75 6.75 0 0113.5 0v.75c0 2.123.8 4.057 2.118 5.52a.75.75 0 01-.297 1.206c-1.544.57-3.16.99-4.831 1.243a3.75 3.75 0 11-7.48 0 24.585 24.585 0 01-4.831-1.244.75.75 0 01-.298-1.205A8.217 8.217 0 005.25 9.75V9zm4.502 8.9a2.25 2.25 0 104.496 0 25.057 25.057 0 01-4.496 0z" clip-rule="evenodd" />
+            <svg id="bellSolid" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
+                class="w-6 h-6 hidden">
+                <path fill-rule="evenodd"
+                    d="M5.25 9a6.75 6.75 0 0113.5 0v.75c0 2.123.8 4.057 2.118 5.52a.75.75 0 01-.297 1.206c-1.544.57-3.16.99-4.831 1.243a3.75 3.75 0 11-7.48 0 24.585 24.585 0 01-4.831-1.244.75.75 0 01-.298-1.205A8.217 8.217 0 005.25 9.75V9zm4.502 8.9a2.25 2.25 0 104.496 0 25.057 25.057 0 01-4.496 0z"
+                    clip-rule="evenodd" />
             </svg>
         </button>
     </div>
 
     <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          {% set parts = category.split('_') %}
-          {% set base_category = parts[0] %}
-          {% set timing = parts[1] if parts|length > 1 else 'default' %}
-          <div class="flash-message px-6 py-3 rounded-lg text-white font-semibold {{ 'bg-green-500' if base_category == 'success' else 'bg-red-500' }} shadow-lg" data-timing="{{ timing }}">
-            {{ message }}
-          </div>
-        {% endfor %}
-      {% endif %}
+    {% if messages %}
+    {% for category, message in messages %}
+    {% set parts = category.split('_') %}
+    {% set base_category = parts[0] %}
+    {% set timing = parts[1] if parts|length > 1 else 'default' %}
+    <div class="flash-message px-6 py-3 rounded-lg text-white font-semibold {{ 'bg-green-500' if base_category == 'success' else 'bg-red-500' }} shadow-lg"
+        data-timing="{{ timing }}">
+        {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
     {% endwith %}
 
     <!-- LED Underlayer Control Panel (Development Tool) -->
@@ -172,147 +204,147 @@
     {% include 'partials/error_report_modal.html' %}
 
     <script>
-    // Initialize feature handlers
-    LocationUpdate.init('{{ data.user.location }}');
-    WaveThreshold.init();
-    WindThreshold.init();
-    BrightnessControl.init({{ data.user.brightness_level or 0.6 }});
-    QuietHours.init({{ 'true' if data.user.quiet_times_enabled else 'false' }});
-    UnitPreference.init('{{ data.user.preferred_output or "meters" }}');
+        // Initialize feature handlers
+        LocationUpdate.init('{{ data.user.location }}');
+        WaveThreshold.init();
+        WindThreshold.init();
+        BrightnessControl.init({{ data.user.brightness_level or 0.6 }});
+        QuietHours.init({{ 'true' if data.user.quiet_times_enabled else 'false' }});
+        UnitPreference.init('{{ data.user.preferred_output or "meters" }}');
 
-    // Night Mode (Off Hours) - Preset & Custom Controls
-    {% if off_hours_feature_enabled %}
-    OffHours.init();
-    {% endif %}
+        // Night Mode (Off Hours) - Preset & Custom Controls
+        {% if off_hours_feature_enabled %}
+        OffHours.init();
+        {% endif %}
 
-    // LED Visualization
-    LEDDataFetcher.init({{ data.arduinos[0].arduino_id if data.arduinos else 0 }}, '{{ data.user.theme }}');
+        // LED Visualization
+        LEDDataFetcher.init({{ data.arduinos[0].arduino_id if data.arduinos else 0 }}, '{{ data.user.theme }}');
 
-    // Underlayer Control Panel
-    window.underlayerConfig = {
-        left: { xOffset: 0, yOffset: 0, opacity: 0.13, color: '#000000' },
-        center: { xOffset: 0, yOffset: 0, opacity: 0.13, color: '#000000' },
-        right: { xOffset: 0, yOffset: 0, opacity: 0.13, color: '#000000' }
-    };
+        // Underlayer Control Panel
+        window.underlayerConfig = {
+            left: { xOffset: 0, yOffset: 0, opacity: 0.13, color: '#000000' },
+            center: { xOffset: 0, yOffset: 0, opacity: 0.13, color: '#000000' },
+            right: { xOffset: 0, yOffset: 0, opacity: 0.13, color: '#000000' }
+        };
 
-    function toggleUnderlayerPanel() {
-        const panel = document.getElementById('underlayerControlPanel');
-        const btn = document.getElementById('underlayerToggleBtn');
-        panel.classList.toggle('hidden');
-        btn.classList.toggle('hidden');
-    }
-
-    function setupUnderlayerControls() {
-        const strips = ['left', 'center', 'right'];
-
-        strips.forEach(strip => {
-            // X Offset
-            const xInput = document.getElementById(`${strip}X`);
-            const xVal = document.getElementById(`${strip}XVal`);
-            xInput.addEventListener('input', (e) => {
-                window.underlayerConfig[strip].xOffset = parseFloat(e.target.value);
-                xVal.textContent = e.target.value;
-            });
-
-            // Y Offset
-            const yInput = document.getElementById(`${strip}Y`);
-            const yVal = document.getElementById(`${strip}YVal`);
-            yInput.addEventListener('input', (e) => {
-                window.underlayerConfig[strip].yOffset = parseFloat(e.target.value);
-                yVal.textContent = e.target.value;
-            });
-
-            // Opacity
-            const opacityInput = document.getElementById(`${strip}Opacity`);
-            const opacityVal = document.getElementById(`${strip}OpacityVal`);
-            opacityInput.addEventListener('input', (e) => {
-                window.underlayerConfig[strip].opacity = parseFloat(e.target.value);
-                opacityVal.textContent = parseFloat(e.target.value).toFixed(2);
-            });
-
-            // Color
-            const colorInput = document.getElementById(`${strip}Color`);
-            colorInput.addEventListener('input', (e) => {
-                window.underlayerConfig[strip].color = e.target.value;
-            });
-        });
-    }
-
-    function exportUnderlayerConfig() {
-        const output = document.getElementById('configOutput');
-        const config = JSON.stringify(window.underlayerConfig, null, 2);
-        output.textContent = `// Underlayer Configuration:\n${config}`;
-        output.classList.remove('hidden');
-    }
-
-    setupUnderlayerControls();
-
-    // Error Report Modal
-    ErrorReport.init();
-
-    // Chat Assistant
-    ChatAssistant.init();
-
-    // Broadcast Notifications
-    Broadcasts.init();
-
-    // Arduino Management (Link New Lamp)
-    ArduinoManagement.init();
-
-    // Status Update Time Display
-    function formatTimeAgo(isoTimestamp) {
-        const now = new Date();
-        const updated = new Date(isoTimestamp);
-        const diffMs = now - updated;
-        const diffMins = Math.floor(diffMs / 60000);
-
-        if (diffMins < 1) return "just now";
-        if (diffMins < 60) return `${diffMins}m ago`;
-        const diffHours = Math.floor(diffMins / 60);
-        if (diffHours < 24) return `${diffHours}h ago`;
-        return `${Math.floor(diffHours / 24)}d ago`;
-    }
-
-    function updateStatusTime() {
-        const elem = document.getElementById('statusUpdateTime');
-        if (elem?.dataset.timestamp) {
-            elem.textContent = formatTimeAgo(elem.dataset.timestamp);
+        function toggleUnderlayerPanel() {
+            const panel = document.getElementById('underlayerControlPanel');
+            const btn = document.getElementById('underlayerToggleBtn');
+            panel.classList.toggle('hidden');
+            btn.classList.toggle('hidden');
         }
-    }
 
-    // Update status time on page load and every minute
-    updateStatusTime();
-    setInterval(updateStatusTime, 60000);
+        function setupUnderlayerControls() {
+            const strips = ['left', 'center', 'right'];
 
-    // Check for pending theme update from themes page
-    function checkThemeUpdate() {
-        const pendingThemeJson = localStorage.getItem('pendingThemeUpdate');
-        if (pendingThemeJson) {
-            try {
-                const pendingTheme = JSON.parse(pendingThemeJson);
-
-                // Update theme name display immediately
-                const themeNameElement = document.getElementById('currentThemeName');
-                if (themeNameElement) {
-                    themeNameElement.textContent = pendingTheme.name;
-                }
-
-                // Update LED visualization colors on next animation frame (syncs with animation loop)
-                requestAnimationFrame(() => {
-                    if (window.LEDDataFetcher) {
-                        LEDDataFetcher.updateTheme(pendingTheme.id);
-                    }
+            strips.forEach(strip => {
+                // X Offset
+                const xInput = document.getElementById(`${strip}X`);
+                const xVal = document.getElementById(`${strip}XVal`);
+                xInput.addEventListener('input', (e) => {
+                    window.underlayerConfig[strip].xOffset = parseFloat(e.target.value);
+                    xVal.textContent = e.target.value;
                 });
 
-                // Clear the pending update (non-blocking)
-                localStorage.removeItem('pendingThemeUpdate');
-            } catch (e) {
-                console.error('Failed to parse theme update:', e);
-                localStorage.removeItem('pendingThemeUpdate');
+                // Y Offset
+                const yInput = document.getElementById(`${strip}Y`);
+                const yVal = document.getElementById(`${strip}YVal`);
+                yInput.addEventListener('input', (e) => {
+                    window.underlayerConfig[strip].yOffset = parseFloat(e.target.value);
+                    yVal.textContent = e.target.value;
+                });
+
+                // Opacity
+                const opacityInput = document.getElementById(`${strip}Opacity`);
+                const opacityVal = document.getElementById(`${strip}OpacityVal`);
+                opacityInput.addEventListener('input', (e) => {
+                    window.underlayerConfig[strip].opacity = parseFloat(e.target.value);
+                    opacityVal.textContent = parseFloat(e.target.value).toFixed(2);
+                });
+
+                // Color
+                const colorInput = document.getElementById(`${strip}Color`);
+                colorInput.addEventListener('input', (e) => {
+                    window.underlayerConfig[strip].color = e.target.value;
+                });
+            });
+        }
+
+        function exportUnderlayerConfig() {
+            const output = document.getElementById('configOutput');
+            const config = JSON.stringify(window.underlayerConfig, null, 2);
+            output.textContent = `// Underlayer Configuration:\n${config}`;
+            output.classList.remove('hidden');
+        }
+
+        setupUnderlayerControls();
+
+        // Error Report Modal
+        ErrorReport.init();
+
+        // Chat Assistant
+        ChatAssistant.init();
+
+        // Broadcast Notifications
+        Broadcasts.init();
+
+        // Arduino Management (Link New Lamp)
+        ArduinoManagement.init();
+
+        // Status Update Time Display
+        function formatTimeAgo(isoTimestamp) {
+            const now = new Date();
+            const updated = new Date(isoTimestamp);
+            const diffMs = now - updated;
+            const diffMins = Math.floor(diffMs / 60000);
+
+            if (diffMins < 1) return "just now";
+            if (diffMins < 60) return `${diffMins}m ago`;
+            const diffHours = Math.floor(diffMins / 60);
+            if (diffHours < 24) return `${diffHours}h ago`;
+            return `${Math.floor(diffHours / 24)}d ago`;
+        }
+
+        function updateStatusTime() {
+            const elem = document.getElementById('statusUpdateTime');
+            if (elem?.dataset.timestamp) {
+                elem.textContent = formatTimeAgo(elem.dataset.timestamp);
             }
         }
-    }
-    checkThemeUpdate();
+
+        // Update status time on page load and every minute
+        updateStatusTime();
+        setInterval(updateStatusTime, 60000);
+
+        // Check for pending theme update from themes page
+        function checkThemeUpdate() {
+            const pendingThemeJson = localStorage.getItem('pendingThemeUpdate');
+            if (pendingThemeJson) {
+                try {
+                    const pendingTheme = JSON.parse(pendingThemeJson);
+
+                    // Update theme name display immediately
+                    const themeNameElement = document.getElementById('currentThemeName');
+                    if (themeNameElement) {
+                        themeNameElement.textContent = pendingTheme.name;
+                    }
+
+                    // Update LED visualization colors on next animation frame (syncs with animation loop)
+                    requestAnimationFrame(() => {
+                        if (window.LEDDataFetcher) {
+                            LEDDataFetcher.updateTheme(pendingTheme.id);
+                        }
+                    });
+
+                    // Clear the pending update (non-blocking)
+                    localStorage.removeItem('pendingThemeUpdate');
+                } catch (e) {
+                    console.error('Failed to parse theme update:', e);
+                    localStorage.removeItem('pendingThemeUpdate');
+                }
+            }
+        }
+        checkThemeUpdate();
 
     </script>
     <script src="{{ url_for('static', filename='js/flash-messages.js') }}"></script>
@@ -327,4 +359,5 @@
 
     {% include 'partials/legal_footer.html' %}
 </body>
+
 </html>
