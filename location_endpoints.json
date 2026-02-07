@@ -1,100 +1,4 @@
 {
-  "Tel Aviv, Israel": [
-    {
-      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.0853&longitude=34.7818&hourly=wave_height,wave_period,wave_direction",
-      "priority": 1,
-      "type": "wave"
-    },
-    {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.0853&longitude=34.7818&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms",
-      "priority": 2,
-      "type": "wind"
-    }
-  ],
-  "Hadera, Israel": [
-    {
-      "url": "https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json",
-      "priority": 1,
-      "type": "wave"
-    },
-    {
-      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.4500&longitude=34.9100&hourly=wave_height,wave_period,wave_direction",
-      "priority": 2,
-      "type": "wave"
-    },
-    {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.4500&longitude=34.9100&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms",
-      "priority": 3,
-      "type": "wind"
-    }
-  ],
-  "Ashdod, Israel": [
-    {
-      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=31.7939&longitude=34.6328&hourly=wave_height,wave_period,wave_direction",
-      "priority": 1,
-      "type": "wave"
-    },
-    {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=31.7939&longitude=34.6328&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms",
-      "priority": 2,
-      "type": "wind"
-    }
-  ],
-  "Haifa, Israel": [
-    {
-      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.7940&longitude=34.9896&hourly=wave_height,wave_period,wave_direction",
-      "priority": 1,
-      "type": "wave"
-    },
-    {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.7940&longitude=34.9896&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms",
-      "priority": 2,
-      "type": "wind"
-    }
-  ],
-  "Netanya, Israel": [
-    {
-      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.3215&longitude=34.8532&hourly=wave_height,wave_period,wave_direction",
-      "priority": 1,
-      "type": "wave"
-    },
-    {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.3215&longitude=34.8532&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms",
-      "priority": 2,
-      "type": "wind"
-    }
-  ],
-  "Nahariya, Israel": [
-    {
-      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=33.006&longitude=35.094&hourly=wave_height,wave_period,wave_direction",
-      "priority": 1,
-      "type": "wave"
-    },
-    {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=33.006&longitude=35.094&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms",
-      "priority": 2,
-      "type": "wind"
-    }
-  ],
-  "Ashkelon, Israel": [
-    {
-      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=31.6699&longitude=34.5738&hourly=wave_height,wave_period,wave_direction",
-      "priority": 1,
-      "type": "wave"
-    },
-    {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=31.6699&longitude=34.5738&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms",
-      "priority": 2,
-      "type": "wind"
-    }
-  ],
-  "Eilat, Israel": [
-    {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=29.5500&longitude=34.9519&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms",
-      "priority": 1,
-      "type": "wind"
-    }
-  ],
   "Achziv Beach": [
     {
       "url": "https://marine-api.open-meteo.com/v1/marine?latitude=33.0536&longitude=35.2714&hourly=wave_height,wave_period&timezone=auto",
@@ -102,7 +6,7 @@
       "type": "wave"
     },
     {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=33.0536&longitude=35.2714&hourly=wind_speed_10m,wind_direction_10m&timezone=auto",
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=33.0536&longitude=35.2714&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=auto",
       "priority": 2,
       "type": "wind"
     }
@@ -114,7 +18,7 @@
       "type": "wave"
     },
     {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.975&longitude=35.165&hourly=wind_speed_10m,wind_direction_10m&timezone=auto",
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.975&longitude=35.165&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=auto",
       "priority": 2,
       "type": "wind"
     }
@@ -126,7 +30,7 @@
       "type": "wave"
     },
     {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=33.0278&longitude=35.2572&hourly=wind_speed_10m,wind_direction_10m&timezone=auto",
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=33.0278&longitude=35.2572&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=auto",
       "priority": 2,
       "type": "wind"
     }
@@ -138,7 +42,7 @@
       "type": "wave"
     },
     {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.9892&longitude=35.2431&hourly=wind_speed_10m,wind_direction_10m&timezone=auto",
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.9892&longitude=35.2431&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=auto",
       "priority": 2,
       "type": "wind"
     }
@@ -150,7 +54,7 @@
       "type": "wave"
     },
     {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.9533&longitude=35.2125&hourly=wind_speed_10m,wind_direction_10m&timezone=auto",
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.9533&longitude=35.2125&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=auto",
       "priority": 2,
       "type": "wind"
     }
@@ -162,7 +66,7 @@
       "type": "wave"
     },
     {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.8242&longitude=34.9897&hourly=wind_speed_10m,wind_direction_10m&timezone=auto",
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.8242&longitude=34.9897&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=auto",
       "priority": 2,
       "type": "wind"
     }
@@ -174,7 +78,7 @@
       "type": "wave"
     },
     {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.83&longitude=34.98&hourly=wind_speed_10m,wind_direction_10m&timezone=auto",
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.83&longitude=34.98&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=auto",
       "priority": 2,
       "type": "wind"
     }
@@ -186,7 +90,7 @@
       "type": "wave"
     },
     {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.7211&longitude=34.9433&hourly=wind_speed_10m,wind_direction_10m&timezone=auto",
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.7211&longitude=34.9433&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=auto",
       "priority": 2,
       "type": "wind"
     }
@@ -198,7 +102,7 @@
       "type": "wave"
     },
     {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.5014&longitude=34.8936&hourly=wind_speed_10m,wind_direction_10m&timezone=auto",
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.5014&longitude=34.8936&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=auto",
       "priority": 2,
       "type": "wind"
     }
@@ -210,7 +114,7 @@
       "type": "wave"
     },
     {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.4425&longitude=34.8683&hourly=wind_speed_10m,wind_direction_10m&timezone=auto",
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.4425&longitude=34.8683&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=auto",
       "priority": 2,
       "type": "wind"
     }
@@ -222,7 +126,7 @@
       "type": "wave"
     },
     {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.4078&longitude=34.8425&hourly=wind_speed_10m,wind_direction_10m&timezone=auto",
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.4078&longitude=34.8425&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=auto",
       "priority": 2,
       "type": "wind"
     }
@@ -234,7 +138,7 @@
       "type": "wave"
     },
     {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.3333&longitude=34.845&hourly=wind_speed_10m,wind_direction_10m&timezone=auto",
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.3333&longitude=34.845&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=auto",
       "priority": 2,
       "type": "wind"
     }
@@ -246,7 +150,7 @@
       "type": "wave"
     },
     {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.3272&longitude=34.8422&hourly=wind_speed_10m,wind_direction_10m&timezone=auto",
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.3272&longitude=34.8422&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=auto",
       "priority": 2,
       "type": "wind"
     }
@@ -258,151 +162,7 @@
       "type": "wave"
     },
     {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.275&longitude=34.835&hourly=wind_speed_10m,wind_direction_10m&timezone=auto",
-      "priority": 2,
-      "type": "wind"
-    }
-  ],
-  "Zvulun Beach (Herzliya)": [
-    {
-      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.175&longitude=34.785&hourly=wave_height,wave_period&timezone=auto",
-      "priority": 1,
-      "type": "wave"
-    },
-    {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.175&longitude=34.785&hourly=wind_speed_10m,wind_direction_10m&timezone=auto",
-      "priority": 2,
-      "type": "wind"
-    }
-  ],
-  "Herzliya Marina": [
-    {
-      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.162&longitude=34.795&hourly=wave_height,wave_period&timezone=auto",
-      "priority": 1,
-      "type": "wave"
-    },
-    {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.162&longitude=34.795&hourly=wind_speed_10m,wind_direction_10m&timezone=auto",
-      "priority": 2,
-      "type": "wind"
-    }
-  ],
-  "Tel Baruch Beach": [
-    {
-      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.1233&longitude=34.7767&hourly=wave_height,wave_period&timezone=auto",
-      "priority": 1,
-      "type": "wave"
-    },
-    {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.1233&longitude=34.7767&hourly=wind_speed_10m,wind_direction_10m&timezone=auto",
-      "priority": 2,
-      "type": "wind"
-    }
-  ],
-  "Hilton Beach (Tel Aviv)": [
-    {
-      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.091&longitude=34.771&hourly=wave_height,wave_period&timezone=auto",
-      "priority": 1,
-      "type": "wave"
-    },
-    {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.091&longitude=34.771&hourly=wind_speed_10m,wind_direction_10m&timezone=auto",
-      "priority": 2,
-      "type": "wind"
-    }
-  ],
-  "Gordon Beach (Tel Aviv)": [
-    {
-      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.0833&longitude=34.768&hourly=wave_height,wave_period&timezone=auto",
-      "priority": 1,
-      "type": "wave"
-    },
-    {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.0833&longitude=34.768&hourly=wind_speed_10m,wind_direction_10m&timezone=auto",
-      "priority": 2,
-      "type": "wind"
-    }
-  ],
-  "Maravi Beach (Tel Aviv)": [
-    {
-      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.058&longitude=34.759&hourly=wave_height,wave_period&timezone=auto",
-      "priority": 1,
-      "type": "wave"
-    },
-    {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.058&longitude=34.759&hourly=wind_speed_10m,wind_direction_10m&timezone=auto",
-      "priority": 2,
-      "type": "wind"
-    }
-  ],
-  "Bat Yam (Main Beach)": [
-    {
-      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.0167&longitude=34.7333&hourly=wave_height,wave_period&timezone=auto",
-      "priority": 1,
-      "type": "wave"
-    },
-    {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.0167&longitude=34.7333&hourly=wind_speed_10m,wind_direction_10m&timezone=auto",
-      "priority": 2,
-      "type": "wind"
-    }
-  ],
-  "Palmachim Beach": [
-    {
-      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=31.93&longitude=34.695&hourly=wave_height,wave_period&timezone=auto",
-      "priority": 1,
-      "type": "wave"
-    },
-    {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=31.93&longitude=34.695&hourly=wind_speed_10m,wind_direction_10m&timezone=auto",
-      "priority": 2,
-      "type": "wind"
-    }
-  ],
-  "Ashdod (Gil Beach)": [
-    {
-      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=31.812&longitude=34.638&hourly=wave_height,wave_period&timezone=auto",
-      "priority": 1,
-      "type": "wave"
-    },
-    {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=31.812&longitude=34.638&hourly=wind_speed_10m,wind_direction_10m&timezone=auto",
-      "priority": 2,
-      "type": "wind"
-    }
-  ],
-  "Ashdod (Kshatot)": [
-    {
-      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=31.7939&longitude=34.6328&hourly=wave_height,wave_period&timezone=auto",
-      "priority": 1,
-      "type": "wave"
-    },
-    {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=31.7939&longitude=34.6328&hourly=wind_speed_10m,wind_direction_10m&timezone=auto",
-      "priority": 2,
-      "type": "wind"
-    }
-  ],
-  "Ashkelon (Marina)": [
-    {
-      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=31.6833&longitude=34.5567&hourly=wave_height,wave_period&timezone=auto",
-      "priority": 1,
-      "type": "wave"
-    },
-    {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=31.6833&longitude=34.5567&hourly=wind_speed_10m,wind_direction_10m&timezone=auto",
-      "priority": 2,
-      "type": "wind"
-    }
-  ],
-  "Zikim Beach": [
-    {
-      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=31.6167&longitude=34.485&hourly=wave_height,wave_period&timezone=auto",
-      "priority": 1,
-      "type": "wave"
-    },
-    {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=31.6167&longitude=34.485&hourly=wind_speed_10m,wind_direction_10m&timezone=auto",
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.275&longitude=34.835&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=auto",
       "priority": 2,
       "type": "wind"
     }
@@ -414,7 +174,151 @@
       "type": "wave"
     },
     {
-      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.4355&longitude=34.885&hourly=wind_speed_10m,wind_direction_10m&timezone=auto",
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.4355&longitude=34.885&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=auto",
+      "priority": 2,
+      "type": "wind"
+    }
+  ],
+  "Zvulun Beach (Herzliya)": [
+    {
+      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.175&longitude=34.785&hourly=wave_height,wave_period&timezone=auto",
+      "priority": 1,
+      "type": "wave"
+    },
+    {
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.175&longitude=34.785&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=auto",
+      "priority": 2,
+      "type": "wind"
+    }
+  ],
+  "Herzliya Marina": [
+    {
+      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.162&longitude=34.795&hourly=wave_height,wave_period&timezone=auto",
+      "priority": 1,
+      "type": "wave"
+    },
+    {
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.162&longitude=34.795&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=auto",
+      "priority": 2,
+      "type": "wind"
+    }
+  ],
+  "Tel Baruch Beach": [
+    {
+      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.1233&longitude=34.7767&hourly=wave_height,wave_period&timezone=auto",
+      "priority": 1,
+      "type": "wave"
+    },
+    {
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.1233&longitude=34.7767&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=auto",
+      "priority": 2,
+      "type": "wind"
+    }
+  ],
+  "Hilton Beach (Tel Aviv)": [
+    {
+      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.091&longitude=34.771&hourly=wave_height,wave_period&timezone=auto",
+      "priority": 1,
+      "type": "wave"
+    },
+    {
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.091&longitude=34.771&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=auto",
+      "priority": 2,
+      "type": "wind"
+    }
+  ],
+  "Gordon Beach (Tel Aviv)": [
+    {
+      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.0833&longitude=34.768&hourly=wave_height,wave_period&timezone=auto",
+      "priority": 1,
+      "type": "wave"
+    },
+    {
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.0833&longitude=34.768&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=auto",
+      "priority": 2,
+      "type": "wind"
+    }
+  ],
+  "Maravi Beach (Tel Aviv)": [
+    {
+      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.058&longitude=34.759&hourly=wave_height,wave_period&timezone=auto",
+      "priority": 1,
+      "type": "wave"
+    },
+    {
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.058&longitude=34.759&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=auto",
+      "priority": 2,
+      "type": "wind"
+    }
+  ],
+  "Bat Yam (Main Beach)": [
+    {
+      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.0167&longitude=34.7333&hourly=wave_height,wave_period&timezone=auto",
+      "priority": 1,
+      "type": "wave"
+    },
+    {
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=32.0167&longitude=34.7333&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=auto",
+      "priority": 2,
+      "type": "wind"
+    }
+  ],
+  "Palmachim Beach": [
+    {
+      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=31.93&longitude=34.695&hourly=wave_height,wave_period&timezone=auto",
+      "priority": 1,
+      "type": "wave"
+    },
+    {
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=31.93&longitude=34.695&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=auto",
+      "priority": 2,
+      "type": "wind"
+    }
+  ],
+  "Ashdod (Gil Beach)": [
+    {
+      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=31.812&longitude=34.638&hourly=wave_height,wave_period&timezone=auto",
+      "priority": 1,
+      "type": "wave"
+    },
+    {
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=31.812&longitude=34.638&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=auto",
+      "priority": 2,
+      "type": "wind"
+    }
+  ],
+  "Ashdod (Kshatot)": [
+    {
+      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=31.7939&longitude=34.6328&hourly=wave_height,wave_period&timezone=auto",
+      "priority": 1,
+      "type": "wave"
+    },
+    {
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=31.7939&longitude=34.6328&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=auto",
+      "priority": 2,
+      "type": "wind"
+    }
+  ],
+  "Ashkelon (Marina)": [
+    {
+      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=31.6833&longitude=34.5567&hourly=wave_height,wave_period&timezone=auto",
+      "priority": 1,
+      "type": "wave"
+    },
+    {
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=31.6833&longitude=34.5567&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=auto",
+      "priority": 2,
+      "type": "wind"
+    }
+  ],
+  "Zikim Beach": [
+    {
+      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=31.6167&longitude=34.485&hourly=wave_height,wave_period&timezone=auto",
+      "priority": 1,
+      "type": "wave"
+    },
+    {
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=31.6167&longitude=34.485&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=auto",
       "priority": 2,
       "type": "wind"
     }
