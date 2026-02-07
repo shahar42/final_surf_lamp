@@ -71,22 +71,4 @@ def get_api_urls_for_beach(name: str) -> Optional[Tuple[str, str]]:
     )
 
 
-# Mapping from old city locations to default beach
-CITY_TO_BEACH_MAPPING = {
-    "Haifa, Israel": "Bat Galim (Haifa)",
-    "Tel Aviv, Israel": "Hilton Beach (Tel Aviv)",
-    "Ashdod, Israel": "Ashdod (Gil Beach)",
-    "Netanya, Israel": "Sironit Beach (Netanya)",
-    "Hadera, Israel": "Olga Beach (Hadera)",
-    "Ashkelon, Israel": "Ashkelon (Marina)",
-    "Nahariya, Israel": "Sokolov Beach (Nahariya)",
-    "Eilat, Israel": "Zikim Beach",  # Closest available (no Eilat beaches in list)
-}
-
-
-def migrate_city_to_beach(city_location: str) -> str:
-    """
-    Map an old city-based location to a beach.
-    Falls back to Hilton Beach if no mapping found.
-    """
-    return CITY_TO_BEACH_MAPPING.get(city_location, "Hilton Beach (Tel Aviv)")
+# Legacy city mapping removed - all locations must use beach-specific names

@@ -8,17 +8,7 @@ Author: shahar nitzan
 
 from typing import List, Dict, Optional
 
-# Legacy city-to-beach mapping for backward compatibility
-CITY_TO_BEACH_MAPPING = {
-    "Haifa, Israel": "Bat Galim (Haifa)",
-    "Tel Aviv, Israel": "Hilton Beach (Tel Aviv)",
-    "Ashdod, Israel": "Ashdod (Gil Beach)",
-    "Netanya, Israel": "Sironit Beach (Netanya)",
-    "Hadera, Israel": "Olga Beach (Hadera)",
-    "Ashkelon, Israel": "Ashkelon (Marina)",
-    "Nahariya, Israel": "Sokolov Beach (Nahariya)",
-    "Eilat, Israel": "Zikim Beach",
-}
+# Legacy city mapping removed - all locations use beach-specific names now
 
 # Global beach data with region and timezone metadata
 ALL_BEACHES: List[Dict] = [
@@ -106,13 +96,6 @@ def search_beaches(query: str, limit: int = 10) -> List[Dict]:
     """
     if not query or len(query) < 1:
         return ALL_BEACHES[:limit]
-
-    # Handle legacy city-based locations (exact match only)
-    if query in CITY_TO_BEACH_MAPPING:
-        mapped_beach = CITY_TO_BEACH_MAPPING[query]
-        beach = get_beach_by_name(mapped_beach)
-        if beach:
-            return [beach]
 
     query_lower = query.lower()
     starts_with = []
