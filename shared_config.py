@@ -139,28 +139,35 @@ assert MONITOR_CHECK_INTERVAL_SECONDS <= LAMP_ONLINE_THRESHOLD_SECONDS, \
 
 def _load_location_endpoints():
     """
-    Load location endpoints from JSON file with fallback to hardcoded config.
+    Load location endpoints from beaches.py (single source of truth).
 
+    Architecture: beaches.py is PRIMARY, JSON is deprecated fallback.
     Performance: Loads once at module import, cached in memory forever.
     Scales to 10,000+ locations with zero query overhead.
 
     Returns:
         dict: Location endpoints configuration
     """
-    json_path = Path(__file__).parent / 'location_endpoints.json'
+    # PRIMARY: Generate from beaches.py (single source of truth)
+    config = _generate_fallback_multi_source()
 
+    if config:
+        print(f"✅ Loaded {len(config)} locations from beaches.py (single source of truth)")
+        return config
+
+    # DEPRECATED FALLBACK: JSON file (backward compatibility only)
+    json_path = Path(__file__).parent / 'location_endpoints.json'
     if json_path.exists():
         try:
             with open(json_path, 'r', encoding='utf-8') as f:
-                config = json.load(f)
-                print(f"✅ Loaded {len(config)} locations from {json_path}")
-                return config
+                fallback_config = json.load(f)
+                print(f"⚠️ beaches.py failed, using JSON fallback ({len(fallback_config)} locations)")
+                return fallback_config
         except Exception as e:
-            print(f"⚠️ Failed to load {json_path}: {e}, using fallback")
+            print(f"❌ Both beaches.py and JSON failed: {e}")
 
-    # Fallback to hardcoded configuration
-    print("⚠️ location_endpoints.json not found, using hardcoded fallback")
-    return _FALLBACK_MULTI_SOURCE_LOCATIONS
+    print("❌ No location endpoints available")
+    return {}
 
 # ============================================================================
 # FALLBACK CONFIGURATION - Single Source of Truth
