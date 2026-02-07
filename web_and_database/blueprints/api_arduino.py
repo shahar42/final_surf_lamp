@@ -86,14 +86,27 @@ def update_arduino_timestamp(arduino_id, is_physical):
             return None, f'Arduino {arduino_id} not found'
 
         if is_physical:
-            # OPTIMIZATION: Use Redis for heartbeat if available
+            # Try Redis first
+            from redis_manager import can_write_to_db, record_db_write, record_redis_health
+            from sqlalchemy.sql import func
+
             if record_heartbeat(arduino_id):
                 logger.info(f"⚡ Heartbeat recorded in Redis for {arduino_id}")
+                record_redis_health('web-service', success=True)
             else:
-                # Redis unavailable: Log error but DO NOT write to DB to protect it
-                logger.error(f"❌ Redis unavailable for heartbeat {arduino_id} - skipping DB update to prevent overload")
+                # Redis failed - use throttled DB fallback
+                logger.warning(f"⚠️ Redis unavailable for {arduino_id} - attempting DB fallback")
+                record_redis_health('web-service', success=False, error_message="Redis write failed")
+
+                if can_write_to_db(arduino_id):
+                    arduino.last_poll_time = func.now()
+                    db.commit()
+                    record_db_write(arduino_id)
+                    logger.info(f"💾 Fallback: Arduino {arduino_id} timestamp written to DB")
+                else:
+                    logger.debug(f"⏱️ Skipping DB write for {arduino_id} (rate limited)")
         else:
-            logger.info(f"📊 Dashboard callback for arduino {arduino_id} (no timestamp update)")
+            logger.info(f"📊 Dashboard view for Arduino {arduino_id} (no timestamp update)")
 
         return arduino, None
 

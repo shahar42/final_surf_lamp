@@ -179,6 +179,28 @@ class NotificationSubscription(Base):
 
     user = relationship("User", backref="subscriptions")
 
+class RedisHealth(Base):
+    __tablename__ = 'redis_health'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    service_name = Column(String(100), unique=True, nullable=False)
+    last_success_timestamp = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+    last_failure_timestamp = Column(TIMESTAMP, nullable=True)
+    consecutive_failures = Column(Integer, default=0)
+    total_failures_24h = Column(Integer, default=0)
+    is_healthy = Column(Boolean, default=True)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+
+class ServiceHealthHistory(Base):
+    __tablename__ = 'service_health_history'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    service_name = Column(String(100), nullable=False)
+    service_type = Column(String(50), nullable=False)
+    status = Column(String(20), nullable=False)
+    latency_ms = Column(Integer, nullable=True)
+    error_message = Column(Text, nullable=True)
+    timestamp = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+
 
 # API Configuration
 OPENWEATHERMAP_API_KEY = os.environ.get('OPENWEATHERMAP_API_KEY', '')
@@ -326,6 +348,27 @@ def cleanup_expired_password_reset_tokens():
     except Exception:
         db.rollback()
         return 0
+    finally:
+        db.close()
+
+def update_arduino_heartbeat_batch(arduino_timestamps):
+    """Batch update Arduino timestamps from Redis sync.
+
+    Args:
+        arduino_timestamps: Dict of {arduino_id: datetime object}
+    """
+    db = SessionLocal()
+    try:
+        for arduino_id, timestamp in arduino_timestamps.items():
+            arduino = db.query(Arduino).filter(Arduino.arduino_id == arduino_id).first()
+            if arduino:
+                arduino.last_poll_time = timestamp
+        db.commit()
+        logger.info(f"Batch updated {len(arduino_timestamps)} Arduino timestamps")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Batch update failed: {e}")
+        raise
     finally:
         db.close()
 

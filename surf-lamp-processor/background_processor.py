@@ -204,6 +204,109 @@ def process_all_lamps():
         return False
 
 
+def sync_redis_to_database():
+    """Sync Arduino timestamps from Redis to Database (every 5 minutes)."""
+    sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'web_and_database'))
+
+    try:
+        from redis_manager import get_redis_client, record_redis_health
+        redis = get_redis_client()
+
+        if not redis:
+            logger.warning("Redis unavailable for sync task")
+            return False
+
+        # Fetch all Arduino timestamps from Redis
+        redis_timestamps = redis.hgetall('arduino:last_seen')
+
+        if not redis_timestamps:
+            logger.info("No Redis timestamps to sync")
+            return True
+
+        # Convert string timestamps to datetime objects
+        arduino_timestamps = {}
+        for arduino_id_str, timestamp_str in redis_timestamps.items():
+            try:
+                arduino_id = int(arduino_id_str)
+                timestamp = datetime.fromtimestamp(float(timestamp_str), timezone.utc)
+                arduino_timestamps[arduino_id] = timestamp
+            except (ValueError, TypeError) as e:
+                logger.warning(f"Invalid timestamp for Arduino {arduino_id_str}: {e}")
+
+        if not arduino_timestamps:
+            logger.info("No valid timestamps to sync")
+            return True
+
+        # Batch update database using bulk UPDATE
+        from lamp_repository import SessionLocal
+        from datetime import datetime, timezone
+        from sqlalchemy import text
+
+        sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+        from shared_config import REDIS_SYNC_BATCH_SIZE
+
+        db = SessionLocal()
+        try:
+            total_updated = 0
+
+            # Process in batches to prevent memory issues with 10K+ Arduinos
+            arduino_items = list(arduino_timestamps.items())
+            batch_size = REDIS_SYNC_BATCH_SIZE
+
+            for i in range(0, len(arduino_items), batch_size):
+                batch = arduino_items[i:i + batch_size]
+
+                # Build VALUES clause for bulk update
+                # Format: (arduino_id, 'timestamp_iso')
+                values = []
+                for arduino_id, timestamp in batch:
+                    # Escape single quotes in timestamp to prevent SQL injection
+                    ts_iso = timestamp.isoformat().replace("'", "''")
+                    values.append(f"({arduino_id}, '{ts_iso}')")
+
+                if not values:
+                    continue
+
+                values_clause = ', '.join(values)
+
+                # Single UPDATE query for entire batch
+                # Only updates if new timestamp is newer than existing
+                query = text(f"""
+                    UPDATE arduinos AS a
+                    SET last_poll_time = v.ts::timestamptz
+                    FROM (VALUES {values_clause}) AS v(id, ts)
+                    WHERE a.arduino_id = v.id::integer
+                      AND (a.last_poll_time IS NULL OR v.ts::timestamptz > a.last_poll_time)
+                """)
+
+                result = db.execute(query)
+                total_updated += result.rowcount
+                db.commit()
+
+                logger.debug(f"Batch {i//batch_size + 1}: Updated {result.rowcount}/{len(batch)} Arduinos")
+
+            logger.info(f"✅ Synced {total_updated}/{len(arduino_timestamps)} Arduino timestamps to DB in {(len(arduino_items) + batch_size - 1) // batch_size} batches")
+            record_redis_health('background-processor', success=True)
+            return True
+
+        except Exception as e:
+            db.rollback()
+            logger.error(f"❌ Batch sync failed: {e}")
+            record_redis_health('background-processor', success=False, error_message=str(e))
+            return False
+        finally:
+            db.close()
+
+    except Exception as e:
+        logger.error(f"❌ Redis sync failed: {e}")
+        try:
+            from redis_manager import record_redis_health
+            record_redis_health('background-processor', success=False, error_message=str(e))
+        except:
+            pass
+        return False
+
+
 def main():
     """Main entry point"""
     logger.info("Starting Background Processor...")
@@ -247,6 +350,9 @@ def main():
                 update_processor_heartbeat(engine)
                 if heartbeat_counter % 5 == 0:
                     logger.info(f"💓 Heartbeat: Process alive, waiting for next cycle...")
+                    # Redis-to-DB sync every 5 minutes
+                    logger.info("⏰ Running Redis-to-Database sync task")
+                    sync_redis_to_database()
 
         finally:
             logger.info("Cleaning up database connections...")

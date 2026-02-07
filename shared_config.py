@@ -45,6 +45,22 @@ MIN_LOCATION_API_CALL_INTERVAL_SECONDS = 600  # 10 minutes
 USER_ACTION_RATE_LIMIT_SECONDS = 300  # 5 minutes between user preference changes
 
 # ============================================================================
+# REDIS FALLBACK CONFIGURATION (for database fallback during Redis outages)
+# ============================================================================
+
+# Cooldown period between database writes for same Arduino during Redis outage
+DB_FALLBACK_COOLDOWN_SECONDS = 300  # 5 minutes (prevents DB overload)
+
+# Sampling rate during Redis outages (0.1 = 10% of heartbeats written to DB)
+DB_FALLBACK_SAMPLING_RATE = 0.1  # Reduces load by 90% during worst-case outages
+
+# Batch size for bulk sync operations (Redis → Database)
+REDIS_SYNC_BATCH_SIZE = 1000  # Process 1000 Arduinos per batch to prevent memory issues
+
+# Interval for Redis-to-Database sync task
+REDIS_SYNC_INTERVAL_SECONDS = 300  # 5 minutes
+
+# ============================================================================
 # TIMEZONE SETTINGS (enforce UTC everywhere for consistency)
 # ============================================================================
 
