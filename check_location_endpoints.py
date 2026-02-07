@@ -37,15 +37,44 @@ IGNORED_PARAMS = {
 
 
 def load_location_endpoints():
-    """Load location endpoints from JSON file."""
+    """
+    Load location endpoints dynamically from beaches.py (single source of truth).
+
+    Fallback to JSON file if beaches.py import fails (backward compatibility).
+    """
+    # PRIMARY: Generate from beaches.py
+    try:
+        sys.path.insert(0, str(Path(__file__).parent / 'web_and_database'))
+        from locations import get_all_beaches
+        from locations.beach_service import get_api_urls_for_beach
+
+        config = {}
+        for beach in get_all_beaches():
+            name = beach['english_name']
+            urls = get_api_urls_for_beach(name)
+            if urls:
+                wave_url, wind_url = urls
+                config[name] = [
+                    {"url": wave_url, "priority": 1, "type": "wave"},
+                    {"url": wind_url, "priority": 2, "type": "wind"}
+                ]
+
+        if config:
+            print(f"✅ Loaded {len(config)} locations from beaches.py (single source of truth)")
+            return config
+    except Exception as e:
+        print(f"⚠️ Failed to load from beaches.py: {e}, trying JSON fallback...")
+
+    # FALLBACK: JSON file (deprecated)
     json_path = Path(__file__).parent / 'location_endpoints.json'
+    if json_path.exists():
+        with open(json_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+            print(f"⚠️ Loaded {len(config)} locations from JSON fallback")
+            return config
 
-    if not json_path.exists():
-        print(f"❌ Error: {json_path} not found")
-        sys.exit(1)
-
-    with open(json_path, 'r', encoding='utf-8') as f:
-        return json.load(f)
+    print(f"❌ Error: Could not load locations from beaches.py or JSON")
+    sys.exit(1)
 
 
 def fetch_endpoint_data(endpoint_url, timeout=15):
@@ -191,9 +220,9 @@ def main():
     print("\n🌊 Surf Lamp Location Endpoints Validator")
     print(f"⏰ Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
 
-    # Load configuration
+    # Load configuration (dynamically from beaches.py)
     locations = load_location_endpoints()
-    print(f"✅ Loaded {len(locations)} locations from location_endpoints.json\n")
+    print()
 
     # Check if user specified a location
     target_location = sys.argv[1] if len(sys.argv) > 1 else None
