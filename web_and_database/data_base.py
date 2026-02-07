@@ -213,15 +213,17 @@ OPENWEATHERMAP_API_KEY = os.environ.get('OPENWEATHERMAP_API_KEY', '')
 def _load_location_timezones():
     """
     Generate timezone mappings from beaches.py (single source of truth).
-    All Israeli beaches use Asia/Jerusalem timezone.
+    Uses beach-specific timezone if provided, defaults to Asia/Jerusalem for Israeli beaches.
     """
     timezones = {}
 
-    # Import beach names and map to Asia/Jerusalem
+    # Import beach data and map timezones
     try:
-        from locations import get_all_beach_names
-        for beach_name in get_all_beach_names():
-            timezones[beach_name] = "Asia/Jerusalem"
+        from locations import get_all_beaches
+        for beach in get_all_beaches():
+            beach_name = beach["english_name"]
+            # Use beach-specific timezone if provided, otherwise default to Asia/Jerusalem
+            timezones[beach_name] = beach.get("timezone", "Asia/Jerusalem")
     except ImportError:
         pass  # Will use legacy fallback below
 

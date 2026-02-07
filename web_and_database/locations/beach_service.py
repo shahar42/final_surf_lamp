@@ -7,7 +7,7 @@ Author: shahar nitzan
 
 import os
 from typing import Optional, Tuple
-from .beaches import get_beach_by_name, ISRAEL_BEACHES
+from .beaches import get_beach_by_name
 
 
 def is_valid_beach(name: str) -> bool:

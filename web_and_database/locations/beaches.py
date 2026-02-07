@@ -1,6 +1,7 @@
 """
-Israeli beach data with coordinates.
+Beach location data with coordinates.
 Replaces city-based SURF_LOCATIONS with specific beach locations.
+Supports beaches worldwide with timezone information.
 
 Author: shahar nitzan
 """
@@ -19,8 +20,8 @@ CITY_TO_BEACH_MAPPING = {
     "Eilat, Israel": "Zikim Beach",
 }
 
-# Beach data from israel_beaches.md with region metadata
-ISRAEL_BEACHES: List[Dict] = [
+# Global beach data with region and timezone metadata
+ALL_BEACHES: List[Dict] = [
     # North Coast
     {"english_name": "Achziv Beach", "hebrew_name": "חוף אכזיב", "latitude": 33.0536, "longitude": 35.2714, "region": "North Coast", "country": "Israel", "tags": ["Israel", "Mediterranean", "North Coast", "Nahariya"]},
     {"english_name": "Betzet Beach", "hebrew_name": "חוף בצת", "latitude": 32.9750, "longitude": 35.1650, "region": "North Coast", "country": "Israel", "tags": ["Israel", "Mediterranean", "North Coast", "Nahariya"]},
@@ -55,20 +56,25 @@ ISRAEL_BEACHES: List[Dict] = [
     {"english_name": "Ashdod (Kshatot)", "hebrew_name": "חוף הקשתות", "latitude": 31.7939, "longitude": 34.6328, "region": "South Coast", "country": "Israel", "tags": ["Israel", "Mediterranean", "South Coast", "Ashdod"]},
     {"english_name": "Ashkelon (Marina)", "hebrew_name": "מרינה אשקלון", "latitude": 31.6833, "longitude": 34.5567, "region": "South Coast", "country": "Israel", "tags": ["Israel", "Mediterranean", "South Coast", "Ashkelon"]},
     {"english_name": "Zikim Beach", "hebrew_name": "חוף זיקים", "latitude": 31.6167, "longitude": 34.4850, "region": "South Coast", "country": "Israel", "tags": ["Israel", "Mediterranean", "South Coast"]},
+
+    # Hawaii - Oahu
+    {"english_name": "Waikiki Beach (Honolulu)", "hebrew_name": "Waikiki Beach (Honolulu)", "latitude": 21.2820, "longitude": -157.8310, "region": "Oahu", "country": "USA", "timezone": "Pacific/Honolulu", "tags": ["Hawaii", "USA", "Pacific", "Oahu", "Honolulu"]},
+    {"english_name": "Waimea Bay Beach (North Shore)", "hebrew_name": "Waimea Bay Beach (North Shore)", "latitude": 21.6397, "longitude": -158.0574, "region": "Oahu", "country": "USA", "timezone": "Pacific/Honolulu", "tags": ["Hawaii", "USA", "Pacific", "Oahu", "North Shore"]},
+    {"english_name": "Lanikai Beach (Kailua)", "hebrew_name": "Lanikai Beach (Kailua)", "latitude": 21.4005, "longitude": -157.7167, "region": "Oahu", "country": "USA", "timezone": "Pacific/Honolulu", "tags": ["Hawaii", "USA", "Pacific", "Oahu", "Kailua"]},
 ]
 
 # Build lookup dict for fast access
-_BEACH_BY_NAME: Dict[str, Dict] = {beach["english_name"]: beach for beach in ISRAEL_BEACHES}
+_BEACH_BY_NAME: Dict[str, Dict] = {beach["english_name"]: beach for beach in ALL_BEACHES}
 
 
 def get_all_beaches() -> List[Dict]:
     """Return all beach data."""
-    return ISRAEL_BEACHES
+    return ALL_BEACHES
 
 
 def get_all_beach_names() -> List[str]:
     """Return list of all beach names (for backward compatibility with SURF_LOCATIONS)."""
-    return [beach["english_name"] for beach in ISRAEL_BEACHES]
+    return [beach["english_name"] for beach in ALL_BEACHES]
 
 
 def get_beach_by_name(name: str) -> Optional[Dict]:
@@ -79,10 +85,10 @@ def get_beach_by_name(name: str) -> Optional[Dict]:
     
     # Case-insensitive fallback
     name_lower = name.lower()
-    for beach in ISRAEL_BEACHES:
+    for beach in ALL_BEACHES:
         if beach["english_name"].lower() == name_lower:
             return beach
-    
+
     return None
 
 
@@ -99,7 +105,7 @@ def search_beaches(query: str, limit: int = 10) -> List[Dict]:
         "Hadera, Israel" -> Olga Beach (Hadera) [legacy city mapping]
     """
     if not query or len(query) < 1:
-        return ISRAEL_BEACHES[:limit]
+        return ALL_BEACHES[:limit]
 
     # Handle legacy city-based locations (exact match only)
     if query in CITY_TO_BEACH_MAPPING:
@@ -114,7 +120,7 @@ def search_beaches(query: str, limit: int = 10) -> List[Dict]:
     tag_matches = []
     seen = set()  # Track beaches we've already matched
 
-    for beach in ISRAEL_BEACHES:
+    for beach in ALL_BEACHES:
         beach_id = beach["english_name"]
         english_lower = beach["english_name"].lower()
         hebrew = beach["hebrew_name"]

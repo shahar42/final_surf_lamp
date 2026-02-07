@@ -1,6 +1,6 @@
 # Location module for beach-based locations
 from .beaches import (
-    ISRAEL_BEACHES,
+    ALL_BEACHES,
     get_all_beaches,
     get_beach_by_name,
     search_beaches,
@@ -14,7 +14,7 @@ from .beach_service import (
 )
 
 __all__ = [
-    'ISRAEL_BEACHES',
+    'ALL_BEACHES',
     'get_all_beaches',
     'get_beach_by_name',
     'search_beaches',

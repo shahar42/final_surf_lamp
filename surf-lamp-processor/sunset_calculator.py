@@ -29,12 +29,12 @@ def _load_location_coords():
         sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'web_and_database'))
         from locations import get_all_beaches
 
-        # Generate beach coordinates (all Israeli beaches = Asia/Jerusalem)
+        # Generate beach coordinates with timezone info
         for beach in get_all_beaches():
             coords[beach['english_name']] = {
                 'latitude': beach['latitude'],
                 'longitude': beach['longitude'],
-                'timezone': 'Asia/Jerusalem'
+                'timezone': beach.get('timezone', 'Asia/Jerusalem')  # Default to Asia/Jerusalem for Israeli beaches
             }
 
         logger.info(f"✅ Loaded {len(coords)} beach coordinates from beaches.py")
