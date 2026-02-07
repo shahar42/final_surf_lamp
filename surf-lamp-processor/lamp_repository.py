@@ -222,17 +222,29 @@ def update_location_conditions(engine, location, surf_data, consecutive_identica
     """
     logger.info(f"🌊 Updating conditions for location: {location}")
 
+    # Get API URLs from shared config (derived from beaches.py)
+    import sys
+    import os
+    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+    from shared_config import get_api_sources_for_location
+
+    api_sources = get_api_sources_for_location(location)
+    wave_api_url = api_sources['wave'][0] if api_sources.get('wave') else ''
+    wind_api_url = api_sources['wind'][0] if api_sources.get('wind') else ''
+
     # Prepare SQL - UPSERT with conditional last_value_change update
-    # NOTE: API URLs removed - they're derived data computed from beaches.py coordinates
+    # API URLs are required for new location inserts (NOT NULL constraint)
     if update_timestamp:
         query = text("""
             INSERT INTO locations (
                 location,
+                wave_api_url, wind_api_url,
                 wave_height_m, wave_period_s, wind_speed_mps, wind_direction_deg,
                 wave_calculation_method, consecutive_identical_updates,
                 last_updated, last_value_change
             ) VALUES (
                 :location,
+                :wave_api_url, :wind_api_url,
                 :wave_height, :wave_period, :wind_speed, :wind_direction,
                 'api', :consecutive_identical_updates,
                 CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
@@ -250,11 +262,13 @@ def update_location_conditions(engine, location, surf_data, consecutive_identica
         query = text("""
             INSERT INTO locations (
                 location,
+                wave_api_url, wind_api_url,
                 wave_height_m, wave_period_s, wind_speed_mps, wind_direction_deg,
                 wave_calculation_method, consecutive_identical_updates,
                 last_updated, last_value_change
             ) VALUES (
                 :location,
+                :wave_api_url, :wind_api_url,
                 :wave_height, :wave_period, :wind_speed, :wind_direction,
                 'api', :consecutive_identical_updates,
                 CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
@@ -272,6 +286,8 @@ def update_location_conditions(engine, location, surf_data, consecutive_identica
         with engine.connect() as conn:
             result = conn.execute(query, {
                 "location": location,
+                "wave_api_url": wave_api_url,
+                "wind_api_url": wind_api_url,
                 "wave_height": surf_data.get('wave_height_m', 0.0),
                 "wave_period": surf_data.get('wave_period_s', 0.0),
                 "wind_speed": surf_data.get('wind_speed_mps', 0.0),
