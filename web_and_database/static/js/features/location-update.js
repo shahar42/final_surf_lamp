@@ -116,13 +116,12 @@ const LocationUpdate = {
 
         this.dropdown.innerHTML = beaches.map((beach, index) => {
             const isCurrent = beach.name === this.currentLocation;
-            // Extract region from name (e.g., "Tel Aviv" from "Hilton Beach (Tel Aviv)")
-            const regionMatch = beach.name.match(/\(([^)]+)\)/);
+            // Use explicit region metadata instead of parsing from name
             const displayName = beach.name.replace(/\s*\([^)]*\)/, '');
-            const region = regionMatch ? regionMatch[1] : 'Israel';
+            const region = beach.region || 'Israel';
 
             return `
-                <div class="location-option ${isCurrent ? 'current' : ''}" 
+                <div class="location-option ${isCurrent ? 'current' : ''}"
                      data-value="${beach.name}"
                      data-index="${index}">
                     <div class="location-option-primary">${displayName}</div>

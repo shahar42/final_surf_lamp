@@ -40,7 +40,10 @@ def search_beaches_endpoint():
             'name': beach['english_name'],
             'hebrew_name': beach['hebrew_name'],
             'lat': beach['latitude'],
-            'lng': beach['longitude']
+            'lng': beach['longitude'],
+            'region': beach.get('region', ''),
+            'country': beach.get('country', 'Israel'),
+            'tags': beach.get('tags', [])
         }
         for beach in beaches
     ]
@@ -63,11 +66,14 @@ def list_all_beaches():
             'name': beach['english_name'],
             'hebrew_name': beach['hebrew_name'],
             'lat': beach['latitude'],
-            'lng': beach['longitude']
+            'lng': beach['longitude'],
+            'region': beach.get('region', ''),
+            'country': beach.get('country', 'Israel'),
+            'tags': beach.get('tags', [])
         }
         for beach in beaches
     ]
-    
+
     return jsonify({
         'success': True,
         'count': len(results),
