@@ -10,6 +10,10 @@ This file prevents business logic duplication across:
 - Background Processor (data refresh logic)
 """
 
+import json
+import os
+from pathlib import Path
+
 # ============================================================================
 # LAMP STATUS THRESHOLDS (used for determining online/stale/offline status)
 # ============================================================================
@@ -125,12 +129,33 @@ assert MONITOR_CHECK_INTERVAL_SECONDS <= LAMP_ONLINE_THRESHOLD_SECONDS, \
 # API ENDPOINTS (Multi-source with priority-based fallback)
 # ============================================================================
 
-# Multi-source location configuration with priority-based fallback
-# Each location has a list of API sources with:
-# - url: API endpoint
-# - priority: Lower number = higher priority (try first)
-# - type: 'wave' or 'wind'
-MULTI_SOURCE_LOCATIONS = {
+def _load_location_endpoints():
+    """
+    Load location endpoints from JSON file with fallback to hardcoded config.
+
+    Performance: Loads once at module import, cached in memory forever.
+    Scales to 10,000+ locations with zero query overhead.
+
+    Returns:
+        dict: Location endpoints configuration
+    """
+    json_path = Path(__file__).parent / 'location_endpoints.json'
+
+    if json_path.exists():
+        try:
+            with open(json_path, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+                print(f"✅ Loaded {len(config)} locations from {json_path}")
+                return config
+        except Exception as e:
+            print(f"⚠️ Failed to load {json_path}: {e}, using fallback")
+
+    # Fallback to hardcoded configuration
+    print("⚠️ location_endpoints.json not found, using hardcoded fallback")
+    return _FALLBACK_MULTI_SOURCE_LOCATIONS
+
+# Hardcoded fallback configuration (kept for safety)
+_FALLBACK_MULTI_SOURCE_LOCATIONS = {
     "Tel Aviv, Israel": [
         {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.0853&longitude=34.7818&hourly=wave_height,wave_period,wave_direction", "priority": 1, "type": "wave"},
         {"url": "https://api.open-meteo.com/v1/forecast?latitude=32.0853&longitude=34.7818&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms", "priority": 2, "type": "wind"}
@@ -164,6 +189,9 @@ MULTI_SOURCE_LOCATIONS = {
         {"url": "https://api.open-meteo.com/v1/forecast?latitude=29.5500&longitude=34.9519&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms", "priority": 1, "type": "wind"}
     ]
 }
+
+# Load configuration once at module import (cached forever)
+MULTI_SOURCE_LOCATIONS = _load_location_endpoints()
 
 def get_api_sources_for_location(location):
     """
