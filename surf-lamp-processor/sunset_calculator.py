@@ -9,22 +9,58 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Location coordinates for surf spots (add more as needed)
-LOCATION_COORDS = {
-    "Tel Aviv": {"latitude": 32.0853, "longitude": 34.7818, "timezone": "Asia/Jerusalem"},
-    "Tel Aviv, Israel": {"latitude": 32.0853, "longitude": 34.7818, "timezone": "Asia/Jerusalem"},
-    "Haifa": {"latitude": 32.7940, "longitude": 34.9896, "timezone": "Asia/Jerusalem"},
-    "Haifa, Israel": {"latitude": 32.7940, "longitude": 34.9896, "timezone": "Asia/Jerusalem"},
-    "Hadera, Israel": {"latitude": 32.4339, "longitude": 34.9186, "timezone": "Asia/Jerusalem"},
-    "Netanya, Israel": {"latitude": 32.3326, "longitude": 34.8594, "timezone": "Asia/Jerusalem"},
-    "Ashdod, Israel": {"latitude": 31.8044, "longitude": 34.6553, "timezone": "Asia/Jerusalem"},
-    "Nahariya, Israel": {"latitude": 33.0050, "longitude": 35.0936, "timezone": "Asia/Jerusalem"},
-    "Ashkelon, Israel": {"latitude": 31.6688, "longitude": 34.5742, "timezone": "Asia/Jerusalem"},
-    "Eilat": {"latitude": 29.5500, "longitude": 34.9519, "timezone": "Asia/Jerusalem"},
-    "Eilat, Israel": {"latitude": 29.5500, "longitude": 34.9519, "timezone": "Asia/Jerusalem"},
-    "Herzliya": {"latitude": 32.1624, "longitude": 34.8080, "timezone": "Asia/Jerusalem"},
-    # Add more locations as needed
-}
+# ============================================================================
+# LOCATION COORDINATES - Single Source of Truth
+# ============================================================================
+# Beach coordinates are dynamically loaded from beaches.py (ONE TRUE TELLING)
+# Legacy city locations are kept for backward compatibility
+
+def _load_location_coords():
+    """
+    Load beach coordinates from beaches.py (single source of truth).
+    Falls back to legacy hardcoded coordinates if import fails.
+    """
+    coords = {}
+
+    # Try to import beach data from web_and_database module
+    try:
+        import sys
+        import os
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'web_and_database'))
+        from locations import get_all_beaches
+
+        # Generate beach coordinates (all Israeli beaches = Asia/Jerusalem)
+        for beach in get_all_beaches():
+            coords[beach['english_name']] = {
+                'latitude': beach['latitude'],
+                'longitude': beach['longitude'],
+                'timezone': 'Asia/Jerusalem'
+            }
+
+        logger.info(f"✅ Loaded {len(coords)} beach coordinates from beaches.py")
+    except ImportError as e:
+        logger.warning(f"⚠️ Could not import beaches.py: {e}, using fallback coordinates")
+
+    # Add legacy city locations (backward compatibility)
+    coords.update({
+        "Tel Aviv": {"latitude": 32.0853, "longitude": 34.7818, "timezone": "Asia/Jerusalem"},
+        "Tel Aviv, Israel": {"latitude": 32.0853, "longitude": 34.7818, "timezone": "Asia/Jerusalem"},
+        "Haifa": {"latitude": 32.7940, "longitude": 34.9896, "timezone": "Asia/Jerusalem"},
+        "Haifa, Israel": {"latitude": 32.7940, "longitude": 34.9896, "timezone": "Asia/Jerusalem"},
+        "Hadera, Israel": {"latitude": 32.4339, "longitude": 34.9186, "timezone": "Asia/Jerusalem"},
+        "Netanya, Israel": {"latitude": 32.3326, "longitude": 34.8594, "timezone": "Asia/Jerusalem"},
+        "Ashdod, Israel": {"latitude": 31.8044, "longitude": 34.6553, "timezone": "Asia/Jerusalem"},
+        "Nahariya, Israel": {"latitude": 33.0050, "longitude": 35.0936, "timezone": "Asia/Jerusalem"},
+        "Ashkelon, Israel": {"latitude": 31.6688, "longitude": 34.5742, "timezone": "Asia/Jerusalem"},
+        "Eilat": {"latitude": 29.5500, "longitude": 34.9519, "timezone": "Asia/Jerusalem"},
+        "Eilat, Israel": {"latitude": 29.5500, "longitude": 34.9519, "timezone": "Asia/Jerusalem"},
+        "Herzliya": {"latitude": 32.1624, "longitude": 34.8080, "timezone": "Asia/Jerusalem"},
+    })
+
+    return coords
+
+# Load coordinates once at module import (cached)
+LOCATION_COORDS = _load_location_coords()
 
 def get_sunset_info(location_name: str, trigger_window_minutes: int = 15) -> dict:
     """

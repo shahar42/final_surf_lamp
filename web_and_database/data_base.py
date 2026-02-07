@@ -205,18 +205,44 @@ class ServiceHealthHistory(Base):
 # API Configuration
 OPENWEATHERMAP_API_KEY = os.environ.get('OPENWEATHERMAP_API_KEY', '')
 
-LOCATION_TIMEZONES = {
-    "Hadera, Israel": "Asia/Jerusalem",
-    "Tel Aviv, Israel": "Asia/Jerusalem",
-    "Ashdod, Israel": "Asia/Jerusalem",
-    "Haifa, Israel": "Asia/Jerusalem",
-    "Netanya, Israel": "Asia/Jerusalem",
-    "Nahariya, Israel": "Asia/Jerusalem",
-    "Ashkelon, Israel": "Asia/Jerusalem",
-    "Eilat, Israel": "Asia/Jerusalem",
-    "San Diego, USA": "America/Los_Angeles",
-    "Barcelona, Spain": "Europe/Madrid",
-}
+# ============================================================================
+# LOCATION TIMEZONES - Single Source of Truth
+# ============================================================================
+# Beach timezones dynamically loaded from beaches.py (ONE TRUE TELLING)
+
+def _load_location_timezones():
+    """
+    Generate timezone mappings from beaches.py (single source of truth).
+    All Israeli beaches use Asia/Jerusalem timezone.
+    """
+    timezones = {}
+
+    # Import beach names and map to Asia/Jerusalem
+    try:
+        from locations import get_all_beach_names
+        for beach_name in get_all_beach_names():
+            timezones[beach_name] = "Asia/Jerusalem"
+    except ImportError:
+        pass  # Will use legacy fallback below
+
+    # Legacy city locations (backward compatibility)
+    timezones.update({
+        "Hadera, Israel": "Asia/Jerusalem",
+        "Tel Aviv, Israel": "Asia/Jerusalem",
+        "Ashdod, Israel": "Asia/Jerusalem",
+        "Haifa, Israel": "Asia/Jerusalem",
+        "Netanya, Israel": "Asia/Jerusalem",
+        "Nahariya, Israel": "Asia/Jerusalem",
+        "Ashkelon, Israel": "Asia/Jerusalem",
+        "Eilat, Israel": "Asia/Jerusalem",
+        "San Diego, USA": "America/Los_Angeles",
+        "Barcelona, Spain": "Europe/Madrid",
+    })
+
+    return timezones
+
+# Load timezones once at module import (cached)
+LOCATION_TIMEZONES = _load_location_timezones()
 
 # Scott Meyers DRY Principle: MULTI_SOURCE_LOCATIONS imported from shared_config.py (single source of truth)
 

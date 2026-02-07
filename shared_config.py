@@ -12,6 +12,7 @@ This file prevents business logic duplication across:
 
 import json
 import os
+import sys
 from pathlib import Path
 
 # ============================================================================
@@ -75,15 +76,22 @@ USE_UTC_TIMEZONE = True
 # APP CONSTANTS (Shared between web app and processor)
 # ============================================================================
 
-SURF_LOCATIONS = [
-    "Hadera, Israel",
-    "Tel Aviv, Israel", 
-    "Ashdod, Israel",
-    "Haifa, Israel",
-    "Netanya, Israel",
-    "Ashkelon, Israel",
-    "Nahariya, Israel"
-]
+# Beach-based locations (import from beaches module for consistency)
+try:
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'web_and_database'))
+    from locations import get_all_beach_names
+    SURF_LOCATIONS = get_all_beach_names()
+except ImportError:
+    # Fallback for environments without web_and_database module
+    SURF_LOCATIONS = [
+        "Hilton Beach (Tel Aviv)",
+        "Bat Galim (Haifa)",
+        "Ashdod (Gil Beach)",
+        "Sironit Beach (Netanya)",
+        "Olga Beach (Hadera)",
+        "Ashkelon (Marina)",
+        "Sokolov Beach (Nahariya)"
+    ]
 
 BRIGHTNESS_LEVELS = {
     'LOW': 0.05,
@@ -154,41 +162,79 @@ def _load_location_endpoints():
     print("⚠️ location_endpoints.json not found, using hardcoded fallback")
     return _FALLBACK_MULTI_SOURCE_LOCATIONS
 
-# Hardcoded fallback configuration (kept for safety)
-_FALLBACK_MULTI_SOURCE_LOCATIONS = {
-    "Tel Aviv, Israel": [
-        {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.0853&longitude=34.7818&hourly=wave_height,wave_period,wave_direction", "priority": 1, "type": "wave"},
-        {"url": "https://api.open-meteo.com/v1/forecast?latitude=32.0853&longitude=34.7818&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms", "priority": 2, "type": "wind"}
-    ],
-    "Hadera, Israel": [
-        {"url": "https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json", "priority": 1, "type": "wave"},
-        {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.4500&longitude=34.9100&hourly=wave_height,wave_period,wave_direction", "priority": 2, "type": "wave"},
-        {"url": "https://api.open-meteo.com/v1/forecast?latitude=32.4500&longitude=34.9100&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms", "priority": 3, "type": "wind"}
-    ],
-    "Ashdod, Israel": [
-        {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=31.7939&longitude=34.6328&hourly=wave_height,wave_period,wave_direction", "priority": 1, "type": "wave"},
-        {"url": "https://api.open-meteo.com/v1/forecast?latitude=31.7939&longitude=34.6328&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms", "priority": 2, "type": "wind"}
-    ],
-    "Haifa, Israel": [
-        {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.7940&longitude=34.9896&hourly=wave_height,wave_period,wave_direction", "priority": 1, "type": "wave"},
-        {"url": "https://api.open-meteo.com/v1/forecast?latitude=32.7940&longitude=34.9896&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms", "priority": 2, "type": "wind"}
-    ],
-    "Netanya, Israel": [
-        {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.3215&longitude=34.8532&hourly=wave_height,wave_period,wave_direction", "priority": 1, "type": "wave"},
-        {"url": "https://api.open-meteo.com/v1/forecast?latitude=32.3215&longitude=34.8532&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms", "priority": 2, "type": "wind"}
-    ],
-    "Nahariya, Israel": [
-        {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=33.006&longitude=35.094&hourly=wave_height,wave_period,wave_direction", "priority": 1, "type": "wave"},
-        {"url": "https://api.open-meteo.com/v1/forecast?latitude=33.006&longitude=35.094&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms", "priority": 2, "type": "wind"}
-    ],
-    "Ashkelon, Israel": [
-        {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=31.6699&longitude=34.5738&hourly=wave_height,wave_period,wave_direction", "priority": 1, "type": "wave"},
-        {"url": "https://api.open-meteo.com/v1/forecast?latitude=31.6699&longitude=34.5738&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms", "priority": 2, "type": "wind"}
-    ],
-    "Eilat, Israel": [
-        {"url": "https://api.open-meteo.com/v1/forecast?latitude=29.5500&longitude=34.9519&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms", "priority": 1, "type": "wind"}
-    ]
-}
+# ============================================================================
+# FALLBACK CONFIGURATION - Single Source of Truth
+# ============================================================================
+# Fallback configuration dynamically generated from beaches.py (ONE TRUE TELLING)
+
+def _generate_fallback_multi_source():
+    """
+    Generate fallback configuration from beaches.py (single source of truth).
+    Used only if location_endpoints.json fails to load.
+    """
+    fallback = {}
+
+    # Try to generate beach endpoints dynamically
+    try:
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'web_and_database'))
+        from locations import get_all_beaches
+        from locations.beach_service import get_api_urls_for_beach
+
+        for beach in get_all_beaches():
+            name = beach['english_name']
+            urls = get_api_urls_for_beach(name)
+            if urls:
+                wave_url, wind_url = urls
+                fallback[name] = [
+                    {"url": wave_url, "priority": 1, "type": "wave"},
+                    {"url": wind_url, "priority": 2, "type": "wind"}
+                ]
+    except ImportError:
+        pass  # Will use legacy fallback below
+
+    # Legacy city locations (backward compatibility) - hardcoded minimal set
+    fallback.update({
+        "Tel Aviv, Israel": [
+            {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.0853&longitude=34.7818&hourly=wave_height,wave_period,wave_direction", "priority": 1, "type": "wave"},
+            {"url": "https://api.open-meteo.com/v1/forecast?latitude=32.0853&longitude=34.7818&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms", "priority": 2, "type": "wind"}
+        ],
+        "Hadera, Israel": [
+            {"url": "https://isramar.ocean.org.il/isramar2009/station/data/Hadera_Hs_Per.json", "priority": 1, "type": "wave"},
+            {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.4500&longitude=34.9100&hourly=wave_height,wave_period,wave_direction", "priority": 2, "type": "wave"},
+            {"url": "https://api.open-meteo.com/v1/forecast?latitude=32.4500&longitude=34.9100&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms", "priority": 3, "type": "wind"}
+        ],
+        "Ashdod, Israel": [
+            {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=31.7939&longitude=34.6328&hourly=wave_height,wave_period,wave_direction", "priority": 1, "type": "wave"},
+            {"url": "https://api.open-meteo.com/v1/forecast?latitude=31.7939&longitude=34.6328&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms", "priority": 2, "type": "wind"}
+        ],
+        "Haifa, Israel": [
+            {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.7940&longitude=34.9896&hourly=wave_height,wave_period,wave_direction", "priority": 1, "type": "wave"},
+            {"url": "https://api.open-meteo.com/v1/forecast?latitude=32.7940&longitude=34.9896&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms", "priority": 2, "type": "wind"}
+        ],
+        "Netanya, Israel": [
+            {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=32.3215&longitude=34.8532&hourly=wave_height,wave_period,wave_direction", "priority": 1, "type": "wave"},
+            {"url": "https://api.open-meteo.com/v1/forecast?latitude=32.3215&longitude=34.8532&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms", "priority": 2, "type": "wind"}
+        ],
+        "Nahariya, Israel": [
+            {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=33.006&longitude=35.094&hourly=wave_height,wave_period,wave_direction", "priority": 1, "type": "wave"},
+            {"url": "https://api.open-meteo.com/v1/forecast?latitude=33.006&longitude=35.094&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms", "priority": 2, "type": "wind"}
+        ],
+        "Ashkelon, Israel": [
+            {"url": "https://marine-api.open-meteo.com/v1/marine?latitude=31.6699&longitude=34.5738&hourly=wave_height,wave_period,wave_direction", "priority": 1, "type": "wave"},
+            {"url": "https://api.open-meteo.com/v1/forecast?latitude=31.6699&longitude=34.5738&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms", "priority": 2, "type": "wind"}
+        ],
+        "Eilat, Israel": [
+            {"url": "https://api.open-meteo.com/v1/forecast?latitude=29.5500&longitude=34.9519&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms", "priority": 1, "type": "wind"}
+        ]
+    })
+
+    return fallback
+
+# Generate fallback configuration (only used if location_endpoints.json fails)
+_FALLBACK_MULTI_SOURCE_LOCATIONS = _generate_fallback_multi_source()
+
+
+
 
 # Load configuration once at module import (cached forever)
 MULTI_SOURCE_LOCATIONS = _load_location_endpoints()
