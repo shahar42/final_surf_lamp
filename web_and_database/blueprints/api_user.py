@@ -28,8 +28,10 @@ def update_location():
         new_location = data.get('location')
         user_id = session.get('user_id')
 
-        if new_location not in SURF_LOCATIONS:
-            return {'success': False, 'message': 'Invalid location selected'}, 400
+        # Validate beach location
+        from locations import is_valid_beach
+        if not is_valid_beach(new_location):
+            return {'success': False, 'message': 'Invalid beach location selected'}, 400
 
         if not check_location_change_limit(user_id):
             return {'success': False, 'message': "Maximum 10 location changes per day reached"}, 429

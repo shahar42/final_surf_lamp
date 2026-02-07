@@ -27,16 +27,20 @@ limiter = Limiter(
 )
 
 # Constants
-SURF_LOCATIONS = [
-    "Hadera, Israel",
-    "Tel Aviv, Israel",
-    "Ashdod, Israel",
-    "Haifa, Israel",
-    "Netanya, Israel",
-    "Ashkelon, Israel",
-    "Nahariya, Israel",
-    "Eilat, Israel"
-]
+# Beach-based locations (replaces old city-based list)
+try:
+    from locations import get_all_beach_names
+    SURF_LOCATIONS = get_all_beach_names()
+except ImportError:
+    # Fallback for backward compatibility during migration
+    SURF_LOCATIONS = [
+        "Hilton Beach (Tel Aviv)",
+        "Bat Galim (Haifa)",
+        "Ashdod (Gil Beach)",
+        "Sironit Beach (Netanya)",
+        "Ashkelon (Marina)",
+        "Sokolov Beach (Nahariya)"
+    ]
 
 BRIGHTNESS_LEVELS = {
     'LOW': 0.05,

@@ -14,7 +14,7 @@ from flask import redirect, url_for
 from blueprints import (
     auth, dashboard, api_user,
     api_arduino, api_locations, api_chat, reports, admin, landing,
-    notifications, api_health
+    notifications, api_health, api_beaches
 )
 
 def create_app():
@@ -41,6 +41,7 @@ def create_app():
     app.register_blueprint(admin.bp)
     app.register_blueprint(notifications.bp)
     app.register_blueprint(api_health.bp)
+    app.register_blueprint(api_beaches.bp)  # Beach search API
 
     # Service Worker for PWA
     @app.route('/sw.js')

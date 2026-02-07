@@ -1,3 +1,9 @@
+/*
+author: shahar
+date: 6/2/2026
+about: watchdog for the surf lamp
+*/
+
 #ifndef WATCHDOG_H
 #define WATCHDOG_H
 
