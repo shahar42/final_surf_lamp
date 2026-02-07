@@ -211,8 +211,9 @@ def get_arduinos_for_location(engine, location):
 
 def update_location_conditions(engine, location, surf_data, consecutive_identical_updates=0, update_timestamp=True):
     """
-    Update locations table with latest surf data.
-    
+    Update or insert location conditions (UPSERT).
+    Auto-creates missing locations by generating API URLs from beaches.py.
+
     Args:
         location: Location name
         surf_data: Dict with new surf conditions
@@ -221,37 +222,69 @@ def update_location_conditions(engine, location, surf_data, consecutive_identica
     """
     logger.info(f"🌊 Updating conditions for location: {location}")
 
-    # Prepare SQL - conditionally update last_value_change
+    # Generate API URLs for this location (used for INSERT if location doesn't exist)
+    wave_api_url = ""
+    wind_api_url = ""
+    try:
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'web_and_database'))
+        from locations.beach_service import get_api_urls_for_beach
+        urls = get_api_urls_for_beach(location)
+        if urls:
+            wave_api_url, wind_api_url = urls
+    except Exception as e:
+        logger.warning(f"⚠️ Could not generate API URLs for {location}: {e}")
+
+    # Prepare SQL - UPSERT with conditional last_value_change update
     if update_timestamp:
         query = text("""
-            UPDATE locations
-            SET
-                wave_height_m = :wave_height,
-                wave_period_s = :wave_period,
-                wind_speed_mps = :wind_speed,
-                wind_direction_deg = :wind_direction,
+            INSERT INTO locations (
+                location, wave_api_url, wind_api_url,
+                wave_height_m, wave_period_s, wind_speed_mps, wind_direction_deg,
+                wave_calculation_method, consecutive_identical_updates,
+                last_updated, last_value_change
+            ) VALUES (
+                :location, :wave_api_url, :wind_api_url,
+                :wave_height, :wave_period, :wind_speed, :wind_direction,
+                'api', :consecutive_identical_updates,
+                CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+            )
+            ON CONFLICT (location) DO UPDATE SET
+                wave_height_m = EXCLUDED.wave_height_m,
+                wave_period_s = EXCLUDED.wave_period_s,
+                wind_speed_mps = EXCLUDED.wind_speed_mps,
+                wind_direction_deg = EXCLUDED.wind_direction_deg,
                 last_updated = CURRENT_TIMESTAMP,
-                consecutive_identical_updates = :consecutive_identical_updates,
+                consecutive_identical_updates = EXCLUDED.consecutive_identical_updates,
                 last_value_change = CURRENT_TIMESTAMP
-            WHERE location = :location
         """)
     else:
         query = text("""
-            UPDATE locations
-            SET
-                wave_height_m = :wave_height,
-                wave_period_s = :wave_period,
-                wind_speed_mps = :wind_speed,
-                wind_direction_deg = :wind_direction,
+            INSERT INTO locations (
+                location, wave_api_url, wind_api_url,
+                wave_height_m, wave_period_s, wind_speed_mps, wind_direction_deg,
+                wave_calculation_method, consecutive_identical_updates,
+                last_updated, last_value_change
+            ) VALUES (
+                :location, :wave_api_url, :wind_api_url,
+                :wave_height, :wave_period, :wind_speed, :wind_direction,
+                'api', :consecutive_identical_updates,
+                CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+            )
+            ON CONFLICT (location) DO UPDATE SET
+                wave_height_m = EXCLUDED.wave_height_m,
+                wave_period_s = EXCLUDED.wave_period_s,
+                wind_speed_mps = EXCLUDED.wind_speed_mps,
+                wind_direction_deg = EXCLUDED.wind_direction_deg,
                 last_updated = CURRENT_TIMESTAMP,
-                consecutive_identical_updates = :consecutive_identical_updates
-            WHERE location = :location
+                consecutive_identical_updates = EXCLUDED.consecutive_identical_updates
         """)
 
     try:
         with engine.connect() as conn:
             result = conn.execute(query, {
                 "location": location,
+                "wave_api_url": wave_api_url,
+                "wind_api_url": wind_api_url,
                 "wave_height": surf_data.get('wave_height_m', 0.0),
                 "wave_period": surf_data.get('wave_period_s', 0.0),
                 "wind_speed": surf_data.get('wind_speed_mps', 0.0),
