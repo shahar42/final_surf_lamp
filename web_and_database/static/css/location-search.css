@@ -18,55 +18,53 @@
     z-index: 2;
 }
 
-/* Dropdown surface - frosted glass */
+/* Dropdown surface - true top-layer */
 .location-dropdown {
     position: absolute;
-    top: calc(100% - 4px); /* Slight overlap for attachment */
+    top: calc(100% - 4px);
+    /* Slight overlap for attachment */
     left: 0;
     right: 0;
-    z-index: 1;
-    
-    /* Frosted glass surface */
-    background: linear-gradient(
-        180deg,
-        rgba(15, 23, 42, 0.95) 0%,
-        rgba(15, 23, 42, 0.98) 100%
-    );
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    
+
+    /* CRITICAL: Escape parent stacking contexts */
+    z-index: 9999;
+
+    /* Solid, dominant surface - not transparent glass */
+    background: rgb(15, 23, 42);
+
     /* Match input border radius family */
     border-radius: 0 0 0.75rem 0.75rem;
-    
-    /* Soft border */
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-top: none;
-    
-    /* Downward shadow only - no halo */
-    box-shadow: 
-        0 8px 24px rgba(0, 0, 0, 0.4),
-        0 4px 8px rgba(0, 0, 0, 0.2);
-    
+
+    /* Strong border for visual separation */
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+
+    /* Heavy shadow for depth and separation from content below */
+    box-shadow:
+        0 12px 40px rgba(0, 0, 0, 0.6),
+        0 6px 16px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(0, 0, 0, 0.3);
+
     /* Scroll */
     max-height: 320px;
     overflow-y: auto;
     overflow-x: hidden;
-    
-    /* Subtle noise texture (via pseudo-element) */
-    isolation: isolate;
-    
+
     /* Entry animation */
     opacity: 0;
     transform: translateY(-4px);
-    transition: 
+    visibility: hidden;
+    transition:
         opacity 0.15s ease-out,
-        transform 0.15s ease-out;
+        transform 0.15s ease-out,
+        visibility 0.15s ease-out;
     pointer-events: none;
 }
 
 .location-dropdown.visible {
     opacity: 1;
     transform: translateY(0);
+    visibility: visible;
     pointer-events: auto;
 }
 
@@ -81,10 +79,10 @@
     position: relative;
     padding: 14px 16px 14px 20px;
     cursor: pointer;
-    transition: 
+    transition:
         background 0.12s ease,
         padding-left 0.12s ease;
-    
+
     /* Subtle separator */
     border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
@@ -105,7 +103,7 @@
     background: linear-gradient(180deg, #3b82f6, #06b6d4);
     border-radius: 0 2px 2px 0;
     opacity: 0;
-    transition: 
+    transition:
         height 0.15s ease,
         opacity 0.15s ease;
 }
@@ -113,12 +111,11 @@
 /* Hover state */
 .location-option:hover,
 .location-option.highlighted {
-    background: linear-gradient(
-        90deg,
-        rgba(59, 130, 246, 0.12) 0%,
-        rgba(59, 130, 246, 0.04) 100%
-    );
-    padding-left: 24px; /* Subtle shift */
+    background: linear-gradient(90deg,
+            rgba(59, 130, 246, 0.12) 0%,
+            rgba(59, 130, 246, 0.04) 100%);
+    padding-left: 24px;
+    /* Subtle shift */
 }
 
 .location-option:hover::before,
@@ -180,12 +177,10 @@
 
 .location-skeleton-line {
     height: 14px;
-    background: linear-gradient(
-        90deg,
-        rgba(255, 255, 255, 0.06) 0%,
-        rgba(255, 255, 255, 0.12) 50%,
-        rgba(255, 255, 255, 0.06) 100%
-    );
+    background: linear-gradient(90deg,
+            rgba(255, 255, 255, 0.06) 0%,
+            rgba(255, 255, 255, 0.12) 50%,
+            rgba(255, 255, 255, 0.06) 100%);
     background-size: 200% 100%;
     animation: skeleton-pulse 1.5s ease-in-out infinite;
     border-radius: 4px;
@@ -201,8 +196,13 @@
 }
 
 @keyframes skeleton-pulse {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
 }
 
 /* Scrollbar styling */
