@@ -43,11 +43,14 @@ def generate_wind_api_url(lat: float, lng: float) -> str:
     """
     Generate wind API URL from coordinates.
     Uses Open-Meteo API.
+
+    CRITICAL: Must include wind_speed_unit=ms for processor validation.
     """
     return (
         f"https://api.open-meteo.com/v1/forecast?"
         f"latitude={lat}&longitude={lng}"
         f"&hourly=wind_speed_10m,wind_direction_10m"
+        f"&wind_speed_unit=ms"
         f"&timezone=auto"
     )
 
