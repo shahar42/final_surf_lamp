@@ -156,6 +156,30 @@ def get_current_location_values(engine, location):
         return None
 
 
+def get_active_locations(engine):
+    """
+    Get all locations that have active arduinos (scalable for 10K+ locations).
+    Returns: ['Sdot Yam', 'Hilton Beach (Tel Aviv)', ...]
+
+    Performance: O(1) - Single DB query instead of O(N) where N = total beaches.
+    """
+    query = text("""
+        SELECT DISTINCT location
+        FROM arduinos
+        ORDER BY location
+    """)
+
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(query)
+            locations = [row[0] for row in result]
+            logger.info(f"📊 Found {len(locations)} active locations")
+            return locations
+    except Exception as e:
+        logger.error(f"❌ Failed to get active locations: {e}")
+        return []
+
+
 def get_arduinos_for_location(engine, location):
     """
     Get all arduinos in a specific location.

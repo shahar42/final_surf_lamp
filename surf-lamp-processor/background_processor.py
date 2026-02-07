@@ -113,12 +113,9 @@ def process_all_lamps():
             logger.error("❌ Database connection failed")
             return False
 
-        # Get all locations with active arduinos
-        active_locations = []
-        for location in MULTI_SOURCE_LOCATIONS.keys():
-            arduinos = get_arduinos_for_location(engine, location)
-            if arduinos:
-                active_locations.append(location)
+        # Get all locations with active arduinos (optimized for 10K+ scale)
+        from lamp_repository import get_active_locations
+        active_locations = get_active_locations(engine)
 
         if not active_locations:
             logger.error("❌ No active locations found")
