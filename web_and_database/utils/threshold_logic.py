@@ -20,6 +20,23 @@ logger = logging.getLogger(__name__)
 # Constants
 IMPOSSIBLE_THRESHOLD = 9999  # Threshold value that will never be reached (for disabling alerts)
 
+# Try to import C-accelerated version
+try:
+    import sys
+    import os
+    # Add parent directory to path to find threshold_calc module
+    _current_dir = os.path.dirname(os.path.abspath(__file__))
+    _parent_dir = os.path.dirname(_current_dir)
+    if _parent_dir not in sys.path:
+        sys.path.insert(0, _parent_dir)
+
+    from threshold_calc.threshold_calc_wrapper import calculate_effective_threshold as _calculate_c
+    USE_C_VERSION = True
+    logger.info("✅ Using C-accelerated threshold calculator")
+except ImportError as e:
+    USE_C_VERSION = False
+    logger.warning(f"⚠️ C threshold calculator not available, using Python: {e}")
+
 
 def calculate_effective_threshold(current_value, user_min, user_max=None):
     """
@@ -29,6 +46,8 @@ def calculate_effective_threshold(current_value, user_min, user_max=None):
     without changing Arduino firmware. The Arduino's fixed logic is:
     `if (current >= threshold) blink()`. We manipulate `threshold` to achieve
     range behavior.
+
+    Uses C-accelerated implementation when available, falls back to Python.
 
     Args:
         current_value (float or None): Current surf condition value (wave height, wind speed).
@@ -62,6 +81,15 @@ def calculate_effective_threshold(current_value, user_min, user_max=None):
         1.0  # Fail safely to traditional behavior
     """
 
+    # Use C-accelerated version if available
+    if USE_C_VERSION:
+        try:
+            return _calculate_c(current_value, user_min, user_max)
+        except Exception as e:
+            logger.error(f"C threshold calculation failed, using Python fallback: {e}")
+            # Fall through to Python implementation
+
+    # Python fallback implementation
     # Handle API failure case - fail safely to traditional threshold behavior
     if current_value is None:
         logger.warning("Current value is None (API failure), using traditional threshold")
