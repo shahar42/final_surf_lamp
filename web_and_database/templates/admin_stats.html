@@ -1,80 +1,263 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Surf Stats | Admin | Surf Lamp</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --clr-bg: #050505;
+            --clr-text-main: #F2F2F2;
+            --clr-text-muted: #a0a0a0;
+            --clr-accent: #38b6ff;
+            --clr-blue: #3b82f6;
+            --clr-yellow: #fbbf24;
+            --ff-heading: 'Inter', sans-serif;
+            --ff-body: 'Manrope', sans-serif;
+        }
 
-{% block title %}Live Surf Stats | Admin{% endblock %}
+        * {
+            box-sizing: border-box;
+        }
 
-{% block content %}
-<div class="max-w-6xl mx-auto px-4 py-8">
-    <div class="flex justify-between items-center mb-8">
-        <div>
-            <h1 class="text-3xl font-bold text-white mb-2">Live Surf Rankings</h1>
-            <p class="text-white/40">Real-time conditions across all locations, sorted by wave height using C-Engine.</p>
-        </div>
-        <div class="bg-blue-500/10 border border-blue-500/20 px-4 py-2 rounded-xl">
-            <p class="text-xs font-bold text-blue-400 uppercase tracking-widest">Auto-refreshing: {{ refresh_interval }}s</p>
-        </div>
-    </div>
+        body {
+            font-family: var(--ff-body);
+            background-color: var(--clr-bg);
+            color: var(--clr-text-main);
+            margin: 0;
+            padding: 2rem 1rem;
+            line-height: 1.6;
+        }
 
-    <div class="grid grid-cols-1 gap-6">
-        <div class="card rounded-3xl shadow-2xl overflow-hidden border border-white/5">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left">
-                    <thead>
-                        <tr class="bg-white/5 border-b border-white/10">
-                            <th class="px-6 py-4 text-xs font-bold text-white/40 uppercase tracking-wider">Rank</th>
-                            <th class="px-6 py-4 text-xs font-bold text-white/40 uppercase tracking-wider">Location</th>
-                            <th class="px-6 py-4 text-xs font-bold text-white/40 uppercase tracking-wider text-center">Wave Height</th>
-                            <th class="px-6 py-4 text-xs font-bold text-white/40 uppercase tracking-wider text-center">Period</th>
-                            <th class="px-6 py-4 text-xs font-bold text-white/40 uppercase tracking-wider text-center">Wind</th>
-                            <th class="px-6 py-4 text-xs font-bold text-white/40 uppercase tracking-wider text-right">Last Sync</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-white/5">
-                        {% for loc in locations %}
-                        <tr class="hover:bg-white/[0.02] transition-colors">
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="{% if loop.index <= 3 %}text-yellow-400 font-bold{% else %}text-white/40{% endif %}">
-                                    #{{ loop.index }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-bold text-white">{{ loc.name }}</div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-center">
-                                <div class="inline-flex items-center px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20">
-                                    <span class="text-sm font-bold text-blue-400">{{ "%.2f"|format(loc.wave_height) }}m</span>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-center">
-                                <span class="text-sm text-white/60">{{ "%.1f"|format(loc.wave_period or 0) }}s</span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-center">
-                                <div class="text-sm text-white/60">
-                                    {{ "%.1f"|format(loc.wind_speed or 0) }}m/s 
-                                    <span class="text-[10px] ml-1 opacity-50">{{ loc.wind_direction }}°</span>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right">
-                                <span class="text-xs text-white/30">{{ loc.last_updated.strftime('%H:%M:%S') }}</span>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .header h1 {
+            font-family: var(--ff-heading);
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 0 0 0.5rem 0;
+        }
+
+        .header p {
+            color: rgba(255, 255, 255, 0.4);
+            margin: 0;
+        }
+
+        .refresh-badge {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--clr-blue);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 1.5rem;
+            overflow: hidden;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead tr {
+            background: rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        th {
+            padding: 1rem 1.5rem;
+            text-align: left;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        th.center {
+            text-align: center;
+        }
+
+        th.right {
+            text-align: right;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            transition: background-color 0.2s;
+        }
+
+        tbody tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        td {
+            padding: 1rem 1.5rem;
+        }
+
+        .rank {
+            font-weight: 400;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .rank.top {
+            font-weight: 700;
+            color: var(--clr-yellow);
+        }
+
+        .location-name {
+            font-weight: 700;
+            font-size: 0.875rem;
+        }
+
+        .wave-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: var(--clr-blue);
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-muted {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.875rem;
+        }
+
+        .text-tiny {
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 0.75rem;
+        }
+
+        .back-btn {
+            display: inline-block;
+            margin-top: 2rem;
+            padding: 0.75rem 1.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 1rem;
+            color: rgba(255, 255, 255, 0.6);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--clr-text-main);
+        }
+
+        .center-text {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>Live Surf Rankings</h1>
+                <p>Real-time conditions across all locations, sorted by wave height using C-Engine.</p>
+            </div>
+            <div class="refresh-badge">
+                Auto-refreshing: {{ refresh_interval }}s
             </div>
         </div>
+
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Location</th>
+                        <th class="center">Wave Height</th>
+                        <th class="center">Period</th>
+                        <th class="center">Wind</th>
+                        <th class="right">Last Sync</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for loc in locations %}
+                    <tr>
+                        <td>
+                            <span class="rank {% if loop.index <= 3 %}top{% endif %}">
+                                #{{ loop.index }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="location-name">{{ loc.name }}</div>
+                        </td>
+                        <td class="text-center">
+                            <div class="wave-badge">
+                                {{ "%.2f"|format(loc.wave_height) }}m
+                            </div>
+                        </td>
+                        <td class="text-center">
+                            <span class="text-muted">{{ "%.1f"|format(loc.wave_period or 0) }}s</span>
+                        </td>
+                        <td class="text-center">
+                            <div class="text-muted">
+                                {{ "%.1f"|format(loc.wind_speed or 0) }}m/s
+                                <span style="font-size: 0.625rem; opacity: 0.5; margin-left: 0.25rem;">{{ loc.wind_direction }}°</span>
+                            </div>
+                        </td>
+                        <td class="text-right">
+                            <span class="text-tiny">{{ loc.last_updated.strftime('%H:%M:%S') }}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="center-text">
+            <a href="{{ url_for('dashboard.dashboard') }}" class="back-btn">
+                Back to Dashboard
+            </a>
+        </div>
     </div>
 
-    <div class="mt-8 flex justify-center">
-        <a href="{{ url_for('dashboard.dashboard') }}" class="bg-white/5 hover:bg-white/10 text-white/60 px-6 py-3 rounded-2xl border border-white/5 transition-all text-sm font-medium">
-            Back to Dashboard
-        </a>
-    </div>
-</div>
-
-<script>
-    // Simple auto-refresh
-    setTimeout(() => {
-        window.location.reload();
-    }, {{ refresh_interval * 1000 }});
-</script>
-{% endblock %}
+    <script>
+        // Simple auto-refresh
+        setTimeout(() => {
+            window.location.reload();
+        }, {{ refresh_interval * 1000 }});
+    </script>
+</body>
+</html>
