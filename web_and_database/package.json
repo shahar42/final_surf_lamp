@@ -1,0 +1,11 @@
+{
+  "name": "surf-lamp-web",
+  "version": "1.0.0",
+  "description": "Surf Lamp Dashboard",
+  "scripts": {
+    "build:css": "tailwindcss -i static/css/tailwind-input.css -o static/css/tailwind.min.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0"
+  }
+}

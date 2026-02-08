@@ -1,0 +1,85 @@
+body {
+    font-family: 'Poppins', sans-serif;
+    /* Using global base.css for ocean gradient */
+}
+
+.form-container {
+    background-color: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.form-input {
+    background-color: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #fff;
+}
+
+.form-input::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.form-input:focus {
+    background-color: rgba(255, 255, 255, 0.3);
+    outline: none;
+    box-shadow: 0 0 0 2px #ff007f;
+}
+
+.form-input.error {
+    border: 1px solid #ef4444;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.3);
+}
+
+.form-input.success {
+    border: 1px solid #10b981;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
+}
+
+.submit-btn {
+    background-color: #c2185b; /* Darker pink */
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.submit-btn:hover {
+    background-color: #ad1457;
+    transform: translateY(-2px);
+}
+
+.flash-message {
+    position: fixed;
+    top: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+}
+
+.field-error {
+    color: #fca5a5;
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+}
+
+select.form-input option {
+    background-color: #1f2937;
+    color: #ffffff;
+    padding: 8px;
+}
+
+select.form-input {
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+    background-position: right 12px center;
+    background-repeat: no-repeat;
+    background-size: 16px;
+    padding-right: 40px;
+}
+
+.eye-toggle {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 50%;
+    padding: 6px;
+    transition: background-color 0.2s ease;
+}
+
+.eye-toggle:hover {
+    background-color: rgba(0, 0, 0, 0.5);
+}

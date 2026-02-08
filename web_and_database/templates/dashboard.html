@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Surf Lamp - Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.min.css') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- Primary favicon -->
@@ -57,7 +57,7 @@
     <!-- Theme colors - automatically synced with CSS --gradient-start -->
     <meta name="theme-color" content="#01151d">
     <meta name="msapplication-TileColor" content="#01151d">
-    <script src="{{ url_for('static', filename='js/theme-color-sync.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/theme-color-sync.js') }}"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <!-- Global ocean color system -->
     <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
@@ -172,190 +172,57 @@
     {% include 'partials/led_error_codes.html' %}
 
     <!-- Dashboard Configuration -->
-    <script src="{{ url_for('static', filename='js/config.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/config.js') }}"></script>
 
     <!-- Utilities -->
-    <script src="{{ url_for('static', filename='js/status-messages.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/api-client.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/modal-manager.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/theme-manager.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/ripple-effect.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/status-messages.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/api-client.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/modal-manager.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/theme-manager.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/ripple-effect.js') }}"></script>
 
     <!-- Features -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.js"></script>
-    <script src="{{ url_for('static', filename='js/features/location-update.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/features/wave-threshold.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/features/wind-threshold.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/features/brightness-control.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/features/unit-preference.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/features/off-hours.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/features/quiet-hours.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/features/error-report.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/features/chat-assistant.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/features/broadcasts.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/features/arduino-management.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/features/mobile-tabs.js') }}"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.js"></script>
+    <script defer src="{{ url_for('static', filename='js/features/location-update.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/features/wave-threshold.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/features/wind-threshold.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/features/brightness-control.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/features/unit-preference.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/features/off-hours.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/features/quiet-hours.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/features/error-report.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/features/chat-assistant.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/features/broadcasts.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/features/arduino-management.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/features/mobile-tabs.js') }}"></script>
 
     <!-- LED Visualization -->
-    <script src="{{ url_for('static', filename='js/led-visualization/core.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/led-visualization/data-fetcher.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/led-visualization/core.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/led-visualization/data-fetcher.js') }}"></script>
 
     <!-- Error Report Modal -->
     {% include 'partials/error_report_modal.html' %}
 
+    <!-- Dashboard Initialization -->
+    <script defer src="{{ url_for('static', filename='js/dashboard-init.js') }}"></script>
     <script>
-        // Initialize feature handlers
-        LocationUpdate.init('{{ data.user.location }}');
-        WaveThreshold.init();
-        WindThreshold.init();
-        BrightnessControl.init({{ data.user.brightness_level or 0.6 }});
-        QuietHours.init({{ 'true' if data.user.quiet_times_enabled else 'false' }});
-        UnitPreference.init('{{ data.user.preferred_output or "meters" }}');
-
-        // Night Mode (Off Hours) - Preset & Custom Controls
-        {% if off_hours_feature_enabled %}
-        OffHours.init();
-        {% endif %}
-
-        // LED Visualization
-        LEDDataFetcher.init({{ data.arduinos[0].arduino_id if data.arduinos else 0 }}, '{{ data.user.theme }}');
-
-        // Underlayer Control Panel
-        window.underlayerConfig = {
-            left: { xOffset: 0, yOffset: 0, opacity: 0.13, color: '#000000' },
-            center: { xOffset: 0, yOffset: 0, opacity: 0.13, color: '#000000' },
-            right: { xOffset: 0, yOffset: 0, opacity: 0.13, color: '#000000' }
-        };
-
-        function toggleUnderlayerPanel() {
-            const panel = document.getElementById('underlayerControlPanel');
-            const btn = document.getElementById('underlayerToggleBtn');
-            panel.classList.toggle('hidden');
-            btn.classList.toggle('hidden');
-        }
-
-        function setupUnderlayerControls() {
-            const strips = ['left', 'center', 'right'];
-
-            strips.forEach(strip => {
-                // X Offset
-                const xInput = document.getElementById(`${strip}X`);
-                const xVal = document.getElementById(`${strip}XVal`);
-                xInput.addEventListener('input', (e) => {
-                    window.underlayerConfig[strip].xOffset = parseFloat(e.target.value);
-                    xVal.textContent = e.target.value;
-                });
-
-                // Y Offset
-                const yInput = document.getElementById(`${strip}Y`);
-                const yVal = document.getElementById(`${strip}YVal`);
-                yInput.addEventListener('input', (e) => {
-                    window.underlayerConfig[strip].yOffset = parseFloat(e.target.value);
-                    yVal.textContent = e.target.value;
-                });
-
-                // Opacity
-                const opacityInput = document.getElementById(`${strip}Opacity`);
-                const opacityVal = document.getElementById(`${strip}OpacityVal`);
-                opacityInput.addEventListener('input', (e) => {
-                    window.underlayerConfig[strip].opacity = parseFloat(e.target.value);
-                    opacityVal.textContent = parseFloat(e.target.value).toFixed(2);
-                });
-
-                // Color
-                const colorInput = document.getElementById(`${strip}Color`);
-                colorInput.addEventListener('input', (e) => {
-                    window.underlayerConfig[strip].color = e.target.value;
-                });
-            });
-        }
-
-        function exportUnderlayerConfig() {
-            const output = document.getElementById('configOutput');
-            const config = JSON.stringify(window.underlayerConfig, null, 2);
-            output.textContent = `// Underlayer Configuration:\n${config}`;
-            output.classList.remove('hidden');
-        }
-
-        setupUnderlayerControls();
-
-        // Error Report Modal
-        ErrorReport.init();
-
-        // Chat Assistant
-        ChatAssistant.init();
-
-        // Broadcast Notifications
-        Broadcasts.init();
-
-        // Arduino Management (Link New Lamp)
-        ArduinoManagement.init();
-
-        // Status Update Time Display
-        function formatTimeAgo(isoTimestamp) {
-            const now = new Date();
-            const updated = new Date(isoTimestamp);
-            const diffMs = now - updated;
-            const diffMins = Math.floor(diffMs / 60000);
-
-            if (diffMins < 1) return "just now";
-            if (diffMins < 60) return `${diffMins}m ago`;
-            const diffHours = Math.floor(diffMins / 60);
-            if (diffHours < 24) return `${diffHours}h ago`;
-            return `${Math.floor(diffHours / 24)}d ago`;
-        }
-
-        function updateStatusTime() {
-            const elem = document.getElementById('statusUpdateTime');
-            if (elem?.dataset.timestamp) {
-                elem.textContent = formatTimeAgo(elem.dataset.timestamp);
-            }
-        }
-
-        // Update status time on page load and every minute
-        updateStatusTime();
-        setInterval(updateStatusTime, 60000);
-
-        // Check for pending theme update from themes page
-        function checkThemeUpdate() {
-            const pendingThemeJson = localStorage.getItem('pendingThemeUpdate');
-            if (pendingThemeJson) {
-                try {
-                    const pendingTheme = JSON.parse(pendingThemeJson);
-
-                    // Update theme name display immediately
-                    const themeNameElement = document.getElementById('currentThemeName');
-                    if (themeNameElement) {
-                        themeNameElement.textContent = pendingTheme.name;
-                    }
-
-                    // Update LED visualization colors on next animation frame (syncs with animation loop)
-                    requestAnimationFrame(() => {
-                        if (window.LEDDataFetcher) {
-                            LEDDataFetcher.updateTheme(pendingTheme.id);
-                        }
-                    });
-
-                    // Clear the pending update (non-blocking)
-                    localStorage.removeItem('pendingThemeUpdate');
-                } catch (e) {
-                    console.error('Failed to parse theme update:', e);
-                    localStorage.removeItem('pendingThemeUpdate');
-                }
-            }
-        }
-        checkThemeUpdate();
-
-    </script>
-    <script src="{{ url_for('static', filename='js/flash-messages.js') }}"></script>
-
-    <!-- PWA Notifications -->
-    <script src="{{ url_for('static', filename='js/features/notifications.js') }}"></script>
-    <script>
+        // Initialize dashboard with server-side configuration
         document.addEventListener('DOMContentLoaded', () => {
-            Notifications.init();
+            initDashboard({
+                location: '{{ data.user.location }}',
+                brightnessLevel: {{ data.user.brightness_level or 0.6 }},
+                quietTimesEnabled: {{ 'true' if data.user.quiet_times_enabled else 'false' }},
+                preferredOutput: '{{ data.user.preferred_output or "meters" }}',
+                offHoursEnabled: {{ 'true' if off_hours_feature_enabled else 'false' }},
+                arduinoId: {{ data.arduinos[0].arduino_id if data.arduinos else 0 }},
+                theme: '{{ data.user.theme }}'
+            });
         });
     </script>
+    <script defer src="{{ url_for('static', filename='js/flash-messages.js') }}"></script>
+
+    <!-- PWA Notifications -->
+    <script defer src="{{ url_for('static', filename='js/features/notifications.js') }}"></script>
 
     {% include 'partials/legal_footer.html' %}
 </body>

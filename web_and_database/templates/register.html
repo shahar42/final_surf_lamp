@@ -23,81 +23,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <!-- Global ocean color system -->
     <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
-    <!-- Ripple effect styles -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
-    <style>
-        body {
-            font-family: 'Poppins', sans-serif;
-            /* Using global base.css for ocean gradient */
-        }
-        .form-container {
-            background-color: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        .form-input {
-            background-color: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: #fff;
-        }
-        .form-input::placeholder {
-            color: rgba(255, 255, 255, 0.7);
-        }
-        .form-input:focus {
-            background-color: rgba(255, 255, 255, 0.3);
-            outline: none;
-            box-shadow: 0 0 0 2px #ff007f;
-        }
-        .form-input.error {
-            border: 1px solid #ef4444;
-            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.3);
-        }
-        .form-input.success {
-            border: 1px solid #10b981;
-            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
-        }
-        .submit-btn {
-            background-color: #c2185b; /* Darker pink */
-            transition: background-color 0.3s ease, transform 0.2s ease;
-        }
-        .submit-btn:hover {
-            background-color: #ad1457;
-            transform: translateY(-2px);
-        }
-        .flash-message {
-            position: fixed;
-            top: 1.5rem;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 50;
-        }
-        .field-error {
-            color: #fca5a5;
-            font-size: 0.875rem;
-            margin-top: 0.5rem;
-        }
-        select.form-input option {
-            background-color: #1f2937;
-            color: #ffffff;
-            padding: 8px;
-        }
-        select.form-input {
-            background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
-            background-position: right 12px center;
-            background-repeat: no-repeat;
-            background-size: 16px;
-            padding-right: 40px;
-        }
-        .eye-toggle {
-            background-color: rgba(0, 0, 0, 0.3);
-            border-radius: 50%;
-            padding: 6px;
-            transition: background-color 0.2s ease;
-        }
-        .eye-toggle:hover {
-            background-color: rgba(0, 0, 0, 0.5);
-        }
-    </style>
+    <!-- Registration page styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/register.css') }}">
 </head>
 <body class="min-h-screen flex flex-col">
 
@@ -250,76 +177,39 @@
             }
         }
 
-        // Real-time password validation
+        // Reusable field validation function
+        function validateField(fieldId, validationFn) {
+            const field = document.getElementById(fieldId);
+            if (!field) return;
+
+            const errorDiv = field.parentNode.querySelector('.field-error');
+
+            field.addEventListener('input', function() {
+                const isValid = validationFn(this.value);
+
+                if (isValid) {
+                    this.classList.remove('error');
+                    this.classList.add('success');
+                    if (errorDiv) {
+                        errorDiv.style.display = 'none';
+                    }
+                } else if (this.value.length > 0) {
+                    this.classList.remove('success');
+                    this.classList.add('error');
+                    if (errorDiv) {
+                        errorDiv.style.display = 'block';
+                    }
+                } else {
+                    this.classList.remove('error', 'success');
+                }
+            });
+        }
+
+        // Real-time validation setup
         document.addEventListener('DOMContentLoaded', function() {
-            const passwordField = document.getElementById('password');
-            const passwordErrorDiv = passwordField.parentNode.querySelector('.field-error');
-
-            if (passwordField) {
-                passwordField.addEventListener('input', function() {
-                    const password = this.value;
-                    const isValid = password.length >= 8 && password.length <= 128;
-
-                    if (isValid) {
-                        // Add success styling, remove error
-                        this.classList.remove('error');
-                        this.classList.add('success');
-                        if (passwordErrorDiv) {
-                            passwordErrorDiv.style.display = 'none';
-                        }
-                    } else if (password.length > 0) {
-                        // Add error styling, remove success
-                        this.classList.remove('success');
-                        this.classList.add('error');
-                        if (passwordErrorDiv) {
-                            passwordErrorDiv.style.display = 'block';
-                        }
-                    } else {
-                        // Empty field - remove all styling
-                        this.classList.remove('error', 'success');
-                    }
-                });
-            }
-
-            // Real-time validation for name field
-            const nameField = document.getElementById('name');
-            if (nameField) {
-                nameField.addEventListener('input', function() {
-                    const name = this.value;
-                    const nameRegex = /^[a-zA-Z0-9\s\-']{2,50}$/;
-                    const isValid = nameRegex.test(name);
-
-                    if (isValid) {
-                        this.classList.remove('error');
-                        this.classList.add('success');
-                    } else if (name.length > 0) {
-                        this.classList.remove('success');
-                        this.classList.add('error');
-                    } else {
-                        this.classList.remove('error', 'success');
-                    }
-                });
-            }
-
-            // Real-time validation for email field
-            const emailField = document.getElementById('email');
-            if (emailField) {
-                emailField.addEventListener('input', function() {
-                    const email = this.value;
-                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                    const isValid = emailRegex.test(email) && email.length <= 255;
-
-                    if (isValid) {
-                        this.classList.remove('error');
-                        this.classList.add('success');
-                    } else if (email.length > 0) {
-                        this.classList.remove('success');
-                        this.classList.add('error');
-                    } else {
-                        this.classList.remove('error', 'success');
-                    }
-                });
-            }
+            validateField('password', (val) => val.length >= 8 && val.length <= 128);
+            validateField('name', (val) => /^[a-zA-Z0-9\s\-']{2,50}$/.test(val));
+            validateField('email', (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) && val.length <= 255);
         });
     </script>
 
