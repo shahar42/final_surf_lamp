@@ -1,14 +1,14 @@
 {# templates/partials/surf_conditions.html #}
 {% from 'macros/condition_card.html' import condition_card %}
 
-<div class="card rounded-2xl p-4 lg:p-6 shadow-2xl h-full card-enter card-enter-3">
+<div class="card rounded-2xl p-4 lg:p-6 shadow-2xl h-full card-enter card-enter-3 flex flex-col">
     <!-- Desktop Header -->
     <div class="hidden lg:block mb-6">
         <h2 class="text-xl font-semibold text-white/90">Current Surf Conditions</h2>
     </div>
 
     {% if data.conditions %}
-        <div class="grid grid-cols-4 lg:grid-cols-2 gap-3 lg:gap-6">
+        <div class="grid grid-cols-2 gap-6 lg:gap-8 flex-1 content-center">
             <!-- Wave Height -->
             {{ condition_card(
                 'icons/wave_height_new.png',
