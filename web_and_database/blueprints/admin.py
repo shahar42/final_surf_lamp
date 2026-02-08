@@ -315,11 +315,11 @@ def arduino_status_api():
                 'never': sum(1 for d in devices if d['status'] == 'never')
             }
         })
-        except Exception as e:
-            logger.error(f"❌ Arduino status API error: {e}")
-            return jsonify({'success': False, 'error': str(e)}), 500
-        finally:
-            db.close()
+    except Exception as e:
+        logger.error(f"❌ Arduino status API error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        db.close()
     
     @bp.route('/admin/stats')
     @login_required
