@@ -104,13 +104,24 @@ def record_db_write(arduino_id):
     _db_write_history_fallback[arduino_id] = datetime.now(timezone.utc)
 
     # Cleanup old entries from fallback dict (prevent memory leak)
-    if len(_db_write_history_fallback) > 10000:
+    # More aggressive: check at 1000 entries, cap at 5000 max
+    if len(_db_write_history_fallback) > 1000:
         # Remove entries older than 10 minutes
-        cutoff = datetime.now(timezone.utc).timestamp() - 600
+        cutoff_timestamp = datetime.now(timezone.utc).timestamp() - 600
         _db_write_history_fallback = {
             k: v for k, v in _db_write_history_fallback.items()
-            if v.timestamp() > cutoff
+            if v.timestamp() > cutoff_timestamp
         }
+
+        # If still too large after cleanup, keep only the most recent 5000
+        if len(_db_write_history_fallback) > 5000:
+            sorted_items = sorted(
+                _db_write_history_fallback.items(),
+                key=lambda x: x[1],
+                reverse=True
+            )
+            _db_write_history_fallback = dict(sorted_items[:5000])
+            logger.warning(f"⚠️ Fallback dict capped at 5000 entries (was {len(sorted_items)})")
 
 def record_redis_health(service_name, success, error_message=None):
     """Record Redis health status to database."""

@@ -88,9 +88,11 @@ def fetch_surf_data(api_key, endpoint, wave_calculation_method='api'):
                 response.raise_for_status()
                 break
             except requests.exceptions.Timeout:
-                logger.warning(f"⚠️ Timeout for {endpoint}")
                 if attempt < max_retries - 1:
-                    time.sleep(30)
+                    # Exponential backoff for timeouts: 30s, 60s, 120s
+                    delay = 30 * (2 ** attempt)
+                    logger.warning(f"⚠️ Timeout for {endpoint}, retrying in {delay}s...")
+                    time.sleep(delay)
                     continue
                 else:
                     logger.error(f"❌ All timeout retry attempts failed for {endpoint}")
@@ -103,8 +105,7 @@ def fetch_surf_data(api_key, endpoint, wave_calculation_method='api'):
                     continue
                 raise e
 
-        # Basic rate limiting delay
-        time.sleep(30)
+        # No artificial delay - APIs don't require it between different calls
 
         raw_data = response.json()
         surf_data = standardize_surf_data(raw_data, endpoint, wave_calculation_method)
