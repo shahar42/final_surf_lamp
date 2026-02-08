@@ -17,8 +17,4 @@ echo "🚀 Compiling High-Performance C Merge Sort Engine..."
 cd "$REPO_ROOT/surf-lamp-processor/merge_sort"
 gcc -O3 -fPIC -shared mergesort.c -o libmergesort.so -lm
 
-echo "🧮 Compiling High-Performance C Threshold Calculator..."
-cd "$REPO_ROOT/web_and_database/threshold_calc"
-gcc -O3 -fPIC -shared threshold_calc.c -o libthreshold.so
-
 echo "✅ Build complete!"

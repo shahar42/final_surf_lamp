@@ -4,6 +4,16 @@ __pycache__/
 *$py.class
 *.so
 .Python
+
+# C/C++ build artifacts
+*.o
+*.out
+test_threshold
+test_mergesort
+test_current
+mergesort
+libthreshold.so
+libmergesort.so
 build/
 develop-eggs/
 dist/
