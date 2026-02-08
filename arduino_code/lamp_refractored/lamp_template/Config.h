@@ -43,7 +43,7 @@ const int ARDUINO_ID = 6;
 // ---------------- WAVE ANIMATION PARAMETERS ----------------
 // Controls the blinking/wave effect when thresholds are exceeded
 
-#define WAVE_BRIGHTNESS_MIN_PERCENT 45   // Minimum brightness during wave animation (0-100%)
+#define WAVE_BRIGHTNESS_MIN_PERCENT 55   // Minimum brightness during wave animation (0-100%)
 #define WAVE_BRIGHTNESS_MAX_PERCENT 100  // Maximum brightness during wave animation (0-100%)
 #define WAVE_LENGTH_MULTIPLIER 0.7       // Wave length as % of strip length
 #define WAVE_SPEED_MULTIPLIER 1.2        // Animation speed multiplier

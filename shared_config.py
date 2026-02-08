@@ -72,6 +72,9 @@ REDIS_SYNC_INTERVAL_SECONDS = 300  # 5 minutes
 # Always use UTC for database timestamps and comparisons
 USE_UTC_TIMEZONE = True
 
+# How often the admin stats dashboard refreshes its data
+WAVE_STATS_REFRESH_SECONDS = 30
+
 # ============================================================================
 # APP CONSTANTS (Shared between web app and processor)
 # ============================================================================

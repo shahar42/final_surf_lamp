@@ -18,11 +18,37 @@ CRGB leds[TOTAL_LEDS];
 static unsigned long lastBlinkUpdate = 0;
 static float blinkPhase = 0.0;
 
+// ---------------- DISPLAY CACHE ----------------
+// Snapshot of lastSurfData, refreshed once per data update.
+// Only accessed on Core 1 — no mutex needed for reads.
+DisplayCache displayCache;
+
+void refreshDisplayCache() {
+    MutexGuard lock(surfDataMutex);
+    displayCache.waveHeight_cm = static_cast<int>(lastSurfData.waveHeight * 100);
+    displayCache.wavePeriod = lastSurfData.wavePeriod;
+    displayCache.windSpeed = static_cast<int>(lastSurfData.windSpeed);
+    displayCache.windDirection = lastSurfData.windDirection;
+    displayCache.waveThreshold_cm = static_cast<int>(lastSurfData.waveThreshold * 100);
+    displayCache.windSpeedThreshold_knots = lastSurfData.windSpeedThreshold;
+    displayCache.brightnessMultiplier = lastSurfData.brightnessMultiplier;
+    displayCache.themeIndex = lastSurfData.themeIndex;
+    displayCache.quietHoursActive = lastSurfData.quietHoursActive;
+    displayCache.offHoursActive = lastSurfData.offHoursActive;
+    displayCache.dataReceived = lastSurfData.dataReceived;
+    displayCache.serverUnreachableError = lastSurfData.serverUnreachableError;
+    displayCache.jsonParseError = lastSurfData.jsonParseError;
+    displayCache.invalidDataError = lastSurfData.invalidDataError;
+    displayCache.partialDataError = lastSurfData.partialDataError;
+    displayCache.staleDataError = lastSurfData.staleDataError;
+    displayCache.staleDataWarning = lastSurfData.staleDataWarning;
+    displayCache.lastUpdate = lastSurfData.lastUpdate;
+}
+
 // Single point of truth for LED suppression logic during off hours
 static inline bool shouldSuppressAllLEDs()
 {
-    MutexGuard lock(surfDataMutex);
-    return lastSurfData.offHoursActive;
+    return displayCache.offHoursActive;
 }
 
 // ---------------- INITIALIZATION ----------------
@@ -399,16 +425,10 @@ void updateBlinkingWindSpeedLEDs(int numActiveLeds, CHSV baseColor) {
 }
 
 void applyWaveHeightThreshold(int waveHeightLEDs, int waveHeight_cm, int waveThreshold_cm) {
-    bool quietHours;
-    char currentTheme[32];
-    {
-        MutexGuard lock(surfDataMutex);
-        quietHours = lastSurfData.quietHoursActive;
-        strncpy(currentTheme, lastSurfData.theme, sizeof(currentTheme));
-    }
-
     // Skip all LED updates during quiet hours - quiet hours mode already set the display
-    if (quietHours) return;
+    if (displayCache.quietHoursActive) return;
+
+    uint8_t themeIndex = displayCache.themeIndex;
 
 
 
@@ -416,13 +436,13 @@ void applyWaveHeightThreshold(int waveHeightLEDs, int waveHeight_cm, int waveThr
 
         // NORMAL MODE: Theme-based wave height visualization
 
-        updateWaveHeightLEDs(waveHeightLEDs, getWaveHeightColor(currentTheme));
+        updateWaveHeightLEDs(waveHeightLEDs, getWaveHeightColor(themeIndex));
 
     } else {
 
         // ALERT MODE: Blinking theme-based wave height LEDs
 
-        CHSV themeColor = getWaveHeightColor(currentTheme);
+        CHSV themeColor = getWaveHeightColor(themeIndex);
 
         updateBlinkingWaveHeightLEDs(waveHeightLEDs, CHSV(themeColor.hue, themeColor.sat, ledMapping.getThresholdBrightness()));
 
@@ -433,16 +453,10 @@ void applyWaveHeightThreshold(int waveHeightLEDs, int waveHeight_cm, int waveThr
 
 
 void applyWindSpeedThreshold(int windSpeedLEDs, int windSpeed_mps, int windSpeedThreshold_knots) {
-    bool quietHours;
-    char currentTheme[32];
-    {
-        MutexGuard lock(surfDataMutex);
-        quietHours = lastSurfData.quietHoursActive;
-        strncpy(currentTheme, lastSurfData.theme, sizeof(currentTheme));
-    }
-
     // Skip all LED updates during quiet hours - quiet hours mode already set the display
-    if (quietHours) return;
+    if (displayCache.quietHoursActive) return;
+
+    uint8_t themeIndex = displayCache.themeIndex;
 
 
 
@@ -456,13 +470,13 @@ void applyWindSpeedThreshold(int windSpeedLEDs, int windSpeed_mps, int windSpeed
 
         // NORMAL MODE: Theme-based wind speed visualization
 
-        updateWindSpeedLEDs(windSpeedLEDs, getWindSpeedColor(currentTheme));
+        updateWindSpeedLEDs(windSpeedLEDs, getWindSpeedColor(themeIndex));
 
     } else {
 
         // ALERT MODE: Blinking theme-based wind speed LEDs
 
-        CHSV themeColor = getWindSpeedColor(currentTheme);
+        CHSV themeColor = getWindSpeedColor(themeIndex);
 
         updateBlinkingWindSpeedLEDs(windSpeedLEDs, CHSV(themeColor.hue, themeColor.sat, ledMapping.getThresholdBrightness()));
 
@@ -477,43 +491,33 @@ void applyWindSpeedThreshold(int windSpeedLEDs, int windSpeed_mps, int windSpeed
 
 
 bool handleErrorStates() {
-    bool unreachable, parseErr, invalidData, partialErr, staleErr;
-    {
-        MutexGuard lock(surfDataMutex);
-        unreachable = lastSurfData.serverUnreachableError;
-        parseErr = lastSurfData.jsonParseError;
-        invalidData = lastSurfData.invalidDataError;
-        partialErr = lastSurfData.partialDataError;
-        staleErr = lastSurfData.staleDataError;
-    }
-
     // Priority 1: Server/Communication Errors
-    if (unreachable) {
+    if (displayCache.serverUnreachableError) {
         showServerUnreachableError();
         asyncLogger.Log("Server unreachable - GREEN/BLUE on left strip");
         return true;
     }
 
-    if (parseErr) {
+    if (displayCache.jsonParseError) {
         showJsonParseError();
         asyncLogger.Log("JSON parse error - GREEN/YELLOW on left strip");
         return true;
     }
 
     // Priority 2: Data Quality Errors
-    if (invalidData) {
+    if (displayCache.invalidDataError) {
         showInvalidDataError();
         asyncLogger.Log("Invalid data (both zero) - RED on left strip");
         return true;
     }
 
-    if (partialErr) {
+    if (displayCache.partialDataError) {
         showPartialDataError();
         asyncLogger.Log("Partial data failure - PURPLE on left strip");
         return true;
     }
 
-    if (staleErr) {
+    if (displayCache.staleDataError) {
         showStaleDataError();
         asyncLogger.Log("Stale data - RED/BLUE on left strip");
         return true;
@@ -528,13 +532,7 @@ bool handleErrorStates() {
 
 
 bool handleOffHours() {
-    bool offHours;
-    {
-        MutexGuard lock(surfDataMutex);
-        offHours = lastSurfData.offHoursActive;
-    }
-
-    if (!offHours) return false;
+    if (!displayCache.offHoursActive) return false;
 
 
 
@@ -551,19 +549,16 @@ bool handleOffHours() {
 
 
 bool handleQuietHours() {
-    MutexGuard lock(surfDataMutex);
-
-    if (!lastSurfData.quietHoursActive) {
-        return false;  // Auto-unlock on early return
+    if (!displayCache.quietHoursActive) {
+        return false;
     }
 
-    float brightnessMult = lastSurfData.brightnessMultiplier;
-    int waveHeight_cm = static_cast<int>(lastSurfData.waveHeight * 100);
-    int windSpeed = static_cast<int>(lastSurfData.windSpeed);
-    int windDirection = lastSurfData.windDirection;
-    float wavePeriod = lastSurfData.wavePeriod;
-    char currentTheme[32];
-    strncpy(currentTheme, lastSurfData.theme, sizeof(currentTheme));
+    float brightnessMult = displayCache.brightnessMultiplier;
+    int waveHeight_cm = displayCache.waveHeight_cm;
+    int windSpeed = displayCache.windSpeed;
+    int windDirection = displayCache.windDirection;
+    float wavePeriod = displayCache.wavePeriod;
+    uint8_t themeIndex = displayCache.themeIndex;
 
 
 
@@ -593,7 +588,7 @@ bool handleQuietHours() {
 
         int topWindIndex = WIND_SPEED_BOTTOM - windSpeedLEDs;
 
-        leds[topWindIndex] = getWindSpeedColor(currentTheme);
+        leds[topWindIndex] = getWindSpeedColor(themeIndex);
 
     }
 
@@ -601,7 +596,7 @@ bool handleQuietHours() {
 
         int topWaveIndex = WAVE_HEIGHT_START + waveHeightLEDs - 1;
 
-        leds[topWaveIndex] = getWaveHeightColor(currentTheme);
+        leds[topWaveIndex] = getWaveHeightColor(themeIndex);
 
     }
 
@@ -609,7 +604,7 @@ bool handleQuietHours() {
 
         int topPeriodIndex = WAVE_PERIOD_START + wavePeriodLEDs - 1;
 
-        leds[topPeriodIndex] = getWavePeriodColor(currentTheme);
+        leds[topPeriodIndex] = getWavePeriodColor(themeIndex);
 
     }
 
@@ -626,21 +621,14 @@ bool handleQuietHours() {
 
 
 void handleNormalMode() {
-    int waveHeight_cm, windSpeed, windDirection;
-    int waveThreshold_cm, windSpeedThreshold_knots;
-    float wavePeriod, brightnessMult;
-    char currentTheme[32];
-    {
-        MutexGuard lock(surfDataMutex);
-        waveHeight_cm = static_cast<int>(lastSurfData.waveHeight * 100);
-        wavePeriod = lastSurfData.wavePeriod;
-        windSpeed = static_cast<int>(lastSurfData.windSpeed);
-        windDirection = lastSurfData.windDirection;
-        waveThreshold_cm = static_cast<int>(lastSurfData.waveThreshold * 100);
-        windSpeedThreshold_knots = lastSurfData.windSpeedThreshold;
-        brightnessMult = lastSurfData.brightnessMultiplier;
-        strncpy(currentTheme, lastSurfData.theme, sizeof(currentTheme));
-    }
+    int waveHeight_cm = displayCache.waveHeight_cm;
+    float wavePeriod = displayCache.wavePeriod;
+    int windSpeed = displayCache.windSpeed;
+    int windDirection = displayCache.windDirection;
+    int waveThreshold_cm = displayCache.waveThreshold_cm;
+    int windSpeedThreshold_knots = displayCache.windSpeedThreshold_knots;
+    float brightnessMult = displayCache.brightnessMultiplier;
+    uint8_t themeIndex = displayCache.themeIndex;
 
 
 
@@ -664,7 +652,7 @@ void handleNormalMode() {
 
     setWindDirection(windDirection);
 
-    updateWavePeriodLEDs(wavePeriodLEDs, getWavePeriodColor(currentTheme));
+    updateWavePeriodLEDs(wavePeriodLEDs, getWavePeriodColor(themeIndex));
 
     
 
@@ -692,14 +680,8 @@ void handleNormalMode() {
 
 
 void updateSurfDisplay() {
-    bool dataReceived;
-    {
-        MutexGuard lock(surfDataMutex);
-        dataReceived = lastSurfData.dataReceived;
-    }
-
     // Check if we have valid surf data
-    if (!dataReceived) {
+    if (!displayCache.dataReceived) {
 
         asyncLogger.Log("No surf data available to display");
 
@@ -724,18 +706,15 @@ void updateSurfDisplay() {
 
 
 void updateBlinkingAnimation() {
-    MutexGuard lock(surfDataMutex);
-
-    if (!lastSurfData.dataReceived || lastSurfData.offHoursActive || lastSurfData.quietHoursActive) {
-        return;  // Auto-unlock on early return
+    if (!displayCache.dataReceived || displayCache.offHoursActive || displayCache.quietHoursActive) {
+        return;
     }
 
-    float windSpeed = lastSurfData.windSpeed;
-    int windThreshold = lastSurfData.windSpeedThreshold;
-    float waveHeight = lastSurfData.waveHeight;
-    float waveThreshold = lastSurfData.waveThreshold;
-    char currentTheme[32];
-    strncpy(currentTheme, lastSurfData.theme, sizeof(currentTheme));
+    int windSpeed = displayCache.windSpeed;
+    int windThreshold = displayCache.windSpeedThreshold_knots;
+    int waveHeight_cm = displayCache.waveHeight_cm;
+    int waveThreshold_cm = displayCache.waveThreshold_cm;
+    uint8_t themeIndex = displayCache.themeIndex;
 
 
 
@@ -763,7 +742,7 @@ void updateBlinkingAnimation() {
 
         int windSpeedLEDs = ledMapping.calculateWindLEDs(windSpeed);
 
-        CHSV themeColor = getWindSpeedColor(currentTheme);
+        CHSV themeColor = getWindSpeedColor(themeIndex);
 
         updateBlinkingWindSpeedLEDs(windSpeedLEDs, CHSV(themeColor.hue, themeColor.sat, ledMapping.getThresholdBrightness()));
 
@@ -773,13 +752,13 @@ void updateBlinkingAnimation() {
 
 
 
-    // Check if wave height threshold is exceeded (waveHeight is in METERS)
+    // Check if wave height threshold is exceeded (comparison in cm)
 
-    if (waveHeight >= waveThreshold) {
+    if (waveHeight_cm >= waveThreshold_cm) {
 
-        int waveHeightLEDs = ledMapping.calculateWaveLEDsFromMeters(waveHeight);
+        int waveHeightLEDs = ledMapping.calculateWaveLEDsFromCm(waveHeight_cm);
 
-        CHSV themeColor = getWaveHeightColor(currentTheme);
+        CHSV themeColor = getWaveHeightColor(themeIndex);
 
         updateBlinkingWaveHeightLEDs(waveHeightLEDs, CHSV(themeColor.hue, themeColor.sat, ledMapping.getThresholdBrightness()));
 

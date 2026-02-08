@@ -37,11 +37,14 @@
                 {% if data.user.is_admin %}
                 <div class="pt-6 mt-2 border-t border-white/10 space-y-4">
                     <p class="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] text-center mb-4">Admin Tools</p>
-                    <div class="grid grid-cols-2 gap-3">
-                        <a href="{{ url_for('admin.arduino_monitor') }}" class="bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 font-bold py-3 px-4 rounded-xl border border-purple-500/20 transition-all text-center text-xs active:scale-95">
+                    <div class="grid grid-cols-3 gap-2">
+                        <a href="{{ url_for('admin.arduino_monitor') }}" class="bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 font-bold py-3 px-2 rounded-xl border border-purple-500/20 transition-all text-center text-[10px] active:scale-95">
                             Monitor
                         </a>
-                        <a href="{{ url_for('admin.admin_broadcast') }}" class="bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 font-bold py-3 px-4 rounded-xl border border-purple-500/20 transition-all text-center text-xs active:scale-95">
+                        <a href="{{ url_for('admin.admin_stats') }}" class="bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 font-bold py-3 px-2 rounded-xl border border-blue-500/20 transition-all text-center text-[10px] active:scale-95">
+                            Live Stats
+                        </a>
+                        <a href="{{ url_for('admin.admin_broadcast') }}" class="bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 font-bold py-3 px-2 rounded-xl border border-purple-500/20 transition-all text-center text-[10px] active:scale-95">
                             Broadcast
                         </a>
                     </div>

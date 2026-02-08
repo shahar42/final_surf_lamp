@@ -8,6 +8,7 @@
 #include "LedController.h"
 #include "ServerDiscovery.h"
 #include "SunsetCalculator.h"
+#include "Themes.h"
 #include "esp_Server_encoding.hpp"
 
 // Global timing variables declared header
@@ -236,7 +237,7 @@ void print_data_info()
     asyncLogger.Log(buf);
     sprintf(buf, "   Brightness: %.1f", lastSurfData.brightnessMultiplier);
     asyncLogger.Log(buf);
-    sprintf(buf, "   LED Theme: %s", lastSurfData.theme);
+    sprintf(buf, "   LED Theme: %s", themeIndexToName(lastSurfData.themeIndex));
     asyncLogger.Log(buf);
     sprintf(buf, "Timestamp: %lu ms (uptime)", lastSurfData.lastUpdate);
     asyncLogger.Log(buf);
@@ -247,7 +248,7 @@ void print_data_info()
 void UpdateGlobalState(int wave_height_cm, float wave_period_s, int wind_speed_mps,
                        int wind_direction_deg, int wave_threshold_cm, int wind_speed_threshold_knots,
                        bool quiet_hours_active, bool off_hours_active, float brightness_multiplier,
-                       const String& led_theme, bool stale_data_warning)
+                       uint8_t theme_index, bool stale_data_warning)
 {
     MutexGuard lock(surfDataMutex);
     // Update global state (converting height and threshold to meters for consistency)
@@ -260,10 +261,7 @@ void UpdateGlobalState(int wave_height_cm, float wave_period_s, int wind_speed_m
     lastSurfData.quietHoursActive = quiet_hours_active;
     lastSurfData.offHoursActive = off_hours_active;
     lastSurfData.brightnessMultiplier = brightness_multiplier;
-
-    // Thread-safe string copy
-    strncpy(lastSurfData.theme, led_theme.c_str(), sizeof(lastSurfData.theme) - 1);
-    lastSurfData.theme[sizeof(lastSurfData.theme) - 1] = '\0';
+    lastSurfData.themeIndex = theme_index;
 
     lastSurfData.lastUpdate = millis();
     lastSurfData.dataReceived = true;
@@ -305,7 +303,8 @@ bool processSurfData(const String& jsonData)
     bool quiet_hours_active = doc["quiet_hours_active"] | SurfDataDefaults::QUIET_HOURS_ACTIVE;
     bool off_hours_active = doc["off_hours_active"] | SurfDataDefaults::OFF_HOURS_ACTIVE;
     float brightness_multiplier = doc["brightness_multiplier"] | SurfDataDefaults::BRIGHTNESS_MULTIPLIER;
-    String led_theme = doc["led_theme"] | SurfDataDefaults::LED_THEME;
+    const char* led_theme_str = doc["led_theme"] | SurfDataDefaults::LED_THEME;
+    uint8_t theme_index = themeNameToIndex(led_theme_str);
     bool stale_data_warning = doc["stale_data_warning"] | false;
 
     // V2 API: Extract location coordinates for sunset calculation
@@ -360,7 +359,7 @@ bool processSurfData(const String& jsonData)
 
     UpdateGlobalState(wave_height_cm, wave_period_s, wind_speed_mps, wind_direction_deg,
                       wave_threshold_cm, wind_speed_threshold_knots, quiet_hours_active,
-                      off_hours_active, brightness_multiplier, led_theme, stale_data_warning);
+                      off_hours_active, brightness_multiplier, theme_index, stale_data_warning);
 
     print_data_info();
 
@@ -439,16 +438,8 @@ bool processBinarySurfData(const uint8_t* binaryData, size_t length) {
     float longitude = settings.GetLongitude();
     int32_t tz_offset = settings.GetTzOffset();
 
-    // Map LED theme enum to string
-    LEDTheme theme_enum = settings.GetLEDTheme();
-    String led_theme = "classic_surf";  // Default
-    switch (theme_enum) {
-        case LEDTheme::CLASSIC_SURF: led_theme = "classic_surf"; break;
-        case LEDTheme::VIBRANT_MIX: led_theme = "vibrant_mix"; break;
-        case LEDTheme::TROPICAL_PARADISE: led_theme = "tropical_paradise"; break;
-        case LEDTheme::OCEAN_SUNSET: led_theme = "ocean_sunset"; break;
-        case LEDTheme::ELECTRIC_VIBES: led_theme = "electric_vibes"; break;
-    }
+    // Theme index directly from binary protocol (no string conversion needed)
+    uint8_t theme_index = static_cast<uint8_t>(settings.GetLEDTheme());
 
     // Update coordinates in sunset calculator
     if (latitude != 0.0 && longitude != 0.0) {
@@ -470,7 +461,7 @@ bool processBinarySurfData(const uint8_t* binaryData, size_t length) {
     // Update global state (same as JSON version)
     UpdateGlobalState(wave_height_cm, wave_period_s, wind_speed_mps, wind_direction_deg,
                       wave_threshold_cm, wind_speed_threshold_knots, quiet_hours_active,
-                      off_hours_active, brightness_multiplier, led_theme, stale_data_warning);
+                      off_hours_active, brightness_multiplier, theme_index, stale_data_warning);
 
     print_data_info();
 

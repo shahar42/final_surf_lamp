@@ -115,11 +115,44 @@ void applyWaveHeightThreshold(int waveHeightLEDs, int waveHeight_cm, int waveThr
  */
 void applyWindSpeedThreshold(int windSpeedLEDs, int windSpeed_mps, int windSpeedThreshold_knots);
 
+// ---------------- DISPLAY CACHE ----------------
+// Core 1 snapshot of lastSurfData. Refreshed once per data update.
+// Only accessed on Core 1 — no mutex needed for reads.
+
+struct DisplayCache {
+    int waveHeight_cm = 0;
+    float wavePeriod = 0.0;
+    int windSpeed = 0;
+    int windDirection = 0;
+    int waveThreshold_cm = 100;
+    int windSpeedThreshold_knots = 15;
+    float brightnessMultiplier = BrightnessLevel::LEVEL_MID;
+    uint8_t themeIndex = 0;
+    bool quietHoursActive = false;
+    bool offHoursActive = false;
+    bool dataReceived = false;
+    bool serverUnreachableError = false;
+    bool jsonParseError = false;
+    bool invalidDataError = false;
+    bool partialDataError = false;
+    bool staleDataError = false;
+    bool staleDataWarning = false;
+    unsigned long lastUpdate = 0;
+};
+
+extern DisplayCache displayCache;
+
+/**
+ * Refresh the display cache from lastSurfData (one mutex lock).
+ * Call this on Core 1 when needsDisplayUpdate is true, before rendering.
+ */
+void refreshDisplayCache();
+
 // ---------------- HIGH-LEVEL DISPLAY UPDATES ----------------
 
 /**
- * Update entire surf display based on global lastSurfData state
- * Checks error states, off/quiet hours, then normal display mode
+ * Update entire surf display based on cached state.
+ * Call refreshDisplayCache() before this.
  */
 void updateSurfDisplay();
 

@@ -167,7 +167,8 @@ void loop() {
     // Update display if state changed (decoupled architecture)
     if (lastSurfData.needsDisplayUpdate.load()) {
         asyncLogger.Log("[Core 1] Detected state change, updating display...");
-        updateSurfDisplay();
+        refreshDisplayCache();  // One mutex lock, snapshot all data
+        updateSurfDisplay();    // Reads from cache, zero locks
         lastSurfData.needsDisplayUpdate.store(false);
     }
 
@@ -208,50 +209,34 @@ void loop() {
     // Update blinking animations for threshold alerts
     updateBlinkingAnimation();
 
-    // Update status LED and check for stale data
-    unsigned long lastUpdate, dataAge;
-    bool dataReceived, serverUnreachable, jsonParseError, invalidDataError;
-    bool partialDataError, staleDataError, staleDataWarning, isOffHours;
-    {
-        MutexGuard lock(surfDataMutex);
-        lastUpdate = lastSurfData.lastUpdate;
-        dataReceived = lastSurfData.dataReceived;
-        serverUnreachable = lastSurfData.serverUnreachableError;
-        jsonParseError = lastSurfData.jsonParseError;
-        invalidDataError = lastSurfData.invalidDataError;
-        partialDataError = lastSurfData.partialDataError;
-        staleDataError = lastSurfData.staleDataError;
-        staleDataWarning = lastSurfData.staleDataWarning;
-        isOffHours = lastSurfData.offHoursActive;
-    }
+    // Update status LED and check for stale data (reads from displayCache — zero locks)
+    unsigned long dataAge = millis() - displayCache.lastUpdate;
 
-    dataAge = millis() - lastUpdate;
-
-    // Detect stale data (>30min old)
-    if (dataReceived && dataAge >= DATA_STALENESS_THRESHOLD) {
-        if (!staleDataError) {
+    // Detect stale data (>30min old) — requires one mutex lock to set the flag
+    if (displayCache.dataReceived && dataAge >= DATA_STALENESS_THRESHOLD) {
+        if (!displayCache.staleDataError) {
             {
                 MutexGuard lock(surfDataMutex);
                 lastSurfData.staleDataError = true;
             }
-            lastSurfData.needsDisplayUpdate.store(true);
+            lastSurfData.needsDisplayUpdate.store(true);  // Will refresh cache next frame
             char staleBuf[64];
             sprintf(staleBuf, "Data became stale (%lu min old)", dataAge / 60000);
             asyncLogger.Log(staleBuf);
         }
     }
 
-    // Status LED logic based on error states
-    if (serverUnreachable || jsonParseError) {
-        blinkOrangeLED();  // 🟠 Server/communication issues
-    } else if (invalidDataError || partialDataError) {
-        blinkRedLED();  // 🔴 Data quality errors
-    } else if (staleDataError || staleDataWarning) {
-        blinkOrangeLED();  // 🟠 Stale data (local timeout OR server warning)
-    } else if (dataReceived && dataAge < DATA_STALENESS_THRESHOLD) {
-        blinkGreenLED();   // ✅ Fresh data (< 30 min old)
+    // Status LED logic based on cached error states
+    if (displayCache.serverUnreachableError || displayCache.jsonParseError) {
+        blinkOrangeLED();
+    } else if (displayCache.invalidDataError || displayCache.partialDataError) {
+        blinkRedLED();
+    } else if (displayCache.staleDataError || displayCache.staleDataWarning) {
+        blinkOrangeLED();
+    } else if (displayCache.dataReceived && dataAge < DATA_STALENESS_THRESHOLD) {
+        blinkGreenLED();
     } else {
-        showNoDataConnected();  // Left strip green - waiting for first data
+        showNoDataConnected();
     }
 
     // Core 1 monitors Core 0 health

@@ -25,7 +25,7 @@ struct SurfData {
     // User preferences/thresholds
     float waveThreshold = 1.0;        // Wave threshold in meters (MUST be float for comparison!)
     int windSpeedThreshold = 15;      // Wind threshold in knots
-    char theme[32] = "classic_surf";  // Fixed char array for thread safety
+    uint8_t themeIndex = 0;           // Theme index (0=classic_surf, see Themes.h)
     float brightnessMultiplier = BrightnessLevel::LEVEL_MID;
 
     // Operating modes
