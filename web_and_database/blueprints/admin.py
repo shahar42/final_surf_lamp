@@ -320,49 +320,49 @@ def arduino_status_api():
         return jsonify({'success': False, 'error': str(e)}), 500
     finally:
         db.close()
-    
-    @bp.route('/admin/stats')
-    @login_required
-    @admin_required
-    def admin_stats():
-        """Admin statistics page showing ranked surf conditions across all locations."""
-        db = SessionLocal()
-        try:
-            locations = db.query(Location).all()
-            
-            # Prepare data for C-based sorting: (location_name, wave_height)
-            sort_data = []
-            for loc in locations:
-                height = loc.wave_height_m if loc.wave_height_m is not None else 0.0
-                sort_data.append((loc.location, height))
-                
-            # Use our high-performance C merge sort!
-            sorted_results = sort_by_wave_height(sort_data)
-            
-            # Create a mapping for easy lookup of other fields
-            loc_map = {loc.location: loc for loc in locations}
-            
-            ranked_locations = []
-            for name, height in sorted_results:
-                loc = loc_map[name]
-                ranked_locations.append({
-                    'name': name,
-                    'wave_height': height,
-                    'wave_period': loc.wave_period_s,
-                    'wind_speed': loc.wind_speed_mps,
-                    'wind_direction': loc.wind_direction_deg,
-                    'last_updated': loc.last_updated
-                })
-                
-            return render_template(
-                'admin_stats.html', 
-                locations=ranked_locations,
-                refresh_interval=WAVE_STATS_REFRESH_SECONDS
-            )
-        except Exception as e:
-            logger.error(f"Error loading admin stats: {e}")
-            flash("Error loading statistics.", "error")
-            return redirect(url_for('dashboard.dashboard'))
-        finally:
-            db.close()
+
+@bp.route('/admin/stats')
+@login_required
+@admin_required
+def admin_stats():
+    """Admin statistics page showing ranked surf conditions across all locations."""
+    db = SessionLocal()
+    try:
+        locations = db.query(Location).all()
+
+        # Prepare data for C-based sorting: (location_name, wave_height)
+        sort_data = []
+        for loc in locations:
+            height = loc.wave_height_m if loc.wave_height_m is not None else 0.0
+            sort_data.append((loc.location, height))
+
+        # Use our high-performance C merge sort!
+        sorted_results = sort_by_wave_height(sort_data)
+
+        # Create a mapping for easy lookup of other fields
+        loc_map = {loc.location: loc for loc in locations}
+
+        ranked_locations = []
+        for name, height in sorted_results:
+            loc = loc_map[name]
+            ranked_locations.append({
+                'name': name,
+                'wave_height': height,
+                'wave_period': loc.wave_period_s,
+                'wind_speed': loc.wind_speed_mps,
+                'wind_direction': loc.wind_direction_deg,
+                'last_updated': loc.last_updated
+            })
+
+        return render_template(
+            'admin_stats.html',
+            locations=ranked_locations,
+            refresh_interval=WAVE_STATS_REFRESH_SECONDS
+        )
+    except Exception as e:
+        logger.error(f"Error loading admin stats: {e}")
+        flash("Error loading statistics.", "error")
+        return redirect(url_for('dashboard.dashboard'))
+    finally:
+        db.close()
     
