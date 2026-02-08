@@ -325,10 +325,11 @@ def arduino_status_api():
 @login_required
 @admin_required
 def admin_stats():
-    """Admin statistics page showing ranked surf conditions across all locations."""
+    """Admin statistics page showing ranked surf conditions across active locations only."""
     db = SessionLocal()
     try:
-        locations = db.query(Location).all()
+        # Only fetch locations that have at least one arduino (active monitoring)
+        locations = db.query(Location).join(Arduino, Location.location == Arduino.location).distinct().all()
 
         # Prepare data for C-based sorting: (location_name, wave_height)
         sort_data = []
