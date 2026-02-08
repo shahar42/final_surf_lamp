@@ -53,8 +53,9 @@ def get_location_conditions(location):
     try:
         db = SessionLocal()
         try:
-            # Query location data
-            location_data = db.query(Location).filter(Location.location == location).first()
+            # Query location data with caching (5min TTL - processor updates every 15min)
+            from utils.location_cache import get_location_from_db_cached
+            location_data = get_location_from_db_cached(db, location)
 
             if not location_data:
                 logger.warning(f"⚠️ Location '{location}' not found in database")

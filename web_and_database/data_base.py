@@ -341,8 +341,9 @@ def get_user_lamp_data(email):
         if not user:
             return None, None, None
 
-        # Location still needs separate query (no direct User→Location relationship)
-        location = db.query(Location).filter(Location.location == user.location).first()
+        # Location query with caching (5min TTL - updates every 15min)
+        from utils.location_cache import get_location_from_db_cached
+        location = get_location_from_db_cached(db, user.location)
 
         # user.arduinos is already loaded from the joined query above
         return user, user.arduinos, location

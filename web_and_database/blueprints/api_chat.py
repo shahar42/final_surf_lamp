@@ -44,9 +44,9 @@ def chat():
                 if not user_data:
                     return jsonify({"error": "User not found"}), 404
 
-                conditions_data = db.query(Location).filter(
-                    Location.location == user_data.location
-                ).first()
+                # Use cached location query (5min TTL)
+                from utils.location_cache import get_location_from_db_cached
+                conditions_data = get_location_from_db_cached(db, user_data.location)
 
                 session[cache_key] = {
                     'user': user_data,
