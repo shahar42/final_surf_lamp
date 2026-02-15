@@ -90,7 +90,7 @@ const MobileTabs = (function() {
         document.body.addEventListener('touchstart', e => {
             startX = e.changedTouches[0].screenX;
             touchedSlider = !!e.target.closest('.noUi-target');
-        }, { passive: true });
+        }, { passive: true, capture: true });
 
         document.body.addEventListener('touchend', e => {
             if (touchedSlider) return;
