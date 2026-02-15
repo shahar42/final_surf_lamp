@@ -84,13 +84,16 @@ const MobileTabs = (function() {
 
     function setupSwipeGestures() {
         let startX = 0;
+        let touchedSlider = false;
         const minDistance = 50;
 
         document.body.addEventListener('touchstart', e => {
             startX = e.changedTouches[0].screenX;
+            touchedSlider = !!e.target.closest('.noUi-target');
         }, { passive: true });
 
         document.body.addEventListener('touchend', e => {
+            if (touchedSlider) return;
             const distance = e.changedTouches[0].screenX - startX;
             if (Math.abs(distance) < minDistance) return;
 
