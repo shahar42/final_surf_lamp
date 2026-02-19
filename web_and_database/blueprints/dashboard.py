@@ -6,6 +6,7 @@ author: shahar nitzan
 import os
 import logging
 import markdown
+from datetime import datetime, timezone, timedelta
 from flask import Blueprint, render_template, request, flash, redirect, url_for, session
 from config import SURF_LOCATIONS, BRIGHTNESS_LEVELS
 from utils.decorators import login_required
@@ -56,14 +57,22 @@ def _build_dashboard_data(user_email):
         'conditions': None
     }
 
-    if location:
-        dashboard_data['conditions'] = {
-            'wave_height_m': location.wave_height_m or 0.0,
-            'wave_period_s': location.wave_period_s or 0.0,
-            'wind_speed_mps': location.wind_speed_mps or 0.0,
-            'wind_direction_deg': location.wind_direction_deg or 0,
-            'last_updated': location.last_updated
-        }
+    if location and location.last_updated:
+        # Only show conditions if data is fresh (updated within the last hour)
+        from shared_config import LAMP_ONLINE_THRESHOLD_SECONDS
+        freshness_cutoff = datetime.now(timezone.utc) - timedelta(seconds=LAMP_ONLINE_THRESHOLD_SECONDS)
+        last_updated = location.last_updated
+        if last_updated.tzinfo is None:
+            last_updated = last_updated.replace(tzinfo=timezone.utc)
+
+        if last_updated >= freshness_cutoff:
+            dashboard_data['conditions'] = {
+                'wave_height_m': location.wave_height_m or 0.0,
+                'wave_period_s': location.wave_period_s or 0.0,
+                'wind_speed_mps': location.wind_speed_mps or 0.0,
+                'wind_direction_deg': location.wind_direction_deg or 0,
+                'last_updated': location.last_updated
+            }
 
     return dashboard_data, user
 
