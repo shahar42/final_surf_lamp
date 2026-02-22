@@ -185,6 +185,8 @@ namespace Animation {
                     leds[ledIndex] = CRGB::Black;
                 }
             }
+            // Soften the lit/black edge across adjacent LEDs
+            blur1d(&leds[strip.start], strip.length, 40);
         };
 
         for (int frame = 0; frame < totalFrames; frame++) {
