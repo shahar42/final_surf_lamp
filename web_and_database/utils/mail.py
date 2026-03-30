@@ -40,3 +40,33 @@ Surf Lamp Team
         logger.error(f"✗ Email send failed to {user_email}: {e}")
         logger.exception("Full traceback:")
         return False
+
+
+def send_waitlist_confirmation(email, first_name, position):
+    from config import mail
+
+    msg = Message(
+        subject="You're on the Surf Lamp waitlist!",
+        sender=("Surf Lamp", current_app.config.get('MAIL_DEFAULT_SENDER')),
+        recipients=[email]
+    )
+    msg.body = f"""Hi {first_name},
+
+You're #{position} on the Surf Lamp waitlist!
+
+We'll notify you as soon as early access opens. Stay tuned.
+
+– The Surf Lamp Team
+"""
+    msg.html = f"""
+<p>Hi {first_name},</p>
+<p>You're <strong>#{position}</strong> on the Surf Lamp waitlist!</p>
+<p>We'll notify you as soon as early access opens. Stay tuned.</p>
+<br>
+<p>– The Surf Lamp Team</p>
+"""
+    try:
+        mail.send(msg)
+        logger.info(f"✓ Waitlist confirmation sent to {email}")
+    except Exception as e:
+        logger.error(f"✗ Waitlist confirmation email failed to {email}: {e}")

@@ -5,6 +5,7 @@ from flask_limiter.util import get_remote_address
 from config import limiter
 from security_config import SecurityConfig
 from waitlist_db import add_to_waitlist, get_waitlist_count
+from utils.mail import send_waitlist_confirmation
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +81,7 @@ def waitlist_submit():
 
     if success:
         logger.info(f"New waitlist signup: {email} (position {position})")
+        send_waitlist_confirmation(email, first_name, position)
         return render_template('waitlist_confirmation.html',
                               first_name=first_name,
                               position=position)
