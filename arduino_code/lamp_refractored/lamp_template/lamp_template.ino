@@ -99,13 +99,7 @@ void setup() {
     // Setup WiFi with event handlers
     WiFi.onEvent(WiFiEvent);
 
-    // Check if watchdog detected repeated boot failures - fallback to AP mode
-    bool forceAP = watchdog.shouldFallbackToAP();
-    if (forceAP) {
-        Serial.println("⚠️ Watchdog detected boot loop - forcing AP config mode");
-    }
-
-    bool connected = forceAP ? false : setupWiFi(wifiManager, fingerprinting);
+    bool connected = setupWiFi(wifiManager, fingerprinting);
 
     if (!connected) {
         Serial.println("🔄 Restarting to config portal...");

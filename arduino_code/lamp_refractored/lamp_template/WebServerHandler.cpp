@@ -340,17 +340,9 @@ bool processSurfData(const String& jsonData)
         }
     }
 
-    // Validate data quality
-    bool bothZero = (wave_height_cm == 0 && wind_speed_mps == 0 && wave_period_s == 0);
-    bool partialZero = !is_data_valid || (wave_height_cm == 0 || wind_speed_mps == 0 || wave_period_s == 0) && !bothZero;
-
-    if (bothZero) {
-        asyncLogger.Log("INVALID DATA: Wave height, wind speed, and wave period are all zero");
-    } else if (partialZero) {
-        asyncLogger.Log("PARTIAL DATA FAILURE: One value is zero");
-        char buf[128];
-        sprintf(buf, "   Wave: %d cm, Wind: %d m/s, Period: %.1f s", wave_height_cm, wind_speed_mps, wave_period_s);
-        asyncLogger.Log(buf);
+    // Error determination is the server's responsibility via the data_available flag.
+    if (!is_data_valid) {
+        asyncLogger.Log("SERVER: data_available=false — no surf data from API");
     }
 
     if (stale_data_warning) {
@@ -363,11 +355,9 @@ bool processSurfData(const String& jsonData)
 
     print_data_info();
 
-    // Set error flags based on validation
-    if (bothZero) {
+    // Error determination is the server's responsibility via the data_available flag.
+    if (!is_data_valid) {
         lastSurfData.invalidDataError = true;
-    } else if (partialZero) {
-        lastSurfData.partialDataError = true;
     }
 
     lastSurfData.needsDisplayUpdate.store(true);  // Thread-safe signal to Core 1 loop()
@@ -465,14 +455,10 @@ bool processBinarySurfData(const uint8_t* binaryData, size_t length) {
 
     print_data_info();
 
-    // Set error flags based on validation
-    bool bothZero = (wave_height_cm == 0 && wind_speed_mps == 0);
-    bool partialZero = (wave_height_cm == 0) != (wind_speed_mps == 0);
-
-    if (bothZero) {
+    // Error determination is the server's responsibility via the data_available flag.
+    // The Arduino trusts it — a 0 wave height on a calm day is valid data, not an error.
+    if (!is_data_valid) {
         lastSurfData.invalidDataError = true;
-    } else if (partialZero) {
-        lastSurfData.partialDataError = true;
     }
 
     lastSurfData.needsDisplayUpdate.store(true);

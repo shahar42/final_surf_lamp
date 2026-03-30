@@ -106,10 +106,28 @@ void networkSecretaryTask(void* parameter)
                 asyncLogger.Log("[Core 0] Starting surf data fetch");
             }
 
-            if (fetchSurfDataFromServer()) {
+            bool success = fetchSurfDataFromServer();
+
+            if (!success) {
+                // Retry 1: after 30 seconds
+                asyncLogger.Log("[Core 0] Fetch failed - retry 1 in 30s");
+                delay(30000);
+                watchdog.pet();
+                success = fetchSurfDataFromServer();
+            }
+
+            if (!success) {
+                // Retry 2: after 50 more seconds (80s total from first failure)
+                asyncLogger.Log("[Core 0] Retry 1 failed - retry 2 in 50s");
+                delay(50000);
+                watchdog.pet();
+                success = fetchSurfDataFromServer();
+            }
+
+            if (success) {
                 handleFetchSuccess(now);
             } else {
-                asyncLogger.Log("[Core 0] Fetch failed");
+                asyncLogger.Log("[Core 0] All 3 fetch attempts failed - showing error");
             }
 
             lastFetch = now;
