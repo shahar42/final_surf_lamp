@@ -1,3 +1,7 @@
+# Credentials / secrets
+landing_page/meta-notch-447113-c0-87a12306fd18.json
+*.json.key
+
 # Python
 __pycache__/
 *.py[cod]
