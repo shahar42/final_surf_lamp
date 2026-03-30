@@ -19,23 +19,15 @@ HEADERS = ['id', 'first_name', 'last_name', 'email', 'phone', 'signup_date', 'ip
 def _get_sheet():
     """Authenticate and return the worksheet."""
     import gspread
-    from google.oauth2.service_account import Credentials
-
-    scopes = [
-        'https://www.googleapis.com/auth/spreadsheets',
-        'https://www.googleapis.com/auth/drive',
-    ]
 
     # Try env var first (production), fall back to local file (dev)
     creds_json = os.environ.get('GOOGLE_SHEETS_CREDENTIALS')
     if creds_json:
         creds_dict = json.loads(creds_json)
-        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+        client = gspread.service_account_from_dict(creds_dict)
     else:
         creds_file = os.path.join(os.path.dirname(__file__), '..', 'landing_page', 'meta-notch-447113-c0-87a12306fd18.json')
-        creds = Credentials.from_service_account_file(creds_file, scopes=scopes)
-
-    client = gspread.authorize(creds)
+        client = gspread.service_account(filename=creds_file)
     spreadsheet = client.open_by_key(SHEET_ID)
 
     # Get or create the worksheet
