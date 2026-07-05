@@ -35,7 +35,7 @@ def generate_wave_api_url(lat: float, lng: float) -> str:
         f"https://marine-api.open-meteo.com/v1/marine?"
         f"latitude={lat}&longitude={lng}"
         f"&hourly=wave_height,wave_period"
-        f"&timezone=auto"
+        f"&timezone=UTC"
     )
 
 
@@ -51,7 +51,7 @@ def generate_wind_api_url(lat: float, lng: float) -> str:
         f"latitude={lat}&longitude={lng}"
         f"&hourly=wind_speed_10m,wind_direction_10m"
         f"&wind_speed_unit=ms"
-        f"&timezone=auto"
+        f"&timezone=UTC"
     )
 
 
