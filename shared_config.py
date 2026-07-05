@@ -188,17 +188,23 @@ def _generate_fallback_multi_source():
     try:
         sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'web_and_database'))
         from locations import get_all_beaches
-        from locations.beach_service import get_api_urls_for_beach
+        from locations.beach_service import get_api_urls_for_beach, generate_wind_api_url_openweathermap
 
         for beach in get_all_beaches():
             name = beach['english_name']
             urls = get_api_urls_for_beach(name)
             if urls:
                 wave_url, wind_url = urls
-                fallback[name] = [
+                sources = [
                     {"url": wave_url, "priority": 1, "type": "wave"},
-                    {"url": wind_url, "priority": 2, "type": "wind"}
+                    {"url": wind_url, "priority": 1, "type": "wind"}
                 ]
+
+                owm_wind_url = generate_wind_api_url_openweathermap(beach['latitude'], beach['longitude'])
+                if owm_wind_url:
+                    sources.append({"url": owm_wind_url, "priority": 2, "type": "wind"})
+
+                fallback[name] = sources
     except ImportError:
         pass  # Will use legacy fallback below
 

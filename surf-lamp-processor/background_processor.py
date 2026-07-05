@@ -12,7 +12,6 @@ import logging
 from logging.handlers import RotatingFileHandler
 from sqlalchemy import create_engine
 from dotenv import load_dotenv
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Import from refactored modules
 from lamp_repository import (
@@ -127,6 +126,22 @@ def process_all_lamps():
         total_arduinos_updated = 0
         total_api_calls = 0
 
+        # TEMPORARY (Israel-only deployment): fetch wind once from Sdot Yam and
+        # reuse it for every location, instead of one wind call per location.
+        # This is what actually cuts the request volume hitting Open-Meteo's
+        # rate-limited wind endpoint. Revert this commit to restore per-location
+        # wind fetching once locations outside Israel go active again.
+        shared_wind_sources = get_api_sources_for_location("Sdot Yam")['wind']
+        shared_wind_data = fetch_surf_data_with_fallback(None, shared_wind_sources, 'api')
+        total_api_calls += 1
+        if shared_wind_data:
+            logger.info(
+                f"🌬️ Shared wind data (Sdot Yam) for this cycle: "
+                f"{shared_wind_data.get('wind_speed_mps')} m/s @ {shared_wind_data.get('wind_direction_deg')}°"
+            )
+        else:
+            logger.error("❌ Failed to fetch shared wind data from Sdot Yam - no location will get wind data this cycle")
+
         for location in active_locations:
             logger.info(f"Processing Location: {location}")
 
@@ -139,28 +154,15 @@ def process_all_lamps():
             api_sources = get_api_sources_for_location(location)
             wave_calculation_method = get_wave_calculation_method(location)
 
-            # Fetch data from APIs with fallback - PARALLELIZED for 50% speed improvement
-            total_api_calls += 2
+            total_api_calls += 1
             use_wind_calculation = wave_calculation_method == 'formula'
 
-            # Execute both API calls in parallel
-            with ThreadPoolExecutor(max_workers=2) as executor:
-                wave_future = executor.submit(
-                    fetch_surf_data_with_fallback,
-                    None,
-                    api_sources['wave'],
-                    wave_calculation_method
-                )
-                wind_future = executor.submit(
-                    fetch_surf_data_with_fallback,
-                    None,
-                    api_sources['wind'],
-                    'formula' if use_wind_calculation else 'api'
-                )
-
-                # Wait for both to complete
-                wave_data = wave_future.result()
-                wind_data = wind_future.result()
+            wave_data = fetch_surf_data_with_fallback(
+                None,
+                api_sources['wave'],
+                wave_calculation_method
+            )
+            wind_data = shared_wind_data
 
             # Combine data - for non-formula locations, wind-based wave calculation is NOT a fallback
             combined_surf_data = {}

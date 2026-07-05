@@ -55,6 +55,20 @@ def generate_wind_api_url(lat: float, lng: float) -> str:
     )
 
 
+def generate_wind_api_url_openweathermap(lat: float, lng: float) -> Optional[str]:
+    """
+    Generate fallback wind API URL using OpenWeatherMap current weather.
+    Returns None if OPENWEATHERMAP_API_KEY is not configured.
+    """
+    api_key = os.environ.get('OPENWEATHERMAP_API_KEY')
+    if not api_key:
+        return None
+    return (
+        f"https://api.openweathermap.org/data/2.5/weather?"
+        f"lat={lat}&lon={lng}&appid={api_key}"
+    )
+
+
 def get_api_urls_for_beach(name: str) -> Optional[Tuple[str, str]]:
     """
     Get wave and wind API URLs for a beach.
