@@ -7,7 +7,7 @@ import os
 import logging
 import markdown
 from datetime import datetime, timezone, timedelta
-from flask import Blueprint, render_template, request, flash, redirect, url_for, session
+from flask import Blueprint, render_template, request, flash, redirect, url_for, session, jsonify
 from config import SURF_LOCATIONS, BRIGHTNESS_LEVELS
 from utils.decorators import login_required
 from data_base import get_user_lamp_data, add_arduino_to_user
