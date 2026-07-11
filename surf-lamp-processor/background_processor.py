@@ -9,6 +9,7 @@ import sys
 import signal
 import time
 import logging
+from datetime import datetime, timezone
 from logging.handlers import RotatingFileHandler
 from sqlalchemy import create_engine
 from dotenv import load_dotenv
@@ -254,7 +255,6 @@ def sync_redis_to_database():
 
         # Batch update database using bulk UPDATE
         from lamp_repository import SessionLocal
-        from datetime import datetime, timezone
         from sqlalchemy import text
 
         sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
