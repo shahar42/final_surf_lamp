@@ -60,7 +60,7 @@ namespace JitterManager {
      */
     inline void printJitterInfo() {
         Serial.println("\n📊 Jitter Configuration (Thundering Herd Prevention):");
-        Serial.printf("   • Device ID: %d\n", ARDUINO_ID);
+        Serial.printf("   • Device ID: %u\n", ARDUINO_ID);
         Serial.printf("   • Startup Delay: %lu sec\n", getStartupJitterMs() / 1000);
         Serial.printf("   • Reconnect Delay: %lu sec\n", getReconnectJitterMs() / 1000);
         Serial.printf("   • Interval Shift: %lu sec\n", getIntervalPhaseShiftMs() / 1000);

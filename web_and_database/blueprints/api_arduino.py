@@ -50,18 +50,19 @@ def record_heartbeat(arduino_id):
     
     Strategy:
     1. Try Redis HSET (fast, O(1), cheap)
-    2. Try Redis SETBIT (even faster, effectively 1 bit)
-    3. If Redis unavailable, return False (caller may choose to update DB)
+    2. If Redis unavailable, return False (caller may choose to update DB)
+
+    NOTE: A SETBIT 'arduino:online_bitmap' write used to live here. It was
+    never read anywhere, and with MAC-derived 24-bit arduino IDs a single
+    SETBIT at offset ~16M would force Redis to allocate a ~2MB string -
+    removed rather than migrated.
     """
     redis = get_redis_client()
     if redis:
         try:
             timestamp = datetime.now(timezone.utc).timestamp()
-            # 1. Store exact timestamp in Hash
+            # Store exact timestamp in Hash (hash fields are fine with any ID size)
             redis.hset('arduino:last_seen', arduino_id, timestamp)
-            # 2. Set bit in bitmap (The "One Bit" Optimization)
-            # This allows checking 1M lamps in ~120KB of RAM
-            redis.setbit('arduino:online_bitmap', arduino_id, 1)
             return True
         except Exception as e:
             logger.error(f"❌ Redis heartbeat failed for {arduino_id}: {e}")

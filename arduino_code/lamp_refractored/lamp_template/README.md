@@ -21,8 +21,9 @@ cd my_new_lamp
 Open `Config.h` and edit **ONLY** these values in the admin section:
 
 ```cpp
-// Device identity
-const int ARDUINO_ID = 7;  // Your unique lamp ID from database
+// Device identity: ARDUINO_ID is now derived automatically from the ESP32's
+// eFuse MAC address (24-bit, unique per chip) - do NOT edit it per lamp.
+// Read the assigned ID from the serial boot log after flashing.
 
 // Hardware
 #define TOTAL_LEDS 48      // Your total LED count
@@ -94,11 +95,13 @@ lamp_template.ino          ← Main orchestration (< 200 lines, identical for al
 
 ### Required Parameters (Must Edit)
 
-#### `ARDUINO_ID`
-- **Type**: `int`
+#### `ARDUINO_ID` (automatic - do not edit)
+- **Type**: `uint32_t`, derived at boot from the ESP32 eFuse MAC (device-unique bytes, 24-bit)
 - **Purpose**: Unique identifier for this lamp in backend database
-- **Example**: `6` (Maayan's lamp), `7` (Ben's lamp)
-- **How to get**: Check backend database for your assigned ID
+- **How to get**: Flash the firmware, open the serial monitor, and read the
+  `Arduino ID: <N> (decimal)` line printed at boot. Use that N for the QR code.
+- **Legacy lamps**: devices flashed before this change keep their old
+  programmer-assigned IDs; both schemes coexist on the server.
 
 #### `TOTAL_LEDS`
 - **Type**: `int`

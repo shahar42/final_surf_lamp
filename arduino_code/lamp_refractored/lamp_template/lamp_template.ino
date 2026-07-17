@@ -119,7 +119,7 @@ void setup() {
 
     // Apply startup jitter to prevent thundering herd after power outage
     unsigned long jitterMs = JitterManager::getStartupJitterMs();
-    Serial.printf("⏱ Applying startup jitter: %lu ms (ID=%d)\n", jitterMs, ARDUINO_ID);
+    Serial.printf("⏱ Applying startup jitter: %lu ms (ID=%u)\n", jitterMs, ARDUINO_ID);
     JitterManager::printJitterInfo();
     delay(jitterMs);
 

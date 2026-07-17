@@ -134,29 +134,29 @@ manufacturing/
 
 ## Production Workflow
 
-### Manufacturing a New Lamp
+### Manufacturing a New Lamp (MAC-derived IDs)
 
-1. **Open Dashboard** → http://localhost:5001
-2. **Check Next ID** → Dashboard shows next available ID (e.g., 15)
-3. **Flash Firmware**:
-   ```cpp
-   const int ARDUINO_ID = 15;  // Use next available ID
+The Arduino ID is no longer chosen by the programmer. New firmware derives a
+unique 24-bit ID from the ESP32's factory eFuse MAC at boot, so every lamp is
+flashed with the **same** firmware image and no Config.h edit is needed.
+
+1. **Flash Firmware** → universal image, no per-lamp edits
+2. **Read the ID** → with the lamp still on USB:
+   ```bash
+   python read_lamp_id.py          # reads serial boot log + generates QR
    ```
-4. **Generate QR Code** → Click "Generate QR Code" for ID 15
-5. **Download & Print** → Print QR code on card/sticker
-6. **Package Lamp** → Include card with lamp
-7. **Ship to Customer** → Customer scans QR to register
+   (or open a serial monitor and read the `Arduino ID: <N> (decimal)` line)
+3. **Print QR Code** → the script saves it to `static/qr_codes/`
+4. **Package Lamp** → include card with lamp; the card MUST stay paired with
+   the physical lamp it was read from
+5. **Ship to Customer** → customer scans QR to register
 
-### Batch Production
+### Legacy: Sequential ID Allocation
 
-For producing multiple lamps:
-
-1. **Generate Batch** → Enter range (e.g., 15-30)
-2. **Generate Print Sheet** → Create 3x3 grid for printing
-3. **Print Sheet** → Print on cardstock
-4. **Cut Cards** → Cut along grid lines
-5. **Flash Firmware** → Use IDs 15, 16, 17... in sequence
-6. **Match Cards to Lamps** → Pair each lamp with correct ID card
+The dashboard's "next available ID" allocator and batch QR generation apply
+only to old-style firmware with hardcoded IDs (`const int ARDUINO_ID = N;`).
+Do not use sequential allocation for lamps running MAC-derived firmware —
+the ID must come from the device itself.
 
 ## API Endpoints
 

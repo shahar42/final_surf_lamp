@@ -95,6 +95,10 @@ def add_arduino():
     except ValueError:
         return jsonify({'success': False, 'message': 'Invalid Arduino ID format'}), 400
 
+    # Same bounds as registration: legacy IDs and MAC-derived 24-bit IDs
+    if not 1 <= arduino_id <= 16777215:
+        return jsonify({'success': False, 'message': 'Arduino ID must be between 1 and 16777215'}), 400
+
     success, message = add_arduino_to_user(user_id, arduino_id, location)
     
     if success:

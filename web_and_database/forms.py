@@ -59,10 +59,11 @@ class RegistrationForm(FlaskForm):
         Length(min=SecurityConfig.PASSWORD_MIN_LENGTH, max=SecurityConfig.PASSWORD_MAX_LENGTH, message=f"Password must be between {SecurityConfig.PASSWORD_MIN_LENGTH} and {SecurityConfig.PASSWORD_MAX_LENGTH} characters")
     ])
 
-    # Arduino ID - hidden field populated from QR code URL parameter
+    # Arduino ID - hidden field populated from QR code URL parameter.
+    # Max covers MAC-derived 24-bit IDs (new lamps) and legacy sequential IDs.
     arduino_id = IntegerField('Arduino ID', widget=HiddenInput(), validators=[
         DataRequired(message="Arduino ID is required"),
-        NumberRange(min=1, max=999999, message="Arduino ID must be between 1 and 999999")
+        NumberRange(min=1, max=16777215, message="Arduino ID must be between 1 and 16777215")
     ])
     
     # Location dropdown - must be from predefined list

@@ -9,7 +9,22 @@
 #include <cmath>
 
 
-const int ARDUINO_ID = 14;
+// ---------------- DEVICE IDENTITY ----------------
+// ARDUINO_ID is derived from the ESP32's factory-burned eFuse MAC address:
+// the 3 device-unique NIC bytes folded into a 24-bit integer (1..16777215).
+// Same firmware image works on every lamp - no per-device edit needed.
+// Legacy lamps with programmer-assigned IDs (< 1000000) coexist fine; the
+// server treats the ID as an opaque integer either way.
+inline uint32_t getArduinoId() {
+    static uint32_t id = 0;
+    if (id == 0) {
+        uint64_t mac = ESP.getEfuseMac();  // 6 MAC bytes in low 48 bits, byte 0 = OUI
+        id = (uint32_t)((mac >> 24) & 0xFFFFFF);  // bytes 3-5: the device-unique part
+        if (id == 0) id = 1;  // ID 0 is reserved as "unset"
+    }
+    return id;
+}
+#define ARDUINO_ID getArduinoId()
 
 // ---------------- HARDWARE SETUP ----------------
 #define LED_PIN 2              // pin connected to LED strip

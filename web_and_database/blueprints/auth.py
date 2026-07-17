@@ -35,7 +35,9 @@ def _validate_arduino_id_from_qr(arduino_id_param):
 
     try:
         arduino_id_int = int(arduino_id_param)
-        if 1 <= arduino_id_int <= 999999:
+        # Upper bound covers both legacy programmer-assigned IDs (< 1000000)
+        # and MAC-derived 24-bit IDs (up to 16777215) burned in at the factory.
+        if 1 <= arduino_id_int <= 16777215:
             return arduino_id_int, None
         return None, 'Invalid QR code. Please scan the QR code from your Surf Lamp box.'
     except (ValueError, TypeError):

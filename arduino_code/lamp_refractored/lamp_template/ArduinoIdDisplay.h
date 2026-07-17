@@ -8,7 +8,10 @@
  * - White LED = 0
  * - Blue LED = 1
  *
- * 10 bits can represent 0-1023, sufficient for 1000+ lamp IDs.
+ * NOTE: With MAC-derived 24-bit IDs the 10 LEDs show only the LOW 10 bits,
+ * so this is a visual fingerprint, not the full ID. The full decimal ID is
+ * printed on the serial log below - that is what manufacturing reads to
+ * generate the registration QR code.
  */
 
 #ifndef ARDUINO_ID_DISPLAY_H
@@ -36,7 +39,7 @@ namespace ArduinoId {
         const CRGB COLOR_ONE = CRGB::Blue;    // 1 = Blue
 
         Serial.println("🔢 Displaying Arduino ID in binary...");
-        Serial.printf("   Arduino ID: %d (decimal)\n", ARDUINO_ID);
+        Serial.printf("   Arduino ID: %u (decimal)\n", ARDUINO_ID);
 
         // Convert Arduino ID to binary and print for debugging
         Serial.print("   Binary: ");
