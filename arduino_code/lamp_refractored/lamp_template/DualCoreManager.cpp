@@ -6,33 +6,20 @@ and one for network handling handling
 #include "DualCoreManager.h"
 #include "SurfState.h"
 #include "WebServerHandler.h"
-#include "SunsetCalculator.h"
 #include "WiFiHandler.h"
 #include "JitterManager.h"
 #include "my_linear_buffer.hpp"
 #include "Watchdog.h"
 
 // External references (global scope)
-extern SunsetCalculator sunsetCalc;
 extern AsyncSerialLogger asyncLogger;
 extern Watchdog watchdog;
 
-namespace DualCore 
+namespace DualCore
 {
 
 // ==================== ATOMIC VARIABLES ====================
 
-std::atomic<int> sunsetMinutesSinceMidnight(-1);
-std::atomic<bool> sunsetPlayedToday(false);
-std::atomic<int> lastDayOfYear(0);
-
-std::atomic<int> currentYear(2025);
-std::atomic<int> currentMonth(1);
-std::atomic<int> currentDay(1);
-std::atomic<int> currentHour(0);
-std::atomic<int> currentMinute(0);
-
-std::atomic<bool> coordinatesInitialized(false);
 std::atomic<bool> networkTaskRunning(false);
 std::atomic<unsigned long> lastSuccessfulFetch(0);
 
@@ -49,39 +36,9 @@ bool shouldFetchNow(unsigned long now, unsigned long lastFetch) {
     return (now - lastFetch > effectiveInterval) || wifiJustReconnected;
 }
 
-void updateTimeVariables() {
-    DateTime dt = sunsetCalc.getCurrentTime();
-    currentYear.store(dt.year);
-    currentMonth.store(dt.month);
-    currentDay.store(dt.day);
-    currentHour.store(dt.hour);
-    currentMinute.store(dt.minute);
-}
-
-void checkAndResetSunsetFlag() {
-    DateTime dt = sunsetCalc.getCurrentTime();
-    int dayOfYear = sunsetCalc.getDayOfYear(dt.year, dt.month, dt.day);
-    int prevDay = lastDayOfYear.load();
-
-    if (dayOfYear != prevDay) {
-        asyncLogger.Log("[Core 0] New day detected, resetting sunset flag");
-        sunsetPlayedToday.store(false);
-        lastDayOfYear.store(dayOfYear);
-    }
-}
-
-void updateCoordinatesIfReady() {
-    if (sunsetCalc.hasCoordinates()) {
-        coordinatesInitialized.store(true);
-    }
-}
-
 void handleFetchSuccess(unsigned long now) {
     asyncLogger.Log("[Core 0] Fetch successful");
     lastSuccessfulFetch.store(now);
-    updateTimeVariables();
-    checkAndResetSunsetFlag();
-    updateCoordinatesIfReady();
 }
 
 // ==================== CORE 0: NETWORK SECRETARY ====================
@@ -139,40 +96,6 @@ void networkSecretaryTask(void* parameter)
 
         delay(1000);  // Check every second
     }
-}
-
-// ==================== CORE 1:UTILITY FUNCTIONS ====================
-
-bool isSunsetTimeNow() 
-{
-
-    if (!coordinatesInitialized.load()) {
-        return false; 
-    }
-
-    if (sunsetPlayedToday.load()) {
-        return false; 
-    }
-
-    return sunsetCalc.isSunsetTime();
-}
-
-void markSunsetPlayed() {
-    sunsetPlayedToday.store(true);
-    sunsetCalc.markSunsetPlayed(); 
-    asyncLogger.Log("[Core 1] Sunset animation completed, flag set");
-}
-
-String getCurrentTimeString() {
-    int y = currentYear.load();
-    int m = currentMonth.load();
-    int d = currentDay.load();
-    int h = currentHour.load();
-    int min = currentMinute.load();
-
-    char buf[32];
-    sprintf(buf, "%04d-%02d-%02d %02d:%02d", y, m, d, h, min);
-    return String(buf);
 }
 
 // ==================== TASK STARTUP ====================

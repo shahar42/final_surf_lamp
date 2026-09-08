@@ -41,9 +41,8 @@
 
 #include "ServerDiscovery.h"     // API server discovery
 #include "WiFiFingerprinting.h"  // WiFi location detection
-#include "SunsetCalculator.h"    // Autonomous sunset calculation
 #include "DualCoreManager.h"     // Dual-core task management
-#include "animation.h"           // Sunset animation
+#include "animation.h"           // Startup animation
 #include "ArduinoIdDisplay.h"    // Arduino ID binary display on startup
 
 // ==================== GLOBAL INSTANCES ====================
@@ -52,7 +51,6 @@ WebServer server(80);
 ServerDiscovery serverDiscovery;
 WiFiManager wifiManager;
 WiFiFingerprinting fingerprinting;
-SunsetCalculator sunsetCalc;     // Autonomous sunset calculator (V2)
 
 // ==================== GLOBAL STATE ====================
 // These are defined here and declared extern in module headers
@@ -164,40 +162,6 @@ void loop() {
         refreshDisplayCache();  // One mutex lock, snapshot all data
         updateSurfDisplay();    // Reads from cache, zero locks
         lastSurfData.needsDisplayUpdate.store(false);
-    }
-
-    // Autonomous sunset animation (V2 - calculated locally, checked on Core 1)
-    if (DualCore::isSunsetTimeNow()) {
-        asyncLogger.Log("[Core 1] Sunset detected - playing animation");
-
-        // Create strip configurations from constants
-        Animation::StripConfig waveHeight = {
-            WAVE_HEIGHT_START,
-            WAVE_HEIGHT_END,
-            WAVE_HEIGHT_FORWARD,
-            WAVE_HEIGHT_LENGTH
-        };
-        Animation::StripConfig wavePeriod = {
-            WAVE_PERIOD_START,
-            WAVE_PERIOD_END,
-            WAVE_PERIOD_FORWARD,
-            WAVE_PERIOD_LENGTH
-        };
-        Animation::StripConfig windSpeed = {
-            WIND_SPEED_START,
-            WIND_SPEED_END,
-            WIND_SPEED_FORWARD,
-            WIND_SPEED_LENGTH
-        };
-
-        // Play 30-second sunset animation (Core 1 - never blocks)
-        Animation::playSunset(leds, waveHeight, wavePeriod, windSpeed, 30);
-
-        // Mark sunset as played (thread-safe atomic update)
-        DualCore::markSunsetPlayed();
-
-        // Refresh surf display after animation completes
-        lastSurfData.needsDisplayUpdate.store(true);
     }
 
     // Update blinking animations for threshold alerts

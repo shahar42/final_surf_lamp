@@ -16,6 +16,25 @@ import json
 
 logger = logging.getLogger(__name__)
 
+# Key version bumped v3 -> v4 when user-specific fields were removed from the
+# cached blob, so a deploy never reads an old blob carrying another user's settings.
+CACHE_KEY_PREFIX = "location:surf:v4:"
+CACHE_TTL_SECONDS = 60
+
+
+def _build_location_conditions(location_obj) -> Dict[str, Any]:
+    """Location-only fields. Safe to share between every lamp at this beach."""
+    from config import STALE_DATA_THRESHOLD
+    return {
+        'wave_period_s': int(location_obj.wave_period_s or 0),
+        'wave_height_cm': int(round((location_obj.wave_height_m or 0) * 100)),
+        'wind_speed_mps': int(round(location_obj.wind_speed_mps or 0)),
+        'wind_direction_deg': location_obj.wind_direction_deg or 0,
+        'stale_data_warning': (getattr(location_obj, 'consecutive_identical_updates', 0) or 0) > STALE_DATA_THRESHOLD,
+        'data_available': bool(location_obj.wave_height_m or location_obj.wind_speed_mps),
+    }
+
+
 def get_cached_location_binary(
     location_name: str,
     location_obj,
@@ -25,52 +44,52 @@ def get_cached_location_binary(
     off_hours: bool
 ) -> Tuple[Optional[Dict[str, Any]], bool]:
     """
-    Get cached surf data for a location, or build and cache it.
+    Get surf data for one lamp: shared location conditions (cached per beach)
+    merged with this lamp owner's thresholds and quiet/off-hours flags.
 
     Returns: (surf_data_dict, cache_hit: bool)
 
     Cache strategy:
-    - Key: location:surf:v3:{location_name}
+    - Key: location:surf:v4:{location_name}
     - TTL: 60 seconds (surf data updates every ~15min, but keep fresh)
-    - Stores: JSON dict of surf data (without user-specific settings)
+    - Stores: ONLY location conditions. Thresholds and hours flags are
+      per-user and are merged in after the cache read, never stored.
+      Storing them would hand one owner's settings to every other lamp
+      at the same beach.
     """
     redis = get_redis_client()
-    cache_key = f"location:surf:v3:{location_name}"
+    cache_key = f"{CACHE_KEY_PREFIX}{location_name}"
+
+    conditions = None
+    cache_hit = False
 
     if redis:
         try:
             cached = redis.get(cache_key)
             if cached:
-                surf_data = json.loads(cached)
+                conditions = json.loads(cached)
+                cache_hit = True
                 logger.debug(f"🎯 Location cache HIT for {location_name}")
-                return surf_data, True
         except Exception as e:
             logger.warning(f"Redis cache read failed: {e}")
 
-    # Cache miss - build surf data
-    from config import STALE_DATA_THRESHOLD
-    surf_data = {
-        'wave_period_s': int(location_obj.wave_period_s or 0),
-        'wave_height_cm': int(round((location_obj.wave_height_m or 0) * 100)),
-        'wave_threshold_cm': int(effective_wave_threshold_m * 100),
-        'wind_speed_mps': int(round(location_obj.wind_speed_mps or 0)),
-        'wind_speed_threshold_knots': int(round(effective_wind_threshold_knots)),
-        'wind_direction_deg': location_obj.wind_direction_deg or 0,
-        'stale_data_warning': (getattr(location_obj, 'consecutive_identical_updates', 0) or 0) > STALE_DATA_THRESHOLD,
-        'data_available': bool(location_obj.wave_height_m or location_obj.wind_speed_mps),
-        'quiet_hours_active': quiet_hours,
-        'off_hours_active': off_hours
-    }
+    if conditions is None:
+        conditions = _build_location_conditions(location_obj)
+        if redis:
+            try:
+                redis.setex(cache_key, CACHE_TTL_SECONDS, json.dumps(conditions))
+                logger.debug(f"📦 Cached surf data for {location_name}")
+            except Exception as e:
+                logger.warning(f"Redis cache write failed: {e}")
 
-    # Cache it
-    if redis:
-        try:
-            redis.setex(cache_key, 60, json.dumps(surf_data))
-            logger.debug(f"📦 Cached surf data for {location_name}")
-        except Exception as e:
-            logger.warning(f"Redis cache write failed: {e}")
+    # Per-user fields: merged on every call, never cached.
+    surf_data = dict(conditions)
+    surf_data['wave_threshold_cm'] = int(effective_wave_threshold_m * 100)
+    surf_data['wind_speed_threshold_knots'] = int(round(effective_wind_threshold_knots))
+    surf_data['quiet_hours_active'] = quiet_hours
+    surf_data['off_hours_active'] = off_hours
 
-    return surf_data, False
+    return surf_data, cache_hit
 
 
 def get_location_stats():
@@ -81,10 +100,10 @@ def get_location_stats():
 
     try:
         # Count cached locations
-        keys = redis.keys("location:surf:v3:*")
+        keys = redis.keys(f"{CACHE_KEY_PREFIX}*")
         return {
             'cached_locations': len(keys),
-            'locations': [k.decode().replace('location:surf:v3:', '') for k in keys]
+            'locations': [k.replace(CACHE_KEY_PREFIX, '') for k in keys]
         }
     except Exception as e:
         logger.error(f"Failed to get cache stats: {e}")

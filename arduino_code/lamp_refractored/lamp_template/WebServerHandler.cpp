@@ -7,7 +7,6 @@
 #include "WebServerHandler.h"
 #include "LedController.h"
 #include "ServerDiscovery.h"
-#include "SunsetCalculator.h"
 #include "Themes.h"
 #include "esp_Server_encoding.hpp"
 
@@ -19,8 +18,6 @@ static WebServer* webServer = nullptr;
 WiFiClientSecure globalHttpsClient;
 
 extern ServerDiscovery serverDiscovery;
-
-extern SunsetCalculator sunsetCalc;
 
 #include "my_linear_buffer.hpp"
 extern AsyncSerialLogger asyncLogger;
@@ -307,17 +304,6 @@ bool processSurfData(const String& jsonData)
     uint8_t theme_index = themeNameToIndex(led_theme_str);
     bool stale_data_warning = doc["stale_data_warning"] | false;
 
-    // V2 API: Extract location coordinates for sunset calculation
-    float latitude = doc["latitude"] | 0.0;
-    float longitude = doc["longitude"] | 0.0;
-    int8_t tz_offset = doc["tz_offset"] | 0;
-
-    // Update coordinates in sunset calculator (writes to flash only if changed)
-    if (latitude != 0.0 && longitude != 0.0)
-    {
-        sunsetCalc.updateCoordinates(latitude, longitude, tz_offset);
-    }
-
     // Extract fetch interval from server (dynamic polling configuration)
     if (doc.containsKey("fetch_interval_ms")) {
         unsigned long new_interval = doc["fetch_interval_ms"];
@@ -424,17 +410,11 @@ bool processBinarySurfData(const uint8_t* binaryData, size_t length) {
 
     // Extract settings
     float brightness_multiplier = settings.GetBrightness() / 100.0f;
-    float latitude = settings.GetLatitude();
-    float longitude = settings.GetLongitude();
-    int32_t tz_offset = settings.GetTzOffset();
+    // Latitude/longitude/tz_offset are still carried by the V3 wire protocol
+    // (SettingsData) but the lamp no longer consumes them.
 
     // Theme index directly from binary protocol (no string conversion needed)
     uint8_t theme_index = static_cast<uint8_t>(settings.GetLEDTheme());
-
-    // Update coordinates in sunset calculator
-    if (latitude != 0.0 && longitude != 0.0) {
-        sunsetCalc.updateCoordinates(latitude, longitude, tz_offset);
-    }
 
     // Extract fetch interval
     unsigned long new_interval = settings.GetFetchIntervalMs();
@@ -553,9 +533,6 @@ bool fetchSurfDataFromServer() {
     int httpCode = http.GET();
 
     if (httpCode == HTTP_CODE_OK) {
-        // Extract Date header for time synchronization
-        String dateHeader = http.header("Date");
-
         // Get binary payload size
         int payloadSize = http.getSize();
         char buf[128];
@@ -569,16 +546,6 @@ bool fetchSurfDataFromServer() {
         if (payloadSize == 26 && stream->readBytes(binaryBuffer, 26) == 26) {
             http.end();
             globalHttpsClient.stop();
-
-            // Process Date header
-            if (dateHeader.length() > 0) {
-                asyncLogger.Log(("HTTP Date: " + dateHeader).c_str());
-                if (sunsetCalc.parseAndUpdateTime(dateHeader)) {
-                    sunsetCalc.calculateSunset();
-                } else {
-                    asyncLogger.Log("Failed to parse Date header");
-                }
-            }
 
             asyncLogger.Log("Processing binary surf data (26 bytes)");
             return processBinarySurfData(binaryBuffer, 26);

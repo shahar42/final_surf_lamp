@@ -14,6 +14,12 @@ logger = logging.getLogger(__name__)
 # Global Redis client
 redis_client = None
 
+# Fail-fast limits for every Redis round trip (connect + per-command).
+# Well under the lamp's 15s HTTP timeout so a Redis outage degrades to the
+# uncached/DB path instead of stalling the whole request.
+REDIS_CONNECT_TIMEOUT_SECONDS = 2
+REDIS_SOCKET_TIMEOUT_SECONDS = 2
+
 # Fallback: In-memory rate limiter (only used when Redis is completely unavailable)
 # Structure: {arduino_id: last_db_write_timestamp}
 _db_write_history_fallback = {}
@@ -25,7 +31,17 @@ def get_redis_client():
         redis_url = os.environ.get('REDIS_URL')
         if redis_url:
             try:
-                redis_client = redis.from_url(redis_url, decode_responses=True)
+                # Bounded timeouts: an unreachable Redis must fail fast so the
+                # except-blocks around every Redis call actually get to run.
+                # Without these, each lamp request hangs on the OS TCP timeout
+                # (60s+), far past the lamp's 15s HTTP timeout, and a Redis
+                # blip turns into a fleet-wide "server unreachable".
+                redis_client = redis.from_url(
+                    redis_url,
+                    decode_responses=True,
+                    socket_connect_timeout=REDIS_CONNECT_TIMEOUT_SECONDS,
+                    socket_timeout=REDIS_SOCKET_TIMEOUT_SECONDS,
+                )
                 logger.info("✅ Redis client initialized")
             except Exception as e:
                 logger.error(f"❌ Failed to initialize Redis client: {e}")
@@ -90,6 +106,11 @@ def record_db_write(arduino_id):
     Args:
         arduino_id: Arduino ID that was written
     """
+    # This function rebinds the module-level dict during cleanup below, so
+    # without this declaration Python treats every reference as a local and
+    # the first access raises UnboundLocalError.
+    global _db_write_history_fallback
+
     redis = get_redis_client()
 
     if redis:
