@@ -43,7 +43,6 @@
 #include "WiFiFingerprinting.h"  // WiFi location detection
 #include "DualCoreManager.h"     // Dual-core task management
 #include "animation.h"           // Startup animation
-#include "ArduinoIdDisplay.h"    // Arduino ID binary display on startup
 
 // ==================== GLOBAL INSTANCES ====================
 
@@ -88,8 +87,9 @@ void setup() {
     pinMode(BUTTON_PIN, INPUT_PULLUP);
     initializeLEDs();
 
-    // Display Arduino ID in binary (5 seconds)
-    ArduinoId::displayId(leds);
+    // Print the MAC-derived ID. This exact line is what
+    // tools/manufacturing/read_lamp_id.py parses to generate the QR card.
+    Serial.printf("   Arduino ID: %u (decimal)\n", ARDUINO_ID);
 
     // Play startup tide animation
     playStartupAnimation();
