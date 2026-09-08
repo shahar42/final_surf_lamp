@@ -183,3 +183,6 @@ constumer_support/
 # (removed from gitignore Jan 11, 2026)
 future_plan.txt
 web_and_database/vapid_private_key.pem
+
+# native firmware test binaries
+tests/unit/firmware/build/

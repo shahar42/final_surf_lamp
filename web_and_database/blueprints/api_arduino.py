@@ -227,8 +227,9 @@ def build_surf_data_v2_response(qr: ArduinoQueryResult, location_data, tz_offset
 def handle_arduino_callback():
     """Handle callbacks from Arduino devices confirming surf data receipt."""
     try:
-        # Validate input
-        data = request.get_json()
+        # Validate input. silent=True: a non-JSON body is a client error (400),
+        # not a server error; without it Flask raises 415 into the except below.
+        data = request.get_json(silent=True)
         if not data:
             return {'success': False, 'message': 'No JSON data provided'}, 400
 
@@ -642,11 +643,16 @@ def arduino_status_overview():
                 if aid_str in redis_timestamps:
                     try:
                         ts = float(redis_timestamps[aid_str])
-                        redis_dt = datetime.fromtimestamp(ts, timezone.utc)
+                        # last_poll_time is a naive UTC TIMESTAMP column; keep the
+                        # Redis value naive too or the comparison raises TypeError
+                        # (aware vs naive) and the whole endpoint returns 500.
+                        redis_dt = datetime.fromtimestamp(ts, timezone.utc).replace(tzinfo=None)
+                        if last_poll is not None and last_poll.tzinfo is not None:
+                            last_poll = last_poll.replace(tzinfo=None)
                         # Use Redis time if it's newer or if DB is None
                         if last_poll is None or redis_dt > last_poll:
                             last_poll = redis_dt
-                    except ValueError:
+                    except (ValueError, TypeError):
                         pass
 
                 status_info = {

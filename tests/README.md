@@ -31,6 +31,31 @@ esurf/bin/python -m pytest tests/unit/web/test_threshold_logic.py -v
 
 # skip the slow network-timeout test
 esurf/bin/python -m pytest tests -m "not slow"
+
+# firmware logic, compiled natively (needs g++ and make, no Arduino core)
+make -C tests/unit/firmware test
+# or through pytest:
+esurf/bin/python -m pytest tests -m firmware
+```
+
+The firmware tests compile the real headers from
+`arduino_code/lamp_refractored/lamp_template` against a tiny shim in
+`tests/unit/firmware/shim`. `test_protocol` also decodes
+`fixtures/v3_sample.bin`, produced by the server's Python encoder, with the
+firmware's own header: that is the server-to-lamp contract check. If you
+change the encoder, regenerate the fixture:
+
+```bash
+esurf/bin/python tests/unit/firmware/gen_v3_fixture.py
+```
+
+and commit both fixture files. `tests/unit/protocol/test_v3_fixture_current.py`
+fails until you do.
+
+Compiling the actual ESP32 sketch is a separate local step:
+
+```bash
+bin/arduino-cli compile --fqbn esp32:esp32:esp32 arduino_code/lamp_refractored/lamp_template
 ```
 
 `SECRET_KEY` is set automatically by `tests/conftest.py`. No Redis, Postgres,

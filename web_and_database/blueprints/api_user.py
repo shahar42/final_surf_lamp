@@ -6,6 +6,7 @@ author: shahar nitzan
 '''
 
 import logging
+from datetime import datetime, time
 from flask import Blueprint, request, session, jsonify
 from config import limiter, SURF_LOCATIONS, THRESHOLD_LIMITS
 from security_config import SecurityConfig
@@ -17,6 +18,20 @@ from data_base import SessionLocal, User, update_user_location
 logger = logging.getLogger(__name__)
 
 bp = Blueprint('api_user', __name__)
+
+
+def _parse_hhmm(value):
+    """'HH:MM' or 'HH:MM:SS' -> datetime.time; None/'' -> None; else ValueError."""
+    if not value:
+        return None
+    if isinstance(value, time):
+        return value
+    for fmt in ('%H:%M', '%H:%M:%S'):
+        try:
+            return datetime.strptime(value, fmt).time()
+        except ValueError:
+            continue
+    raise ValueError(f'invalid time: {value!r}')
 
 @bp.route("/update-location", methods=['POST'])
 @login_required
@@ -149,9 +164,17 @@ def update_off_times():
     try:
         data = request.get_json()
         enabled = data.get('enabled', False)
-        start_time = data.get('start_time')
-        end_time = data.get('end_time')
         user_id = session.get('user_id')
+
+        # The dashboard sends "HH:MM". Parse here so a malformed value is a 400
+        # instead of a database error, and so the Time column gets a real
+        # datetime.time on every backend (Postgres coerced the string; SQLite
+        # does not).
+        try:
+            start_time = _parse_hhmm(data.get('start_time'))
+            end_time = _parse_hhmm(data.get('end_time'))
+        except ValueError:
+            return {'success': False, 'message': 'Times must be in HH:MM format'}, 400
 
         db = SessionLocal()
         try:

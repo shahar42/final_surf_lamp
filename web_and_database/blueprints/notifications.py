@@ -6,6 +6,7 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify, current_app, session
 from pywebpush import webpush, WebPushException
 from data_base import SessionLocal, User, NotificationSubscription
+from utils.decorators import admin_required
 
 bp = Blueprint('notifications', __name__, url_prefix='/notifications')
 
@@ -196,8 +197,10 @@ def subscribe():
         db.close()
 
 @bp.route('/send-test', methods=['POST'])
+@admin_required
 def send_test_notification():
-    # Admin debug endpoint
+    # Admin debug endpoint. Pushes to EVERY subscriber, so it must never be
+    # reachable anonymously or by a regular user.
     message = request.json.get('message', 'Test notification')
     count = trigger_push_broadcast(message, target_location='all')
     return jsonify({'status': 'success', 'sent_count': count})

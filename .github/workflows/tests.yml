@@ -45,13 +45,11 @@ jobs:
     name: Firmware logic tests (native g++)
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # Enabled once tests/unit/firmware contains sources. Until then this job
-    # only checks that the ESP32 sketch still compiles is out of scope for CI
-    # (needs the esp32 core); the native shim tests cover the pure logic.
-    if: false
+    # Pure-logic firmware headers compiled natively against a small Arduino
+    # shim (tests/unit/firmware/shim). Includes the server<->lamp V3 parity
+    # check against the committed fixture. Compiling the real ESP32 sketch
+    # needs the esp32 core and stays a local step (see tests/README.md).
     steps:
       - uses: actions/checkout@v4
       - name: Build and run
-        run: |
-          cd tests/unit/firmware
-          make test
+        run: make -C tests/unit/firmware test

@@ -43,7 +43,7 @@ class IDManager:
             with self.engine.connect() as conn:
                 # Get the highest arduino_id currently in use
                 result = conn.execute(text(
-                    "SELECT MAX(arduino_id) as max_id FROM lamps WHERE arduino_id IS NOT NULL"
+                    "SELECT MAX(arduino_id) as max_id FROM arduinos WHERE arduino_id IS NOT NULL"
                 ))
                 row = result.fetchone()
 
@@ -73,7 +73,7 @@ class IDManager:
         try:
             with self.engine.connect() as conn:
                 result = conn.execute(text(
-                    f"SELECT arduino_id FROM lamps WHERE arduino_id IS NOT NULL "
+                    f"SELECT arduino_id FROM arduinos WHERE arduino_id IS NOT NULL "
                     f"ORDER BY arduino_id DESC LIMIT {limit}"
                 ))
                 ids = [row[0] for row in result.fetchall()]
@@ -97,7 +97,7 @@ class IDManager:
         try:
             with self.engine.connect() as conn:
                 result = conn.execute(text(
-                    "SELECT COUNT(*) FROM lamps WHERE arduino_id = :id"
+                    "SELECT COUNT(*) FROM arduinos WHERE arduino_id = :id"
                 ), {"id": arduino_id})
                 count = result.fetchone()[0]
 
@@ -120,13 +120,13 @@ class IDManager:
             with self.engine.connect() as conn:
                 # Total lamps with IDs
                 total_result = conn.execute(text(
-                    "SELECT COUNT(*) FROM lamps WHERE arduino_id IS NOT NULL"
+                    "SELECT COUNT(*) FROM arduinos WHERE arduino_id IS NOT NULL"
                 ))
                 total_used = total_result.fetchone()[0]
 
                 # Highest ID
                 max_result = conn.execute(text(
-                    "SELECT MAX(arduino_id) FROM lamps WHERE arduino_id IS NOT NULL"
+                    "SELECT MAX(arduino_id) FROM arduinos WHERE arduino_id IS NOT NULL"
                 ))
                 max_id = max_result.fetchone()[0] or 0
 

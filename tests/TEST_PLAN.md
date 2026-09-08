@@ -13,10 +13,12 @@ directly, P1 = protects a feature, P2 = nice to have.
 | 3 locations, forms, auth helpers | implemented |
 | 4 protocol (Python) | implemented, plus `test_protocol_headers_in_sync.py` (not in the original plan) |
 | 5 processor unit | implemented except `test_lamp_repository_guards.py` (the whitelist is a function-local; covered by Group 7 instead) |
-| 6 web integration | not started |
-| 7 processor integration | not started |
-| 8 firmware (C++) | not started |
-| 9 tools | not started |
+| 6 web integration | implemented, 13 files |
+| 7 processor integration | implemented; `test_processor_heartbeat_upsert` skipped (Postgres `NOW()`); Redis sync SQL is Postgres-only and stays unit-tested with a mocked engine |
+| 8 firmware (C++) | implemented: protocol (incl. server parity fixture), LED mapping, MAC-derived ID, jitter, themes. `test_wifi_backoff.cpp` and the four "requires refactor" items still open |
+| 9 tools | implemented (read_lamp_id, qr_generator, id_manager) |
+
+Run everything: `esurf/bin/python -m pytest tests -m "not firmware"` then `make -C tests/unit/firmware test`.
 
 Row names in the tables below are the plan; where an implemented test has a
 more precise name, the file is authoritative.
@@ -30,12 +32,21 @@ more precise name, the file is authoritative.
 | `utils/sorter.py` | Python fallback sort (the path production uses, the `.so` is not in git) raised `TypeError` on a location with `wave_height_m = None`. | `test_sorter.py::test_none_height_is_treated_as_zero` |
 | `utils/location_cache.py` | Per-user thresholds and hours flags cached per beach (207f0dd). | `test_location_cache.py` |
 | `redis_manager.py` | `UnboundLocalError` in fallback; no socket timeouts (207f0dd). | `test_redis_manager.py` |
+| `blueprints/notifications.py` | `/notifications/send-test` pushed to every subscriber with **no authentication**. Now `@admin_required`. | `test_notifications.py::TestSendTestEndpoint` |
+| `blueprints/api_arduino.py` | `/api/arduino/status` compared an aware Redis timestamp with the naive DB column and returned 500 whenever Redis held a heartbeat. | `test_api_arduino_legacy.py::TestStatusOverview` |
+| `blueprints/api_arduino.py` | Callback with a non-JSON body returned 500 (Flask 415) instead of 400. `get_json(silent=True)`. | `test_api_arduino_legacy.py::test_callback_no_json_400` |
+| `blueprints/api_user.py` | Off-times accepted raw `"HH:MM"` strings into a `Time` column (worked on Postgres by coercion, would 500 on bad input). Parsed and validated, 400 on garbage. | `test_api_user.py::TestOffTimes` |
+| `tools/manufacturing/id_manager.py` | Every query hit a `lamps` table that has not existed since the schema refactor (`arduinos`). | `test_id_manager.py` |
 
 ### Discrepancies pinned, not fixed (need a product decision)
 
 - `admin.get_device_status` uses 15/60 min cutoffs; `shared_config` says 1 h / 24 h. Two tellings of "online".
 - Firmware `Themes.cpp` has a 6th theme `dark` (index 5); the V3 enum carries 0-4, so `dark` reaches V3 lamps as `classic_surf`.
 - `helpers.get_coordinates_cached` silently falls back to Tel Aviv for unknown locations.
+- `/api/admin/arduino-status` is `login_required` only, not `admin_required`, despite the prefix.
+- When every wind source fails in a cycle, the processor writes `wind_speed_mps = 0` instead of keeping the previous reading (`test_wind_failure_zeroes_wind_fields_current_behaviour`).
+- CSRF is per-form (FlaskForm); JSON endpoints rely on the `SameSite=Lax` session cookie, no `CSRFProtect`.
+- `add_user_and_lamp` maps IntegrityErrors to messages by Postgres constraint names (`users_email_key`); on any other backend duplicates report the generic "Registration failed".
 
 Layout:
 
