@@ -22,6 +22,11 @@ setup(
     version="1.0.0",
     description="C++ message parser with shared_ptr for Surf Lamp",
     ext_modules=ext_modules,
+    # No Python packages here, only the extension. Without this, setuptools'
+    # automatic discovery sees the src/ directory, assumes a "src layout",
+    # and `build_ext --inplace` drops the .so into src/ where nothing on
+    # sys.path can import it.
+    packages=[],
     cmdclass={"build_ext": build_ext},
     setup_requires=["pybind11>=2.7.0"],
     install_requires=["pybind11>=2.7.0"],

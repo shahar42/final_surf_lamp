@@ -29,7 +29,7 @@ more precise name, the file is authoritative.
 |---|---|---|
 | `cpp_encoder.py` | Fields were masked (`& 0x7F`) instead of clamped. The 9999 "impossible threshold" sentinel arrived at the lamp as 9999 mod 128 = **15 knots**, making it blink exactly when it must not. Fetch intervals over ~17.5 min wrapped to a few minutes. | `test_v3_encoder.py::TestOverflowSaturates` |
 | `background_processor.py` | `sync_redis_to_database` imported a `SessionLocal` that `lamp_repository` never defined. ImportError swallowed by the outer `except`; Redis heartbeats never reached `arduinos.last_poll_time`. | `test_redis_sync.py::test_sync_reaches_the_database` |
-| `utils/sorter.py` | Python fallback sort (the path production uses, the `.so` is not in git) raised `TypeError` on a location with `wave_height_m = None`. | `test_sorter.py::test_none_height_is_treated_as_zero` |
+| `utils/sorter.py` | Python fallback sort raised `TypeError` on a location with `wave_height_m = None`. Render's `build.sh` compiles the `.so`, so production normally takes the C path; the fallback runs wherever the build step is skipped (local dev, CI, a failed gcc step). | `test_sorter.py::test_none_height_is_treated_as_zero` |
 | `utils/location_cache.py` | Per-user thresholds and hours flags cached per beach (207f0dd). | `test_location_cache.py` |
 | `redis_manager.py` | `UnboundLocalError` in fallback; no socket timeouts (207f0dd). | `test_redis_manager.py` |
 | `blueprints/notifications.py` | `/notifications/send-test` pushed to every subscriber with **no authentication**. Now `@admin_required`. | `test_notifications.py::TestSendTestEndpoint` |

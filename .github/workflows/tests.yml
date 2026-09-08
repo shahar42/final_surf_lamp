@@ -31,10 +31,11 @@ jobs:
 
       - name: Build V3 binary protocol extension
         # cpp_message_wrapper is the C++ encoder behind /api/arduino/v3.
-        # Built in place so `import message_wrapper` works from cpp_message_wrapper/.
+        # Same command as the Render build (web_and_database/build.sh), so CI
+        # exercises the exact artifact production imports.
         run: |
           pip install pybind11
-          cd cpp_message_wrapper && python setup.py build_ext --inplace
+          cd cpp_message_wrapper && pip install -e .
 
       - name: Run tests
         env:
