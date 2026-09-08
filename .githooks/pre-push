@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Pre-push gate: the test suite must pass before anything leaves this machine.
+#
+# Enable once per clone:
+#     git config core.hooksPath .githooks
+#
+# Bypass for an emergency only (CI will still run the same suite):
+#     git push --no-verify
+
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+# Pick the interpreter that has the project's dependencies installed.
+if [[ -n "${VIRTUAL_ENV:-}" && -x "$VIRTUAL_ENV/bin/python" ]]; then
+    PY="$VIRTUAL_ENV/bin/python"
+elif [[ -x "$REPO_ROOT/esurf/bin/python" ]]; then
+    PY="$REPO_ROOT/esurf/bin/python"
+else
+    PY="python3"
+fi
+
+if ! "$PY" -c "import pytest, freezegun, fakeredis" 2>/dev/null; then
+    echo "pre-push: test dependencies missing for $PY"
+    echo "          run: $PY -m pip install -r requirements-dev.txt"
+    exit 1
+fi
+
+echo "pre-push: running test suite with $PY"
+# Firmware tests need g++ and are run by CI; keep the local gate fast.
+SECRET_KEY="${SECRET_KEY:-pre-push-dummy-key}" \
+    "$PY" -m pytest tests -m "not firmware" -q -p no:cacheprovider
+
+echo "pre-push: all tests passed"

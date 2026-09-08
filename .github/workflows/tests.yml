@@ -1,0 +1,57 @@
+name: tests
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  python:
+    name: Python unit and integration tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            web_and_database/requirements.txt
+            surf-lamp-processor/requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r web_and_database/requirements.txt
+          pip install -r surf-lamp-processor/requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Build V3 binary protocol extension
+        # cpp_message_wrapper is the C++ encoder behind /api/arduino/v3.
+        # Built in place so `import message_wrapper` works from cpp_message_wrapper/.
+        run: |
+          pip install pybind11
+          cd cpp_message_wrapper && python setup.py build_ext --inplace
+
+      - name: Run tests
+        env:
+          SECRET_KEY: ci-dummy-secret-key
+        run: python -m pytest tests -m "not firmware" -q -p no:cacheprovider
+
+  firmware:
+    name: Firmware logic tests (native g++)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Enabled once tests/unit/firmware contains sources. Until then this job
+    # only checks that the ESP32 sketch still compiles is out of scope for CI
+    # (needs the esp32 core); the native shim tests cover the pure logic.
+    if: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and run
+        run: |
+          cd tests/unit/firmware
+          make test

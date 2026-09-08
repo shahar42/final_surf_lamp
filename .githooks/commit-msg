@@ -1,0 +1,25 @@
+#!/bin/bash
+# Git hook: Reject commits with AI co-authorship attribution
+# This enforces the CLAUDE.md rule: "NEVER add Co-Authored-By: Claude"
+
+COMMIT_MSG_FILE=$1
+
+# Check for forbidden AI attribution patterns
+if grep -qiE "(Co-Authored-By:.*Claude|Co-Authored-By:.*AI|Co-Authored-By:.*Anthropic)" "$COMMIT_MSG_FILE"; then
+    echo ""
+    echo "❌ COMMIT REJECTED"
+    echo ""
+    echo "Commit message contains AI co-authorship attribution."
+    echo ""
+    echo "From CLAUDE.md:"
+    echo "  CRITICAL - AI Authorship: NEVER add \"Co-Authored-By: Claude\""
+    echo "  or any AI attribution to commit messages. You are a tool"
+    echo "  (like a keyboard, compiler, or text editor), not a co-author."
+    echo "  The user is the sole author of all work."
+    echo ""
+    echo "Remove the Co-Authored-By line and try again."
+    echo ""
+    exit 1
+fi
+
+exit 0

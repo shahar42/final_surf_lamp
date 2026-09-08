@@ -109,9 +109,7 @@ video_instructions/
 
 # Testing & API development
 api_TESTING/
-test_system/
-*_test.py
-test_*.py
+# The test suite lives in tests/ and IS versioned. Do not add test_*.py patterns here.
 
 # Documentation (generated/temporary)
 *_IMPLEMENTATION.md
@@ -159,6 +157,7 @@ runtime.txt
 settings.json
 settings.local.json
 *.ini
+!pytest.ini
 
 # Stormglass integration (archived)
 stormglass_test/
