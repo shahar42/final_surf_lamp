@@ -35,7 +35,6 @@ class SecurityConfig:
         'user_update_threshold': "30/minute",
         'user_update_wind_threshold': "30/minute",
         'user_update_off_times': "30/minute",
-        'user_update_theme': "20/minute",
         'user_update_led_theme': "30/minute",
         'user_update_brightness': "30/minute",
         'user_update_unit_preference': "30/minute",

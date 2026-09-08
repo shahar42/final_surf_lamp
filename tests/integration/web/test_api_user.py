@@ -14,7 +14,6 @@ ENDPOINTS = [
     ("/update-threshold", {"threshold_min": 1.0}),
     ("/update-wind-threshold", {"threshold_min": 15}),
     ("/update-off-times", {"enabled": True}),
-    ("/update-theme", {"theme": "day"}),
     ("/update-led-theme", {"theme_id": "classic_surf"}),
     ("/update-brightness", {"brightness": 0.3}),
     ("/update-unit-preference", {"unit_preference": "feet"}),
@@ -147,16 +146,16 @@ class TestThemesBrightnessUnits:
         assert reload_user(db_session, lamp[1]).theme == "ocean_sunset"
         assert client.post("/update-led-theme", json={"theme_id": "neon"}).status_code == 400
 
-    def test_update_led_theme_rejects_dark(self, client, lamp, login):
-        """'dark' exists in firmware Themes.cpp but not in the V3 enum; the API
-        keeps it out so no user ends up with a theme the wire cannot carry."""
+    def test_update_led_theme_rejects_legacy_website_theme_names(self, client, lamp, login):
+        """'day'/'dark' were values of the removed /update-theme endpoint; they
+        must never land in the theme column the lamps read."""
         login(lamp[1])
         assert client.post("/update-led-theme", json={"theme_id": "dark"}).status_code == 400
+        assert client.post("/update-led-theme", json={"theme_id": "day"}).status_code == 400
 
-    def test_update_theme_day_or_dark(self, client, lamp, login, db_session):
+    def test_legacy_update_theme_endpoint_is_gone(self, client, lamp, login):
         login(lamp[1])
-        assert client.post("/update-theme", json={"theme": "day"}).status_code == 200
-        assert client.post("/update-theme", json={"theme": "purple"}).status_code == 400
+        assert client.post("/update-theme", json={"theme": "day"}).status_code == 404
 
     def test_update_brightness_in_unit_interval(self, client, lamp, login, db_session):
         login(lamp[1])

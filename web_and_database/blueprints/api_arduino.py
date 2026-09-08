@@ -102,6 +102,9 @@ def update_arduino_timestamp(arduino_id, is_physical):
                 if can_write_to_db(arduino_id):
                     arduino.last_poll_time = func.now()
                     db.commit()
+                    # commit expires the instance; reload it while the session is
+                    # still open so the caller can read last_poll_time after close
+                    db.refresh(arduino)
                     record_db_write(arduino_id)
                     logger.info(f"💾 Fallback: Arduino {arduino_id} timestamp written to DB")
                 else:

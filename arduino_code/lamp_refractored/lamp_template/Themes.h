@@ -17,8 +17,7 @@ static constexpr uint8_t THEME_VIBRANT_MIX        = 1;
 static constexpr uint8_t THEME_TROPICAL_PARADISE  = 2;
 static constexpr uint8_t THEME_OCEAN_SUNSET       = 3;
 static constexpr uint8_t THEME_ELECTRIC_VIBES     = 4;
-static constexpr uint8_t THEME_DARK               = 5;
-static constexpr uint8_t THEME_COUNT              = 6;
+static constexpr uint8_t THEME_COUNT              = 5;   // == number of LEDTheme enum values
 
 /**
  * Theme color set for three surf lamp strips
@@ -32,7 +31,7 @@ struct ThemeColors {
 /**
  * Get complete color set for a theme by index
  *
- * @param themeIndex Theme index (0-5, see THEME_* constants)
+ * @param themeIndex Theme index (0-4, see THEME_* constants)
  * @return ThemeColors struct with wave, wind, and period colors
  */
 ThemeColors getThemeColors(uint8_t themeIndex);

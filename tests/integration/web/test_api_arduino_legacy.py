@@ -68,15 +68,33 @@ class TestCallback:
         resp = client.post("/api/arduino/callback", json={"arduino_id": 999}, headers=LAMP_UA)
         assert resp.status_code == 404
 
-    def test_callback_redis_down_uses_throttled_db_fallback(self, client, lamp, db_session):
-        """Regression path for the redis_manager UnboundLocalError: with Redis
-        unavailable the callback must still succeed and write last_poll_time."""
+    def test_callback_redis_down_uses_throttled_db_fallback(self, client, lamp, db_session, monkeypatch):
+        """With Redis unavailable the callback must still succeed and write
+        last_poll_time. Guards three past bugs on this path: the
+        UnboundLocalError in record_db_write, the DetachedInstanceError from
+        reading the arduino after its session closed, and `None += 1` on the
+        first redis_health failure row. Sampling is forced to pass."""
         import redis_manager
-        from data_base import Arduino
+        from data_base import Arduino, RedisHealth
 
-        redis_manager.redis_client = None  # and REDIS_URL is unset -> no client
-        with freeze_time("2026-01-15 10:00:00"):
-            resp = client.post("/api/arduino/callback", json={"arduino_id": 14}, headers=LAMP_UA)
+        redis_manager.redis_client = None                              # REDIS_URL unset -> no client
+        monkeypatch.setattr(redis_manager.random, "random", lambda: 0.0)  # sampling gate always passes
+        old = db_session.query(Arduino).filter_by(arduino_id=14).one().last_poll_time
+
+        resp = client.post("/api/arduino/callback", json={"arduino_id": 14}, headers=LAMP_UA)
+
+        assert resp.status_code == 200, resp.get_json()
+        db_session.expire_all()
+        assert db_session.query(Arduino).filter_by(arduino_id=14).one().last_poll_time >= old
+        health = db_session.query(RedisHealth).filter_by(service_name="web-service").one()
+        assert health.consecutive_failures == 1
+        assert health.is_healthy is True   # unhealthy only after 3 consecutive failures
+
+    def test_callback_redis_down_rate_limited_write_still_200(self, client, lamp, monkeypatch):
+        import redis_manager
+        redis_manager.redis_client = None
+        monkeypatch.setattr(redis_manager.random, "random", lambda: 1.0)  # sampling gate never passes
+        resp = client.post("/api/arduino/callback", json={"arduino_id": 14}, headers=LAMP_UA)
         assert resp.status_code == 200
 
 

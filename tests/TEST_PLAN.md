@@ -37,11 +37,12 @@ more precise name, the file is authoritative.
 | `blueprints/api_arduino.py` | Callback with a non-JSON body returned 500 (Flask 415) instead of 400. `get_json(silent=True)`. | `test_api_arduino_legacy.py::test_callback_no_json_400` |
 | `blueprints/api_user.py` | Off-times accepted raw `"HH:MM"` strings into a `Time` column (worked on Postgres by coercion, would 500 on bad input). Parsed and validated, 400 on garbage. | `test_api_user.py::TestOffTimes` |
 | `tools/manufacturing/id_manager.py` | Every query hit a `lamps` table that has not existed since the schema refactor (`arduinos`). | `test_id_manager.py` |
+| `blueprints/api_arduino.py` | Callback's Redis-down DB fallback returned 500: the handler read `arduino.last_poll_time` after the session that committed it had closed (DetachedInstanceError). Hidden behind the 10% sampling gate. | `test_api_arduino_legacy.py::test_callback_redis_down_uses_throttled_db_fallback` |
+| `redis_manager.py` | First-ever failure record for a service crashed on `None += 1` because column defaults apply only at flush. | same test (asserts the `redis_health` row) |
 
 ### Discrepancies pinned, not fixed (need a product decision)
 
 - `admin.get_device_status` uses 15/60 min cutoffs; `shared_config` says 1 h / 24 h. Two tellings of "online".
-- Firmware `Themes.cpp` has a 6th theme `dark` (index 5); the V3 enum carries 0-4, so `dark` reaches V3 lamps as `classic_surf`.
 - `helpers.get_coordinates_cached` silently falls back to Tel Aviv for unknown locations.
 - `/api/admin/arduino-status` is `login_required` only, not `admin_required`, despite the prefix.
 - When every wind source fails in a cycle, the processor writes `wind_speed_mps = 0` instead of keeping the previous reading (`test_wind_failure_zeroes_wind_fields_current_behaviour`).

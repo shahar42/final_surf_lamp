@@ -153,7 +153,9 @@ def record_redis_health(service_name, success, error_message=None):
     try:
         health = db.query(RedisHealth).filter(RedisHealth.service_name == service_name).first()
         if not health:
-            health = RedisHealth(service_name=service_name)
+            # Column defaults only apply at flush; set them now so the
+            # `+= 1` below works on the very first failure record.
+            health = RedisHealth(service_name=service_name, consecutive_failures=0, total_failures_24h=0)
             db.add(health)
 
         if success:

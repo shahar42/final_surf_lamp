@@ -195,35 +195,6 @@ def update_off_times():
     except Exception as e:
         return {'success': False, 'message': f'Server error: {str(e)}'}, 500
 
-@bp.route("/update-theme", methods=['POST'])
-@login_required
-@limiter.limit(lambda: SecurityConfig.RATE_LIMITS['user_update_theme'])
-def update_theme():
-    """Update user's LED color theme preference"""
-    try:
-        data = request.get_json()
-        theme = data.get('theme')
-        user_id = session.get('user_id')
-
-        if theme not in ['day', 'dark']:
-            return {'success': False, 'message': 'Invalid theme. Must be day or dark'}, 400
-
-        db = SessionLocal()
-        try:
-            user = db.query(User).filter(User.user_id == user_id).first()
-            if user:
-                user.theme = theme
-                db.commit()
-                return {'success': True, 'message': f'LED theme updated to {theme}'}
-            else:
-                return {'success': False, 'message': 'User not found'}, 404
-        finally:
-            db.close()
-
-    except Exception as e:
-        logger.error(f"❌ Error updating theme: {e}")
-        return {'success': False, 'message': f'Server error: {str(e)}'}, 500
-
 @bp.route("/update-led-theme", methods=['POST'])
 @login_required
 @limiter.limit(lambda: SecurityConfig.RATE_LIMITS['user_update_led_theme'])

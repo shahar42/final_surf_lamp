@@ -228,11 +228,15 @@ class TestThemes:
         assert theme_to_enum("no-such-theme") == message_wrapper.LEDTheme.CLASSIC_SURF
         assert theme_to_enum("") == message_wrapper.LEDTheme.CLASSIC_SURF
 
-    def test_dark_theme_gap_is_documented(self):
-        """Firmware Themes.cpp defines a 6th theme 'dark' (index 5) but the V3
-        enum only carries 0-4, so the server maps 'dark' to classic_surf.
-        Pinned here so closing the gap is a deliberate change on both sides."""
-        assert theme_to_enum("dark") == message_wrapper.LEDTheme.CLASSIC_SURF
+    def test_theme_lists_agree_with_user_api(self):
+        """One telling: the encoder's known names are exactly the names the
+        settings API accepts, and the wire enum has exactly that many values."""
+        import inspect
+        import blueprints.api_user as api_user
+        src = inspect.getsource(api_user.update_led_theme)
+        for name in self.KNOWN:
+            assert f"'{name}'" in src, name
+        assert len(self.KNOWN) == max(int(t) for t in message_wrapper.LEDTheme.__members__.values()) + 1
 
 
 @pytest.mark.unit

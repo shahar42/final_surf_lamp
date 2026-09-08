@@ -20,19 +20,17 @@ static const ThemeColors themeTable[THEME_COUNT] = {
     // THEME_OCEAN_SUNSET (3): Blue waves, orange wind, pink period
     {CHSV(160, 255, 220), CHSV(20, 255, 220), CHSV(212, 255, 220)},
     // THEME_ELECTRIC_VIBES (4): Cyan waves, yellow wind, purple period
-    {CHSV(140, 255, 240), CHSV(60, 255, 240), CHSV(240, 255, 240)},
-    // THEME_DARK (5): Legacy dark theme
-    {CHSV(135, 255, 255), CHSV(24, 250, 240), CHSV(85, 155, 205)}
+    {CHSV(140, 255, 240), CHSV(60, 255, 240), CHSV(240, 255, 240)}
 };
 
-// Theme name table for string conversion
+// Theme name table for string conversion.
+// Names MUST match cpp_encoder.theme_to_enum and api_user.valid_themes on the server.
 static const char* const themeNames[THEME_COUNT] = {
     "classic_surf",
     "vibrant_mix",
     "tropical_paradise",
     "ocean_sunset",
-    "electric_vibes",
-    "dark"
+    "electric_vibes"
 };
 
 ThemeColors getThemeColors(uint8_t themeIndex) {
