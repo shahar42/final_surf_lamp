@@ -24,8 +24,10 @@ def sort_by_wave_height(data: List[Tuple[str, float]]) -> List[Tuple[str, float]
     Returns the sorted list in descending order (highest wave first).
     """
     if not HAS_LIBSORT or not data:
-        # Fallback to Python sort if C lib is missing
-        return sorted(data, key=lambda x: x[1], reverse=True)
+        # Fallback to Python sort if C lib is missing. A Location with no
+        # readings yet has wave_height_m = None; treat it as 0.0 exactly like
+        # the C path does, instead of raising TypeError on the comparison.
+        return sorted(data, key=lambda x: x[1] if x[1] is not None else 0.0, reverse=True)
 
     n = len(data)
     # Create the array of structures

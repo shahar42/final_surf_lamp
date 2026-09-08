@@ -253,14 +253,17 @@ def sync_redis_to_database():
             logger.info("No valid timestamps to sync")
             return True
 
-        # Batch update database using bulk UPDATE
-        from lamp_repository import SessionLocal
+        # Batch update database using bulk UPDATE.
+        # Uses the module-level engine like every other processor DB call.
+        # (This used to import a SessionLocal from lamp_repository that was
+        # never defined there; the ImportError was swallowed by the outer
+        # except, so heartbeats never reached arduinos.last_poll_time.)
         from sqlalchemy import text
 
         sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
         from shared_config import REDIS_SYNC_BATCH_SIZE
 
-        db = SessionLocal()
+        db = engine.connect()
         try:
             total_updated = 0
 

@@ -1,0 +1,15 @@
+{
+ "coord": {
+  "lon": 34.8683,
+  "lat": 32.4425
+ },
+ "main": {
+  "temp": 293.15,
+  "humidity": 60
+ },
+ "wind": {
+  "speed": 6.7,
+  "deg": 245
+ },
+ "name": "Sdot Yam"
+}

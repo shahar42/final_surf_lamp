@@ -1,9 +1,41 @@
 # Surf Lamp Test Plan
 
-Status: **planning only, nothing implemented yet.**
-Every file below is a planned test module. One row per test case. The
-`Pri` column is the order to implement in: P0 = bugs here reach customers'
-lamps directly, P1 = protects a feature, P2 = nice to have.
+Every file below is a test module. One row per test case. The `Pri` column
+is the order to implement in: P0 = bugs here reach customers' lamps
+directly, P1 = protects a feature, P2 = nice to have.
+
+## Status
+
+| Group | State |
+|---|---|
+| 1 threshold and hours | implemented |
+| 2 caching and Redis | implemented |
+| 3 locations, forms, auth helpers | implemented |
+| 4 protocol (Python) | implemented, plus `test_protocol_headers_in_sync.py` (not in the original plan) |
+| 5 processor unit | implemented except `test_lamp_repository_guards.py` (the whitelist is a function-local; covered by Group 7 instead) |
+| 6 web integration | not started |
+| 7 processor integration | not started |
+| 8 firmware (C++) | not started |
+| 9 tools | not started |
+
+Row names in the tables below are the plan; where an implemented test has a
+more precise name, the file is authoritative.
+
+### Bugs found while writing tests (all fixed in the same commits)
+
+| Where | What | Test that guards it |
+|---|---|---|
+| `cpp_encoder.py` | Fields were masked (`& 0x7F`) instead of clamped. The 9999 "impossible threshold" sentinel arrived at the lamp as 9999 mod 128 = **15 knots**, making it blink exactly when it must not. Fetch intervals over ~17.5 min wrapped to a few minutes. | `test_v3_encoder.py::TestOverflowSaturates` |
+| `background_processor.py` | `sync_redis_to_database` imported a `SessionLocal` that `lamp_repository` never defined. ImportError swallowed by the outer `except`; Redis heartbeats never reached `arduinos.last_poll_time`. | `test_redis_sync.py::test_sync_reaches_the_database` |
+| `utils/sorter.py` | Python fallback sort (the path production uses, the `.so` is not in git) raised `TypeError` on a location with `wave_height_m = None`. | `test_sorter.py::test_none_height_is_treated_as_zero` |
+| `utils/location_cache.py` | Per-user thresholds and hours flags cached per beach (207f0dd). | `test_location_cache.py` |
+| `redis_manager.py` | `UnboundLocalError` in fallback; no socket timeouts (207f0dd). | `test_redis_manager.py` |
+
+### Discrepancies pinned, not fixed (need a product decision)
+
+- `admin.get_device_status` uses 15/60 min cutoffs; `shared_config` says 1 h / 24 h. Two tellings of "online".
+- Firmware `Themes.cpp` has a 6th theme `dark` (index 5); the V3 enum carries 0-4, so `dark` reaches V3 lamps as `classic_surf`.
+- `helpers.get_coordinates_cached` silently falls back to Tel Aviv for unknown locations.
 
 Layout:
 

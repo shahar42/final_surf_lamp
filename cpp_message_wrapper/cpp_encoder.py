@@ -8,6 +8,27 @@ Drop-in replacement for binary_protocol.encode_v3_response().
 import message_wrapper
 from typing import Dict
 
+# Wire field widths, from esp_Server_encoding.hpp (single source of truth for
+# the layout). If a width changes there, change it here and in the firmware.
+FIELD_MAX_PERIOD = 0x3F            # 6 bits, seconds
+FIELD_MAX_HEIGHT_CM = 0x3FF        # 10 bits
+FIELD_MAX_WAVE_THRESH_CM = 0x3FF   # 10 bits
+FIELD_MAX_WIND_MPS = 0x3FF         # 10 bits
+FIELD_MAX_WIND_THRESH_KN = 0x7F    # 7 bits
+FIELD_MAX_DIRECTION = 0x3FF        # 10 bits, degrees
+FIELD_MAX_BRIGHTNESS_PCT = 0x7F    # 7 bits
+FIELD_MAX_INTERVAL_MS = 0xFFFFF    # 20 bits (~17.5 minutes)
+
+
+def _clamp(value, maximum: int, minimum: int = 0) -> int:
+    """Truncate to int and saturate into [minimum, maximum]."""
+    value = int(value)
+    if value < minimum:
+        return minimum
+    if value > maximum:
+        return maximum
+    return value
+
 
 def theme_to_enum(theme_name: str) -> message_wrapper.LEDTheme:
     """Convert theme string to C++ enum"""
@@ -53,13 +74,18 @@ def encode_v3_response_cpp(surf_data: Dict, settings_data: Dict) -> bytes:
         bytes: 26-byte binary payload
     """
 
-    # Extract and clamp surf data
-    period = int(surf_data.get('wave_period_s', 0)) & 0x3F
-    height = int(surf_data.get('wave_height_cm', 0)) & 0x3FF
-    wave_thresh = int(surf_data.get('wave_threshold_cm', 100)) & 0x3FF
-    speed = int(surf_data.get('wind_speed_mps', 0)) & 0x3FF
-    wind_thresh = int(surf_data.get('wind_speed_threshold_knots', 15)) & 0x7F
-    direction = int(surf_data.get('wind_direction_deg', 0)) & 0x3FF
+    # Extract and SATURATE surf data to each field's wire width.
+    # Saturating (not masking) matters: the threshold shim sends 9999 as an
+    # "impossible" threshold when the reading is above the user's max. Masked
+    # with & 0x7F that becomes 9999 % 128 = 15 knots, which would make the lamp
+    # blink in exactly the case it must stay quiet. A saturated field maximum
+    # is still unreachable by any real reading, so the sentinel keeps working.
+    period = _clamp(surf_data.get('wave_period_s', 0), FIELD_MAX_PERIOD)
+    height = _clamp(surf_data.get('wave_height_cm', 0), FIELD_MAX_HEIGHT_CM)
+    wave_thresh = _clamp(surf_data.get('wave_threshold_cm', 100), FIELD_MAX_WAVE_THRESH_CM)
+    speed = _clamp(surf_data.get('wind_speed_mps', 0), FIELD_MAX_WIND_MPS)
+    wind_thresh = _clamp(surf_data.get('wind_speed_threshold_knots', 15), FIELD_MAX_WIND_THRESH_KN)
+    direction = _clamp(surf_data.get('wind_direction_deg', 0), FIELD_MAX_DIRECTION)
 
     stale = surf_data.get('stale_data_warning', False)
     available = surf_data.get('data_available', True)
@@ -80,8 +106,10 @@ def encode_v3_response_cpp(surf_data: Dict, settings_data: Dict) -> bytes:
     # Convert latitude/longitude to float32 to match C++ float precision
     import struct
     theme = theme_to_enum(settings_data.get('led_theme', 'classic_surf'))
-    brightness = int(settings_data.get('brightness_multiplier', 0.6) * 100) & 0x7F
-    interval = int(settings_data.get('fetch_interval_ms', 13*60*1000)) & 0xFFFFF
+    brightness = _clamp(settings_data.get('brightness_multiplier', 0.6) * 100, FIELD_MAX_BRIGHTNESS_PCT)
+    # 20-bit field: anything above ~17.5 min saturates rather than wrapping to
+    # a tiny interval that would make the lamp hammer the server.
+    interval = _clamp(settings_data.get('fetch_interval_ms', 13*60*1000), FIELD_MAX_INTERVAL_MS)
 
     # Match C++ float precision by round-tripping through float32
     latitude_f32 = struct.unpack('f', struct.pack('f', float(settings_data.get('latitude', 0.0))))[0]

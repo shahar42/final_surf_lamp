@@ -1,0 +1,19 @@
+{
+ "datetime": "2026-01-15 10:00 UTC",
+ "parameters": [
+  {
+   "name": "Significant wave height",
+   "units": "m",
+   "values": [
+    0.41
+   ]
+  },
+  {
+   "name": "Peak wave period",
+   "units": "s",
+   "values": [
+    3.5
+   ]
+  }
+ ]
+}
