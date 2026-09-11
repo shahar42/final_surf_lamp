@@ -19,6 +19,7 @@ def registration_form(arduino_id=14, **overrides):
         "email": "fan@example.com",
         "password": PASSWORD,
         "arduino_id": str(arduino_id),
+        "mac_address": "",
         "location": "Sdot Yam",
         "sport_type": "surfing",
         "units": "meters",
@@ -29,10 +30,34 @@ def registration_form(arduino_id=14, **overrides):
 
 @pytest.mark.integration
 class TestRegister:
-    def test_register_requires_qr_id(self, client):
+    def test_register_without_qr_shows_the_mac_field(self, client):
+        """No QR needed: the page offers the MAC field instead of blocking."""
         resp = client.get("/register")
         assert resp.status_code == 200
-        assert any("QR code" in m for m in flashes(client))
+        assert b'name="mac_address"' in resp.data
+        assert not flashes(client)
+
+    def test_register_with_mac_creates_user_and_lamp(self, client, db_session):
+        from data_base import Arduino, User
+
+        resp = client.post("/register", data=registration_form(arduino_id="", mac_address="A4:CF:12:34:56:78"))
+
+        assert resp.status_code == 302 and resp.headers["Location"].endswith("/dashboard")
+        user = db_session.query(User).filter_by(email="fan@example.com").one()
+        ard = db_session.query(Arduino).filter_by(user_id=user.user_id).one()
+        assert ard.arduino_id == 0x785634  # the ID the lamp derives from that MAC
+
+    def test_register_rejects_malformed_mac(self, client, db_session):
+        from data_base import User
+        resp = client.post("/register", data=registration_form(arduino_id="", mac_address="A4:CF:12:34:56"))
+        assert resp.status_code == 200
+        assert db_session.query(User).count() == 0
+
+    def test_register_rejects_no_mac_and_no_id(self, client, db_session):
+        from data_base import User
+        resp = client.post("/register", data=registration_form(arduino_id="", mac_address=""))
+        assert resp.status_code == 200
+        assert db_session.query(User).count() == 0
 
     def test_register_get_with_qr_prefills_id(self, client):
         resp = client.get("/register?id=6689108")

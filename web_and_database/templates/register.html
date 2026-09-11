@@ -36,23 +36,25 @@
             <p class="text-white/80 mt-2">thanks for using SurfLamp, waves are on their way...</p>
         </div>
 
-        {% if qr_required %}
-        <div class="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-4 mb-6 text-white">
-            <div class="flex items-start">
-                <svg class="w-6 h-6 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                </svg>
-                <div>
-                    <p class="font-semibold mb-1">QR Code Required</p>
-                    <p class="text-sm text-white/90">Please scan the QR code on the card in your ocean-pulse to register your device.</p>
-                </div>
-            </div>
-        </div>
-        {% endif %}
 
         <form action="{{ url_for('auth.register') }}" method="POST" class="space-y-6">
             {{ form.hidden_tag() }}
             {{ form.arduino_id() }}
+
+            {% if not form.arduino_id.data %}
+            <!-- Lamp MAC address: shown on the lamp's WiFi setup page. Hidden when a legacy QR card pre-filled the ID. -->
+            <div>
+                {{ form.mac_address(class="form-input w-full px-4 py-3 rounded-lg font-mono" + (" error" if form.mac_address.errors else ""), placeholder="Lamp MAC address, e.g. A4:CF:12:34:56:78", autocomplete="off", autocapitalize="characters", spellcheck="false", inputmode="text") }}
+                <p class="text-xs text-white/60 mt-1">Copy it from the lamp's WiFi setup page.</p>
+                {% if form.mac_address.errors %}
+                    <div class="field-error">
+                        {% for error in form.mac_address.errors %}
+                            <div>• {{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            {% endif %}
 
             <!-- Name Field -->
             <div>

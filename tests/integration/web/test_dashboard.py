@@ -25,11 +25,24 @@ class TestAddArduino:
         assert resp.status_code == 400
         assert resp.is_json and resp.get_json()["success"] is False
 
-    @pytest.mark.parametrize("bad_id", [-5, 16777216])
-    def test_add_arduino_rejects_out_of_range(self, client, lamp, login, bad_id):
-        """Regression for the range guard added in 9790cc8."""
+    def test_add_arduino_by_mac(self, client, lamp, login, db_session):
+        """Normal flow: paste the MAC from the lamp's WiFi setup page."""
+        from data_base import Arduino
         login(lamp[1])
-        resp = client.post("/add-arduino", json={"arduino_id": bad_id, "location": "Sdot Yam"})
+        resp = client.post("/add-arduino", json={"mac_address": "A4:CF:12:34:56:78", "location": "Sdot Yam"})
+        assert resp.status_code == 200, resp.get_json()
+        assert db_session.query(Arduino).filter_by(arduino_id=0x785634).one().user_id == lamp[1].user_id
+
+    def test_add_arduino_rejects_malformed_mac(self, client, lamp, login):
+        login(lamp[1])
+        resp = client.post("/add-arduino", json={"mac_address": "A4:CF:12:34:56", "location": "Sdot Yam"})
+        assert resp.status_code == 400
+        assert "MAC" in resp.get_json()["message"]
+
+    def test_add_arduino_rejects_numeric_id_out_of_range(self, client, lamp, login):
+        """Regression for the range guard added in 9790cc8 (legacy numeric path)."""
+        login(lamp[1])
+        resp = client.post("/add-arduino", json={"arduino_id": 16777216, "location": "Sdot Yam"})
         assert resp.status_code == 400
         assert "16777215" in resp.get_json()["message"]
 

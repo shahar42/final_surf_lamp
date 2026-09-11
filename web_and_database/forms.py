@@ -6,7 +6,7 @@ author: shahar nitzan
 
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SelectField, RadioField, IntegerField, BooleanField, SubmitField, HiddenField
-from wtforms.validators import DataRequired, Email, Length, NumberRange, Regexp, ValidationError, EqualTo
+from wtforms.validators import DataRequired, Email, Length, NumberRange, Regexp, ValidationError, EqualTo, Optional
 from wtforms.widgets import HiddenInput
 import re
 import bleach
@@ -39,6 +39,10 @@ class ResetPasswordForm(FlaskForm):
     submit = SubmitField('Reset Password')
 
 class RegistrationForm(FlaskForm):
+    # Set by validate_mac_address: the Arduino ID the lamp will poll with,
+    # whether it came from a pasted MAC or a legacy QR card's ?id=.
+    resolved_arduino_id = None
+
     # Name validation - letters, numbers, spaces, hyphens, apostrophes
     name = SanitizedStringField('Name', validators=[
         DataRequired(message="Name is required"),
@@ -59,10 +63,19 @@ class RegistrationForm(FlaskForm):
         Length(min=SecurityConfig.PASSWORD_MIN_LENGTH, max=SecurityConfig.PASSWORD_MAX_LENGTH, message=f"Password must be between {SecurityConfig.PASSWORD_MIN_LENGTH} and {SecurityConfig.PASSWORD_MAX_LENGTH} characters")
     ])
 
-    # Arduino ID - hidden field populated from QR code URL parameter.
-    # Max covers MAC-derived 24-bit IDs (new lamps) and legacy sequential IDs.
+    # Device identity. Exactly one of these is used:
+    # - mac_address: what the user pastes from the lamp's WiFi setup page
+    #   (the normal flow). The Arduino ID is derived from it server-side with
+    #   utils.device_id.arduino_id_from_mac, mirroring the firmware.
+    # - arduino_id: hidden, pre-filled from a legacy QR card's ?id= parameter.
+    # NOTE: no Optional() here. Optional() raises StopValidation on an empty
+    # field, which would skip validate_mac_address below and leave the form
+    # with no device identity at all. Emptiness is handled in that validator.
+    mac_address = SanitizedStringField('Lamp MAC address', validators=[
+        Length(max=32, message="MAC address is too long")
+    ])
     arduino_id = IntegerField('Arduino ID', widget=HiddenInput(), validators=[
-        DataRequired(message="Arduino ID is required"),
+        Optional(),
         NumberRange(min=1, max=16777215, message="Arduino ID must be between 1 and 16777215")
     ])
     
@@ -84,6 +97,21 @@ class RegistrationForm(FlaskForm):
     units = RadioField('Units', choices=[('meters', 'Meters'), ('feet', 'Feet')],
                       validators=[DataRequired(message="Please select units")])
     
+    def validate_mac_address(self, field):
+        """A MAC is required unless a legacy QR card pre-filled arduino_id.
+        On success, resolved_arduino_id holds the ID the lamp will poll with."""
+        from utils.device_id import InvalidDeviceIdentifier, arduino_id_from_mac
+        self.resolved_arduino_id = None
+        if field.data:
+            try:
+                self.resolved_arduino_id = arduino_id_from_mac(field.data)
+            except InvalidDeviceIdentifier as e:
+                raise ValidationError(str(e))
+        elif self.arduino_id.data:
+            self.resolved_arduino_id = int(self.arduino_id.data)
+        else:
+            raise ValidationError("Enter the MAC address shown on your lamp's WiFi setup page")
+
     def validate_email(self, field):
         """Custom email validation with additional security checks"""
         # Strip whitespace but preserve case (case-insensitive comparison happens at login)

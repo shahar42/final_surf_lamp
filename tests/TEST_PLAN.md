@@ -20,6 +20,17 @@ directly, P1 = protects a feature, P2 = nice to have.
 
 Run everything: `esurf/bin/python -m pytest tests -m "not firmware"` then `make -C tests/unit/firmware test`.
 
+### Registration by MAC address (branch `feature/register-by-mac`)
+
+The user copies the lamp's MAC from its WiFi setup page and pastes it into
+registration or the dashboard's "Link New" form. `utils/device_id.py` folds it
+into the Arduino ID the firmware derives at boot. Two folds, one list of
+vectors: `tests/unit/firmware/fixtures/mac_vectors.txt` is fed to the native
+`test_arduino_id` binary by the Makefile and checked against the Python fold by
+`tests/unit/web/test_device_id.py::TestFirmwareParity`. Legacy QR cards still
+work through `?id=`, which now pre-fills the hidden field instead of being
+required.
+
 Row names in the tables below are the plan; where an implemented test has a
 more precise name, the file is authoritative.
 

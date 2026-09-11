@@ -25,13 +25,14 @@ bp = Blueprint('auth', __name__)
 
 
 def _validate_arduino_id_from_qr(arduino_id_param):
-    """Extract and validate Arduino ID from QR code parameter.
+    """Extract and validate an Arduino ID from a legacy QR card's ?id= parameter.
 
     Returns:
-        tuple: (arduino_id_int, error_message) or (None, error_message) if invalid
+        tuple: (arduino_id_int, error_message). Both None when no parameter was
+        given: the normal flow has the user paste the lamp's MAC address instead.
     """
     if not arduino_id_param:
-        return None, 'QR code required to register. Please scan the QR code on the card in your Surf Lamp box.'
+        return None, None
 
     try:
         arduino_id_int = int(arduino_id_param)
@@ -68,7 +69,11 @@ def _set_user_session(user, remember_me=False):
 def register():
     """
     Handles user registration.
-    QR code with Arduino ID in URL parameter is REQUIRED.
+
+    The lamp's identity comes from the MAC address the user pastes (shown on
+    the lamp's WiFi setup page); the server folds it into the same Arduino ID
+    the lamp derives at boot. A legacy QR card can still pre-fill the ID via
+    ?id=, in which case the MAC field is optional.
     """
     if 'user_email' in session:
         return redirect(url_for('dashboard.dashboard'))
@@ -76,23 +81,21 @@ def register():
     form = RegistrationForm()
     form.location.choices = [(loc, loc) for loc in SURF_LOCATIONS]
 
-    # Arduino ID from QR code URL parameter is REQUIRED
     if request.method == 'GET':
         arduino_id_param = request.args.get('id', '')
         arduino_id_int, error_msg = _validate_arduino_id_from_qr(arduino_id_param)
 
         if error_msg:
             flash(error_msg, 'error')
-            return render_template('register.html', form=form, locations=SURF_LOCATIONS, qr_required=True)
-
-        form.arduino_id.data = arduino_id_int
-        logger.info(f"Pre-filled Arduino ID from QR code: {arduino_id_int}")
+        elif arduino_id_int:
+            form.arduino_id.data = arduino_id_int
+            logger.info(f"Pre-filled Arduino ID from QR code: {arduino_id_int}")
 
     if form.validate_on_submit():
         name = form.name.data
         email = form.email.data
         password = form.password.data
-        arduino_id = form.arduino_id.data
+        arduino_id = form.resolved_arduino_id
         location = form.location.data
         sport_type = form.sport_type.data
         theme = 'day'
@@ -125,11 +128,6 @@ def register():
             return render_template('register.html', form=form, locations=SURF_LOCATIONS)
     else:
         if request.method == 'POST':
-            # Check if Arduino ID is missing (shouldn't happen with QR code flow)
-            if not form.arduino_id.data:
-                flash('QR code required to register. Please scan the QR code on the card in your Surf Lamp box.', 'error')
-                return render_template('register.html', form=form, locations=SURF_LOCATIONS, qr_required=True)
-
             for field_name, errors in form.errors.items():
                 for error in errors:
                     flash(f"{field_name.replace('_', ' ').title()}: {error}", 'error')

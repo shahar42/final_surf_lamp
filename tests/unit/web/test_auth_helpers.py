@@ -30,11 +30,17 @@ class TestQrArduinoId:
         assert value is None
         assert error
 
-    @pytest.mark.parametrize("bad", ["abc", "", None, "12.5", "0x10"])
+    @pytest.mark.parametrize("bad", ["abc", "12.5", "0x10"])
     def test_rejects_non_numeric(self, bad):
         value, error = _validate_arduino_id_from_qr(bad)
         assert value is None
         assert error
+
+    @pytest.mark.parametrize("empty", ["", None])
+    def test_absent_parameter_is_not_an_error(self, empty):
+        """No ?id= is the normal case now: the user pastes the lamp's MAC on
+        the form instead, so registration must not be blocked here."""
+        assert _validate_arduino_id_from_qr(empty) == (None, None)
 
     def test_error_message_points_user_to_the_box(self):
         _, error = _validate_arduino_id_from_qr("0")

@@ -52,6 +52,17 @@ esurf/bin/python tests/unit/firmware/gen_v3_fixture.py
 and commit both fixture files. `tests/unit/protocol/test_v3_fixture_current.py`
 fails until you do.
 
+`fixtures/mac_vectors.txt` works the same way for the MAC to Arduino ID fold.
+The server folds a pasted MAC (`utils/device_id.py`), the firmware folds its
+eFuse MAC (`Config.h getArduinoId`), and both must land on the same number or
+a user registers an ID no lamp will ever poll with. The Makefile feeds each
+row to the native binary; `tests/unit/web/test_device_id.py` checks the same
+rows against the Python fold. To add a case:
+
+```bash
+esurf/bin/python tests/unit/firmware/gen_mac_vectors.py
+```
+
 Compiling the actual ESP32 sketch is a separate local step:
 
 ```bash

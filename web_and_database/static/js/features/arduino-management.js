@@ -63,11 +63,13 @@ const ArduinoManagement = {
      * @param {Object} set - The form set being submitted
      */
     handleLinkArduino: async function(set) {
-        const arduinoId = set.idInput.value;
+        // The field holds the MAC address copied from the lamp's WiFi setup
+        // page. The server folds it into the Arduino ID the lamp polls with.
+        const macAddress = set.idInput.value.trim();
         const location = set.locationInput.value;
 
-        if (!arduinoId) {
-            StatusMessages.show('Please enter an Arduino ID', 'error');
+        if (!macAddress) {
+            StatusMessages.show("Please enter the lamp's MAC address", 'error');
             return;
         }
 
@@ -82,7 +84,7 @@ const ArduinoManagement = {
             const client = window.ApiClient || window.APIClient;
             
             const response = await client.post('/add-arduino', {
-                arduino_id: arduinoId,
+                mac_address: macAddress,
                 location: location
             });
 

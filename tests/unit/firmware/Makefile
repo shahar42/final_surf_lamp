@@ -38,9 +38,11 @@ test: $(BINS)
 	@set -e; \
 	$(BUILD)/test_protocol fixtures/v3_sample.bin fixtures/v3_sample.txt; \
 	$(BUILD)/test_led_mapping; \
-	$(BUILD)/test_arduino_id 0x00112233445566 1122867; \
-	$(BUILD)/test_arduino_id 0x00000000445566 1; \
-	$(BUILD)/test_arduino_id 0x00FFFFFF445566 16777215; \
+	grep -v '^#' fixtures/mac_vectors.txt | while read -r mac u64 id; do \
+	    [ -n "$$u64" ] || continue; \
+	    echo "  (mac $$mac)"; \
+	    $(BUILD)/test_arduino_id "$$u64" "$$id" || exit 1; \
+	done; \
 	$(BUILD)/test_jitter; \
 	$(BUILD)/test_themes; \
 	echo "firmware tests: all suites passed"

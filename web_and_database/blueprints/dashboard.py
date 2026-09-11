@@ -10,6 +10,7 @@ from datetime import datetime, timezone, timedelta
 from flask import Blueprint, render_template, request, flash, redirect, url_for, session, jsonify
 from config import SURF_LOCATIONS, BRIGHTNESS_LEVELS
 from utils.decorators import login_required
+from utils.device_id import InvalidDeviceIdentifier, parse_device_identifier
 from data_base import get_user_lamp_data, add_arduino_to_user
 
 logger = logging.getLogger(__name__)
@@ -82,22 +83,21 @@ def _build_dashboard_data(user_email):
 def add_arduino():
     """Endpoint to link a new Arduino to the user's account"""
     user_id = session.get('user_id')
-    data = request.get_json()
-    
-    arduino_id = data.get('arduino_id')
+    data = request.get_json(silent=True) or {}
+
+    # Normal flow: the MAC address pasted from the lamp's WiFi setup page.
+    # Legacy: a numeric Arduino ID from a QR card. Either goes through the
+    # same resolver the registration form uses.
+    identifier = data.get('mac_address') or data.get('arduino_id')
     location = data.get('location')
 
-    if not arduino_id or not location:
-        return jsonify({'success': False, 'message': 'Missing Arduino ID or Location'}), 400
+    if not identifier or not location:
+        return jsonify({'success': False, 'message': 'Missing MAC address or Location'}), 400
 
     try:
-        arduino_id = int(arduino_id)
-    except ValueError:
-        return jsonify({'success': False, 'message': 'Invalid Arduino ID format'}), 400
-
-    # Same bounds as registration: legacy IDs and MAC-derived 24-bit IDs
-    if not 1 <= arduino_id <= 16777215:
-        return jsonify({'success': False, 'message': 'Arduino ID must be between 1 and 16777215'}), 400
+        arduino_id = parse_device_identifier(identifier)
+    except InvalidDeviceIdentifier as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
 
     success, message = add_arduino_to_user(user_id, arduino_id, location)
     

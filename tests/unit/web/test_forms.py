@@ -31,6 +31,7 @@ def registration(**overrides):
         "email": "fan@example.com",
         "password": "correct-horse-battery",
         "arduino_id": "14",
+        "mac_address": "",
         "location": "Sdot Yam",
         "sport_type": "surfing",
         "units": "meters",
@@ -42,22 +43,57 @@ def registration(**overrides):
 
 
 @pytest.mark.unit
+class TestRegistrationMacAddress:
+    """The normal flow: the user pastes the MAC from the lamp's WiFi page."""
+
+    def test_mac_resolves_to_the_firmware_id(self, ctx):
+        form = registration(arduino_id="", mac_address="A4:CF:12:34:56:78")
+        assert form.validate(), form.errors
+        assert form.resolved_arduino_id == 0x785634
+
+    def test_mac_accepts_loose_formatting(self, ctx):
+        form = registration(arduino_id="", mac_address="  a4cf12345678 ")
+        assert form.validate(), form.errors
+        assert form.resolved_arduino_id == 0x785634
+
+    @pytest.mark.parametrize("bad", ["A4:CF:12:34:56", "nope", "A4:CF:12:34:56:ZZ"])
+    def test_malformed_mac_rejected(self, ctx, bad):
+        form = registration(arduino_id="", mac_address=bad)
+        assert not form.validate()
+        assert "mac_address" in form.errors
+
+    def test_mac_wins_over_a_stale_hidden_id(self, ctx):
+        """If both arrive, the pasted MAC is what the user just read off the lamp."""
+        form = registration(arduino_id="14", mac_address="A4:CF:12:34:56:78")
+        assert form.validate(), form.errors
+        assert form.resolved_arduino_id == 0x785634
+
+
+@pytest.mark.unit
 class TestRegistrationArduinoId:
     def test_accepts_legacy_small_id(self, ctx):
         form = registration(arduino_id="14")
         assert form.validate(), form.errors
         assert form.arduino_id.data == 14
+        assert form.resolved_arduino_id == 14
 
     def test_accepts_max_24bit_id(self, ctx):
         """MAC-derived IDs go up to 2^24 - 1 (see 9790cc8)."""
         form = registration(arduino_id=str(MAX_ID))
         assert form.validate(), form.errors
 
-    @pytest.mark.parametrize("bad", ["0", "-1", str(MAX_ID + 1), "abc", ""])
+    @pytest.mark.parametrize("bad", ["0", "-1", str(MAX_ID + 1), "abc"])
     def test_rejects_out_of_range_or_non_numeric(self, ctx, bad):
         form = registration(arduino_id=bad)
         assert not form.validate()
         assert "arduino_id" in form.errors
+
+    def test_rejects_missing_mac_and_missing_id(self, ctx):
+        """With neither a pasted MAC nor a QR-filled ID there is no device."""
+        form = registration(arduino_id="", mac_address="")
+        assert not form.validate()
+        assert "mac_address" in form.errors
+        assert form.resolved_arduino_id is None
 
 
 @pytest.mark.unit

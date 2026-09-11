@@ -70,6 +70,28 @@
                             + Link New
                         </button>
                     </div>
+                    <!-- Link a lamp by the MAC address shown on its WiFi setup page -->
+                    <div id="addArduinoForm" class="hidden space-y-2 bg-white/5 rounded-xl p-4 border border-white/10">
+                        <input type="text" id="newArduinoId" autocomplete="off" autocapitalize="characters"
+                            spellcheck="false" placeholder="Lamp MAC address, e.g. A4:CF:12:34:56:78"
+                            class="form-input w-full px-3 py-2 rounded-lg text-sm font-mono">
+                        <p class="text-[10px] text-white/50">Copy it from the lamp's WiFi setup page.</p>
+                        <select id="newArduinoLocation" class="form-input w-full px-3 py-2 rounded-lg text-sm">
+                            {% for loc in locations %}
+                            <option value="{{ loc }}" {% if loc==data.user.location %}selected{% endif %}>{{ loc }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="flex gap-2 pt-1">
+                            <button id="submitAddArduino" type="button"
+                                class="flex-1 bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-lg text-xs text-white font-bold transition-all active:scale-95">
+                                Link Lamp
+                            </button>
+                            <button id="cancelAddArduino" type="button"
+                                class="px-3 py-2 rounded-lg text-xs text-white/70 font-bold bg-white/10 hover:bg-white/20 transition-all active:scale-95">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
                     <div id="arduinoList" class="grid grid-cols-1 gap-2">
                         {% for arduino in data.arduinos %}
                         <div
