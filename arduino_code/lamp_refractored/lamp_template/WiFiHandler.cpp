@@ -101,8 +101,18 @@ WiFiSetupScenario detectWiFiScenario(WiFiFingerprinting& fingerprinting) {
     }
 
     // Smart Location Detection
+    // NOTE: this no longer skips Phase 1. During a real power outage, nearby
+    // routers reboot on their own staggered schedules, so a neighbor scan
+    // taken right at boot can under-count and look like a move when it isn't.
+    // The saved credentials are the ground truth for "did we move" - not a
+    // guess from which neighbors happened to be back online yet. So a
+    // NEW_LOCATION read is now purely informational: Phase 1 still gets its
+    // full 7-minute shot at the actual saved network. If it really was a
+    // move, that network won't be there and Phase 1 will fail on its own,
+    // falling through to the same Heartbeat Cycle a NEW_LOCATION verdict
+    // used to jump into directly.
     if (!fingerprinting.isSameLocation()) {
-        Serial.println("🌍 New location detected! Skipping retry and opening portal immediately.");
+        Serial.println("🌍 New location signature detected - will still try saved credentials first (could be a power outage).");
         return WiFiSetupScenario::NEW_LOCATION;
     }
 
@@ -255,8 +265,10 @@ bool setupWiFi(WiFiManager& wifiManager, WiFiFingerprinting& fingerprinting) {
     fingerprinting.load();
     WiFiSetupScenario scenario = detectWiFiScenario(fingerprinting);
 
-    // PHASE 1: INITIAL 7-MINUTE ATTEMPT (Only if credentials exist)
-    if (scenario == WiFiSetupScenario::ROUTER_REBOOT) {
+    // PHASE 1: INITIAL 7-MINUTE ATTEMPT (whenever credentials exist)
+    // Runs for ROUTER_REBOOT and NEW_LOCATION alike - see the comment in
+    // detectWiFiScenario() for why NEW_LOCATION no longer skips this.
+    if (scenario == WiFiSetupScenario::ROUTER_REBOOT || scenario == WiFiSetupScenario::NEW_LOCATION) {
         Serial.println("⏳ PHASE 1: Attempting connection for 7 minutes...");
         Serial.println("👉 Hold button for 2s to skip to AP mode");
 
