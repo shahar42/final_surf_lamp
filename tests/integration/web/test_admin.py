@@ -162,13 +162,13 @@ class TestFleetStatus:
         assert body["success"] is True
         assert body["summary"]["total"] == 1
         device = body["devices"][0]
-        assert device["arduino_id"] == 14
+        assert device["arduino_id"] == "14"
         assert device["status"] == "active"
         assert device["username"] == lamp[1].username
 
     def test_arduino_status_api_never_when_no_poll(self, client, lamp, login, db_session):
         from data_base import Arduino
-        ard = db_session.query(Arduino).filter_by(arduino_id=14).one()
+        ard = db_session.query(Arduino).filter_by(arduino_id="14").one()
         ard.last_poll_time = None
         db_session.commit()
         login(lamp[1])

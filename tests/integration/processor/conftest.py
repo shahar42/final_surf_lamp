@@ -61,7 +61,7 @@ def seed(session):
                     last_value_change=last_value_change or datetime(2026, 1, 1),
                     **old_values,
                 ))
-            session.add(data_base.Arduino(arduino_id=100 + i, user_id=user.user_id, location=name))
+            session.add(data_base.Arduino(arduino_id=str(100 + i), user_id=user.user_id, location=name))
         session.commit()
     return _seed
 

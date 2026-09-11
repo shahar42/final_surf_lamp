@@ -25,14 +25,14 @@ class TestQueries:
         seed(["Sdot Yam", "Bat Galim (Haifa)"])
         # second arduino at Sdot Yam must not duplicate the location
         user = session.query(data_base.User).first()
-        session.add(data_base.Arduino(arduino_id=999, user_id=user.user_id, location="Sdot Yam"))
+        session.add(data_base.Arduino(arduino_id="999", user_id=user.user_id, location="Sdot Yam"))
         session.commit()
         assert lamp_repository.get_active_locations(background_processor.engine) == ["Bat Galim (Haifa)", "Sdot Yam"]
 
     def test_get_arduinos_for_location(self, seed):
         seed(["Sdot Yam", "Bat Galim (Haifa)"])
         rows = lamp_repository.get_arduinos_for_location(background_processor.engine, "Sdot Yam")
-        assert [r["arduino_id"] for r in rows] == [100]
+        assert [r["arduino_id"] for r in rows] == ["100"]
         assert rows[0]["location"] == "Sdot Yam"
 
     def test_get_current_location_values(self, seed):
@@ -85,10 +85,10 @@ class TestUpsert:
         user.wave_threshold_m = 1.7
         user.wind_threshold_knots = 18.0
         session.commit()
-        assert lamp_repository.get_user_threshold_for_arduino(background_processor.engine, 100) == 1.7
-        assert lamp_repository.get_user_wind_threshold_for_arduino(background_processor.engine, 100) == 18.0
-        assert lamp_repository.get_user_threshold_for_arduino(background_processor.engine, 999) == 1.0   # default
-        assert lamp_repository.get_user_wind_threshold_for_arduino(background_processor.engine, 999) == 22.0
+        assert lamp_repository.get_user_threshold_for_arduino(background_processor.engine, "100") == 1.7
+        assert lamp_repository.get_user_wind_threshold_for_arduino(background_processor.engine, "100") == 18.0
+        assert lamp_repository.get_user_threshold_for_arduino(background_processor.engine, "999") == 1.0   # default
+        assert lamp_repository.get_user_wind_threshold_for_arduino(background_processor.engine, "999") == 22.0
 
     @pytest.mark.skip(reason="update_processor_heartbeat uses Postgres NOW(); covered by deployment health checks")
     def test_processor_heartbeat_upsert(self):

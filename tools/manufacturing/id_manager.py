@@ -32,37 +32,41 @@ class IDManager:
         self.engine = create_engine(self.database_url, connect_args=connect_args)
         logger.info("ID Manager initialized with database connection")
 
+    def _legacy_numeric_ids(self):
+        """Every lamp identifier that is a plain number, newest first.
+
+        LEGACY ONLY. Lamps made since the MAC change are identified by their
+        MAC address (12 hex digits), which has no sequence and needs no
+        allocation. arduino_id is a text column, so the numeric ones are
+        picked out and ordered in Python; sorting them in SQL would order
+        them lexically ("9" > "14") and hand out a wrong "next" ID.
+        """
+        with self.engine.connect() as conn:
+            rows = conn.execute(text(
+                "SELECT arduino_id FROM arduinos WHERE arduino_id IS NOT NULL"
+            )).fetchall()
+        numeric = [int(r[0]) for r in rows if str(r[0]).isdigit()]
+        return sorted(numeric, reverse=True)
+
     def get_next_available_id(self):
         """
-        Query database for the next available Arduino ID.
+        Next free legacy sequential ID (highest numeric ID + 1).
 
         Returns:
             int: Next available ID (starting from 1)
         """
         try:
-            with self.engine.connect() as conn:
-                # Get the highest arduino_id currently in use
-                result = conn.execute(text(
-                    "SELECT MAX(arduino_id) as max_id FROM arduinos WHERE arduino_id IS NOT NULL"
-                ))
-                row = result.fetchone()
-
-                if row and row[0] is not None:
-                    next_id = row[0] + 1
-                    logger.info(f"Current max ID: {row[0]}, next available: {next_id}")
-                else:
-                    next_id = 1
-                    logger.info("No IDs in database yet, starting from 1")
-
-                return next_id
-
+            used = self._legacy_numeric_ids()
+            next_id = (used[0] + 1) if used else 1
+            logger.info(f"Highest legacy numeric ID: {used[0] if used else None}, next available: {next_id}")
+            return next_id
         except Exception as e:
             logger.error(f"Error getting next available ID: {e}")
             raise
 
     def get_used_ids(self, limit=100):
         """
-        Get list of currently used Arduino IDs.
+        Legacy numeric lamp IDs currently in use, highest first.
 
         Args:
             limit (int): Maximum number of IDs to return
@@ -71,15 +75,9 @@ class IDManager:
             list: List of used Arduino IDs
         """
         try:
-            with self.engine.connect() as conn:
-                result = conn.execute(text(
-                    f"SELECT arduino_id FROM arduinos WHERE arduino_id IS NOT NULL "
-                    f"ORDER BY arduino_id DESC LIMIT {limit}"
-                ))
-                ids = [row[0] for row in result.fetchall()]
-                logger.info(f"Retrieved {len(ids)} used Arduino IDs")
-                return ids
-
+            ids = self._legacy_numeric_ids()[:limit]
+            logger.info(f"Retrieved {len(ids)} used legacy Arduino IDs")
+            return ids
         except Exception as e:
             logger.error(f"Error getting used IDs: {e}")
             raise
@@ -98,7 +96,7 @@ class IDManager:
             with self.engine.connect() as conn:
                 result = conn.execute(text(
                     "SELECT COUNT(*) FROM arduinos WHERE arduino_id = :id"
-                ), {"id": arduino_id})
+                ), {"id": str(arduino_id)})
                 count = result.fetchone()[0]
 
                 is_available = count == 0
@@ -111,45 +109,21 @@ class IDManager:
 
     def get_id_statistics(self):
         """
-        Get statistics about Arduino ID usage.
+        Statistics about LEGACY numeric ID usage. MAC-identified lamps are
+        not counted: they have no sequence and are never allocated.
 
         Returns:
             dict: Statistics including total used, next available, etc.
         """
         try:
-            with self.engine.connect() as conn:
-                # Total lamps with IDs
-                total_result = conn.execute(text(
-                    "SELECT COUNT(*) FROM arduinos WHERE arduino_id IS NOT NULL"
-                ))
-                total_used = total_result.fetchone()[0]
-
-                # Highest ID
-                max_result = conn.execute(text(
-                    "SELECT MAX(arduino_id) FROM arduinos WHERE arduino_id IS NOT NULL"
-                ))
-                max_id = max_result.fetchone()[0] or 0
-
-                # Next available
-                next_id = max_id + 1 if max_id else 1
-
-                stats = {
-                    "total_ids_used": total_used,
-                    "highest_id": max_id,
-                    "next_available_id": next_id,
-                    "gaps_exist": total_used < max_id  # True if there are gaps in sequence
-                }
-
-                logger.info(f"ID Statistics: {stats}")
-                return stats
-
+            used = self._legacy_numeric_ids()
+            max_id = used[0] if used else 0
+            return {
+                "total_ids_used": len(used),
+                "highest_id": max_id,
+                "next_available_id": max_id + 1 if max_id else 1,
+                "gaps_exist": len(used) < max_id,
+            }
         except Exception as e:
             logger.error(f"Error getting ID statistics: {e}")
             raise
-
-
-if __name__ == "__main__":
-    # Quick test
-    manager = IDManager()
-    print(f"Next available ID: {manager.get_next_available_id()}")
-    print(f"Statistics: {manager.get_id_statistics()}")

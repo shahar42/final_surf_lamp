@@ -10,7 +10,7 @@ from datetime import datetime, timezone, timedelta
 from flask import Blueprint, render_template, request, flash, redirect, url_for, session, jsonify
 from config import SURF_LOCATIONS, BRIGHTNESS_LEVELS
 from utils.decorators import login_required
-from utils.device_id import InvalidDeviceIdentifier, parse_device_identifier
+from utils.device_id import InvalidDeviceIdentifier, format_device_id, normalize_device_id
 from data_base import get_user_lamp_data, add_arduino_to_user
 
 logger = logging.getLogger(__name__)
@@ -50,6 +50,9 @@ def _build_dashboard_data(user_email):
         'arduinos': [
             {
                 'arduino_id': arduino.arduino_id,
+                # What the user actually recognises: the address printed on
+                # the lamp's WiFi setup page, the same one they pasted.
+                'display_id': format_device_id(arduino.arduino_id),
                 'location': arduino.location,
                 'last_poll_time': arduino.last_poll_time
             }
@@ -95,7 +98,7 @@ def add_arduino():
         return jsonify({'success': False, 'message': 'Missing MAC address or Location'}), 400
 
     try:
-        arduino_id = parse_device_identifier(identifier)
+        arduino_id = normalize_device_id(identifier)
     except InvalidDeviceIdentifier as e:
         return jsonify({'success': False, 'message': str(e)}), 400
 

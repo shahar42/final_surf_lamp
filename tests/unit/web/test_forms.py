@@ -12,7 +12,7 @@ from werkzeug.datastructures import MultiDict
 from forms import LoginForm, RegistrationForm, SanitizedStringField, sanitize_input, validate_location_choice
 from security_config import SecurityConfig
 
-MAX_ID = 16777215  # 2^24 - 1, MAC-derived Arduino IDs
+MAX_ID = 99999999  # widest legacy programmer-assigned lamp ID
 BEACHES = ["Sdot Yam", "Hilton Beach (Tel Aviv)"]
 
 
@@ -46,15 +46,15 @@ def registration(**overrides):
 class TestRegistrationMacAddress:
     """The normal flow: the user pastes the MAC from the lamp's WiFi page."""
 
-    def test_mac_resolves_to_the_firmware_id(self, ctx):
+    def test_mac_is_stored_verbatim_not_derived(self, ctx):
         form = registration(arduino_id="", mac_address="A4:CF:12:34:56:78")
         assert form.validate(), form.errors
-        assert form.resolved_arduino_id == 0x785634
+        assert form.resolved_arduino_id == "a4cf12345678"
 
     def test_mac_accepts_loose_formatting(self, ctx):
-        form = registration(arduino_id="", mac_address="  a4cf12345678 ")
+        form = registration(arduino_id="", mac_address="  a4-CF-12-34-56-78 ")
         assert form.validate(), form.errors
-        assert form.resolved_arduino_id == 0x785634
+        assert form.resolved_arduino_id == "a4cf12345678"
 
     @pytest.mark.parametrize("bad", ["A4:CF:12:34:56", "nope", "A4:CF:12:34:56:ZZ"])
     def test_malformed_mac_rejected(self, ctx, bad):
@@ -66,7 +66,7 @@ class TestRegistrationMacAddress:
         """If both arrive, the pasted MAC is what the user just read off the lamp."""
         form = registration(arduino_id="14", mac_address="A4:CF:12:34:56:78")
         assert form.validate(), form.errors
-        assert form.resolved_arduino_id == 0x785634
+        assert form.resolved_arduino_id == "a4cf12345678"
 
 
 @pytest.mark.unit
@@ -75,10 +75,10 @@ class TestRegistrationArduinoId:
         form = registration(arduino_id="14")
         assert form.validate(), form.errors
         assert form.arduino_id.data == 14
-        assert form.resolved_arduino_id == 14
+        assert form.resolved_arduino_id == "14"
 
-    def test_accepts_max_24bit_id(self, ctx):
-        """MAC-derived IDs go up to 2^24 - 1 (see 9790cc8)."""
+    def test_accepts_max_legacy_id(self, ctx):
+        """Legacy QR cards carry a small programmer-assigned number."""
         form = registration(arduino_id=str(MAX_ID))
         assert form.validate(), form.errors
 

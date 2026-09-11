@@ -12,6 +12,7 @@ from flask import Blueprint, request, jsonify, make_response
 from data_base import SessionLocal, Arduino, Location, User, ErrorReport
 from utils.helpers import is_quiet_hours, is_off_hours, get_current_tz_offset, get_sunset_info_cached, get_coordinates_cached
 from utils.threshold_logic import calculate_effective_threshold
+from utils.device_id import InvalidDeviceIdentifier, normalize_device_id
 from config import BRIGHTNESS_LEVELS, STALE_DATA_THRESHOLD
 from redis_manager import get_redis_client
 from models.query_result import ArduinoQueryResult
@@ -53,15 +54,19 @@ def record_heartbeat(arduino_id):
     2. If Redis unavailable, return False (caller may choose to update DB)
 
     NOTE: A SETBIT 'arduino:online_bitmap' write used to live here. It was
-    never read anywhere, and with MAC-derived 24-bit arduino IDs a single
-    SETBIT at offset ~16M would force Redis to allocate a ~2MB string -
-    removed rather than migrated.
+    never read anywhere and could not survive identifiers that are not small
+    integers - removed rather than migrated.
     """
+    arduino_id = canonical_id(arduino_id)
+    if arduino_id is None:
+        return False
+
     redis = get_redis_client()
     if redis:
         try:
             timestamp = datetime.now(timezone.utc).timestamp()
-            # Store exact timestamp in Hash (hash fields are fine with any ID size)
+            # Canonical form only, so one lamp never occupies two hash fields
+            # because it wrote its MAC in a different case.
             redis.hset('arduino:last_seen', arduino_id, timestamp)
             return True
         except Exception as e:
@@ -79,6 +84,11 @@ def update_arduino_timestamp(arduino_id, is_physical):
     Returns:
         tuple: (arduino: Arduino object or None, error: str or None)
     """
+    canonical = canonical_id(arduino_id)
+    if canonical is None:
+        return None, f'Arduino {arduino_id} not found'
+    arduino_id = canonical
+
     db = SessionLocal()
     try:
         arduino = db.query(Arduino).filter(Arduino.arduino_id == arduino_id).first()
@@ -167,8 +177,25 @@ def calculate_thresholds(qr: ArduinoQueryResult):
     return effective_wave_threshold_m, effective_wind_threshold_knots
 
 
+def canonical_id(arduino_id):
+    """Normalize an identifier arriving in a URL or payload to its stored form.
+
+    Lamps send their MAC as bare hex, but be forgiving about case and
+    separators so a hand-typed or differently-formatted address still finds
+    the right row. Returns None if the value is not a valid identifier, which
+    callers surface as 404 rather than querying with garbage.
+    """
+    try:
+        return normalize_device_id(arduino_id)
+    except InvalidDeviceIdentifier:
+        return None
+
+
 def get_arduino_with_location_and_user(db, arduino_id):
     """Query arduino with joined location and user data. Returns ArduinoQueryResult or None."""
+    arduino_id = canonical_id(arduino_id)
+    if arduino_id is None:
+        return None
     result = db.query(Arduino, Location, User).select_from(Arduino) \
         .join(User, Arduino.user_id == User.user_id) \
         .join(Location, Arduino.location == Location.location) \
@@ -267,7 +294,7 @@ def handle_arduino_callback():
         logger.error(f"❌ Error processing Arduino callback: {e}")
         return {'success': False, 'message': 'Server error'}, 500
 
-@bp.route("/api/arduino/<int:arduino_id>/data", methods=['GET'])
+@bp.route("/api/arduino/<string:arduino_id>/data", methods=['GET'])
 def get_arduino_data(arduino_id):
     logger.info(f"📥 Arduino {arduino_id} requesting surf data (PULL mode)")
 
@@ -323,7 +350,7 @@ def get_arduino_data(arduino_id):
         logger.error(f"❌ Error getting surf data for Arduino {arduino_id}: {e}")
         return {'error': 'Server error'}, 500
 
-@bp.route("/api/arduino/v2/<int:arduino_id>/data", methods=['GET'])
+@bp.route("/api/arduino/v2/<string:arduino_id>/data", methods=['GET'])
 def get_arduino_surf_data_v2(arduino_id):
     """
     V2 endpoint: Returns surf data + location coordinates for autonomous sunset calculation.
@@ -388,7 +415,7 @@ def get_arduino_surf_data_v2(arduino_id):
         logger.error(f"❌ Error getting V2 surf data for Arduino {arduino_id}: {e}")
         return {'error': 'Server error'}, 500
 
-@bp.route("/api/arduino/v3/<int:arduino_id>/data", methods=['GET'])
+@bp.route("/api/arduino/v3/<string:arduino_id>/data", methods=['GET'])
 def get_arduino_surf_data_v3(arduino_id):
     """
     V3 endpoint: Returns BINARY protocol data for new Arduinos (94% smaller than JSON)
@@ -509,7 +536,7 @@ def get_server_discovery():
         logger.error(f"❌ Discovery endpoint error: {e}")
         return {'error': 'Discovery unavailable'}, 500
 
-@bp.route("/api/arduino/<int:arduino_id>/settings", methods=['GET'])
+@bp.route("/api/arduino/<string:arduino_id>/settings", methods=['GET'])
 def get_arduino_settings(arduino_id):
     """
     PRIVATE ENDPOINT - User-specific settings (reserved for future scalability)

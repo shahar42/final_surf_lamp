@@ -110,7 +110,7 @@ class TestLocation:
         resp = client.post("/update-location", json={"location": "Hilton Beach (Tel Aviv)"})
         assert resp.status_code == 200, resp.get_json()
         assert reload_user(db_session, lamp[1]).location == "Hilton Beach (Tel Aviv)"
-        assert db_session.query(Arduino).filter_by(arduino_id=14).one().location == "Hilton Beach (Tel Aviv)"
+        assert db_session.query(Arduino).filter_by(arduino_id="14").one().location == "Hilton Beach (Tel Aviv)"
         assert db_session.query(Location).filter_by(location="Hilton Beach (Tel Aviv)").one()  # auto-created
         with client.session_transaction() as s:
             assert s["user_location"] == "Hilton Beach (Tel Aviv)"

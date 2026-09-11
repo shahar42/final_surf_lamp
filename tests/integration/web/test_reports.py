@@ -17,7 +17,7 @@ class TestReportError:
         report = db_session.query(ErrorReport).one()
         assert report.user_id == lamp[1].user_id
         assert report.email == lamp[1].email
-        assert report.arduino_id == 14
+        assert report.arduino_id == "14"
         assert report.location == "Sdot Yam"
         assert report.user_agent == "TestBrowser/1.0"
         assert report.error_description == "Left strip stuck on red"

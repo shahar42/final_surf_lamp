@@ -74,9 +74,11 @@ class RegistrationForm(FlaskForm):
     mac_address = SanitizedStringField('Lamp MAC address', validators=[
         Length(max=32, message="MAC address is too long")
     ])
+    # Legacy QR cards only: a small programmer-assigned lamp ID. New lamps
+    # are identified by their MAC in the field above.
     arduino_id = IntegerField('Arduino ID', widget=HiddenInput(), validators=[
         Optional(),
-        NumberRange(min=1, max=16777215, message="Arduino ID must be between 1 and 16777215")
+        NumberRange(min=1, max=99999999, message="Invalid lamp ID")
     ])
     
     # Location dropdown - must be from predefined list
@@ -99,18 +101,17 @@ class RegistrationForm(FlaskForm):
     
     def validate_mac_address(self, field):
         """A MAC is required unless a legacy QR card pre-filled arduino_id.
-        On success, resolved_arduino_id holds the ID the lamp will poll with."""
-        from utils.device_id import InvalidDeviceIdentifier, arduino_id_from_mac
+        On success, resolved_arduino_id holds the identifier to store, which
+        is the lamp's MAC as bare hex (or a legacy decimal lamp ID)."""
+        from utils.device_id import InvalidDeviceIdentifier, normalize_device_id
         self.resolved_arduino_id = None
-        if field.data:
-            try:
-                self.resolved_arduino_id = arduino_id_from_mac(field.data)
-            except InvalidDeviceIdentifier as e:
-                raise ValidationError(str(e))
-        elif self.arduino_id.data:
-            self.resolved_arduino_id = int(self.arduino_id.data)
-        else:
+        source = field.data or self.arduino_id.data
+        if not source:
             raise ValidationError("Enter the MAC address shown on your lamp's WiFi setup page")
+        try:
+            self.resolved_arduino_id = normalize_device_id(source)
+        except InvalidDeviceIdentifier as e:
+            raise ValidationError(str(e))
 
     def validate_email(self, field):
         """Custom email validation with additional security checks"""

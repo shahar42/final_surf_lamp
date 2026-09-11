@@ -18,7 +18,7 @@ const LEDDataFetcher = {
 
     /**
      * Initialize LED data fetcher
-     * @param {number} arduinoId - Arduino ID to fetch data for
+     * @param {string} arduinoId - Lamp identifier (its MAC, or a legacy number)
      * @param {string} themeName - Current theme name
      */
     init: function(arduinoId, themeName) {

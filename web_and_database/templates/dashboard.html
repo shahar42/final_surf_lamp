@@ -214,7 +214,9 @@
                 quietTimesEnabled: {{ 'true' if data.user.quiet_times_enabled else 'false' }},
                 preferredOutput: '{{ data.user.preferred_output or "meters" }}',
                 offHoursEnabled: {{ 'true' if off_hours_feature_enabled else 'false' }},
-                arduinoId: {{ data.arduinos[0].arduino_id if data.arduinos else 0 }},
+                {# Quoted: the identifier is the lamp's MAC (text), so emitting
+                   it bare would produce an undefined JS identifier. #}
+                arduinoId: {{ (data.arduinos[0].arduino_id if data.arduinos else '')|tojson }},
                 theme: '{{ data.user.theme }}'
             });
         });

@@ -149,10 +149,14 @@ def make_user(db_session, flask_app):
 
 @pytest.fixture
 def make_arduino(db_session):
+    """Create a lamp. The identifier is stored in its canonical form, so tests
+    may pass a MAC in any notation or a legacy numeric ID as int or str."""
     from data_base import Arduino
+    from utils.device_id import normalize_device_id
 
     def _make(arduino_id, user, location="Sdot Yam", **fields):
-        ard = Arduino(arduino_id=arduino_id, user_id=user.user_id, location=location, **fields)
+        ard = Arduino(arduino_id=normalize_device_id(arduino_id),
+                      user_id=user.user_id, location=location, **fields)
         db_session.add(ard)
         db_session.commit()
         return ard
@@ -160,12 +164,20 @@ def make_arduino(db_session):
     return _make
 
 
+# The default test lamp keeps a legacy numeric identifier, so the common
+# request path ("/api/arduino/v3/14/data") also exercises the lamps already
+# in the field. MAC-identified lamps get their own explicit tests.
+LEGACY_LAMP_ID = "14"
+MAC_LAMP_ID = "a4cf12345678"
+MAC_LAMP_PRINTED = "A4:CF:12:34:56:78"
+
+
 @pytest.fixture
 def lamp(make_location, make_user, make_arduino):
-    """One beach, one owner, one lamp with id 14. Returns (location, user, arduino)."""
+    """One beach, one owner, one legacy lamp. Returns (location, user, arduino)."""
     loc = make_location()
     user = make_user(location=loc.location)
-    ard = make_arduino(14, user, loc.location)
+    ard = make_arduino(LEGACY_LAMP_ID, user, loc.location)
     return loc, user, ard
 
 

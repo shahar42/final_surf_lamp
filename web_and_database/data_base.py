@@ -106,7 +106,7 @@ class ErrorReport(Base):
     username = Column(String(255), nullable=False)
     email = Column(String(255), nullable=False)
     location = Column(String(255), nullable=True)
-    arduino_id = Column(Integer, ForeignKey('arduinos.arduino_id'), nullable=True)
+    arduino_id = Column(String(12), ForeignKey('arduinos.arduino_id'), nullable=True)
     error_description = Column(Text, nullable=False)
     user_agent = Column(Text, nullable=True)
     timestamp = Column(TIMESTAMP, server_default=func.now(), nullable=False)
@@ -140,7 +140,11 @@ class BroadcastDismissal(Base):
 
 class Arduino(Base):
     __tablename__ = 'arduinos'
-    arduino_id = Column(Integer, primary_key=True)
+    # The lamp's MAC as 12 lowercase hex digits ("a4cf12345678"), which is
+    # what the lamp sends in its request URL and what the user pastes at
+    # registration. Legacy pre-MAC lamps keep their decimal ID ("8", "14").
+    # See utils/device_id.py; nothing is derived from this value.
+    arduino_id = Column(String(12), primary_key=True)
     user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
     location = Column(String(255), ForeignKey('locations.location'), nullable=False)
     last_poll_time = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())

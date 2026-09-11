@@ -1,75 +1,89 @@
 """
-Device identity: turning what the user pastes into the Arduino ID the lamp
-uses for every request.
+Device identity: the lamp IS its MAC address.
 
-The lamp derives its ID at boot from the ESP32 eFuse MAC (firmware Config.h,
-getArduinoId): the three device-unique NIC bytes folded into a 24-bit integer.
-The user sees that MAC on the lamp's WiFi setup page and pastes it into the
-registration form; this module performs the SAME fold so the server lands on
-the SAME number the lamp will poll with.
+A lamp's identifier is its factory MAC, stored as 12 bare lowercase hex
+digits ("a4cf12345678") and shown to people with colons
+("A4:CF:12:34:56:78"). The lamp sends that same string in its request URL,
+the user pastes the same address during registration, and the dashboard
+shows it back. Nothing is computed from it anywhere, so there is no second
+implementation that can drift and no chance of two lamps colliding.
 
-Firmware reference (Config.h):
-    uint64_t mac = ESP.getEfuseMac();          // octet 0 in the low byte
-    id = (mac >> 24) & 0xFFFFFF;               // octets 3,4,5 -> id
-    if (id == 0) id = 1;
-
-With the MAC printed as m0:m1:m2:m3:m4:m5 that is
-    id = m3 | (m4 << 8) | (m5 << 16)
-which tests/unit/firmware/test_arduino_id.cpp pins on the firmware side and
-tests/unit/web/test_device_id.py pins here with the same vectors.
+Legacy lamps registered before this change keep their small programmer
+assigned numbers ("8", "14") as their identifier. Those are stored as the
+decimal string and still route, so no lamp in the field needs a visit.
 """
 
 import re
 
-MIN_ARDUINO_ID = 1
-MAX_ARDUINO_ID = 0xFFFFFF  # 16777215, 24 bits
+# 12 hex digits, no separators, lowercase. The stored and on-the-wire form.
+_CANONICAL = re.compile(r"^[0-9a-f]{12}$")
+_SEPARATORS = re.compile(r"[:\-\s.]")
+_HEX12 = re.compile(r"^[0-9A-Fa-f]{12}$")
+_LEGACY_NUMERIC = re.compile(r"^[0-9]{1,8}$")
 
-_MAC_SEPARATORS = re.compile(r"[:\-\s.]")
-_HEX12 = re.compile(r"^[0-9A-F]{12}$")
+# Widest identifier we store: 12 hex digits. The column is sized for this.
+DEVICE_ID_MAX_LENGTH = 12
 
 
 class InvalidDeviceIdentifier(ValueError):
-    """The pasted value is neither a MAC address nor an Arduino ID."""
+    """The value is neither a MAC address nor a legacy numeric lamp ID."""
 
 
-def normalize_mac(value) -> str:
-    """Return the MAC as 'AA:BB:CC:DD:EE:FF', or raise InvalidDeviceIdentifier.
-
-    Accepts the common ways a MAC gets copied: colon, dash, dot or space
-    separated, or 12 bare hex digits, any case, surrounding whitespace.
-    """
-    if value is None:
-        raise InvalidDeviceIdentifier("MAC address is required")
-    raw = _MAC_SEPARATORS.sub("", str(value)).strip().upper()
-    if not _HEX12.match(raw):
-        raise InvalidDeviceIdentifier("MAC address must be 6 pairs of hex digits, e.g. A4:CF:12:34:56:78")
-    return ":".join(raw[i:i + 2] for i in range(0, 12, 2))
+def _strip(value) -> str:
+    return _SEPARATORS.sub("", str(value)).strip()
 
 
-def arduino_id_from_mac(value) -> int:
-    """Fold a MAC into the 24-bit Arduino ID exactly like the firmware does."""
-    octets = [int(part, 16) for part in normalize_mac(value).split(":")]
-    device_id = octets[3] | (octets[4] << 8) | (octets[5] << 16)
-    return device_id if device_id != 0 else 1  # firmware reserves 0 as "unset"
-
-
-def looks_like_mac(value) -> bool:
+def is_mac_form(value) -> bool:
+    """True if the value is 12 hex digits once separators are removed."""
     if value is None:
         return False
-    return bool(_HEX12.match(_MAC_SEPARATORS.sub("", str(value)).strip().upper()))
+    return bool(_HEX12.match(_strip(value)))
 
 
-def parse_device_identifier(value) -> int:
-    """Accept either a pasted MAC address or a numeric Arduino ID (legacy QR
-    cards) and return the Arduino ID. Raises InvalidDeviceIdentifier."""
+def normalize_device_id(value) -> str:
+    """Return the stored form of a device identifier, or raise.
+
+    Accepts a MAC written any of the usual ways (colons, dashes, dots,
+    spaces, bare, any case) and returns 12 lowercase hex digits. Accepts a
+    legacy numeric lamp ID and returns it as a plain decimal string.
+    """
     if value is None or str(value).strip() == "":
-        raise InvalidDeviceIdentifier("Enter the MAC address shown on your lamp's WiFi setup page")
+        raise InvalidDeviceIdentifier(
+            "Enter the MAC address shown on your lamp's WiFi setup page"
+        )
+
     text = str(value).strip()
-    if looks_like_mac(text):
-        return arduino_id_from_mac(text)
-    if text.isdigit():
-        device_id = int(text)
-        if MIN_ARDUINO_ID <= device_id <= MAX_ARDUINO_ID:
-            return device_id
-        raise InvalidDeviceIdentifier(f"Arduino ID must be between {MIN_ARDUINO_ID} and {MAX_ARDUINO_ID}")
-    raise InvalidDeviceIdentifier("Enter the MAC address shown on your lamp's WiFi setup page, e.g. A4:CF:12:34:56:78")
+
+    if is_mac_form(text):
+        return _strip(text).lower()
+
+    # Legacy lamps: a small decimal ID burned into pre-MAC firmware.
+    if _LEGACY_NUMERIC.match(text):
+        number = int(text)
+        if number >= 1:
+            return str(number)  # drop any leading zeros
+        raise InvalidDeviceIdentifier("Lamp ID must be 1 or greater")
+
+    raise InvalidDeviceIdentifier(
+        "Enter the MAC address shown on your lamp's WiFi setup page, "
+        "e.g. A4:CF:12:34:56:78"
+    )
+
+
+def format_device_id(device_id) -> str:
+    """Return the human-readable form shown on screen.
+
+    MACs get their colons back; legacy numeric IDs are shown as-is.
+    """
+    if device_id is None:
+        return ""
+    text = str(device_id)
+    if _CANONICAL.match(text):
+        upper = text.upper()
+        return ":".join(upper[i:i + 2] for i in range(0, 12, 2))
+    return text
+
+
+def is_legacy_numeric_id(device_id) -> bool:
+    """True for a pre-MAC lamp whose identifier is a programmer-assigned number."""
+    return bool(_LEGACY_NUMERIC.match(str(device_id or "")))

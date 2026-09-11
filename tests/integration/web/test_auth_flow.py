@@ -10,7 +10,9 @@ from freezegun import freeze_time
 
 from ..conftest import PASSWORD, flashes
 
-MAX_ID = 16777215
+MAX_LEGACY_ID = 99999999
+MAC_PRINTED = "A4:CF:12:34:56:78"
+MAC_STORED = "a4cf12345678"
 
 
 def registration_form(arduino_id=14, **overrides):
@@ -40,12 +42,12 @@ class TestRegister:
     def test_register_with_mac_creates_user_and_lamp(self, client, db_session):
         from data_base import Arduino, User
 
-        resp = client.post("/register", data=registration_form(arduino_id="", mac_address="A4:CF:12:34:56:78"))
+        resp = client.post("/register", data=registration_form(arduino_id="", mac_address=MAC_PRINTED))
 
         assert resp.status_code == 302 and resp.headers["Location"].endswith("/dashboard")
         user = db_session.query(User).filter_by(email="fan@example.com").one()
         ard = db_session.query(Arduino).filter_by(user_id=user.user_id).one()
-        assert ard.arduino_id == 0x785634  # the ID the lamp derives from that MAC
+        assert ard.arduino_id == MAC_STORED  # stored exactly as pasted, normalized
 
     def test_register_rejects_malformed_mac(self, client, db_session):
         from data_base import User
@@ -75,7 +77,7 @@ class TestRegister:
         assert user.username == "Surf Fan"
         assert user.location == "Sdot Yam"
         assert user.password_hash != PASSWORD
-        ard = db_session.query(Arduino).filter_by(arduino_id=14).one()
+        ard = db_session.query(Arduino).filter_by(arduino_id="14").one()
         assert ard.user_id == user.user_id and ard.location == "Sdot Yam"
         loc = db_session.query(Location).filter_by(location="Sdot Yam").one()
         assert "marine-api.open-meteo.com" in loc.wave_api_url
@@ -85,7 +87,7 @@ class TestRegister:
     def test_register_duplicate_arduino_id_rejected(self, client, lamp, db_session):
         from data_base import User
         before = db_session.query(User).count()
-        resp = client.post("/register", data=registration_form(arduino_id=14, email="second@example.com"))
+        resp = client.post("/register", data=registration_form(arduino_id="14", email="second@example.com"))
         assert resp.status_code == 200  # re-rendered with error
         assert db_session.query(User).count() == before
 
@@ -93,18 +95,23 @@ class TestRegister:
         from data_base import Arduino
         resp = client.post("/register", data=registration_form(arduino_id=77, email=lamp[1].email))
         assert resp.status_code == 200
-        assert db_session.query(Arduino).filter_by(arduino_id=77).first() is None
+        assert db_session.query(Arduino).filter_by(arduino_id="77").first() is None
 
-    def test_register_accepts_24bit_id(self, client, db_session):
+    def test_register_accepts_max_legacy_id(self, client, db_session):
         from data_base import Arduino
-        client.post("/register", data=registration_form(arduino_id=MAX_ID))
-        assert db_session.query(Arduino).filter_by(arduino_id=MAX_ID).one()
+        client.post("/register", data=registration_form(arduino_id=MAX_LEGACY_ID))
+        assert db_session.query(Arduino).filter_by(arduino_id=str(MAX_LEGACY_ID)).one()
 
-    def test_register_rejects_id_over_max(self, client, db_session):
+    def test_register_rejects_legacy_id_over_max(self, client, db_session):
         from data_base import User
-        client.post("/register", data=registration_form(arduino_id=MAX_ID + 1))
+        client.post("/register", data=registration_form(arduino_id=MAX_LEGACY_ID + 1))
         assert db_session.query(User).count() == 0
-        assert any("Arduino Id" in m for m in flashes(client))
+
+    def test_register_mac_is_stored_canonically_whatever_the_notation(self, client, db_session):
+        """Every notation the user might paste lands on one stored row."""
+        from data_base import Arduino
+        client.post("/register", data=registration_form(arduino_id="", mac_address="a4-cf-12-34-56-78"))
+        assert db_session.query(Arduino).filter_by(arduino_id=MAC_STORED).one()
 
     def test_register_rejects_unknown_location(self, client, db_session):
         from data_base import User

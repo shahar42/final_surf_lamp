@@ -36,9 +36,9 @@ def _validate_arduino_id_from_qr(arduino_id_param):
 
     try:
         arduino_id_int = int(arduino_id_param)
-        # Upper bound covers both legacy programmer-assigned IDs (< 1000000)
-        # and MAC-derived 24-bit IDs (up to 16777215) burned in at the factory.
-        if 1 <= arduino_id_int <= 16777215:
+        # Legacy programmer-assigned lamp IDs only. Lamps made since the MAC
+        # change identify themselves by MAC, pasted on the form instead.
+        if 1 <= arduino_id_int <= 99999999:
             return arduino_id_int, None
         return None, 'Invalid QR code. Please scan the QR code from your Surf Lamp box.'
     except (ValueError, TypeError):
@@ -107,7 +107,7 @@ def register():
             name=name,
             email=email,
             password_hash=hashed_password,
-            arduino_id=int(arduino_id),
+            arduino_id=arduino_id,  # already the canonical stored form
             location=location,
             theme=theme,
             units=units,

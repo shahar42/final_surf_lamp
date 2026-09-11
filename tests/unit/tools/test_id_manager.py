@@ -33,7 +33,7 @@ def insert_ids(manager, ids):
                           "VALUES (1, 'm', 'x', 'm@example.com', 'Sdot Yam', 'classic_surf', 'meters', 'surfing', 0, 0, 1, 0.3)"))
         conn.execute(text("INSERT INTO locations (location, wave_api_url, wind_api_url) VALUES ('Sdot Yam', 'w', 'x')"))
         for i in ids:
-            conn.execute(text("INSERT INTO arduinos (arduino_id, user_id, location, request_interval_minutes) VALUES (:i, 1, 'Sdot Yam', 13)"), {"i": i})
+            conn.execute(text("INSERT INTO arduinos (arduino_id, user_id, location, request_interval_minutes) VALUES (:i, 1, 'Sdot Yam', 13)"), {"i": str(i)})
 
 
 @pytest.mark.unit
@@ -72,9 +72,19 @@ class TestIdManager:
         insert_ids(manager, [1, 2, 3])
         assert manager.get_id_statistics()["gaps_exist"] is False
 
-    def test_mac_derived_ids_do_not_break_next_id(self, manager):
-        """A 24-bit MAC-derived lamp in the table pushes 'next sequential' past
-        it; the README already says not to use sequential allocation for those.
-        This just pins that the query still works with large IDs present."""
-        insert_ids(manager, [14, 16777215])
-        assert manager.get_next_available_id() == 16777216
+    def test_mac_identified_lamps_are_ignored(self, manager):
+        """A MAC-identified lamp has no place in a numeric sequence. It must
+        not be counted, and must not distort the next legacy ID."""
+        insert_ids(manager, [14])
+        with manager.engine.begin() as conn:
+            conn.execute(text("INSERT INTO arduinos (arduino_id, user_id, location, request_interval_minutes) "
+                              "VALUES ('a4cf12345678', 1, 'Sdot Yam', 13)"))
+        assert manager.get_next_available_id() == 15
+        assert manager.get_used_ids() == [14]
+        assert manager.get_id_statistics()["total_ids_used"] == 1
+
+    def test_numeric_ids_order_numerically_not_lexically(self, manager):
+        """Sorting in SQL would put "9" above "14" on a text column."""
+        insert_ids(manager, [9, 14])
+        assert manager.get_used_ids() == [14, 9]
+        assert manager.get_next_available_id() == 15

@@ -239,15 +239,19 @@ def sync_redis_to_database():
             logger.info("No Redis timestamps to sync")
             return True
 
-        # Convert string timestamps to datetime objects
+        # Convert string timestamps to datetime objects. Identifiers are
+        # validated here (they originate from lamp request URLs) so only
+        # well-formed IDs reach the query below.
+        from utils.device_id import InvalidDeviceIdentifier, normalize_device_id
+
         arduino_timestamps = {}
         for arduino_id_str, timestamp_str in redis_timestamps.items():
             try:
-                arduino_id = int(arduino_id_str)
+                arduino_id = normalize_device_id(arduino_id_str)
                 timestamp = datetime.fromtimestamp(float(timestamp_str), timezone.utc)
                 arduino_timestamps[arduino_id] = timestamp
-            except (ValueError, TypeError) as e:
-                logger.warning(f"Invalid timestamp for Arduino {arduino_id_str}: {e}")
+            except (InvalidDeviceIdentifier, ValueError, TypeError) as e:
+                logger.warning(f"Invalid heartbeat entry for Arduino {arduino_id_str}: {e}")
 
         if not arduino_timestamps:
             logger.info("No valid timestamps to sync")
@@ -274,30 +278,34 @@ def sync_redis_to_database():
             for i in range(0, len(arduino_items), batch_size):
                 batch = arduino_items[i:i + batch_size]
 
-                # Build VALUES clause for bulk update
-                # Format: (arduino_id, 'timestamp_iso')
-                values = []
-                for arduino_id, timestamp in batch:
-                    # Escape single quotes in timestamp to prevent SQL injection
-                    ts_iso = timestamp.isoformat().replace("'", "''")
-                    values.append(f"({arduino_id}, '{ts_iso}')")
+                # Build the VALUES clause with BOUND PARAMETERS, never string
+                # interpolation: arduino_id is now a text identifier that came
+                # from a lamp's request URL, so interpolating it would be an
+                # injection vector. Explicit casts let Postgres type the
+                # parameters inside a VALUES list.
+                params = {}
+                tuples = []
+                for n, (arduino_id, timestamp) in enumerate(batch):
+                    params[f"id{n}"] = arduino_id
+                    params[f"ts{n}"] = timestamp
+                    tuples.append(f"(CAST(:id{n} AS text), CAST(:ts{n} AS timestamptz))")
 
-                if not values:
+                if not tuples:
                     continue
 
-                values_clause = ', '.join(values)
+                values_clause = ', '.join(tuples)
 
                 # Single UPDATE query for entire batch
                 # Only updates if new timestamp is newer than existing
                 query = text(f"""
                     UPDATE arduinos AS a
-                    SET last_poll_time = v.ts::timestamptz
+                    SET last_poll_time = v.ts
                     FROM (VALUES {values_clause}) AS v(id, ts)
-                    WHERE a.arduino_id = v.id::integer
-                      AND (a.last_poll_time IS NULL OR v.ts::timestamptz > a.last_poll_time)
+                    WHERE a.arduino_id = v.id
+                      AND (a.last_poll_time IS NULL OR v.ts > a.last_poll_time)
                 """)
 
-                result = db.execute(query)
+                result = db.execute(query, params)
                 total_updated += result.rowcount
                 db.commit()
 

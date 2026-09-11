@@ -79,13 +79,13 @@ class TestCallback:
 
         redis_manager.redis_client = None                              # REDIS_URL unset -> no client
         monkeypatch.setattr(redis_manager.random, "random", lambda: 0.0)  # sampling gate always passes
-        old = db_session.query(Arduino).filter_by(arduino_id=14).one().last_poll_time
+        old = db_session.query(Arduino).filter_by(arduino_id="14").one().last_poll_time
 
         resp = client.post("/api/arduino/callback", json={"arduino_id": 14}, headers=LAMP_UA)
 
         assert resp.status_code == 200, resp.get_json()
         db_session.expire_all()
-        assert db_session.query(Arduino).filter_by(arduino_id=14).one().last_poll_time >= old
+        assert db_session.query(Arduino).filter_by(arduino_id="14").one().last_poll_time >= old
         health = db_session.query(RedisHealth).filter_by(service_name="web-service").one()
         assert health.consecutive_failures == 1
         assert health.is_healthy is True   # unhealthy only after 3 consecutive failures
@@ -102,7 +102,7 @@ class TestCallback:
 class TestStatusOverview:
     def test_status_overview_merges_redis_timestamps(self, client, lamp, fake_redis, db_session):
         from data_base import Arduino
-        ard = db_session.query(Arduino).filter_by(arduino_id=14).one()
+        ard = db_session.query(Arduino).filter_by(arduino_id="14").one()
         ard.last_poll_time = datetime(2026, 1, 1, 0, 0, 0)
         db_session.commit()
 
@@ -112,12 +112,12 @@ class TestStatusOverview:
         body = client.get("/api/arduino/status").get_json()
         assert body["arduino_count"] == 1
         device = body["devices"][0]
-        assert device["arduino_id"] == 14
+        assert device["arduino_id"] == "14"
         assert device["last_poll_time"].startswith("2026-01-15T10:00:00")
 
     def test_status_overview_keeps_db_time_when_redis_older(self, client, lamp, fake_redis, db_session):
         from data_base import Arduino
-        ard = db_session.query(Arduino).filter_by(arduino_id=14).one()
+        ard = db_session.query(Arduino).filter_by(arduino_id="14").one()
         ard.last_poll_time = datetime(2026, 1, 15, 12, 0, 0)
         db_session.commit()
         fake_redis.hset("arduino:last_seen", "14", datetime(2026, 1, 1, tzinfo=timezone.utc).timestamp())

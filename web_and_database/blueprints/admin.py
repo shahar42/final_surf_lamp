@@ -299,9 +299,11 @@ def arduino_status_api():
                 'last_value_change': location.last_value_change.isoformat() if hasattr(location, 'last_value_change') and location.last_value_change else None
             })
 
-        # Sort by status priority, then by arduino ID
+        # Sort by status priority, then by arduino ID. The ID is a string
+        # (the lamp's MAC, or a legacy decimal), so sort on the text rather
+        # than negating a number.
         status_priority = {'active': 0, 'stale': 1, 'offline': 2, 'never': 3}
-        devices.sort(key=lambda x: (status_priority[x['status']], -x['arduino_id']))
+        devices.sort(key=lambda x: (status_priority[x['status']], str(x['arduino_id'])))
 
         return jsonify({
             'success': True,
