@@ -16,6 +16,14 @@ const Jellyfish = (function() {
     const ORAL_ARMS = 3;
     const SEGMENTS = 12;
 
+    // Jellyfish swim in the side strips, never across the lamp.
+    // The drawn surfboard (opaque part of annimaiton_lamp.png) covers ~37%
+    // of the lamp canvas width; 40% leaves a little slack.
+    const LAMP_BOARD_RATIO = 0.4;
+    const LAMP_MARGIN = 8;
+    // Widest possible bell half-width plus sway, so no part crosses the edge
+    const EDGE_PAD = SIZE * (1 + SIZE_VARIATION) * 0.65 / 2 + 4;
+
     let canvas, ctx;
     let width = 0, height = 0;
     let jellies = [];
@@ -71,14 +79,42 @@ const Jellyfish = (function() {
         canvas.width = Math.round(width * dpr);
         canvas.height = Math.round(height * dpr);
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        jellies.forEach((j, i) => {
+            j.zone = zoneFor(i);
+            j.x = clamp(j.x, j.zone.min, j.zone.max);
+        });
+    }
+
+    /**
+     * Horizontal strip a jellyfish may use: left of the lamp for even
+     * indexes, right of it for odd ones. Falls back to the full width if
+     * the screen is too narrow for a strip.
+     */
+    function zoneFor(index) {
+        const lamp = document.getElementById('surfboardCanvas');
+        const rect = lamp ? lamp.getBoundingClientRect() : null;
+        const full = { min: EDGE_PAD, max: width - EDGE_PAD };
+        if (!rect || !rect.width) return full;
+
+        const center = rect.left + rect.width / 2;
+        const halfBoard = (rect.width * LAMP_BOARD_RATIO) / 2 + LAMP_MARGIN;
+        const zone = index % 2 === 0
+            ? { min: EDGE_PAD, max: center - halfBoard - EDGE_PAD }
+            : { min: center + halfBoard + EDGE_PAD, max: width - EDGE_PAD };
+        return zone.max > zone.min ? zone : full;
+    }
+
+    function clamp(value, min, max) {
+        return Math.min(Math.max(value, min), max);
     }
 
     function createJelly(index, initial) {
         const size = SIZE * (1 + (Math.random() * 2 - 1) * SIZE_VARIATION);
-        // Spread across the width in lanes so they don't bunch up
-        const lane = (index + 0.5 + (Math.random() - 0.5) * 0.6) / COUNT;
+        const zone = zoneFor(index);
         return {
-            x: width * lane,
+            zone,
+            x: zone.min + Math.random() * (zone.max - zone.min),
             y: initial ? Math.random() * height : height + size,
             size,
             bellWidth: size * 0.65,
@@ -119,7 +155,7 @@ const Jellyfish = (function() {
         j.y -= j.speed * (0.4 + 1.2 * contraction) * dt;
 
         const sway = Math.sin(elapsed * 0.3 + j.swayPhase);
-        j.x += sway * 4 * dt;
+        j.x = clamp(j.x + sway * 4 * dt, j.zone.min, j.zone.max);
         j.tilt = sway * 0.15;
     }
 
