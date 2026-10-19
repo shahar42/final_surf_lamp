@@ -115,6 +115,9 @@
     {% endif %}
     {% endwith %}
 
+    <!-- Jellyfish background (mobile Lamp tab only, shown by dashboard.css) -->
+    <canvas id="jellyfishCanvas" aria-hidden="true"></canvas>
+
     <!-- LED Underlayer Control Panel (Development Tool) -->
     {% include 'partials/underlayer_control_panel.html' %}
 
@@ -195,6 +198,7 @@
     <script defer src="{{ url_for('static', filename='js/features/broadcasts.js') }}"></script>
     <script defer src="{{ url_for('static', filename='js/features/arduino-management.js') }}"></script>
     <script defer src="{{ url_for('static', filename='js/features/mobile-tabs.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/features/jellyfish.js') }}"></script>
 
     <!-- LED Visualization -->
     <script defer src="{{ url_for('static', filename='js/led-visualization/core.js') }}"></script>
