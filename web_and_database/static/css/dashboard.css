@@ -431,4 +431,71 @@ select {
     .border-white\/20 {
         border-color: rgba(255, 255, 255, 0.1);
     }
+
+    /* ===================================
+       LEGAL FOOTER (Mobile)
+       The fixed bottom nav is translucent, so a footer sitting under it
+       bleeds through on every tab. Show it only on the More tab, and pad
+       it clear of the nav + iPhone home indicator. Scoped to pages with
+       the bottom nav (login.html also loads this stylesheet).
+       ================================== */
+    body:has(#mobileBottomNav):not(:has(.dashboard-section[data-tab="more"].tab-active)) > .legal-footer {
+        display: none;
+    }
+
+    body:has(#mobileBottomNav) > .legal-footer {
+        padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+    }
+
+    /* The footer now provides the nav clearance on the More tab */
+    .dashboard-section[data-tab="more"].tab-active {
+        padding-bottom: 1rem;
+    }
+
+    /* ===================================
+       LIGHT TAB CONSISTENCY (Mobile)
+       ================================== */
+    /* Quiet Hours title matches the other uppercase section headers */
+    .quiet-hours-label {
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-cream) !important;
+    }
+
+    /* Status indicators (Quiet Hours, Sleep Mode) share one pill shape.
+       Colors stay owned by the template/JS state classes. */
+    .status-pill {
+        display: inline-block;
+        min-width: 7.5rem;
+        padding: 0.5rem 1rem !important;
+        border-radius: 0.75rem !important;
+        text-align: center;
+        margin-left: 0 !important;
+    }
+
+    #sleepModeStatus.text-white\/30 {
+        color: rgba(255, 255, 255, 0.5);
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Customize is an action, not a status: outlined so it doesn't read
+       like the filled "Turned On" pill next to it */
+    .dashboard-section .theme-customize-btn {
+        background-color: transparent !important;
+        border-color: rgba(96, 165, 250, 0.6) !important;
+        color: #60a5fa !important;
+        box-shadow: none !important;
+    }
+
+    /* ===================================
+       LINKED LAMPS (Mobile)
+       ================================== */
+    .lamp-id {
+        color: rgba(255, 255, 255, 0.6) !important;
+    }
+
+    .lamp-id::before {
+        content: "ID ";
+        opacity: 0.6;
+    }
 }

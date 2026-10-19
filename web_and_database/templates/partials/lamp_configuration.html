@@ -96,7 +96,7 @@
                         {% for arduino in data.arduinos %}
                         <div
                             class="flex justify-between items-center bg-white/5 rounded-xl px-4 py-3 text-sm border border-white/5">
-                            <span class="text-white/40 font-mono text-xs">{{ arduino.display_id }}</span>
+                            <span class="lamp-id text-white/40 font-mono text-xs">{{ arduino.display_id }}</span>
                             <span class="font-semibold">{{ arduino.location.replace(', Israel', '') }}</span>
                         </div>
                         {% endfor %}
