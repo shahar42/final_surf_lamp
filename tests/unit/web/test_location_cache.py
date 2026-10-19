@@ -193,6 +193,15 @@ class TestLocationBinaryCache:
         assert data["wind_direction_deg"] == 0
         assert data["data_available"] is False
 
+    def test_light_wind_keeps_its_fraction(self, fake_redis):
+        # 0.46 m/s used to be rounded to 0, leaving the wind strip dark
+        redis_manager.redis_client = fake_redis
+        loc = make_location(wind_speed_mps=0.4567)
+
+        data, _ = location_cache.get_cached_location_binary("Beach", loc, 1.0, 10, False, False)
+
+        assert data["wind_speed_mps"] == 0.46
+
     def test_get_location_stats_strips_prefix(self, fake_redis):
         redis_manager.redis_client = fake_redis
         loc = make_location()

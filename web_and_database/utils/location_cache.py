@@ -28,7 +28,7 @@ def _build_location_conditions(location_obj) -> Dict[str, Any]:
     return {
         'wave_period_s': int(location_obj.wave_period_s or 0),
         'wave_height_cm': int(round((location_obj.wave_height_m or 0) * 100)),
-        'wind_speed_mps': int(round(location_obj.wind_speed_mps or 0)),
+        'wind_speed_mps': round(location_obj.wind_speed_mps or 0, 2),
         'wind_direction_deg': location_obj.wind_direction_deg or 0,
         'stale_data_warning': (getattr(location_obj, 'consecutive_identical_updates', 0) or 0) > STALE_DATA_THRESHOLD,
         'data_available': bool(location_obj.wave_height_m or location_obj.wind_speed_mps),

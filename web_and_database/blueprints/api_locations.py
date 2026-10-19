@@ -69,7 +69,7 @@ def get_location_conditions(location):
                 'location': location,
                 'wave_height_cm': int(round((location_data.wave_height_m or 0) * 100)),
                 'wave_period_s': location_data.wave_period_s or 0.0,
-                'wind_speed_mps': int(round(location_data.wind_speed_mps or 0)),
+                'wind_speed_mps': round(location_data.wind_speed_mps or 0, 2),
                 'wind_direction_deg': location_data.wind_direction_deg or 0,
                 'sunset_animation': sunset_info['sunset_trigger'],
                 'day_of_year': sunset_info['day_of_year'],

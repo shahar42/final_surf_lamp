@@ -214,7 +214,7 @@ def build_surf_data_v1_response(qr: ArduinoQueryResult, sunset_info, effective_w
     return {
         'wave_height_cm': int(round(qr.wave_height_m * 100)),
         'wave_period_s': qr.wave_period_s,
-        'wind_speed_mps': int(round(qr.wind_speed_mps)),
+        'wind_speed_mps': round(qr.wind_speed_mps, 2),
         'wind_direction_deg': qr.wind_direction_deg,
         'wave_threshold_cm': int(effective_wave_threshold_m * 100),
         'wind_speed_threshold_knots': int(round(effective_wind_threshold_knots)),
@@ -238,7 +238,7 @@ def build_surf_data_v2_response(qr: ArduinoQueryResult, location_data, tz_offset
         'tz_offset': tz_offset,
         'wave_height_cm': int(round(qr.wave_height_m * 100)),
         'wave_period_s': qr.wave_period_s,
-        'wind_speed_mps': int(round(qr.wind_speed_mps)),
+        'wind_speed_mps': round(qr.wind_speed_mps, 2),
         'wind_direction_deg': qr.wind_direction_deg,
         'wave_threshold_cm': int(effective_wave_threshold_m * 100),
         'wind_speed_threshold_knots': int(round(effective_wind_threshold_knots)),
