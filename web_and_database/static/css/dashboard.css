@@ -305,6 +305,12 @@ select {
    ================================== */
 
 @media (max-width: 1023px) {
+    /* The body background is gradient images only; give the canvas a solid
+       ocean color so the cross-fade between tabs never reveals white */
+    html {
+        background-color: var(--gradient-start);
+    }
+
     /* Isolate the bottom nav so it doesn't slide with the content */
     #mobileBottomNav {
         view-transition-name: bottom-nav;
@@ -372,7 +378,7 @@ select {
     .dashboard-section[data-tab="lamp"].tab-active {
         min-height: calc(100vh - 140px);
         padding-top: 2rem;
-        padding-bottom: 2rem;
+        padding-bottom: 7rem; /* Space for bottom nav */
         overflow-y: auto;
     }
 
