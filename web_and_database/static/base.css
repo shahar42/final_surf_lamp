@@ -14,16 +14,18 @@
  */
 
 :root {
-    /* Main background gradient - Deep Ocean to Tropical Shallows */
-    --gradient-start: #01151d;  /* Darker Deep Ocean */
-    --gradient-end: #022b36;    /* Darker/More Subtle Turquoise */
+    /* Main background gradient - lit surface (top) down to the deep (bottom).
+       --gradient-start is the top color; theme-color-sync.js uses it for
+       the status bar. */
+    --gradient-start: #022b36;  /* Darker/More Subtle Turquoise */
+    --gradient-end: #01151d;    /* Darker Deep Ocean */
     --gradient-angle: 135deg;
 
     /* Underwater atmosphere controls */
     --grain-opacity: 0.045;     /* Film grain texture (4.5%) */
     --vignette-intensity: 0.06; /* Edge darkening (5-8%) */
-    --top-darkness: 0.5;        /* Top darker zone (deeper water) */
-    --bottom-warmth: 0.1;       /* Bottom warmer glow (subtle) */
+    --deep-darkness: 0.5;       /* Bottom darker zone (deeper water) */
+    --surface-glow: 0.1;        /* Top warmer glow (subtle) */
 
     /* Surfboard spatial depth (gives weight without halos) */
     --surfboard-shadow: 0;      /* Very subtle drop shadow (0-40%) */
@@ -68,16 +70,16 @@ body {
             rgba(0, 0, 0, 0) 50%,
             rgba(0, 0, 0, var(--vignette-intensity)) 100%
         ),
-        /* Layer 2: Top darker zone (deeper water) */
-        linear-gradient(
-            180deg,
-            rgba(1, 15, 20, var(--top-darkness)) 0%,
-            rgba(1, 15, 20, 0) 30%
-        ),
-        /* Layer 3: Bottom warmer glow (sunlight from surface) */
+        /* Layer 2: Bottom darker zone (deeper water) */
         linear-gradient(
             0deg,
-            rgba(8, 83, 101, var(--bottom-warmth)) 0%,
+            rgba(1, 15, 20, var(--deep-darkness)) 0%,
+            rgba(1, 15, 20, 0) 30%
+        ),
+        /* Layer 3: Top warmer glow (sunlight from surface) */
+        linear-gradient(
+            180deg,
+            rgba(8, 83, 101, var(--surface-glow)) 0%,
             rgba(8, 83, 101, 0) 40%
         ),
         /* Layer 4: Main gradient */
