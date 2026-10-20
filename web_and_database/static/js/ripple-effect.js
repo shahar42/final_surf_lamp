@@ -44,8 +44,11 @@ class RippleEffect {
             }
 
             // Add ripple container class and ensure positioning
+            // (only static elements need it; absolute/fixed ones already contain the ripple)
             element.classList.add('ripple-container');
-            element.style.position = 'relative';
+            if (getComputedStyle(element).position === 'static') {
+                element.style.position = 'relative';
+            }
             element.style.overflow = 'hidden';
 
             // Add click event listener with deduplication
