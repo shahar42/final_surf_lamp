@@ -109,6 +109,10 @@ def add_arduino():
     else:
         return jsonify({'success': False, 'message': message}), 400
 
+def _linked_lamps_feature_enabled():
+    """Linked Lamps (multi-lamp linking) section on the dashboard; off until it ships."""
+    return os.getenv('LINKED_LAMPS_FEATURE_ENABLED', 'false').lower() == 'true'
+
 @bp.route("/dashboard")
 @login_required
 def dashboard():
@@ -124,7 +128,7 @@ def dashboard():
 
     off_hours_feature_enabled = os.getenv('OFF_HOURS_FEATURE_ENABLED', 'false').lower() == 'true'
 
-    return render_template('dashboard.html', data=dashboard_data, locations=SURF_LOCATIONS, off_hours_feature_enabled=off_hours_feature_enabled, brightness_levels=BRIGHTNESS_LEVELS)
+    return render_template('dashboard.html', data=dashboard_data, locations=SURF_LOCATIONS, off_hours_feature_enabled=off_hours_feature_enabled, linked_lamps_feature_enabled=_linked_lamps_feature_enabled(), brightness_levels=BRIGHTNESS_LEVELS)
 
 @bp.route("/dashboard/<view_type>")
 @login_required
@@ -139,7 +143,7 @@ def dashboard_view(view_type):
         flash('Error loading your data. Please contact support.', 'error')
         return redirect(url_for('auth.login'))
 
-    return render_template('dashboard.html', data=dashboard_data, locations=SURF_LOCATIONS, brightness_levels=BRIGHTNESS_LEVELS)
+    return render_template('dashboard.html', data=dashboard_data, locations=SURF_LOCATIONS, linked_lamps_feature_enabled=_linked_lamps_feature_enabled(), brightness_levels=BRIGHTNESS_LEVELS)
 
 @bp.route("/themes")
 @login_required

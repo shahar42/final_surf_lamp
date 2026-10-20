@@ -86,12 +86,23 @@ class TestDashboardPage:
         resp = client.get("/dashboard")
         assert resp.status_code == 302 and resp.headers["Location"].endswith("/login")
 
-    def test_dashboard_renders_for_user(self, client, lamp, login):
+    def test_dashboard_renders_for_user(self, client, lamp, login, monkeypatch):
+        monkeypatch.setenv("LINKED_LAMPS_FEATURE_ENABLED", "true")
         login(lamp[1])
         resp = client.get("/dashboard", headers=BROWSER_UA)
         assert resp.status_code == 200
         assert b"Sdot Yam" in resp.data          # user's location rendered
         assert b">14<" in resp.data              # linked lamp listed by its identifier
+
+    def test_linked_lamps_hidden_by_default(self, client, lamp, login, monkeypatch):
+        """Linked Lamps stays in code for future multi-lamp linking but is off
+        unless LINKED_LAMPS_FEATURE_ENABLED is set."""
+        monkeypatch.delenv("LINKED_LAMPS_FEATURE_ENABLED", raising=False)
+        login(lamp[1])
+        resp = client.get("/dashboard", headers=BROWSER_UA)
+        assert resp.status_code == 200
+        assert b"Linked Lamps" not in resp.data
+        assert b'id="showAddArduinoBtn"' not in resp.data
 
     def test_dashboard_data_shows_fresh_conditions(self, lamp, flask_app):
         from blueprints.dashboard import _build_dashboard_data
@@ -113,9 +124,10 @@ class TestDashboardPage:
             data, _ = _build_dashboard_data(user.email)
         assert data["conditions"] is None
 
-    def test_dashboard_shows_the_mac_not_an_opaque_number(self, make_location, make_user, make_arduino, client, login):
+    def test_dashboard_shows_the_mac_not_an_opaque_number(self, make_location, make_user, make_arduino, client, login, monkeypatch):
         """A MAC-identified lamp is listed by the address printed on its WiFi
         setup page, which is the only identifier the user has ever seen."""
+        monkeypatch.setenv("LINKED_LAMPS_FEATURE_ENABLED", "true")
         loc = make_location()
         user = make_user(location=loc.location)
         make_arduino("A4:CF:12:34:56:78", user, loc.location)
