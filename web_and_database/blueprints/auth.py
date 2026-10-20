@@ -121,7 +121,6 @@ def register():
             session['username'] = user_data['username']
             logger.info(f"✅ Auto-login after registration: {user_data['username']} ({user_data['email']})")
             flash(message, 'success_short')
-            flash('For WiFi setup, open Quick Actions', 'info')
             return redirect(url_for('dashboard.dashboard'))
         else:
             flash(message, 'error')
