@@ -1,3 +1,4 @@
+{% from 'macros/password_field.html' import password_field %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -110,16 +111,7 @@
             </div>
 
             <!-- Password Field -->
-            <div>
-                {{ form.password(class="form-input w-full px-4 py-3 rounded-lg" + (" error" if form.password.errors else ""), placeholder="Password") }}
-                {% if form.password.errors %}
-                    <div class="field-error">
-                        {% for error in form.password.errors %}
-                            <div>• {{ error }}</div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            </div>
+            {{ password_field(form.password) }}
 
             <!-- Remember Me Checkbox -->
             <div class="flex items-center">
